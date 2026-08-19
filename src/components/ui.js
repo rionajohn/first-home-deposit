@@ -509,16 +509,27 @@ export function progressBarHTML({ fillPct, markerPct, label }) {
 
 /**
  * Content / Milestone tracker (frames 15, 16): a vertical stack of
- * milestones, each either 'complete' (filled star) or 'locked' (greyed
- * circle). `milestones` is `[{ title, body, state }]`.
+ * milestones, each in one of three states, confirmed against the reference
+ * PNGs (not two, as first assumed): 'done' (dark filled circle, white star
+ * — a milestone from earlier in the journey), 'current' (light circle,
+ * solid grey border, dark star — the milestone just reached; frame 15's
+ * "Deposit goal set" and frame 16's "Mortgage in Principle" both render
+ * this way, never 'done'), and 'locked' (dashed circle, faint star,
+ * secondary-coloured text). `milestones` is `[{ title, body, state }]`.
  */
+const MILESTONE_ICON = {
+  done: 'milestone-done.svg',
+  current: 'milestone-current.svg',
+  locked: 'milestone-locked.svg',
+};
+
 export function milestoneTrackerHTML(milestones) {
   return `
     <div class="milestone-tracker">
       ${milestones.map((m, i) => `
         ${i > 0 ? '<div class="milestone-row__divider"></div>' : ''}
         ${m.action ? `<button type="button" class="milestone-row milestone-row--${m.state}" data-action="${m.action}">` : `<div class="milestone-row milestone-row--${m.state}">`}
-          <img class="milestone-row__icon" src="assets/icons/${m.state === 'complete' ? 'goal-star.svg' : 'goal-star-locked.svg'}" alt="" width="32" height="32" />
+          <img class="milestone-row__icon" src="assets/icons/${MILESTONE_ICON[m.state]}" alt="" width="32" height="32" />
           <div class="milestone-row__content">
             <p class="milestone-row__title">${m.title}</p>
             <p class="milestone-row__body">${m.body}</p>

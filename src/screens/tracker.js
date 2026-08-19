@@ -89,13 +89,22 @@ export function render(container, ctx) {
 
   const onTrack = onTrackFor(state);
 
+  // Three icon states, confirmed against the reference PNGs: every earlier
+  // milestone is 'done' (dark filled star), the milestone just reached is
+  // 'current' (light circle, solid border), and anything beyond that is
+  // 'locked' (dashed circle) — never a flat complete/locked split. Frame 15
+  // (below-checkpoint) puts "Deposit goal set" at 'current' and "Mortgage in
+  // Principle" at 'locked'; frame 16 (checkpoint-reached) promotes "Deposit
+  // goal set" to 'done' and "Mortgage in Principle" to 'current'.
+  const milestoneStates = unlocked ? ['done', 'done', 'done', 'current'] : ['done', 'done', 'current', 'locked'];
+
   const milestones = [
-    { title: c.accountsLinkedTitle, body: c.accountsLinkedBody, state: 'complete' },
-    { title: c.accountsSortedTitle, body: fill(c.accountsSortedBodyTemplate, { amount: formatCurrency(savedTowardDeposit) }), state: 'complete' },
-    { title: c.goalSetTitle, body: fill(c.goalSetBodyTemplate, { target: formatCurrency(depositTargetValue), pct: formatPercent(depositPct, 0), property: formatCurrency(propertyValue) }), state: 'complete' },
+    { title: c.accountsLinkedTitle, body: c.accountsLinkedBody, state: milestoneStates[0] },
+    { title: c.accountsSortedTitle, body: fill(c.accountsSortedBodyTemplate, { amount: formatCurrency(savedTowardDeposit) }), state: milestoneStates[1] },
+    { title: c.goalSetTitle, body: fill(c.goalSetBodyTemplate, { target: formatCurrency(depositTargetValue), pct: formatPercent(depositPct, 0), property: formatCurrency(propertyValue) }), state: milestoneStates[2] },
     unlocked
-      ? { title: c.mipTitle, body: c.mipUnlockedBody, state: 'complete' }
-      : { title: c.mipTitle, body: fill(c.mipLockedBodyTemplate, { checkpoint: formatCurrency(checkpointAmountValue), gap: formatCurrency(gap.value) }), state: 'locked', action: 'locked-row-noop' },
+      ? { title: c.mipTitle, body: c.mipUnlockedBody, state: milestoneStates[3] }
+      : { title: c.mipTitle, body: fill(c.mipLockedBodyTemplate, { checkpoint: formatCurrency(checkpointAmountValue), gap: formatCurrency(gap.value) }), state: milestoneStates[3], action: 'locked-row-noop' },
   ];
 
   const bodyText = variant === 'below-checkpoint'
