@@ -10,7 +10,8 @@
  * and "05 Mortgage in Principle" (/mip, /mip/about, /mip/pre-check,
  * /mip/running, /mip/result/likely, /mip/result/not-yet, and /mip/adviser —
  * the new screen SPEC.md adds outside the reference set, see DECISIONS.md
- * D8/D10).
+ * D8/D10), and "06 Assumptions and sources" (/assumptions/saving,
+ * /assumptions/deposit, /assumptions/borrowing, /assumptions/sources).
  */
 
 import { registerRoute, startRouter } from './router.js';
@@ -37,6 +38,10 @@ import { render as renderMipRunning } from './screens/mip-running.js';
 import { render as renderMipResultLikely } from './screens/mip-result-likely.js';
 import { render as renderMipResultNotYet } from './screens/mip-result-not-yet.js';
 import { render as renderMipAdviser } from './screens/mip-adviser.js';
+import { render as renderAssumptionsSaving } from './screens/assumptions-saving.js';
+import { render as renderAssumptionsDeposit } from './screens/assumptions-deposit.js';
+import { render as renderAssumptionsBorrowing } from './screens/assumptions-borrowing.js';
+import { render as renderAssumptionsSources } from './screens/assumptions-sources.js';
 
 registerRoute('/home', renderHome);
 registerRoute('/journey', renderJourney);
@@ -61,5 +66,9 @@ registerRoute('/mip/running', renderMipRunning);
 registerRoute('/mip/result/likely', renderMipResultLikely);
 registerRoute('/mip/result/not-yet', renderMipResultNotYet);
 registerRoute('/mip/adviser', renderMipAdviser);
+registerRoute('/assumptions/saving', renderAssumptionsSaving);
+registerRoute('/assumptions/deposit', renderAssumptionsDeposit);
+registerRoute('/assumptions/borrowing', renderAssumptionsBorrowing);
+registerRoute('/assumptions/sources', renderAssumptionsSources);
 
 startRouter();

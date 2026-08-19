@@ -685,6 +685,28 @@ export function nextStepsCardHTML({ title, steps }) {
 }
 
 /**
+ * Sheet header (frames 29, 30, 31, 32): a centred drag handle with a
+ * circular close button at the top right — distinct from every earlier
+ * sheet (03b, 10c, 13b), which dismiss only via the scrim or a labelled
+ * button and draw no close glyph in their reference PNGs. Introduced here
+ * rather than duplicated four times because all four "Assumptions and
+ * sources" sheets draw this exact header. `data-action="dismiss"` matches
+ * the action name every other sheet already binds its scrim/button dismiss
+ * handlers to, so one querySelectorAll('[data-action="dismiss"]') wires the
+ * scrim, this button, and any other dismiss control together.
+ */
+export function sheetHeaderHTML({ closeLabel }) {
+  return `
+    <div class="bottom-sheet__header">
+      <div class="bottom-sheet__drag-handle-bar"></div>
+      <button type="button" class="bottom-sheet__close" data-action="dismiss" aria-label="${closeLabel}">
+        <img src="assets/icons/close.svg" alt="" width="16" height="16" />
+      </button>
+    </div>
+  `;
+}
+
+/**
  * Content / Processing state (frame 19b): a spinner, a title, a body line
  * and a tertiary caption, centred inside a bordered card. The spinner is a
  * pure-CSS rotating ring (no animated asset) — see components.css's

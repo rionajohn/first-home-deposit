@@ -289,6 +289,38 @@
   background: var(--color-border-subtle);
 }
 
+/* Sheet header (frames 29, 30, 31, 32 — see ui.js's sheetHeaderHTML): the
+   same centred drag-handle bar as .bottom-sheet__drag-handle, plus a
+   circular close button pinned to the top right. Used in place of
+   .bottom-sheet__drag-handle on sheets that draw a close glyph. */
+.bottom-sheet__header {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: var(--space-md);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.bottom-sheet__close {
+  position: absolute;
+  top: 50%;
+  right: var(--space-lg);
+  transform: translateY(-50%);
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  padding: 0;
+}
+
 .bottom-sheet__content {
   flex: 1 1 auto;
   min-height: 0;
@@ -1306,3 +1338,118 @@
 /* Frame 20/21's Content / Range figure and figure-row rows sit directly
    inside .screen-content — no extra wrapper class needed beyond the shared
    rangeFigureHTML/figureRowHTML components. */
+
+/* ============================================================ */
+/* /assumptions/saving, /assumptions/deposit,                    */
+/* /assumptions/borrowing, /assumptions/sources                  */
+/* — frames 29, 30, 31, 32                                       */
+/* ============================================================ */
+
+/* Wraps each figureRowHTML list (the "What we assumed" / "What these
+   figures don't include" / "What we can't see" groups) so figure-row's own
+   :last-child border-removal scopes to that group rather than the whole
+   sheet — a heading between two groups would otherwise sit between the
+   last row of one list and the first of the next with no divider gap. */
+.assumptions-list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Frame 32's "Comprehension / Data source row": a bold primary-coloured
+   label (heavier than figure-row's own regular-weight label, since this
+   row's label is itself the headline, not a caption), a plain value line,
+   and a secondary caption — built locally in assumptions-sources.js since
+   only that one screen uses it (SPEC.md: components are only centralised
+   once 2+ screens share a pattern). */
+.data-source-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  box-sizing: border-box;
+}
+
+.data-source-row:last-child {
+  border-bottom: none;
+}
+
+.data-source-row__label {
+  margin: 0;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.data-source-row__value {
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label);
+}
+
+.data-source-row__caption {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  color: var(--color-label-secondary);
+}
+
+/* Frame 32's "Connect another bank through open banking" row: title +
+   caption on the left, a trailing arrow glyph on the right (Figma draws a
+   literal "→" character, not a chevron icon). A stub — build-spec.md
+   section 1 marks it "Out of prototype scope", so it's tappable but goes
+   nowhere further than the same exit /home already gives every other
+   out-of-scope branch (see assumptions-sources.js). */
+.open-banking-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  box-sizing: border-box;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.open-banking-row__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.open-banking-row__title {
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 500;
+  color: var(--color-label);
+}
+
+.open-banking-row__caption {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  color: var(--color-label-secondary);
+}
+
+.open-banking-row__arrow {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: 16px;
+  color: var(--color-label-secondary);
+}

@@ -97,3 +97,14 @@ export function formatMonthYear(monthsFromNow, fromDate) {
 export function formatMonthYearRange(lowMonths, highMonths, fromDate) {
   return `${formatMonthYear(lowMonths, fromDate)} to ${formatMonthYear(highMonths, fromDate)}`;
 }
+
+/**
+ * "D Month YYYY" (frames 29/30/31's "as at" footer captions — DECISIONS.md
+ * D3: these read RATES.asAt rather than a hand-typed date, so the figure on
+ * screen can't drift from the rate the model actually used). Takes the date
+ * string as a parameter rather than `new Date()` for the same reason
+ * formatMonthYear does.
+ */
+export function formatFullDate(dateString) {
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(dateString));
+}
