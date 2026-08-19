@@ -1873,3 +1873,115 @@ button.milestone-row {
   line-height: var(--text-footnote-line);
   color: var(--color-label-tertiary);
 }
+
+/* --- Frame 33's inverted page/card contrast — screenshot-diff fix.
+   Every other screen sits its white `.card`s on the app's grey page
+   (--color-bg, from .screen in shell.css). Figma's frame 33 does the
+   opposite: a white page with three light-grey grouping cards. Rather than
+   a new colour, this reuses --color-bg (the app's own normal page grey,
+   #f7f7f8 — closer to Figma's #f9fafb card fill than --color-surface-raised
+   is) as the CARD fill here, and whitens the page itself via
+   `.settings-screen` on the `.screen` element (background wins over
+   shell.css's `.screen` rule by CSS load order — components.css loads
+   after shell.css in index.html — router.js resets this class on every
+   hash-driven navigation so it can't leak onto another route). --- */
+.settings-screen {
+  background: var(--color-surface);
+}
+
+.card--muted {
+  background: var(--color-bg);
+}
+
+.settings-card {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* --- List row, borderless variant (frame 33's Reset row): `.list-row`'s
+   top border assumes a row sits under other rows/dividers it's separating
+   itself from (frame 01's "See all transactions", directly under a
+   transaction list). Frame 33's Reset row sits alone under its own card
+   header with no divider in the reference PNG, so the border is
+   suppressed rather than duplicating `.list-row` wholesale. --- */
+.list-row--plain {
+  border-top: none;
+}
+
+/* --- Prototype controls / Pill segments (frame 33) --- */
+.settings-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.settings-control__label {
+  margin: 0;
+  font-size: var(--text-caption1-size);
+  line-height: var(--text-caption1-line);
+  font-weight: 500;
+  color: var(--color-label-secondary);
+}
+
+.settings-card__header {
+  margin: 0;
+  font-size: var(--text-caption1-size);
+  line-height: var(--text-caption1-line);
+  font-weight: 600;
+  color: var(--color-label-secondary);
+}
+
+.pill-segments {
+  display: flex;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.pill-segments__option {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  font-weight: 500;
+  color: var(--color-label);
+  text-align: center;
+  cursor: pointer;
+}
+
+.pill-segments__option--selected {
+  background: var(--color-accent-neutral);
+  border-color: var(--color-accent-neutral);
+  color: var(--color-label-inverse);
+  font-weight: 600;
+}
+
+/* --- Prototype controls / footer build caption (frame 33) --- */
+.settings-footer {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: var(--space-2xl) 0 var(--space-3xl);
+  box-sizing: border-box;
+}
+
+.settings-footer__text {
+  margin: 0;
+  font-size: var(--text-caption1-size);
+  line-height: var(--text-caption1-line);
+  font-weight: 400;
+  color: var(--color-label-secondary);
+  text-align: center;
+}

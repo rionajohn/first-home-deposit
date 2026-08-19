@@ -707,6 +707,27 @@ export function sheetHeaderHTML({ closeLabel }) {
 }
 
 /**
+ * Prototype controls / Pill segments (frame 33): a row of equal-width,
+ * individually-bordered pill buttons, one selected. Distinct from both
+ * `chipRowHTML` (wraps, auto-width per chip — frames 09/09b's deposit %
+ * choices) and `segmentedControlHTML` (one grouped track with an inset
+ * selected segment, no per-option border — frames 10/10b's solveFor
+ * toggle): frame 33's five controls need equal-width pills that fill the
+ * row and never wrap, which neither existing pattern does without changing
+ * its current behaviour on the frames that already reuse it. `options` is
+ * `[{ value, label }]`.
+ */
+export function pillSegmentsHTML({ options, selected, action }) {
+  return `
+    <div class="pill-segments">
+      ${options.map((opt) => `
+        <button type="button" class="pill-segments__option${opt.value === selected ? ' pill-segments__option--selected' : ''}" data-action="${action}" data-value="${opt.value}" aria-pressed="${opt.value === selected}">${opt.label}</button>
+      `).join('')}
+    </div>
+  `;
+}
+
+/**
  * Content / Processing state (frame 19b): a spinner, a title, a body line
  * and a tertiary caption, centred inside a bordered card. The spinner is a
  * pure-CSS rotating ring (no animated asset) — see components.css's

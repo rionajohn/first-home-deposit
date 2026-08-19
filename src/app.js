@@ -10,8 +10,14 @@
  * and "05 Mortgage in Principle" (/mip, /mip/about, /mip/pre-check,
  * /mip/running, /mip/result/likely, /mip/result/not-yet, and /mip/adviser —
  * the new screen SPEC.md adds outside the reference set, see DECISIONS.md
- * D8/D10), and "06 Assumptions and sources" (/assumptions/saving,
- * /assumptions/deposit, /assumptions/borrowing, /assumptions/sources).
+ * D8/D10), "06 Assumptions and sources" (/assumptions/saving,
+ * /assumptions/deposit, /assumptions/borrowing, /assumptions/sources), and
+ * "07 Prototype controls" (/settings — frame 33, a testing-only screen
+ * reachable by typing the URL, not from any visible nav element).
+ *
+ * Also registers the service worker (sw.js), if supported, so the settings
+ * screen's build-version caption has a live CACHE_VERSION to read back from
+ * Cache Storage (see sw.js / src/cache-version.js).
  */
 
 import { registerRoute, startRouter } from './router.js';
@@ -42,6 +48,7 @@ import { render as renderAssumptionsSaving } from './screens/assumptions-saving.
 import { render as renderAssumptionsDeposit } from './screens/assumptions-deposit.js';
 import { render as renderAssumptionsBorrowing } from './screens/assumptions-borrowing.js';
 import { render as renderAssumptionsSources } from './screens/assumptions-sources.js';
+import { render as renderSettings } from './screens/settings.js';
 
 registerRoute('/home', renderHome);
 registerRoute('/journey', renderJourney);
@@ -70,5 +77,16 @@ registerRoute('/assumptions/saving', renderAssumptionsSaving);
 registerRoute('/assumptions/deposit', renderAssumptionsDeposit);
 registerRoute('/assumptions/borrowing', renderAssumptionsBorrowing);
 registerRoute('/assumptions/sources', renderAssumptionsSources);
+registerRoute('/settings', renderSettings);
 
 startRouter();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {
+      // Offline-capability and the settings screen's live version readout
+      // are best-effort — registration failing (e.g. served over a
+      // non-secure origin in local dev) shouldn't block the app itself.
+    });
+  });
+}

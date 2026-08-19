@@ -68,6 +68,14 @@ function renderNotBuilt(container, path) {
 function renderCurrentRoute() {
   const { path, params } = parseHash();
   const container = document.getElementById('app');
+  // Reset to the base .screen class on every hash-driven navigation, so a
+  // screen-specific modifier (e.g. settings.js's 'settings-screen', frame
+  // 33's inverted white-page/grey-card treatment) never leaks onto whatever
+  // route is visited next. In-place re-renders a screen triggers on itself
+  // (toggle handlers calling `render(container, ...)` directly, bypassing
+  // this function) don't hit this reset, which is correct — the class was
+  // already set correctly for that same screen.
+  container.className = 'screen';
 
   if (path === '/reset') {
     resetState();

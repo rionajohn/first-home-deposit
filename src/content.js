@@ -801,6 +801,44 @@ const content = {
     wrongBody: 'You can edit any figure on the screen where it appears. Editing a figure here changes only what the journey uses to calculate - it does not change the underlying account data.',
     primaryCta: 'Close',
   },
+
+  '/settings': {
+    appBarTitle: 'Prototype settings',
+    headline: 'Prototype settings',
+    body: 'These control what the prototype shows. They are not part of the design being tested.',
+    appearanceHeader: 'Appearance',
+    themeLabel: 'Theme',
+    themeOptions: [
+      { value: 'greyscale', label: 'Greyscale' },
+      { value: 'brand', label: 'Brand' },
+    ],
+    textSizeLabel: 'Text size',
+    textSizeOptions: [
+      { value: 'default', label: 'Default' },
+      { value: 'large', label: 'Large' },
+    ],
+    participantHeader: 'What the participant sees',
+    dataLabel: 'Data',
+    dataOptions: [
+      { value: 'personalised', label: 'Personalised' },
+      { value: 'estimate', label: 'Estimate' },
+      { value: 'general', label: 'General' },
+    ],
+    journeyLabel: 'Journey stage',
+    journeyOptions: [
+      { value: 'setting-up', label: 'Setting up' },
+      { value: 'saving', label: 'Saving' },
+      { value: 'ready-to-check', label: 'Ready to check' },
+    ],
+    outcomeLabel: 'Mortgage in Principle outcome',
+    outcomeOptions: [
+      { value: 'likely', label: 'Likely' },
+      { value: 'not-yet', label: 'Not yet' },
+    ],
+    resetHeader: 'Reset',
+    resetRowLabel: 'Clear all progress and start again',
+    buildCaptionTemplate: 'Build {version}. Figures are illustrative throughout.',
+  },
 };
 
 export default content;
