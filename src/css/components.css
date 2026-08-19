@@ -752,6 +752,16 @@
   gap: var(--space-md);
 }
 
+/* Both sides share the row and wrap as normal paragraphs. Without this,
+   .figure-row__trailing's flex-shrink:0 (below) forces .figure-row__label
+   to shrink to its min-content width — which for text is its longest
+   single word, collapsing a label like "What we might have missed" into
+   one word per line. */
+.figure-row--inline .figure-row__label {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .figure-row__content {
   flex: 1 1 0;
   min-width: 0;
@@ -798,6 +808,7 @@
 .figure-row__trailing {
   margin: 0;
   flex: 0 0 auto;
+  max-width: 60%;
   font-size: var(--text-subheadline-size);
   line-height: var(--text-subheadline-line);
   font-weight: 500;
