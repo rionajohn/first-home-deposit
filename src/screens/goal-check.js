@@ -1,0 +1,85 @@
+/**
+ * Frame 08 — Ready for the calculator. Figma node 31:487. Reference:
+ * reference/frames/08 Ready for the calculator.png.
+ *
+ * Single default variant (build-spec.md section 2: goal = house). No
+ * figures are entered here — everything is read from state seeded earlier
+ * on this page, plus the pinned savings rate from src/model/rates.js
+ * (DECISIONS.md D3), so nothing on this screen is a hardcoded number.
+ */
+import { appBarHTML, bindAppBarBack, actionBarHTML, flagRowHTML, figureRowHTML, infoLinkHTML } from '../components/ui.js';
+import { formatCurrency, formatPercent } from '../format.js';
+import { RATES } from '../model/rates.js';
+
+export const anchors = ['guidanceNotAdvice'];
+
+export function render(container, ctx) {
+  const { state, setState, content } = ctx;
+  const c = content['/goal-check'];
+  const reg = content.shared.regulatory;
+
+  if (state['saved-toward-deposit'].value === null) {
+    window.location.hash = '#/position/summary';
+    return;
+  }
+
+  const savedTowardDeposit = state['saved-toward-deposit'].value;
+  const leftOverValue = state['left-over'].value;
+
+  container.innerHTML = `
+    ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: content.shared.appBar })}
+    <div class="screen-content">
+      <p class="screen-title">${c.headline}</p>
+      <p class="entry-card__body">${c.body}</p>
+
+      <div class="card accounts-card">
+        <p class="accounts-card__header-title">${c.alreadyKnowHeading}</p>
+        <div class="accounts-card__spacer-lg"></div>
+        ${figureRowHTML({ label: c.savedTowardDepositLabel, value: formatCurrency(savedTowardDeposit), caption: c.savedTowardDepositCaption })}
+        ${figureRowHTML({ label: c.leftOverEachMonthLabel, value: formatCurrency(leftOverValue), caption: c.leftOverEachMonthCaption })}
+        ${figureRowHTML({ label: c.savingsInterestLabel, trailing: `${formatPercent(RATES.bankRate)} ${c.savingsInterestSuffix}` })}
+        <button type="button" class="list-row" data-action="open-provenance-key">
+          <span class="list-row__label">${c.provenanceKeyLabel}</span>
+          <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+        </button>
+      </div>
+
+      ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions' })}
+
+      <div class="card calculator-handoff-card">
+        <p class="section-heading">${c.handoffHeading}</p>
+        ${figureRowHTML({ label: c.propertyRowLabel, caption: c.propertyRowCaption })}
+        ${figureRowHTML({ label: c.depositRowLabel, caption: c.depositRowCaption })}
+        ${figureRowHTML({ label: c.everythingElseLabel, caption: c.everythingElseCaption })}
+        <button type="button" class="button button--primary" data-action="open-calculator">${c.openCalculatorCta}</button>
+      </div>
+
+      ${flagRowHTML(c.flagLabel)}
+      <p class="legal-text">${reg.guidanceNotAdvice}</p>
+    </div>
+    ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'track-goal' })}
+  `;
+
+  bindAppBarBack(container, () => {
+    window.location.hash = '#/position/summary';
+  });
+
+  container.querySelector('[data-action="open-provenance-key"]').addEventListener('click', () => {
+    setState({ returnFrame: '/goal-check' });
+    window.location.hash = '#/assumptions/saving';
+  });
+
+  container.querySelector('[data-action="open-assumptions"]').addEventListener('click', () => {
+    setState({ returnFrame: '/goal-check' });
+    window.location.hash = '#/assumptions/saving';
+  });
+
+  container.querySelector('[data-action="open-calculator"]').addEventListener('click', () => {
+    setState({ calculatorEntered: true });
+    window.location.hash = '#/calculator/property';
+  });
+
+  container.querySelector('[data-action="track-goal"]').addEventListener('click', () => {
+    window.location.hash = '#/tracker';
+  });
+}

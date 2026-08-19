@@ -52,6 +52,15 @@ function defaultState() {
     returnFrame: null,
     goalSaved: false,
     mipUnlocked: false,
+    goal: null, // 'house' | 'other' — frame 06's "Is a house still your goal right now?" decision
+    calculatorEntered: false,
+
+    // Frame 05 / 05b (What we can see) — build-spec.md section 1's "Toggle
+    // the breakdown" row: breakdownOpen only, no figure changes.
+    breakdownOpen: true,
+    // Frame 06 (What we found) — same accordion pattern, its own toggle so
+    // opening/closing one screen's disclosure doesn't affect the other's.
+    summaryDisclosureOpen: true,
 
     // Frame 03 (Consent and linked accounts)
     savingsWithUs: null, // null | true | false — build-spec.md section 2's "none-selected" variant

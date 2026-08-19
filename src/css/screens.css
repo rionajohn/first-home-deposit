@@ -619,3 +619,103 @@
   color: var(--color-label-tertiary);
   text-align: left;
 }
+
+/* ============================================================ */
+/* /position — frames 05, 05b                                    */
+/* ============================================================ */
+/* No screen-specific rules beyond shared components — kept here as a
+   marker so a later addition to this screen has an obvious home. */
+
+/* ============================================================ */
+/* /position/summary — frame 06                                  */
+/* ============================================================ */
+
+.check-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  width: 100%;
+}
+
+.status-card {
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  align-items: stretch;
+}
+
+.status-card__header {
+  display: flex;
+  gap: var(--space-lg);
+  align-items: flex-start;
+  width: 100%;
+}
+
+.status-card__glyph {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-card__text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.status-card__headline {
+  margin: 0;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.status-card__body {
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label);
+}
+
+.status-card__account-list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.status-card__still-to-sort {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+  padding-top: var(--space-lg);
+  border-top: 1px dashed var(--color-border-subtle);
+}
+
+.decision-card {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* ============================================================ */
+/* /goal-check — frame 08                                        */
+/* ============================================================ */
+
+.calculator-handoff-card {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}

@@ -99,3 +99,179 @@ export function flagRowHTML(label) {
 export function provenanceCaptionHTML(text) {
   return `<p class="provenance-caption">${text}</p>`;
 }
+
+/**
+ * Disclosure / accordion (Figma "Content / Disclosure"): a header row (title
+ * + chevron) that expands a content slot below it. Introduced here because
+ * frames 05, 05b and 06 all reuse this exact pattern for "how we worked
+ * this out" style breakdowns. `open` reflects state the caller owns (e.g.
+ * state.breakdownOpen) — this function is a pure render, it does not track
+ * its own open/closed state.
+ */
+export function disclosureHTML({ id, title, open, contentHtml }) {
+  return `
+    <div class="disclosure${open ? '' : ' disclosure--closed'}">
+      <button type="button" class="disclosure__header" data-action="toggle-disclosure" data-disclosure-id="${id}" aria-expanded="${open}">
+        <span class="disclosure__title">${title}</span>
+        <img class="disclosure__chevron" src="assets/icons/chevron-up.svg" alt="" width="20" height="20" />
+      </button>
+      <div class="disclosure__content">${contentHtml}</div>
+    </div>
+  `;
+}
+
+/**
+ * Data viz / Proportion rows: a labelled horizontal bar per part, each with
+ * a "n% of what comes in" caption. `parts` is `[{ label, valueText, pct,
+ * pctText }]` — the caller computes `pct`/`pctText` from model figures
+ * (SPEC.md: no number hardcoded in a screen), this function only renders.
+ */
+export function proportionRowsHTML(parts) {
+  return `
+    <div class="proportion-rows">
+      ${parts.map((p) => `
+        <div class="proportion-row">
+          <div class="proportion-row__label-row">
+            <p class="proportion-row__label">${p.label}</p>
+            <p class="proportion-row__value">${p.valueText}</p>
+          </div>
+          <div class="proportion-row__track"><div class="proportion-row__fill" style="width:${p.pct}%"></div></div>
+          <p class="proportion-row__caption">${p.pctText}</p>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+/**
+ * Content / List row — the figure-presenting variant: a label, an optional
+ * bold value beneath it, and an optional provenance/hint caption beneath
+ * that (DECISIONS.md D5). Distinct from the plain nav `.list-row` above,
+ * which is label + chevron only. `trailing` renders the inline single-line
+ * shape instead ("Held in" / "Emergency fund pot") when a value sits beside
+ * the label rather than stacked under it.
+ */
+export function figureRowHTML({ label, value, caption, trailing }) {
+  if (trailing !== undefined) {
+    return `
+      <div class="figure-row figure-row--inline">
+        <p class="figure-row__label">${label}</p>
+        <p class="figure-row__trailing">${trailing}</p>
+      </div>
+    `;
+  }
+  return `
+    <div class="figure-row">
+      <div class="figure-row__content">
+        <p class="figure-row__label">${label}</p>
+        ${value !== undefined && value !== null ? `<div class="figure-row__value-row"><p class="figure-row__value">${value}</p></div>` : ''}
+        ${caption ? `<div class="figure-row__caption-row"><p class="figure-row__caption">${caption}</p></div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Comprehension / Assumptions link — an inline info-icon + underlined link,
+ * distinct from consent-declined.js's full-width `.assumptions-link` (which
+ * has no icon and is its own primary-looking control on frame 04). Reused
+ * by frames 06 and 08 for "How did we work this out?" style links.
+ */
+export function infoLinkHTML({ label, action }) {
+  return `
+    <button type="button" class="info-link" data-action="${action}">
+      <img class="info-link__icon" src="assets/icons/info.svg" alt="" width="16" height="16" />
+      <span class="info-link__label">${label}</span>
+    </button>
+  `;
+}
+
+/**
+ * Warning banner (DECISIONS.md D7 fallback component): the same shape as
+ * infoBannerHTML but in the warning colour, for the "No frame drawn" error
+ * variants (e.g. frame 05/05b's left-over error state).
+ */
+export function warningBannerHTML(text) {
+  return `
+    <div class="warning-banner">
+      <img class="warning-banner__icon" src="assets/icons/info.svg" alt="" width="20" height="20" />
+      <p class="warning-banner__text">${text}</p>
+    </div>
+  `;
+}
+
+/**
+ * Empty-state card (DECISIONS.md D7 fallback component): for "No frame
+ * drawn" empty variants (e.g. frame 06's "no accounts assigned"), composed
+ * from the same card look as everything else rather than inventing new
+ * visual design.
+ */
+export function emptyStateCardHTML({ title, body, ctaLabel, ctaAction }) {
+  return `
+    <div class="card empty-state-card">
+      <p class="empty-state-card__title">${title}</p>
+      <p class="empty-state-card__body">${body}</p>
+      ${ctaLabel ? `<button type="button" class="button button--secondary" data-action="${ctaAction}">${ctaLabel}</button>` : ''}
+    </div>
+  `;
+}
+
+/**
+ * Input / Figure: the large editable currency headline (frames 05/05b's
+ * left-over figure). A styled `<input type="text">` rather than
+ * `type="number"` so a leading "£" can sit inside the same underline as the
+ * digits, matching the Figma component; `inputmode="numeric"` still gives
+ * mobile participants a numeric keypad.
+ */
+export function figureInputHTML({ id, value, caption, ariaLabel }) {
+  const digits = String(Math.round(value ?? 0));
+  return `
+    <div class="figure-input">
+      <div class="figure-input__field">
+        <span class="figure-input__currency" aria-hidden="true">£</span>
+        <input class="figure-input__value" type="text" inputmode="numeric" data-role="${id}" value="${digits}" style="width:${digits.length + 1}ch" aria-label="${ariaLabel}" />
+      </div>
+      <p class="figure-input__caption">${caption}</p>
+    </div>
+  `;
+}
+
+/** Static (non-editable) counterpart to figureInputHTML — frame 06's deposit-saved headline. */
+export function figureDisplayHTML({ value, caption }) {
+  return `
+    <div class="figure-input">
+      <p class="figure-display">${value}</p>
+      <p class="figure-input__caption">${caption}</p>
+    </div>
+  `;
+}
+
+/**
+ * Transparency / How this works card: a title, an intro line, a stack of
+ * label/value/caption rows, and a nav row into the fuller assumptions
+ * screen. Built for frame 06 but written generically (rows as data) since
+ * the Figma component name marks it as a design-system piece likely reused
+ * by the assumptions/results screens later.
+ */
+export function howThisWorksCardHTML({ title, intro, rows, navLabel, navAction }) {
+  return `
+    <div class="card how-this-works-card">
+      <p class="how-this-works-card__title">${title}</p>
+      <p class="how-this-works-card__intro">${intro}</p>
+      <div class="how-this-works-card__rows">
+        ${rows.map((row) => `
+          <div class="how-this-works-card__row">
+            <p class="how-this-works-card__row-label">${row.label}</p>
+            <p class="how-this-works-card__row-value">${row.value}</p>
+            <p class="how-this-works-card__row-caption">${row.caption}</p>
+          </div>
+        `).join('')}
+      </div>
+      <button type="button" class="how-this-works-card__nav" data-action="${navAction}">
+        <img class="info-link__icon" src="assets/icons/info.svg" alt="" width="20" height="20" />
+        <span class="how-this-works-card__nav-label">${navLabel}</span>
+        <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+      </button>
+    </div>
+  `;
+}

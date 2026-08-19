@@ -31,3 +31,17 @@ export function formatAccountBalance(value) {
     maximumFractionDigits: 2,
   }).format(value);
 }
+
+/**
+ * Percentage display for rate-derived figures (e.g. RATES.bankRate as an
+ * AER, or a Loan-to-Value band) — takes a fraction (0.0375, not 3.75) and
+ * formats it as en-GB percent text. Keeps every on-screen percentage
+ * traceable to a model value rather than a string typed into a screen.
+ */
+export function formatPercent(value, digits = 2) {
+  return new Intl.NumberFormat('en-GB', {
+    style: 'percent',
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(value);
+}

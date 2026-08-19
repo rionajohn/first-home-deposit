@@ -21,7 +21,7 @@
  */
 import { appBarHTML, bindAppBarBack, actionBarHTML, infoBannerHTML } from '../components/ui.js';
 import { formatCurrency, formatAccountBalance } from '../format.js';
-import { effectiveAccounts, groupTotals, depositSelection, GROUP_ORDER } from '../model/accounts.js';
+import { effectiveAccounts, groupTotals, depositSelection, GROUP_ORDER, MOCK_POSITION } from '../model/accounts.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -202,6 +202,10 @@ export function render(container, ctx) {
       'saved-toward-deposit': { value: totals.deposit, provenance },
       'emergency-fund': { value: totals.emergency, provenance },
       unassigned: { value: totals.unassigned, provenance },
+      // Read from this bank's own current-account activity regardless of
+      // mode — see accounts.js's MOCK_POSITION comment.
+      'money-in': { value: MOCK_POSITION.moneyIn, provenance: 'read' },
+      'essential-spending': { value: MOCK_POSITION.essentialSpending, provenance: 'read' },
     });
     window.location.hash = mode === 'personalised' ? '#/position' : '#/position?mode=estimate';
   });

@@ -115,7 +115,12 @@ export function leftOver(state, entered) {
 
   if (entered) {
     if (entered.value > moneyIn.value) {
-      return fail('exceeds-money-in', 'entered');
+      // Value kept (not null) so the screen can still show what the
+      // participant typed while they correct it.
+      return fail('exceeds-money-in', 'entered', entered.value);
+    }
+    if (entered.value <= 0) {
+      return fail('not-positive', 'entered', entered.value);
     }
     return ok(entered.value, 'entered');
   }

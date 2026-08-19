@@ -93,6 +93,23 @@ export const MOCK_ACCOUNTS = [
 export const GROUP_ORDER = ['unassigned', 'deposit', 'emergency', 'excluded'];
 
 /**
+ * Mock monthly position for frame 05/05b (money-in, essential-spending —
+ * build-spec.md section 6). Read from the same mock salary credit shown on
+ * frame 01's transaction list (+£2,240.00), so the figure is consistent
+ * across screens rather than a second, unrelated number. Provenance is
+ * 'read' in both personalised and estimate mode: build-spec.md's own
+ * "unseen balances flagged prefilled-estimated" (section 1, "Agree and
+ * continue (mode = estimate)" row) scopes the estimate to account
+ * *balances* held elsewhere — money-in/essential-spending come from this
+ * bank's own current-account activity, which is visible regardless of where
+ * the participant's savings are held.
+ */
+export const MOCK_POSITION = {
+  moneyIn: 2240,
+  essentialSpending: 1860,
+};
+
+/**
  * Re-derives each account's effective group and included-in-total flag from
  * state overrides (03b moves an account's group; the "Select all accounts"
  * row toggles inclusion for the deposit group — see consent.js). Pure:
