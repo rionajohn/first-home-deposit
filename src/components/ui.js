@@ -247,6 +247,229 @@ export function figureDisplayHTML({ value, caption }) {
 }
 
 /**
+ * Navigation / Form step header (frames 09, 09a, 09b, 10, 10b, 11 — the
+ * deposit calculator's own step-by-step header, distinct from appBarHTML's
+ * single-row app bar used everywhere else). A back button, a centred title,
+ * a close button, and a "Step n of 3" row underneath. Introduced here
+ * because 6 screens on this page share it exactly.
+ */
+export function formStepHeaderHTML({ title, step, appBarLabels }) {
+  return `
+    <div class="form-step-header">
+      <div class="form-step-header__title-bar">
+        <button type="button" class="form-step-header__cell form-step-header__cell--action" data-action="form-step-back" aria-label="${appBarLabels?.backLabel}">
+          <img class="app-bar__icon" src="assets/icons/back.svg" alt="" width="24" height="24" />
+        </button>
+        <p class="form-step-header__title">${title}</p>
+        <button type="button" class="form-step-header__cell form-step-header__cell--action" data-action="form-step-close" aria-label="${appBarLabels?.closeLabel}">
+          <img class="app-bar__icon" src="assets/icons/close.svg" alt="" width="20" height="20" />
+        </button>
+      </div>
+      <div class="form-step-header__step-row">
+        <p class="form-step-header__step">${step}</p>
+      </div>
+    </div>
+  `;
+}
+
+/** Wires the form step header's back and close buttons. */
+export function bindFormStepHeader(container, { onBack, onClose }) {
+  container.querySelector('[data-action="form-step-back"]').addEventListener('click', onBack);
+  container.querySelector('[data-action="form-step-close"]').addEventListener('click', onClose);
+}
+
+/**
+ * Inputs / Currency input (frames 09, 09a, 09b): a secondary label, a
+ * bordered £-prefixed field, and a hint line beneath. `value` is the raw
+ * number or null (09a's empty state, rendered as an empty field with a
+ * placeholder-style hint rather than "£0").
+ */
+export function currencyInputHTML({ id, label, value, hint, ariaLabel }) {
+  const digits = value === null || value === undefined ? '' : String(Math.round(value));
+  return `
+    <div class="currency-input">
+      <p class="currency-input__label">${label}</p>
+      <div class="currency-input__field">
+        <div class="currency-input__gutter">£</div>
+        <input class="currency-input__value" type="text" inputmode="numeric" data-role="${id}" value="${digits}" aria-label="${ariaLabel}" />
+      </div>
+      <p class="currency-input__hint">${hint}</p>
+    </div>
+  `;
+}
+
+/**
+ * Inputs / Chip row (frames 09, 09a, 09b): a row of pill-shaped percentage
+ * choices, one selected. `chips` is `[{ value, label }]`; `selected` is the
+ * currently-chosen value or null (09a, before any selection).
+ */
+export function chipRowHTML({ chips, selected, action }) {
+  return `
+    <div class="chip-row">
+      ${chips.map((chip) => `
+        <button type="button" class="chip${chip.value === selected ? ' chip--selected' : ''}" data-action="${action}" data-value="${chip.value}" aria-pressed="${chip.value === selected}">${chip.label}</button>
+      `).join('')}
+    </div>
+  `;
+}
+
+/**
+ * Content / Option comparison card (frames 09, 09b): "What each one means"
+ * — a header and up to 3 option-rows (amount, sub-label, technical figure),
+ * plus the shared inline info link at the bottom.
+ */
+export function optionComparisonCardHTML({ headerText, rows, infoLinkLabel, infoLinkAction }) {
+  return `
+    <div class="card option-comparison-card">
+      <p class="section-heading">${headerText}</p>
+      ${rows.map((row) => `
+        <div class="option-comparison-card__row">
+          <div class="option-comparison-card__left">
+            <p class="option-comparison-card__amount">${row.amount}</p>
+            <p class="option-comparison-card__sublabel">${row.sublabel}</p>
+          </div>
+          <p class="option-comparison-card__technical">${row.technical}</p>
+        </div>
+      `).join('')}
+      ${infoLinkHTML({ label: infoLinkLabel, action: infoLinkAction })}
+    </div>
+  `;
+}
+
+/**
+ * Inputs / Review row (frames 10, 10b, 11): a label, a value, a provenance
+ * caption, and a "Change" link. Reused both inside the small "filled-in
+ * details" card (10, 10b) and the full-width review list (11) — same shape
+ * in both places, just a different container around it.
+ */
+export function reviewRowHTML({ label, value, caption, changeLabel, changeAction }) {
+  return `
+    <div class="review-row">
+      <div class="review-row__content">
+        <p class="review-row__label">${label}</p>
+        <p class="review-row__value">${value}</p>
+        ${caption ? `<p class="review-row__caption">${caption}</p>` : ''}
+      </div>
+      ${changeLabel ? `<button type="button" class="review-row__change" data-action="${changeAction}">${changeLabel}</button>` : ''}
+    </div>
+  `;
+}
+
+/**
+ * Inputs / Segmented control (frames 10, 10b): two-option toggle switching
+ * `solveFor` between 'date' (set a monthly amount, solve the date) and
+ * 'amount' (set a target date, solve the monthly amount) — build-spec.md
+ * section 2's own naming for the state variable.
+ */
+export function segmentedControlHTML({ options, selected, action }) {
+  return `
+    <div class="segmented-control">
+      ${options.map((opt) => `
+        <button type="button" class="segmented-control__segment${opt.value === selected ? ' segmented-control__segment--selected' : ''}" data-action="${action}" data-value="${opt.value}" aria-pressed="${opt.value === selected}">${opt.label}</button>
+      `).join('')}
+    </div>
+  `;
+}
+
+/**
+ * Input / Date stepper (frame 10b): a month control and a year control,
+ * each with an up/down pair, plus a hint line beneath.
+ */
+export function dateStepperHTML({ monthLabel, yearLabel, hint, monthAction, yearAction, monthAriaLabel, yearAriaLabel, increaseLabel, decreaseLabel }) {
+  function control({ value, upAction, downAction, ariaLabel }) {
+    return `
+      <div class="date-stepper__control">
+        <button type="button" class="date-stepper__step" data-action="${upAction}" aria-label="${increaseLabel} ${ariaLabel}">
+          <img src="assets/icons/chevron-up.svg" alt="" width="12" height="12" />
+        </button>
+        <p class="date-stepper__value">${value}</p>
+        <button type="button" class="date-stepper__step date-stepper__step--down" data-action="${downAction}" aria-label="${decreaseLabel} ${ariaLabel}">
+          <img src="assets/icons/chevron-up.svg" alt="" width="12" height="12" />
+        </button>
+      </div>
+    `;
+  }
+  return `
+    <div class="date-stepper">
+      <div class="date-stepper__row">
+        ${control({ value: monthLabel, upAction: `${monthAction}-up`, downAction: `${monthAction}-down`, ariaLabel: monthAriaLabel })}
+        ${control({ value: yearLabel, upAction: `${yearAction}-up`, downAction: `${yearAction}-down`, ariaLabel: yearAriaLabel })}
+      </div>
+      <p class="date-stepper__hint">${hint}</p>
+    </div>
+  `;
+}
+
+/**
+ * Content / Range figure (frame 12): a static low-to-high readout, a
+ * caption, a track with a position marker (where the goal sits within the
+ * range), and a label under the track. Not interactive — Figma's own
+ * component description: "For interactive range selection, use Input /
+ * Value slider."
+ */
+export function rangeFigureHTML({ lowText, highText, caption, markerPct, trackLabel }) {
+  const clampedPct = Math.max(0, Math.min(100, markerPct));
+  return `
+    <div class="range-figure">
+      <div class="range-figure__readout">
+        <p class="range-figure__value">${lowText}</p>
+        <p class="range-figure__to">-</p>
+        <p class="range-figure__value">${highText}</p>
+      </div>
+      <p class="range-figure__caption">${caption}</p>
+      <div class="range-figure__track">
+        <div class="range-figure__marker" style="left:${clampedPct}%"></div>
+      </div>
+      <p class="value-slider__caption">${trackLabel}</p>
+    </div>
+  `;
+}
+
+/**
+ * Data viz / Growth chart (frame 12): a bar chart projecting saved balance
+ * over the next 5 years at two contribution rates (monthly-low/high),
+ * against three horizontal threshold lines (one per deposit-pct option).
+ * `thresholds` is `[{ label, pct }]` (0-100, position from the top);
+ * `points` is `[{ label, lowPct, highPct }]` (0-100 bar heights, one point
+ * per x-axis tick) — all percentages computed by the caller from model
+ * figures, this function only renders.
+ */
+export function growthChartHTML({ thresholds, points, xAxisLabels, legend, yTop, yBottom }) {
+  return `
+    <div class="growth-chart">
+      <div class="growth-chart__plot">
+        <div class="growth-chart__baseline"></div>
+        ${thresholds.map((t) => `
+          <div class="growth-chart__threshold-line" style="bottom:${t.pct}%"></div>
+          <p class="growth-chart__threshold-label" style="bottom:${t.pct}%">${t.label}</p>
+        `).join('')}
+        <p class="growth-chart__y-label growth-chart__y-label--top">${yTop}</p>
+        <p class="growth-chart__y-label growth-chart__y-label--bottom">${yBottom}</p>
+        <div class="growth-chart__bars">
+          ${points.map((p) => `
+            <div class="growth-chart__bar-group" aria-label="${p.label}">
+              <div class="growth-chart__bar growth-chart__bar--high" style="height:${p.highPct - p.lowPct}%"></div>
+              <div class="growth-chart__bar growth-chart__bar--low" style="height:${p.lowPct}%"></div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="growth-chart__x-axis">
+        ${xAxisLabels.map((l) => `<p>${l}</p>`).join('')}
+      </div>
+      <div class="growth-chart__legend">
+        ${legend.map((l) => `
+          <div class="growth-chart__legend-row">
+            <span class="growth-chart__swatch"></span>
+            <p>${l}</p>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/**
  * Transparency / How this works card: a title, an intro line, a stack of
  * label/value/caption rows, and a nav row into the fuller assumptions
  * screen. Built for frame 06 but written generically (rows as data) since

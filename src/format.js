@@ -45,3 +45,23 @@ export function formatPercent(value, digits = 2) {
     maximumFractionDigits: digits,
   }).format(value);
 }
+
+/**
+ * Whole-months duration as "X years Y months" (frame 12's timing rows) or,
+ * abbreviated, "X yr Y mo" (frame 12's growth-chart x-axis). `months` is
+ * always rounded up first (Math.ceil) — the same convention DECISIONS.md D2
+ * uses for on-track-for, since a participant should never be told they're
+ * there a fraction of a month early.
+ */
+export function formatMonthsDuration(months, { abbreviated = false } = {}) {
+  const whole = Math.max(0, Math.ceil(months));
+  const years = Math.floor(whole / 12);
+  const remainderMonths = whole % 12;
+
+  const yearUnit = abbreviated ? 'yr' : years === 1 ? 'year' : 'years';
+  const monthUnit = abbreviated ? 'mo' : remainderMonths === 1 ? 'month' : 'months';
+
+  if (years === 0) return `${remainderMonths} ${monthUnit}`;
+  if (remainderMonths === 0) return `${years} ${yearUnit}`;
+  return `${years} ${yearUnit} ${remainderMonths} ${monthUnit}`;
+}

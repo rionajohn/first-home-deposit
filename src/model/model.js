@@ -237,6 +237,41 @@ export function generalAnnualRange(monthlyLow, monthlyHigh) {
   return ok({ low: monthlyLow.value * 12, high: monthlyHigh.value * 12 }, provenance);
 }
 
+// --- Frame 12 growth chart / timing rows ------------------------------------
+
+/**
+ * Future value at a given month, for an arbitrary starting balance and
+ * monthly contribution — the same annuity-due formula monthsToTarget() and
+ * monthlyAmountFromDate() use, parameterised directly rather than read from
+ * state, so frame 12's growth chart can plot a balance at each of several
+ * points along the x-axis without threading a fabricated state object
+ * through the model.
+ */
+export function balanceAtMonth({ startingBalance, monthlyAmount, months, aer = RATES.bankRate }) {
+  const r = monthlyRate(aer);
+  return startingBalance * Math.pow(1 + r, months) + (monthlyAmount * (1 + r) * (Math.pow(1 + r, months) - 1)) / r;
+}
+
+/**
+ * Months to reach an arbitrary target amount, for an arbitrary starting
+ * balance and monthly contribution — frame 12's three timing rows (one per
+ * deposit-pct threshold: 5%, 10%, 15%) each need this against a different
+ * target, and each at both ends of the monthly-low/monthly-high range, so
+ * it's written to take plain numbers rather than a whole state object.
+ * Returns Infinity (not an error object) when the target is genuinely
+ * unreachable at a zero contribution and the starting balance doesn't
+ * already cover it — the caller decides how to display that.
+ */
+export function monthsToReachAmount({ startingBalance, targetAmount, monthlyAmount, aer = RATES.bankRate }) {
+  if (startingBalance >= targetAmount) return 0;
+  if (monthlyAmount <= 0) return Infinity;
+
+  const r = monthlyRate(aer);
+  const annuityFactor = (monthlyAmount * (1 + r)) / r;
+  const x = (targetAmount + annuityFactor) / (startingBalance + annuityFactor);
+  return Math.log(x) / Math.log(1 + r);
+}
+
 /**
  * Exact inverse of monthsToTarget(): solves the same annuity-due equation
  * for the monthly payment PMT, given a fixed number of months.

@@ -52,8 +52,10 @@ function defaultState() {
     returnFrame: null,
     goalSaved: false,
     mipUnlocked: false,
+    journeyPaused: false, // frame 10c "Save and leave" — build-spec.md section 1
     goal: null, // 'house' | 'other' — frame 06's "Is a house still your goal right now?" decision
     calculatorEntered: false,
+    lisaCapBreached: false, // DECISIONS.md D6 — property-value > LISA_CAP_PROPERTY_VALUE, frame 09b
 
     // Frame 05 / 05b (What we can see) — build-spec.md section 1's "Toggle
     // the breakdown" row: breakdownOpen only, no figure changes.
@@ -73,6 +75,13 @@ function defaultState() {
     // "Drag either slider handle" / "Type into the estimated range field" rows.
     generalMonthlyLow: { value: null, provenance: null },
     generalMonthlyHigh: { value: null, provenance: null },
+
+    // Frame 10b (Date stepper variant) — the target date isn't a build-spec.md
+    // section 6 figure in its own right (only the months-to-target/savings-rate
+    // solved from it are), so it's held here as plain UI state, seeded on
+    // first render.
+    targetMonth: null, // 1-12
+    targetYear: null,
 
     // Frame 33 scenario controls (build-spec.md section 7) — testing only,
     // not part of the feature being tested.

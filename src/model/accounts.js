@@ -107,6 +107,13 @@ export const GROUP_ORDER = ['unassigned', 'deposit', 'emergency', 'excluded'];
 export const MOCK_POSITION = {
   moneyIn: 2240,
   essentialSpending: 1860,
+  // Frame 10's "how you'll save" range slider (monthly-low/monthly-high):
+  // read from the instant saver's own deposit history, the same source the
+  // frame 10 review row credits ("Read from your instant saver") for the
+  // savings interest rate row. Values match the range build-spec.md/Figma
+  // draws (£200 to £310) so the built screen matches the reference.
+  recentMonthlySavingLow: 200,
+  recentMonthlySavingHigh: 310,
 };
 
 /**
