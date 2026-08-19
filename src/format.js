@@ -78,3 +78,22 @@ export function formatMonthsDuration(months, { abbreviated = false } = {}) {
   if (remainderMonths === 0) return `${years} ${yearUnit}`;
   return `${years} ${yearUnit} ${remainderMonths} ${monthUnit}`;
 }
+
+/**
+ * "Month YYYY" for a whole-number month offset from `fromDate` (frame 15/16's
+ * "On track for" row). Takes the reference date as a parameter rather than
+ * `new Date()` so this stays a pure function of its arguments — callers pass
+ * RATES.asAt (DECISIONS.md D3: everything in this prototype is dated from
+ * the pinned rate, never the wall clock, so the on-screen date range can't
+ * drift between testing sessions).
+ */
+export function formatMonthYear(monthsFromNow, fromDate) {
+  const base = new Date(fromDate);
+  const target = new Date(base.getFullYear(), base.getMonth() + Math.round(monthsFromNow), 1);
+  return new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(target);
+}
+
+/** "Month YYYY to Month YYYY" for an on-track-for {low, high} months range. */
+export function formatMonthYearRange(lowMonths, highMonths, fromDate) {
+  return `${formatMonthYear(lowMonths, fromDate)} to ${formatMonthYear(highMonths, fromDate)}`;
+}

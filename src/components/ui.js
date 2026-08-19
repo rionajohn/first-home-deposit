@@ -472,6 +472,99 @@ export function growthChartHTML({ thresholds, points, xAxisLabels, legend, yTop,
 }
 
 /**
+ * Regulatory / Risk warning (frames 13, 15, 16): a bordered card with a
+ * warning-triangle icon and body text. Distinct from `.warning-banner`
+ * (DECISIONS.md D7's red error-state banner) — this is a neutral, always-on
+ * regulatory/informational box (both the MCOB 3A repossession warning and
+ * frame 13's "these are typical market ranges, not rates we're offering
+ * you" note use this exact same visual wrapper in the reference PNGs).
+ */
+export function riskWarningHTML(text) {
+  return `
+    <div class="risk-warning-card">
+      <img class="risk-warning-card__icon" src="assets/icons/warning.svg" alt="" width="20" height="20" />
+      <p class="risk-warning-card__text">${text}</p>
+    </div>
+  `;
+}
+
+/**
+ * Content / Progress bar (frames 15, 16): a filled track toward
+ * deposit-target, with a fixed marker at the checkpoint position and a label
+ * naming what the marker is.
+ */
+export function progressBarHTML({ fillPct, markerPct, label }) {
+  const clampedFill = Math.max(0, Math.min(100, fillPct));
+  const clampedMarker = Math.max(0, Math.min(100, markerPct));
+  return `
+    <div class="progress-bar">
+      <div class="progress-bar__track">
+        <div class="progress-bar__fill" style="width:${clampedFill}%"></div>
+        <div class="progress-bar__marker" style="left:${clampedMarker}%"></div>
+      </div>
+      <p class="progress-bar__label">${label}</p>
+    </div>
+  `;
+}
+
+/**
+ * Content / Milestone tracker (frames 15, 16): a vertical stack of
+ * milestones, each either 'complete' (filled star) or 'locked' (greyed
+ * circle). `milestones` is `[{ title, body, state }]`.
+ */
+export function milestoneTrackerHTML(milestones) {
+  return `
+    <div class="milestone-tracker">
+      ${milestones.map((m, i) => `
+        ${i > 0 ? '<div class="milestone-row__divider"></div>' : ''}
+        ${m.action ? `<button type="button" class="milestone-row milestone-row--${m.state}" data-action="${m.action}">` : `<div class="milestone-row milestone-row--${m.state}">`}
+          <img class="milestone-row__icon" src="assets/icons/${m.state === 'complete' ? 'goal-star.svg' : 'goal-star-locked.svg'}" alt="" width="32" height="32" />
+          <div class="milestone-row__content">
+            <p class="milestone-row__title">${m.title}</p>
+            <p class="milestone-row__body">${m.body}</p>
+          </div>
+        ${m.action ? '</button>' : '</div>'}
+      `).join('')}
+    </div>
+  `;
+}
+
+/**
+ * Content / Stat row (frames 15, 16's "This month" card): a label + value on
+ * one line, a provenance caption on the next. Distinct from
+ * `figureRowHTML`'s `trailing` mode, which has no caption line.
+ */
+export function statRowHTML({ label, value, caption }) {
+  return `
+    <div class="stat-row">
+      <div class="stat-row__line">
+        <p class="stat-row__label">${label}</p>
+        <p class="stat-row__value">${value}</p>
+      </div>
+      <p class="stat-row__caption">${caption}</p>
+    </div>
+  `;
+}
+
+/**
+ * Content / Rate band row (frames 15, 16's rates-card): a two-line label
+ * (amount + "n% deposit") on the left, a rate range on the right, with an
+ * optional highlight border for the row matching the participant's own
+ * chosen deposit %.
+ */
+export function rateBandRowHTML({ label, sublabel, value, highlighted }) {
+  return `
+    <div class="rate-band-row${highlighted ? ' rate-band-row--highlighted' : ''}">
+      <div class="rate-band-row__content">
+        <p class="rate-band-row__label">${label}</p>
+        <p class="rate-band-row__sublabel">${sublabel}</p>
+      </div>
+      <p class="rate-band-row__value">${value}</p>
+    </div>
+  `;
+}
+
+/**
  * Transparency / How this works card: a title, an intro line, a stack of
  * label/value/caption rows, and a nav row into the fuller assumptions
  * screen. Built for frame 06 but written generically (rows as data) since

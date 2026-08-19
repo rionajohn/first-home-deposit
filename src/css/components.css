@@ -401,6 +401,26 @@
   color: var(--color-label-secondary);
 }
 
+/* Body/L and Body/M in the project's own primary (not secondary) text
+   colour — frame 13's own paragraphs (headline body, balancing paragraph)
+   and frames 13b/15/16's 15px paragraphs all use text/primary, distinct
+   from .body-text-lg above (frame 04's own secondary-coloured 17px copy). */
+.body-text-lg-primary {
+  margin: 0;
+  font-size: 17px;
+  line-height: 26px;
+  font-weight: 400;
+  color: var(--color-label);
+}
+
+.body-text {
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label);
+}
+
 /* --- Checkbox row: a full-width, min-48px-tall clickable row wrapping a
    24px checkbox glyph and label text. The row itself is the touch target,
    not the 24px glyph, satisfying the 48px minimum without shrinking the
@@ -1337,6 +1357,233 @@
   color: var(--color-label-secondary);
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* --- Risk warning card (Regulatory / Risk warning — frames 13, 15, 16) --- */
+.risk-warning-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-lg);
+  background: var(--color-surface);
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  box-sizing: border-box;
+}
+
+.risk-warning-card__icon {
+  flex: 0 0 auto;
+}
+
+.risk-warning-card__text {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 500;
+  color: var(--color-label);
+}
+
+/* --- Progress bar (Content / Progress bar — frames 15, 16) --- */
+.progress-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: 100%;
+}
+
+.progress-bar__track {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-subtle);
+  overflow: hidden;
+}
+
+.progress-bar__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-neutral);
+}
+
+.progress-bar__marker {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--color-surface);
+  transform: translateX(-1px);
+}
+
+.progress-bar__label {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  color: var(--color-label-tertiary);
+}
+
+/* --- Milestone tracker (Content / Milestone tracker — frames 15, 16) --- */
+.milestone-tracker {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.milestone-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  width: 100%;
+  min-height: 64px;
+  padding: var(--space-lg) 0;
+  background: none;
+  border: none;
+  cursor: default;
+  font: inherit;
+  text-align: left;
+}
+
+button.milestone-row {
+  cursor: pointer;
+}
+
+.milestone-row__divider {
+  height: 1px;
+  width: 100%;
+  background: var(--color-border-subtle);
+}
+
+.milestone-row__icon {
+  flex: 0 0 auto;
+}
+
+.milestone-row__content {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.milestone-row__title {
+  margin: 0;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.milestone-row__body {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  color: var(--color-label-secondary);
+}
+
+.milestone-row--locked .milestone-row__title,
+.milestone-row--locked .milestone-row__body {
+  color: var(--color-label-secondary);
+}
+
+/* --- Stat row (frames 15, 16's "This month" card) --- */
+.stat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-md) 0;
+}
+
+.stat-row__line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  width: 100%;
+}
+
+.stat-row__label {
+  margin: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label);
+}
+
+.stat-row__value {
+  margin: 0;
+  flex: 0 0 auto;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 500;
+  color: var(--color-label);
+  text-align: right;
+}
+
+.stat-row__caption {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  color: var(--color-label-secondary);
+}
+
+/* --- Rate band row (frames 15, 16's rates-card) --- */
+.rate-band-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-md) 0;
+}
+
+.rate-band-row--highlighted {
+  border: 2px solid var(--color-label);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+}
+
+.rate-band-row__content {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rate-band-row__label {
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label);
+}
+
+.rate-band-row__sublabel {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  color: var(--color-label-secondary);
+}
+
+.rate-band-row__value {
+  margin: 0;
+  flex: 0 0 auto;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 500;
+  color: var(--color-label);
+  white-space: nowrap;
 }
 
 /* --- Segmented control (Inputs / Segmented control — frames 10, 10b) --- */

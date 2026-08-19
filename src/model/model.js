@@ -20,7 +20,7 @@
  * 'derived' — it's no longer purely computed from account data.
  */
 
-import { RATES } from './rates.js';
+import { RATES, CHECKPOINT_FRACTION, LTV_RATE_BANDS_BY_DEPOSIT_PCT } from './rates.js';
 
 function combineProvenance(...results) {
   return results.some((r) => r.provenance === 'entered') ? 'entered' : 'derived';
@@ -79,11 +79,28 @@ export function ltv(state) {
   return ok(loan.value / propertyValue.value, provenance);
 }
 
-/** checkpoint-amount = 0.75 x deposit-target */
+/** checkpoint-amount = CHECKPOINT_FRACTION (0.75) x deposit-target */
 export function checkpointAmount(state) {
   const target = depositTarget(state);
   if (target.error) return fail(target.error, target.provenance);
-  return ok(0.75 * target.value, target.provenance);
+  return ok(CHECKPOINT_FRACTION * target.value, target.provenance);
+}
+
+/**
+ * gap-to-checkpoint (frames 15/16's "You're £X away..." / "£X to go" copy):
+ * checkpoint-amount less saved-toward-deposit. Not a build-spec.md section 6
+ * named figure (only `gap`, frame 21's shortfall against the full
+ * deposit-target, is) — this is the same shape of calculation one checkpoint
+ * short of it, needed so frame 15/16's tracker copy never subtracts two
+ * model figures inline in a screen module.
+ */
+export function gapToCheckpoint(state) {
+  const savedTowardDeposit = state['saved-toward-deposit'];
+  const checkpoint = checkpointAmount(state);
+  const provenance = combineProvenance(savedTowardDeposit, checkpoint);
+
+  if (checkpoint.error) return fail(checkpoint.error, provenance);
+  return ok(checkpoint.value - savedTowardDeposit.value, provenance);
 }
 
 /** gap (frame 21) = deposit-target - saved-toward-deposit */
@@ -270,6 +287,41 @@ export function monthsToReachAmount({ startingBalance, targetAmount, monthlyAmou
   const annuityFactor = (monthlyAmount * (1 + r)) / r;
   const x = (targetAmount + annuityFactor) / (startingBalance + annuityFactor);
   return Math.log(x) / Math.log(1 + r);
+}
+
+// --- Loan-to-Value rate table (frames 13, 15, 16) --------------------------
+
+/**
+ * Looks up LTV_RATE_BANDS_BY_DEPOSIT_PCT for a given deposit %, falling back
+ * to the nearest defined band if the exact key isn't present (defensive only
+ * — every caller on frames 13/15/16 passes a DEPOSIT_PCT_OPTIONS value,
+ * which is always an exact key).
+ */
+export function rateBandForDepositPct(depositPct) {
+  const band = LTV_RATE_BANDS_BY_DEPOSIT_PCT[depositPct];
+  if (band) return band;
+
+  const keys = Object.keys(LTV_RATE_BANDS_BY_DEPOSIT_PCT).map(Number);
+  const nearest = keys.reduce((best, k) => (Math.abs(k - depositPct) < Math.abs(best - depositPct) ? k : best));
+  return LTV_RATE_BANDS_BY_DEPOSIT_PCT[nearest];
+}
+
+/**
+ * Standard reducing-balance mortgage repayment: PMT = L * i / (1 - (1+i)^-n),
+ * i the monthly rate (annualRate / 12 — mortgage rates are quoted and
+ * applied monthly-in-arrears by market convention, unlike the savings AER
+ * elsewhere in this model which compounds via monthlyRate()'s
+ * (1+AER)^(1/12)-1 conversion; DECISIONS.md D4 governs savings growth only).
+ */
+export function monthlyMortgagePayment({ loanAmount, annualRate, termYears }) {
+  const i = annualRate / 12;
+  const n = termYears * 12;
+  return (loanAmount * i) / (1 - Math.pow(1 + i, -n));
+}
+
+/** Total interest paid over the mortgage term = total repaid less the loan itself. */
+export function totalMortgageInterest({ loanAmount, monthlyPayment, termYears }) {
+  return monthlyPayment * termYears * 12 - loanAmount;
 }
 
 /**

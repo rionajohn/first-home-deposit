@@ -114,6 +114,12 @@ export const MOCK_POSITION = {
   // draws (£200 to £310) so the built screen matches the reference.
   recentMonthlySavingLow: 200,
   recentMonthlySavingHigh: 310,
+  // Frame 15/16's "This month" card: both captioned "Read from..." (a
+  // directly-read mock figure, provenance 'read' — not derived from
+  // savings-rate or the AER, which would carry a different provenance and
+  // contradict that caption).
+  thisMonthSaved: 310,
+  thisMonthInterest: 38,
 };
 
 /**

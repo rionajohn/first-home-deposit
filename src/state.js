@@ -56,6 +56,7 @@ function defaultState() {
     goal: null, // 'house' | 'other' — frame 06's "Is a house still your goal right now?" decision
     calculatorEntered: false,
     lisaCapBreached: false, // DECISIONS.md D6 — property-value > LISA_CAP_PROPERTY_VALUE, frame 09b
+    ltvVideoSeen: false, // frame 13b (build-spec.md section 2's "video-unseen / video-seen" variant of frame 13's explainer row)
 
     // Frame 05 / 05b (What we can see) — build-spec.md section 1's "Toggle
     // the breakdown" row: breakdownOpen only, no figure changes.

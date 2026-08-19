@@ -5,7 +5,8 @@
  * "02 Personalised savings" (/position, /position/summary, /goal-check —
  * frame 07 excluded per build-spec.md section 3's "Remove" marking), and
  * "03 Deposit calculator" (/calculator/property, /calculator/saving,
- * /calculator/exit, /calculator/review, /calculator/result).
+ * /calculator/exit, /calculator/review, /calculator/result), and
+ * "04 Understanding and tracking" (/learn/ltv, /learn/ltv/video, /tracker).
  */
 
 import { registerRoute, startRouter } from './router.js';
@@ -22,6 +23,9 @@ import { render as renderCalculatorSaving } from './screens/calculator-saving.js
 import { render as renderCalculatorExit } from './screens/calculator-exit.js';
 import { render as renderCalculatorReview } from './screens/calculator-review.js';
 import { render as renderCalculatorResult } from './screens/calculator-result.js';
+import { render as renderLearnLtv } from './screens/learn-ltv.js';
+import { render as renderLearnLtvVideo } from './screens/learn-ltv-video.js';
+import { render as renderTracker } from './screens/tracker.js';
 
 registerRoute('/home', renderHome);
 registerRoute('/journey', renderJourney);
@@ -36,5 +40,8 @@ registerRoute('/calculator/saving', renderCalculatorSaving);
 registerRoute('/calculator/exit', renderCalculatorExit);
 registerRoute('/calculator/review', renderCalculatorReview);
 registerRoute('/calculator/result', renderCalculatorResult);
+registerRoute('/learn/ltv', renderLearnLtv);
+registerRoute('/learn/ltv/video', renderLearnLtvVideo);
+registerRoute('/tracker', renderTracker);
 
 startRouter();

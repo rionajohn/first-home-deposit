@@ -78,3 +78,38 @@ export const CHART_DEPOSIT_PCTS = [0.05, 0.10, 0.15];
 
 /** Frame 12's growth chart plots 5 years (build-spec.md section 2). */
 export const CHART_WINDOW_MONTHS = 60;
+
+/**
+ * Frame 12 / frame 16's checkpoint-amount rule (build-spec.md section 4:
+ * "checkpoint-amount | 0.75 x deposit-target"), pulled out to a named
+ * constant so frame 16's "You've passed the 75% checkpoint" copy can read
+ * the same fraction the model actually used rather than a second, separately
+ * typed "75%" in content.js.
+ */
+export const CHECKPOINT_FRACTION = 0.75;
+
+/**
+ * Frame 13/15/16's Loan-to-Value rate table. Illustrative market rate
+ * ranges by deposit %, transcribed from frame 13's reference PNG for the
+ * three deposit levels the wireframe actually draws (5/10/15%, i.e.
+ * CHART_DEPOSIT_PCTS). The 20% and 25% rows extend the same
+ * roughly-linear-by-LTV-band pattern the wireframe's own three points
+ * follow, to cover the rest of DEPOSIT_PCT_OPTIONS — these two rows are
+ * this build's own extrapolation, not transcribed from any reference PNG.
+ * Not a live rate feed (build-spec.md's out-of-scope list) — a dated,
+ * sourced illustrative constant, the same treatment as
+ * GENERAL_SAVINGS_RANGE and AREA_AVERAGE_PROPERTY_VALUE above.
+ */
+export const LTV_RATE_BANDS_BY_DEPOSIT_PCT = {
+  0.05: { low: 0.051, high: 0.056 },
+  0.10: { low: 0.046, high: 0.052 },
+  0.15: { low: 0.043, high: 0.048 },
+  0.20: { low: 0.040, high: 0.045 },
+  0.25: { low: 0.038, high: 0.043 },
+};
+
+/**
+ * Term frame 13's "What that looks like at three deposits" table uses for
+ * its Monthly/Interest rows (its own "Interest, 25 yrs" row label).
+ */
+export const MORTGAGE_TERM_YEARS = 25;
