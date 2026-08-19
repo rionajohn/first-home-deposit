@@ -1,0 +1,18 @@
+# Never commit research data
+/participants/
+/transcripts/
+/recordings/
+*.consent.pdf
+*.nvp
+*.nvpx
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Dev only
+node_modules/
+/screenshots/
+.claude/settings.local.json
