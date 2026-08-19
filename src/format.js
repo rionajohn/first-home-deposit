@@ -47,6 +47,19 @@ export function formatPercent(value, digits = 2) {
 }
 
 /**
+ * Thousands-grouped whole-number digits, no currency symbol and no pence —
+ * for editable currency inputs (frame 09's property-value field) whose
+ * markup already renders the £ as a separate fixed prefix glyph, so
+ * formatCurrency's own "£" would be a second, duplicate symbol. en-GB
+ * grouping, same rounding convention as formatCurrency (D9).
+ */
+export function formatDigits(value) {
+  return new Intl.NumberFormat('en-GB', {
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+/**
  * Whole-months duration as "X years Y months" (frame 12's timing rows) or,
  * abbreviated, "X yr Y mo" (frame 12's growth-chart x-axis). `months` is
  * always rounded up first (Math.ceil) — the same convention DECISIONS.md D2

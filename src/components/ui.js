@@ -10,6 +10,7 @@
  * `data-action` after inserting it into the DOM and wires the listener
  * itself, the same pattern src/screens/home.js already established.
  */
+import { formatDigits } from '../format.js';
 
 /**
  * App bar: a left icon (back arrow, close/X, or none), a centred title, and
@@ -285,7 +286,7 @@ export function bindFormStepHeader(container, { onBack, onClose }) {
  * placeholder-style hint rather than "£0").
  */
 export function currencyInputHTML({ id, label, value, hint, ariaLabel }) {
-  const digits = value === null || value === undefined ? '' : String(Math.round(value));
+  const digits = value === null || value === undefined || Number.isNaN(value) ? '' : formatDigits(value);
   return `
     <div class="currency-input">
       <p class="currency-input__label">${label}</p>
@@ -418,6 +419,7 @@ export function rangeFigureHTML({ lowText, highText, caption, markerPct, trackLa
       </div>
       <p class="range-figure__caption">${caption}</p>
       <div class="range-figure__track">
+        <div class="range-figure__fill" style="width:${clampedPct}%"></div>
         <div class="range-figure__marker" style="left:${clampedPct}%"></div>
       </div>
       <p class="value-slider__caption">${trackLabel}</p>

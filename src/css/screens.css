@@ -725,7 +725,7 @@
 /* ============================================================ */
 
 .empty-state-card--muted {
-  background: var(--color-bg);
+  background: var(--color-surface-raised);
   border: none;
 }
 
@@ -837,7 +837,17 @@
   width: 100%;
   height: 4px;
   border-radius: 2px;
-  background: var(--color-bg);
+  background: var(--color-surface-raised);
+  overflow: visible;
+}
+
+.range-figure__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--color-accent-neutral);
 }
 
 .range-figure__marker {
@@ -885,7 +895,10 @@
 .growth-chart__threshold-label {
   position: absolute;
   left: 48px;
+  z-index: 1;
   margin: 0 0 4px;
+  padding: 1px 4px 1px 0;
+  background: var(--color-bg);
   font-size: var(--text-footnote-size);
   line-height: var(--text-footnote-line);
   font-weight: 500;

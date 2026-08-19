@@ -107,6 +107,7 @@
   /* --- Color: light mode (default) --- */
   --color-bg: #f7f7f8;              /* surface/page */
   --color-surface: #ffffff;          /* surface/card */
+  --color-surface-raised: #efeff1;   /* surface/raised — a shade distinct from surface/page, for muted content blocks that must read as their own block against the page (Figma "Inputs / Currency input" empty-state card, "Content / Range figure" track) */
   --color-label: #17171c;            /* text/primary */
   --color-label-secondary: #6b6b74;  /* text/secondary */
   --color-label-tertiary: #8a8a93;   /* text/tertiary */
@@ -128,6 +129,7 @@
   :root {
     --color-bg: #000000;
     --color-surface: #1c1c1e;
+    --color-surface-raised: #2c2c2e; /* secondarySystemBackground-equivalent step up from surface/card in dark mode */
     --color-label: #ffffff;
     --color-label-secondary: rgba(235, 235, 245, 0.6);
     --color-label-tertiary: rgba(235, 235, 245, 0.36);

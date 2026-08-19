@@ -27,7 +27,6 @@
 import {
   appBarHTML,
   bindAppBarBack,
-  actionBarHTML,
   infoBannerHTML,
   flagRowHTML,
   rangeFigureHTML,
@@ -107,8 +106,12 @@ export function render(container, ctx) {
               return `<p>${fill(c.timingWithinTemplate, { pct: pctLabel, months: soonText })}</p>`;
             }
             const laterText = formatMonthsDuration(monthsLater);
-            if (soonText === laterText) {
-              return `<p>${fill(c.timingWithinTemplate, { pct: pctLabel, months: soonText })}</p>`;
+            // Under a year, a two-sided range (e.g. "2 months to 3 months")
+            // is fussier than it is informative — collapse to a single,
+            // conservative "within" statement using the slower end. At a
+            // year or more the gap between ends is worth showing in full.
+            if (soonText === laterText || Math.ceil(monthsLater) < 12) {
+              return `<p>${fill(c.timingWithinTemplate, { pct: pctLabel, months: laterText })}</p>`;
             }
             return `<p>${fill(c.timingRangeTemplate, { pct: pctLabel, low: soonText, high: laterText })}</p>`;
           }).join('')}
@@ -166,6 +169,8 @@ export function render(container, ctx) {
         ${infoLinkHTML({ label: c.ltvInfoLinkLabel, action: 'open-ltv-info' })}
       </div>
 
+      <button type="button" class="button button--primary" data-action="save-goal">${c.primaryCta}</button>
+
       ${infoBannerHTML(c.assumptionsBannerText)}
 
       ${howThisWorksCardHTML({
@@ -183,7 +188,6 @@ export function render(container, ctx) {
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
     </div>
-    ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'save-goal' })}
   `;
 
   bindAppBarBack(container, () => {
