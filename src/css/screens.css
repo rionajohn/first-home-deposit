@@ -1273,3 +1273,36 @@
   flex-direction: column;
   gap: var(--space-md);
 }
+
+/* ============================================================ */
+/* /mip, /mip/about, /mip/pre-check, /mip/running,               */
+/* /mip/result/likely, /mip/result/not-yet, /mip/adviser          */
+/* — frames 17, 18, 19, 19b, 20, 21                               */
+/* ============================================================ */
+
+.mip-step-card,
+.mip-precheck-card {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Shared "Heading/S" card-title style (17px/600) — frames 17, 18 and 19's
+   own card titles ("What this step does", "What it is not", "We've already
+   got", "Here's what to expect") all use this exact Figma type style. */
+.mip-heading-s {
+  margin: 0;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+/* Frame 18's two "Content / List row"-alike rows: title + caption, no
+   value — figureRowHTML with `value` omitted covers this shape already, so
+   no dedicated row class is needed here. */
+
+/* Frame 20/21's Content / Range figure and figure-row rows sit directly
+   inside .screen-content — no extra wrapper class needed beyond the shared
+   rangeFigureHTML/figureRowHTML components. */

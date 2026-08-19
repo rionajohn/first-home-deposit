@@ -635,6 +635,13 @@
   box-sizing: border-box;
 }
 
+/* Centred variant (frame 19b's processing state, the only screen so far
+   whose single piece of content sits mid-viewport rather than stacked from
+   the top). */
+.screen-content--centered {
+  justify-content: center;
+}
+
 /* --- Disclosure / accordion (frames 05, 05b, 06) --- */
 .disclosure {
   width: 100%;
@@ -1616,4 +1623,253 @@ button.milestone-row {
   background: var(--color-surface);
   font-weight: 500;
   color: var(--color-label);
+}
+
+/* --- How this works card footnote (frames 20, 21's DUAA pushback wording,
+   appended after the card's own nav-row) --- */
+.how-this-works-card__footnote {
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label);
+}
+
+/* --- Tick list (Content / Tick list — frame 17) --- */
+.tick-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  width: 100%;
+}
+
+.tick-list__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  width: 100%;
+}
+
+.tick-list__icon {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.tick-list__text {
+  margin: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label);
+}
+
+/* --- Checklist row (Content / List row, checked/unchecked glyph variant —
+   frame 19's "We've already got" card and its own disclosure rows) --- */
+.checklist-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding: var(--space-md) 0;
+  box-sizing: border-box;
+}
+
+.checklist-row__glyph {
+  flex: 0 0 auto;
+  width: 20px;
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  color: var(--color-label);
+  text-align: center;
+}
+
+.checklist-row__content {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.checklist-row__label {
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label);
+}
+
+.checklist-row__value {
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 500;
+  color: var(--color-label);
+}
+
+.checklist-row__caption {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  color: var(--color-label-secondary);
+}
+
+/* --- Result panel (Results / Result panel — frames 20, 21) --- */
+.result-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-3xl) var(--space-2xl);
+  text-align: center;
+}
+
+.result-panel__icon {
+  flex: 0 0 auto;
+}
+
+.result-panel__headline {
+  margin: 0;
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.result-panel__body {
+  margin: 0;
+  font-size: 17px;
+  line-height: 26px;
+  font-weight: 400;
+  color: var(--color-label-secondary);
+}
+
+/* --- Next steps card (Results / Next steps card — frames 20, 21) --- */
+.next-steps-card {
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.next-steps-card__title {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-line);
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.next-steps-card__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding: var(--space-md) 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.next-steps-card__row--divided {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.next-steps-card__number {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 600;
+  color: var(--color-label-tertiary);
+}
+
+.next-steps-card__content {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.next-steps-card__step-title {
+  margin: 0;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.next-steps-card__caption {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  color: var(--color-label-secondary);
+}
+
+/* --- Processing state (Content / Processing state — frame 19b) --- */
+.processing-state {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-3xl) var(--space-2xl);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.processing-state__spinner {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  border: 3px solid var(--color-border-subtle);
+  border-top-color: var(--color-label);
+  animation: processing-spin 900ms linear infinite;
+}
+
+@keyframes processing-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .processing-state__spinner {
+    animation: none;
+  }
+}
+
+.processing-state__title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.processing-state__body {
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label-secondary);
+  width: 100%;
+  max-width: 313px;
+}
+
+.processing-state__caption {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  color: var(--color-label-tertiary);
 }

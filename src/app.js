@@ -6,7 +6,11 @@
  * frame 07 excluded per build-spec.md section 3's "Remove" marking), and
  * "03 Deposit calculator" (/calculator/property, /calculator/saving,
  * /calculator/exit, /calculator/review, /calculator/result), and
- * "04 Understanding and tracking" (/learn/ltv, /learn/ltv/video, /tracker).
+ * "04 Understanding and tracking" (/learn/ltv, /learn/ltv/video, /tracker),
+ * and "05 Mortgage in Principle" (/mip, /mip/about, /mip/pre-check,
+ * /mip/running, /mip/result/likely, /mip/result/not-yet, and /mip/adviser —
+ * the new screen SPEC.md adds outside the reference set, see DECISIONS.md
+ * D8/D10).
  */
 
 import { registerRoute, startRouter } from './router.js';
@@ -26,6 +30,13 @@ import { render as renderCalculatorResult } from './screens/calculator-result.js
 import { render as renderLearnLtv } from './screens/learn-ltv.js';
 import { render as renderLearnLtvVideo } from './screens/learn-ltv-video.js';
 import { render as renderTracker } from './screens/tracker.js';
+import { render as renderMip } from './screens/mip.js';
+import { render as renderMipAbout } from './screens/mip-about.js';
+import { render as renderMipPreCheck } from './screens/mip-pre-check.js';
+import { render as renderMipRunning } from './screens/mip-running.js';
+import { render as renderMipResultLikely } from './screens/mip-result-likely.js';
+import { render as renderMipResultNotYet } from './screens/mip-result-not-yet.js';
+import { render as renderMipAdviser } from './screens/mip-adviser.js';
 
 registerRoute('/home', renderHome);
 registerRoute('/journey', renderJourney);
@@ -43,5 +54,12 @@ registerRoute('/calculator/result', renderCalculatorResult);
 registerRoute('/learn/ltv', renderLearnLtv);
 registerRoute('/learn/ltv/video', renderLearnLtvVideo);
 registerRoute('/tracker', renderTracker);
+registerRoute('/mip', renderMip);
+registerRoute('/mip/about', renderMipAbout);
+registerRoute('/mip/pre-check', renderMipPreCheck);
+registerRoute('/mip/running', renderMipRunning);
+registerRoute('/mip/result/likely', renderMipResultLikely);
+registerRoute('/mip/result/not-yet', renderMipResultNotYet);
+registerRoute('/mip/adviser', renderMipAdviser);
 
 startRouter();

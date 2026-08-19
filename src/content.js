@@ -44,6 +44,13 @@ const content = {
       estimateDisclosure:
         'This is an estimate based on the information we hold today. It is not an offer and your actual figures may be different.',
     },
+    // Repeated verbatim on frames 18, 19, 20 and 21 (Figma's own "Regulatory
+    // / Risk warning" component, "not a mortgage offer" variant) — not one
+    // of the four fixed regulatory.* keys above (SPEC.md fixes that object's
+    // shape), but still copy shared across 4 routes rather than
+    // inline-duplicated four times.
+    mipAgreementNotOffer:
+      'An agreement in principle is not a mortgage offer. It is usually valid for 90 days and is subject to further checks.',
   },
 
   '/home': {
@@ -534,6 +541,165 @@ const content = {
     belowCheckpointCta: 'Adjust my goal',
     checkpointReachedCta: 'Check my Mortgage in Principle',
     lockedRowAriaSuffix: 'locked',
+  },
+
+  '/mip': {
+    appBarTitle: 'Mortgage in Principle',
+    headline: 'Mortgage in Principle',
+    body: "You've saved three quarters of your deposit, so this is now open to you.",
+    whatThisStepDoesHeading: 'What this step does',
+    tickRows: [
+      'Shows how much a lender might be willing to lend you',
+      "Tells estate agents you're a credible buyer",
+      "Doesn't commit you to anything",
+    ],
+    learnMoreLabel: 'What does a Mortgage in Principle (MIP) mean?',
+    primaryCta: 'Start the check',
+    secondaryCta: 'Not right now',
+    // build-spec.md section 2's "locked" variant (DECISIONS.md D7 fallback,
+    // "reached only by deep link" — no wireframe drawn).
+    lockedHeadline: 'Not unlocked yet',
+    lockedBody:
+      "This unlocks once you've saved three quarters of your deposit. Keep an eye on your progress on the tracker.",
+    lockedCta: 'Back to my deposit',
+  },
+
+  '/mip/about': {
+    appBarTitle: 'Mortgage in Principle',
+    videoTitle: 'What a Mortgage in Principle is',
+    videoDuration: '1 min 45',
+    captionsLabel: 'Captions',
+    transcriptLabel: 'Transcript',
+    shortVersionHeading: 'The short version',
+    shortVersionBody:
+      'A Mortgage in Principle is an indication of how much a lender might be willing to lend you, based on your income and outgoings. It is not a commitment from the lender or from you.',
+    visualAidLabel: '[Visual aid]',
+    visualAidCaption:
+      'Timeline: Mortgage in Principle, then offer on a property, then full mortgage application, then formal offer - showing where in the process this sits',
+    whatItIsNotHeading: 'What it is not',
+    notRows: [
+      { title: 'Not an application', caption: 'It does not start a mortgage application or commit you to one' },
+      { title: 'Not a guarantee', caption: 'A lender can still say no after a full application and credit check' },
+      { title: 'Not a credit agreement', caption: 'No money changes hands and no contract is created' },
+    ],
+    infoBannerText: 'This stays in your Explainers list, so you can come back to it.',
+    primaryCta: 'Got it',
+  },
+
+  '/mip/pre-check': {
+    appBarTitle: 'Mortgage in Principle',
+    headline: 'Before you run the check',
+    alreadyGotHeading: "We've already got",
+    salaryLabel: 'Annual salary before tax',
+    salaryCaption: 'From your salary payments',
+    incomeLabel: 'Monthly income after tax',
+    outgoingsLabel: 'Regular outgoings',
+    outgoingsCaption: 'From your direct debits and standing orders',
+    creditLabel: 'Existing credit commitments',
+    creditCaptionTemplate: '{amount} a month',
+    creditNote: "A lender counts this separately. It's already taken off the income figure above.",
+    depositLabel: 'Deposit saved',
+    depositCaption: 'Across the accounts you assigned to your deposit',
+    expectHeading: "Here's what to expect",
+    expectRows: [
+      { label: 'How long it takes', value: 'About 10 minutes' },
+      { label: 'Credit check', value: 'A soft search only' },
+      { label: 'How long the result lasts', value: 'Usually 90 days' },
+    ],
+    softSearchWarning: 'This is a soft credit search. It will not affect your credit score and other lenders cannot see it.',
+    askedHeading: "What you'll still be asked",
+    askedRows: [
+      'Whether anyone is buying with you',
+      'Whether your income includes bonus or overtime',
+      'Where your deposit is coming from',
+      "The kind of property you're looking at",
+    ],
+    benefitsHeading: 'What having one can do for you',
+    benefitsRows: ['Credibility with estate agents', 'Knowing your budget before you view', 'Speed at full application', 'No cost'],
+    awareHeading: 'What to be aware of',
+    awareRows: [
+      'It expires after around 90 days',
+      'It is not binding on the lender',
+      'A full application involves a hard credit check that does affect your credit file',
+      'The figure changes if your circumstances change',
+    ],
+    primaryCta: 'Start the check',
+    secondaryCta: 'Not right now',
+    // build-spec.md section 2's "incomplete" variant (DECISIONS.md D7
+    // fallback — no wireframe drawn): shown in place of a held figure's
+    // value when it was never read from an account (general mode).
+    incompleteValue: 'Not on file',
+    incompleteCaption: "We couldn't read this from your accounts. Add it yourself before running the check.",
+  },
+
+  '/mip/running': {
+    appBarTitle: 'Mortgage in Principle',
+    title: 'Checking your details',
+    body: 'This is a soft credit search and will not affect your credit score.',
+    caption: 'This usually takes a few seconds',
+  },
+
+  '/mip/result/likely': {
+    appBarTitle: 'Your result',
+    resultHeadline: "You'd likely be seen as a serious buyer",
+    resultBody: 'Based on your salary, deposit and commitments, a lender could be willing to lend in this range.',
+    rangeCaption: 'Indicative borrowing range',
+    rangeTrackLabel: 'With your current deposit',
+    propertyUpToLabelTemplate: "With your {deposit} deposit, that's a property up to",
+    ltvLabel: 'Loan-to-Value',
+    ltvValueTemplate: 'around {ltv}',
+    basedOnLabel: 'Based on',
+    basedOnValue: 'Salary, deposit and commitments',
+    nextStepsTitle: 'What you could do next',
+    step1Title: 'Keep saving to lower your Loan-to-Value',
+    step1Caption: "A larger deposit could improve the rate you're offered",
+    step2Title: 'Talk to someone about it',
+    step2Caption: "Message us in the app and we'll connect you with a mortgage adviser today",
+    howWeWorkedTitle: 'How we worked this out',
+    seeHowWeWorkedLabel: 'See how we worked this out',
+    automatedNote:
+      'This estimate was worked out automatically. You can tell us if you disagree with it, and you can ask us to have a person review it.',
+    flagLabel: "Something doesn't look right",
+    primaryCta: 'Start my Mortgage in Principle',
+    secondaryCta: 'Keep saving for now',
+  },
+
+  '/mip/result/not-yet': {
+    appBarTitle: 'Your result',
+    resultHeadline: "You're not quite there yet",
+    resultBody:
+      "Based on what we can see today, the amount you'd need to borrow is above what a lender would typically offer. That changes as you keep saving.",
+    gapCaption: 'The estimated gap at your current property target',
+    needBorrowLabel: "What you'd need to borrow",
+    lenderOfferLabel: 'What a lender would typically offer',
+    lenderOfferValueTemplate: 'around {amount}',
+    basedOnLabel: 'Based on',
+    basedOnValue: 'salary, deposit and commitments',
+    nextStepsTitle: 'What you could do next',
+    step1TitleTemplate: 'Save around {amount} more toward your deposit',
+    step1CaptionTemplate: 'Around {months} at your current rate',
+    step2TitleTemplate: 'Look at a property target closer to {amount}',
+    step2Caption: 'Would close the gap now',
+    step3Title: 'Talk to someone about it',
+    step3Caption: "Message us in the app and we'll connect you with a mortgage adviser today",
+    howWeWorkedTitle: 'How we worked this out',
+    seeHowWeWorkedLabel: 'See how we worked this out',
+    automatedNote:
+      'This estimate was worked out automatically. You can tell us if you disagree with it, and you can ask us to have a person review it.',
+    flagLabel: "Something doesn't look right",
+    primaryCta: 'Update my savings goal',
+    secondaryCta: 'See what changes this',
+  },
+
+  // No reference PNG, no Figma node — SPEC.md's own new screen this session
+  // adds outside the reference set (D8/D10): a terminal stub for the
+  // adviser-contact request. Request logged, no form, no booking calendar.
+  '/mip/adviser': {
+    appBarTitle: 'Talk to an adviser',
+    headline: "We'll connect you with an adviser",
+    body: "We've logged your request. A mortgage adviser will message you in the app to arrange a time that works for you.",
+    confirmationLabel: 'Request sent',
+    primaryCta: 'Done',
   },
 };
 

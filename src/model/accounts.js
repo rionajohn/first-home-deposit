@@ -123,6 +123,19 @@ export const MOCK_POSITION = {
 };
 
 /**
+ * Frame 19's "We've already got" card: two figures with no other home in
+ * build-spec.md section 6 (monthly income, regular outgoings and deposit
+ * saved there are read straight from state — money-in, essential-spending,
+ * saved-toward-deposit). Annual salary and existing credit commitments have
+ * no section-6 variable of their own, so they're held here as their own
+ * mock read-provenance source, the same treatment MOCK_POSITION gets.
+ */
+export const MOCK_MIP_DATA = {
+  annualSalaryBeforeTax: 38000,
+  creditCommitmentsMonthly: 41,
+};
+
+/**
  * Re-derives each account's effective group and included-in-total flag from
  * state overrides (03b moves an account's group; the "Select all accounts"
  * row toggles inclusion for the deposit group — see consent.js). Pure:

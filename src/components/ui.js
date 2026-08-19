@@ -582,7 +582,7 @@ export function rateBandRowHTML({ label, sublabel, value, highlighted }) {
  * the Figma component name marks it as a design-system piece likely reused
  * by the assumptions/results screens later.
  */
-export function howThisWorksCardHTML({ title, intro, rows, navLabel, navAction }) {
+export function howThisWorksCardHTML({ title, intro, rows, navLabel, navAction, footnote }) {
   return `
     <div class="card how-this-works-card">
       <p class="how-this-works-card__title">${title}</p>
@@ -601,6 +601,102 @@ export function howThisWorksCardHTML({ title, intro, rows, navLabel, navAction }
         <span class="how-this-works-card__nav-label">${navLabel}</span>
         <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
       </button>
+      ${footnote ? `<p class="how-this-works-card__footnote">${footnote}</p>` : ''}
+    </div>
+  `;
+}
+
+/**
+ * Content / Tick list (frame 17's "What this step does"): a checked-circle
+ * icon beside a single line of text, one row per item — distinct from
+ * checklistRowHTML below, whose rows carry a bold value and a caption under
+ * the label (frame 19's "We've already got" card).
+ */
+export function tickListHTML(rows) {
+  return `
+    <div class="tick-list">
+      ${rows.map((text) => `
+        <div class="tick-list__row">
+          <img class="tick-list__icon" src="assets/icons/status-check.svg" alt="" width="20" height="20" />
+          <p class="tick-list__text">${text}</p>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+/**
+ * Content / List row, checked/unchecked variant (frame 19's "We've already
+ * got" card and its own "What you'll still be asked" disclosure): a
+ * character glyph ("✓" or "○", exactly as the reference PNG draws it — not
+ * an icon asset) beside a label, an optional bold value, and an optional
+ * caption. `value`/`caption` omitted renders just the glyph + label, the
+ * shape the disclosure rows need.
+ */
+export function checklistRowHTML({ glyph, label, value, caption }) {
+  return `
+    <div class="checklist-row">
+      <p class="checklist-row__glyph" aria-hidden="true">${glyph}</p>
+      <div class="checklist-row__content">
+        <p class="checklist-row__label">${label}</p>
+        ${value ? `<p class="checklist-row__value">${value}</p>` : ''}
+        ${caption ? `<p class="checklist-row__caption">${caption}</p>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Results / Result panel (frames 20, 21): a centred icon, headline and body
+ * inside its own card — the top-of-screen summary of a Mortgage in
+ * Principle result, positive or not-yet.
+ */
+export function resultPanelHTML({ icon, headline, body }) {
+  return `
+    <div class="card result-panel">
+      <img class="result-panel__icon" src="${icon}" alt="" width="32" height="32" />
+      <p class="result-panel__headline">${headline}</p>
+      <p class="result-panel__body">${body}</p>
+    </div>
+  `;
+}
+
+/**
+ * Results / Next steps card (frames 20, 21): a title and a numbered list of
+ * tappable rows, each a bold title + caption + chevron. `steps` is
+ * `[{ number, title, caption, action }]`.
+ */
+export function nextStepsCardHTML({ title, steps }) {
+  return `
+    <div class="card next-steps-card">
+      <p class="next-steps-card__title">${title}</p>
+      ${steps.map((step, i) => `
+        <button type="button" class="next-steps-card__row${i < steps.length - 1 ? ' next-steps-card__row--divided' : ''}" data-action="${step.action}">
+          <p class="next-steps-card__number">${step.number}</p>
+          <div class="next-steps-card__content">
+            <p class="next-steps-card__step-title">${step.title}</p>
+            <p class="next-steps-card__caption">${step.caption}</p>
+          </div>
+          <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+        </button>
+      `).join('')}
+    </div>
+  `;
+}
+
+/**
+ * Content / Processing state (frame 19b): a spinner, a title, a body line
+ * and a tertiary caption, centred inside a bordered card. The spinner is a
+ * pure-CSS rotating ring (no animated asset) — see components.css's
+ * `.processing-state__spinner`, which also honours `prefers-reduced-motion`.
+ */
+export function processingStateHTML({ title, body, caption }) {
+  return `
+    <div class="processing-state">
+      <div class="processing-state__spinner" aria-hidden="true"></div>
+      <p class="processing-state__title">${title}</p>
+      <p class="processing-state__body">${body}</p>
+      <p class="processing-state__caption">${caption}</p>
     </div>
   `;
 }

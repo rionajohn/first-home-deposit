@@ -324,6 +324,68 @@ export function totalMortgageInterest({ loanAmount, monthlyPayment, termYears })
   return monthlyPayment * termYears * 12 - loanAmount;
 }
 
+// --- Mortgage in Principle (frames 20, 21) ----------------------------------
+
+/**
+ * borrow-low / borrow-high (build-spec.md section 6): DECISIONS.md D2's
+ * range rule applied to loan-amount as the central value (D2, confirmed 19
+ * August 2026 — see DECISIONS.md).
+ */
+export function borrowRange(state) {
+  const loan = loanAmount(state);
+  if (loan.error) return fail(loan.error, loan.provenance);
+  const { low, high } = rangeFromCentral(loan.value);
+  return ok({ low, high }, loan.provenance);
+}
+
+/** max-property (build-spec.md section 4) = borrow-high + saved-toward-deposit. */
+export function maxProperty(state) {
+  const range = borrowRange(state);
+  const savedTowardDeposit = state['saved-toward-deposit'];
+  const provenance = combineProvenance(range, savedTowardDeposit);
+  if (range.error) return fail(range.error, provenance);
+  return ok(range.value.high + savedTowardDeposit.value, provenance);
+}
+
+/**
+ * Frame 20's "Loan-to-Value: around 92%" row is not state['ltv'] (the
+ * deposit calculator's own Loan-to-Value, fixed by the deposit-pct chosen on
+ * frame 09) — it is the Loan-to-Value AT max-property, i.e. what borrowing
+ * to the top of the indicative range against the largest affordable
+ * property would imply: borrow-high / max-property. Not a build-spec.md
+ * section 4 named figure (that section predates frame 20/21's own numbers),
+ * but the only reading of "Loan-to-Value" on this screen consistent with
+ * its own displayed max-property and borrowing-range figures.
+ */
+export function mipEstimatedLtv(state) {
+  const range = borrowRange(state);
+  const max = maxProperty(state);
+  const provenance = combineProvenance(range, max);
+  if (range.error) return fail(range.error, provenance);
+  if (max.error) return fail(max.error, provenance);
+  return ok(range.value.high / max.value, provenance);
+}
+
+/**
+ * Frame 21's "What you'd need to borrow" row: the loan a participant would
+ * need today, against their chosen property-value, given what they've
+ * actually saved toward the deposit so far — distinct from state['loan-amount']
+ * (which is sized against deposit-target, the amount they're aiming to have
+ * saved, not saved-toward-deposit, what they've saved so far). Not a
+ * build-spec.md section 4 named figure, for the same reason as
+ * mipEstimatedLtv above.
+ */
+export function neededLoanAmount(state) {
+  const propertyValue = state['property-value'];
+  const savedTowardDeposit = state['saved-toward-deposit'];
+  const provenance = combineProvenance(propertyValue, savedTowardDeposit);
+
+  if (typeof propertyValue.value !== 'number' || Number.isNaN(propertyValue.value)) {
+    return fail('non-numeric', provenance);
+  }
+  return ok(propertyValue.value - savedTowardDeposit.value, provenance);
+}
+
 /**
  * Exact inverse of monthsToTarget(): solves the same annuity-due equation
  * for the monthly payment PMT, given a fixed number of months.
