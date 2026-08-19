@@ -62,7 +62,6 @@ function openBankingRowHTML({ title, caption }) {
 export function render(container, ctx) {
   const { state, content } = ctx;
   const c = content['/assumptions/sources'];
-  const positionContent = content['/position'];
   const summaryContent = content['/position/summary'];
   const reg = content.shared.regulatory;
 
@@ -80,14 +79,14 @@ export function render(container, ctx) {
 
   const dataSourceRows = [
     dataSourceRowHTML({
-      label: positionContent.moneyInLabel,
+      label: c.moneyInLabel,
       value: moneyInValue === null ? '—' : formatCurrency(moneyInValue),
-      caption: positionContent.moneyInCaption,
+      caption: c.moneyInCaption,
     }),
     dataSourceRowHTML({
-      label: positionContent.essentialSpendingLabel,
+      label: c.essentialSpendingLabel,
       value: essentialSpendingValue === null ? '—' : formatCurrency(essentialSpendingValue),
-      caption: positionContent.essentialSpendingCaption,
+      caption: c.essentialSpendingCaption,
     }),
     dataSourceRowHTML({
       label: summaryContent.savedTowardDepositLabel,
