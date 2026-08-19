@@ -215,6 +215,23 @@ export function monthsToTarget(state) {
   return ok(months, provenance);
 }
 
+// --- General mode (frame 04) -----------------------------------------------
+
+/**
+ * annual = monthly x 12, no interest (build-spec.md section 2, frame 04
+ * "default range" row) — deliberately simpler than the compounding model
+ * used everywhere else, since general mode has no saved-toward-deposit
+ * starting balance to compound. Provenance propagates from the monthly
+ * figures: 'entered' if either was typed/dragged by the participant,
+ * otherwise 'estimated' (a published average, not read from an account).
+ */
+export function generalAnnualRange(monthlyLow, monthlyHigh) {
+  const provenance = monthlyLow.provenance === 'entered' || monthlyHigh.provenance === 'entered'
+    ? 'entered'
+    : 'estimated';
+  return ok({ low: monthlyLow.value * 12, high: monthlyHigh.value * 12 }, provenance);
+}
+
 /**
  * Exact inverse of monthsToTarget(): solves the same annuity-due equation
  * for the monthly payment PMT, given a fixed number of months.

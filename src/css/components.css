@@ -1,0 +1,615 @@
+/**
+ * Shared UI components. Only introduced where 2+ screens need the same
+ * pattern (SPEC.md) — everything here is used by frame 01 today and is
+ * expected to be reused as later screens are built, not spun up
+ * speculatively ahead of need.
+ */
+
+/* --- App bar --- */
+.app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.app-bar__cell {
+  width: 44px;
+  height: 56px;
+  flex: 0 0 auto;
+}
+
+/* Touch-target minimum (DECISIONS.md D1) widens the hit area beyond the
+   Figma-drawn 44px cell; the icon itself stays visually centred. */
+.app-bar__cell--action {
+  width: 48px;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.app-bar__icon {
+  display: block;
+}
+
+.app-bar__title {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-line);
+  font-weight: var(--text-headline-weight);
+  color: var(--color-label);
+}
+
+/* --- Cards --- */
+.card {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  box-sizing: border-box;
+}
+
+.card--emphasis {
+  border-color: var(--color-border-strong);
+}
+
+/* --- Balance card --- */
+.balance-card {
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.balance-card__label {
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: var(--text-subheadline-weight);
+  color: var(--color-label-secondary);
+  margin: 0;
+}
+
+.balance-card__amount {
+  font-size: var(--text-title1-size);
+  line-height: var(--text-title1-line);
+  font-weight: 600;
+  color: var(--color-label);
+  margin: 0;
+}
+
+/* --- Transactions card --- */
+.transactions-card {
+  padding: var(--space-lg) var(--space-lg) 0;
+}
+
+.section-header {
+  padding-bottom: var(--space-sm);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  color: var(--color-label-secondary);
+  margin: 0;
+}
+
+.section-spacer {
+  height: var(--space-md);
+}
+
+.transaction-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: var(--space-lg) 0;
+}
+
+.transaction-row__merchant {
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-line);
+  font-weight: var(--text-headline-weight);
+  color: var(--color-label);
+  margin: 0;
+}
+
+.transaction-row__category {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  font-weight: 400;
+  color: var(--color-label-secondary);
+  margin: 0;
+}
+
+.transaction-row__amount {
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 500;
+  color: var(--color-label);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.divider {
+  height: 1px;
+  width: 100%;
+  background: var(--color-border-subtle);
+  border: none;
+  margin: 0;
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--touch-target-min);
+  padding: var(--space-md) 0;
+  border-top: 1px solid var(--color-border-subtle);
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  width: 100%;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.list-row__label {
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label);
+}
+
+.list-row__chevron {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+/* --- Entry card --- */
+.entry-card {
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.entry-card__title {
+  font-size: var(--text-title3-size);
+  line-height: var(--text-title3-line);
+  font-weight: 600;
+  color: var(--color-label);
+  margin: 0;
+}
+
+.entry-card__body {
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label-secondary);
+  margin: 0;
+}
+
+/* --- Buttons --- */
+.button {
+  appearance: none;
+  border: none;
+  border-radius: var(--radius-md);
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  padding: 0 var(--space-lg);
+  font-family: inherit;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.button--secondary {
+  background: var(--color-action-secondary-bg);
+  border: 1px solid var(--color-action-secondary-border);
+  color: var(--color-label);
+}
+
+.button--primary {
+  background: var(--color-label);
+  color: var(--color-label-inverse);
+}
+
+.button--primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.button--choice {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.button--choice[aria-pressed="true"] {
+  background: var(--color-accent-neutral);
+  border-color: var(--color-accent-neutral);
+  color: var(--color-label-inverse);
+}
+
+.button--choice[aria-pressed="false"] {
+  background: var(--color-action-secondary-bg);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-label);
+}
+
+/* --- Action bar (bottom, fixed within the flex column like .bottom-nav) --- */
+.action-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-lg);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border-subtle);
+  flex: 0 0 auto;
+}
+
+.text-action {
+  appearance: none;
+  background: none;
+  border: none;
+  min-height: var(--touch-target-min);
+  width: 100%;
+  font-family: inherit;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 500;
+  color: var(--color-label-secondary);
+  text-align: center;
+  cursor: pointer;
+}
+
+/* --- Info banner --- */
+.info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+}
+
+.info-banner__icon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.info-banner__text {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label);
+}
+
+/* --- Flag row (DUAA pushback control) --- */
+.flag-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding: var(--space-md) 0;
+  border-top: 1px solid var(--color-border-subtle);
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.flag-row__icon {
+  flex: 0 0 auto;
+}
+
+.flag-row__label {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 500;
+  color: var(--color-label);
+}
+
+.flag-row__chevron {
+  flex: 0 0 auto;
+}
+
+/* --- Provenance caption (DECISIONS.md D5) --- */
+.provenance-caption {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  font-weight: 400;
+  color: var(--color-label-secondary);
+}
+
+/* --- Regulatory / legal footer text --- */
+.legal-text {
+  margin: 0;
+  font-size: var(--text-caption1-size);
+  line-height: var(--text-caption1-line);
+  font-weight: 400;
+  color: var(--color-label-tertiary);
+}
+
+/* --- Section headings shared across screens --- */
+/* These two headline sizes (24/30 and 20/26) are the project's own Figma
+   type styles (Heading/L, Heading/M) rather than an exact Apple Dynamic
+   Type step — same precedent as tokens.css's colour values: closest to the
+   HIG token scale in spirit (SF Pro fallback stack, standard weights), but
+   pinned to the actual design so built screens match the reference PNGs. */
+.screen-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.section-heading {
+  margin: 0;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.body-text-lg {
+  margin: 0;
+  font-size: 17px;
+  line-height: 26px;
+  font-weight: 400;
+  color: var(--color-label-secondary);
+}
+
+/* --- Checkbox row: a full-width, min-48px-tall clickable row wrapping a
+   24px checkbox glyph and label text. The row itself is the touch target,
+   not the 24px glyph, satisfying the 48px minimum without shrinking the
+   glyph to match the Figma spec. --- */
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding: var(--space-md) 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.checkbox-row__box {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  margin-top: 2px;
+  border-radius: 7px;
+  border: 2px solid var(--color-border-strong);
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkbox-row[aria-checked="true"] .checkbox-row__box {
+  background: var(--color-accent-neutral);
+  border-color: var(--color-accent-neutral);
+}
+
+.checkbox-row__box img {
+  display: none;
+}
+
+.checkbox-row[aria-checked="true"] .checkbox-row__box img {
+  display: block;
+}
+
+.checkbox-row__text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.checkbox-row__title {
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label);
+}
+
+.checkbox-row__title--strong {
+  font-weight: 500;
+}
+
+.checkbox-row__body {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  font-weight: 400;
+  color: var(--color-label-secondary);
+}
+
+.checkbox-row__trailing {
+  flex: 0 0 auto;
+  align-self: center;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  color: var(--color-label-secondary);
+  white-space: nowrap;
+}
+
+/* --- Radio option (03b): full-row touch target around a 24px circle --- */
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  width: 100%;
+  min-height: 72px;
+  padding: var(--space-lg);
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.radio-option:hover {
+  background: var(--color-bg);
+}
+
+.radio-option__circle {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-border-subtle);
+  box-sizing: border-box;
+  position: relative;
+}
+
+.radio-option[aria-checked="true"] .radio-option__circle {
+  border-color: var(--color-label);
+}
+
+.radio-option[aria-checked="true"] .radio-option__circle::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-label);
+}
+
+.radio-option__text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.radio-option__title {
+  margin: 0;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.radio-option__body {
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label-secondary);
+}
+
+/* --- Bottom navigation --- */
+.bottom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 56px;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border-subtle);
+  flex: 0 0 auto;
+}
+
+.bottom-nav__tab {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--space-sm) 0;
+  min-height: var(--touch-target-min);
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.bottom-nav__active-rule {
+  height: 2px;
+  width: 40px;
+  border-radius: 1px;
+  background: var(--color-label);
+  margin-bottom: 2px;
+}
+
+.bottom-nav__icon {
+  width: 20px;
+  height: 20px;
+}
+
+.bottom-nav__label {
+  font-size: var(--text-caption2-size);
+  line-height: var(--text-caption2-line);
+  font-weight: 400;
+  color: var(--color-label-tertiary);
+}
+
+.bottom-nav__tab--active .bottom-nav__label {
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+/* --- Content column --- */
+.screen-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  align-items: stretch;
+  width: 100%;
+  padding: var(--space-lg);
+  flex: 1 1 auto;
+  min-height: 0; /* let this child shrink below its content size so it (not .screen) is what scrolls */
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.not-built {
+  padding: var(--space-xl);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+  color: var(--color-label-secondary);
+}

@@ -1,0 +1,144 @@
+/**
+ * Apple HIG design tokens. Every screen reads these — never a raw hex or px
+ * size in a component or screen file.
+ *
+ * Sourcing note: developer.apple.com/design/human-interface-guidelines is a
+ * client-rendered SPA — WebFetch (and every developer.apple.com sub-page
+ * tried, including the UIFont.TextStyle and UIColor API reference pages)
+ * returns only the page's <title>, never the body. That was tried first, as
+ * asked, and failed consistently across typography/color/motion/layout.
+ * Apple also does not publish guaranteed semantic-color hex values by
+ * design (they vary with the trait environment) — confirmed via search.
+ * The values below are Apple's own long-stable, publicly documented
+ * constants instead:
+ *   - Type scale: Dynamic Type "Large" sizes, unchanged since iOS 11.
+ *   - Motion curves: the named CAMediaTimingFunction control points
+ *     (Core Animation public API, unchanged since iOS 2).
+ *   - Colors: the standard UIColor system semantic values, stable since
+ *     iOS 13's dark mode launch, cross-checked via search.
+ * Font stack and touch-target minimum are DECISIONS.md D1, not re-derived.
+ *
+ * Color VALUES for the neutral/label/surface roles below come from this
+ * project's own Figma file (design variables text/primary, surface/page,
+ * border/subtle, etc., read via get_design_context on frame 01) rather than
+ * textbook Apple hex codes, so built screens match the reference PNGs. The
+ * ROLE NAMES still follow Apple's semantic convention. Dark-mode values for
+ * those project-specific roles aren't defined in the Figma file (light mode
+ * only) and are reasoned equivalents, flagged below.
+ */
+
+:root {
+  /* --- Type scale (DECISIONS.md D1 font stack; Dynamic Type "Large" sizes) --- */
+  --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, Roboto, sans-serif;
+
+  --text-large-title-size: 34px;
+  --text-large-title-line: 41px;
+  --text-large-title-weight: 700;
+
+  --text-title1-size: 28px;
+  --text-title1-line: 34px;
+  --text-title1-weight: 400;
+
+  --text-title2-size: 22px;
+  --text-title2-line: 28px;
+  --text-title2-weight: 400;
+
+  --text-title3-size: 20px;
+  --text-title3-line: 25px;
+  --text-title3-weight: 400;
+
+  --text-headline-size: 17px;
+  --text-headline-line: 22px;
+  --text-headline-weight: 600;
+
+  --text-body-size: 17px;
+  --text-body-line: 22px;
+  --text-body-weight: 400;
+
+  --text-callout-size: 16px;
+  --text-callout-line: 21px;
+  --text-callout-weight: 400;
+
+  --text-subheadline-size: 15px;
+  --text-subheadline-line: 22px;
+  --text-subheadline-weight: 400;
+
+  --text-footnote-size: 13px;
+  --text-footnote-line: 18px;
+  --text-footnote-weight: 400;
+
+  --text-caption1-size: 12px;
+  --text-caption1-line: 16px;
+  --text-caption1-weight: 400;
+
+  --text-caption2-size: 11px;
+  --text-caption2-line: 13px;
+  --text-caption2-weight: 400;
+
+  /* --- Spacing: 8pt grid, with the 4pt half-step Apple also uses --- */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+  --space-4xl: 40px;
+
+  /* --- Corner radii --- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+  --radius-device: 55px; /* outer device-frame bezel, shell.css only */
+
+  /* --- Touch target (DECISIONS.md D1) --- */
+  --touch-target-min: 48px;
+
+  /* --- Motion (named CAMediaTimingFunction curves) --- */
+  --duration-quick: 200ms;
+  --duration-standard: 300ms;
+  --duration-push: 350ms;
+  --ease-standard: cubic-bezier(0.42, 0, 0.58, 1); /* easeInEaseOut */
+  --ease-out: cubic-bezier(0, 0, 0.58, 1);          /* easeOut */
+  --ease-in: cubic-bezier(0.42, 0, 1, 1);           /* easeIn */
+
+  /* --- Color: light mode (default) --- */
+  --color-bg: #f7f7f8;              /* surface/page */
+  --color-surface: #ffffff;          /* surface/card */
+  --color-label: #17171c;            /* text/primary */
+  --color-label-secondary: #6b6b74;  /* text/secondary */
+  --color-label-tertiary: #8a8a93;   /* text/tertiary */
+  --color-label-inverse: #ffffff;    /* text/inverse */
+  --color-border-subtle: #e2e2e6;    /* border/subtle */
+  --color-border-strong: #a8a8b0;    /* border/strong */
+  --color-action-secondary-bg: #ffffff;
+  --color-action-secondary-border: #a8a8b0;
+  --color-accent: #007aff;           /* systemBlue — reserved for a future "Brand" theme, unused while the default Greyscale theme (frame 33) is in effect */
+  --color-accent-neutral: #4d4d55;   /* accent/brand — the Greyscale theme's own "on" colour for checkboxes, the Yes/No choice buttons and slider fill, read from the project's Figma variables */
+  --color-warning: #ff3b30;          /* systemRed, for future MCOB-type warning boxes */
+  --color-canvas: #e5e5ea;           /* page behind the device frame at >=768px, shell.css only */
+}
+
+/* --- Color: dark mode. Figma defines light mode only for this project's
+   roles; these are reasoned equivalents following Apple's standard dark
+   semantic-color pattern (stable since iOS 13), not measured from a design. --- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #000000;
+    --color-surface: #1c1c1e;
+    --color-label: #ffffff;
+    --color-label-secondary: rgba(235, 235, 245, 0.6);
+    --color-label-tertiary: rgba(235, 235, 245, 0.36);
+    --color-label-inverse: #000000;
+    --color-border-subtle: #38383a;
+    --color-border-strong: #545458;
+    --color-action-secondary-bg: #1c1c1e;
+    --color-action-secondary-border: #545458;
+    --color-accent: #0a84ff;
+    --color-accent-neutral: #98989f;
+    --color-warning: #ff453a;
+    --color-canvas: #1c1c1e;
+  }
+}

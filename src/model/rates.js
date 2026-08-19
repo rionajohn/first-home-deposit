@@ -28,3 +28,18 @@ export const BORROW_RANGE_CENTRAL = 'loan-amount';
 
 /** GAPS.md G15 / DECISIONS.md D6: frame 09b's Lifetime ISA cap warning triggers above this property value. */
 export const LISA_CAP_PROPERTY_VALUE = 450000;
+
+/**
+ * Frame 04 (Consent declined / general mode): the default monthly saving
+ * range shown before a participant drags or types their own figures, and
+ * the slider bounds. Published UK average, not read from any account —
+ * provenance 'estimated' (build-spec.md section 2's "04 Consent declined /
+ * default range" row: "annual = monthly x 12, no interest").
+ */
+export const GENERAL_SAVINGS_RANGE = {
+  low: 150,
+  high: 288,
+  min: 0,
+  max: 600,
+  source: 'NatWest Savings Index 2026',
+};
