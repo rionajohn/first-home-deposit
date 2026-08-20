@@ -88,8 +88,8 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
-    <div class="screen-content">
-      <p class="screen-title">${c.headline}</p>
+    <main class="screen-content" role="main">
+      <h2 class="screen-title">${c.headline}</h2>
 
       <div class="card mip-precheck-card">
         <p class="mip-heading-s">${c.alreadyGotHeading}</p>
@@ -109,7 +109,7 @@ export function render(container, ctx) {
 
       ${riskWarningHTML(reg.mcob3aRepossessionWarning)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
-    </div>
+    </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,
       primaryAction: 'start-check',

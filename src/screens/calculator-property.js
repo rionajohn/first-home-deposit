@@ -85,8 +85,8 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${formStepHeaderHTML({ title: c.appBarTitle, step: c.stepLabel, appBarLabels: content.shared.appBar })}
-    <div class="screen-content">
-      <p class="screen-title">${c.headline}</p>
+    <main class="screen-content" role="main">
+      <h2 class="screen-title">${c.headline}</h2>
       ${currencyInputHTML({
         id: 'property-value',
         label: c.propertyValueLabel,
@@ -97,7 +97,7 @@ export function render(container, ctx) {
       ${errorText ? warningBannerHTML(errorText) : ''}
       ${isAboveLisaCap ? infoBannerHTML(fill(c.lisaCapBannerText, { cap: formatCurrency(LISA_CAP_PROPERTY_VALUE) })) : ''}
       <p class="entry-card__body">${fill(c.areaAverageCaption, { amount: formatCurrency(AREA_AVERAGE_PROPERTY_VALUE.value) })}</p>
-      <p class="section-heading">${c.depositQuestionHeading}</p>
+      <h3 class="section-heading">${c.depositQuestionHeading}</h3>
       ${chipRowHTML({ chips: DEPOSIT_PCT_OPTIONS.map((pct) => ({ value: pct, label: formatPercent(pct, 0) })), selected: isEmpty ? null : depositPct, action: 'select-deposit-pct' })}
       ${isEmpty
         ? `<div class="card empty-state-card empty-state-card--muted">
@@ -109,7 +109,7 @@ export function render(container, ctx) {
           : optionComparisonCardHTML({ headerText: c.comparisonHeaderText, rows: comparisonRows, infoLinkLabel: c.ltvInfoLinkLabel, infoLinkAction: 'open-ltv-info' })}
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
-    </div>
+    </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,
       primaryAction: 'continue',

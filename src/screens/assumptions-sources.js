@@ -103,25 +103,25 @@ export function render(container, ctx) {
   container.innerHTML = `
     <div class="sheet-overlay">
       <div class="sheet-scrim" data-action="dismiss"></div>
-      <div class="bottom-sheet sheet">
+      <div class="bottom-sheet sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-heading">
         ${sheetHeaderHTML({ closeLabel: content.shared.appBar.closeLabel })}
         <div class="bottom-sheet__content">
-          <p class="screen-title">${c.heading}</p>
+          <h2 class="screen-title" id="sheet-heading">${c.heading}</h2>
           <p class="body-text-lg">${c.intro}</p>
 
-          <p class="section-heading">${c.readHeading}</p>
+          <h3 class="section-heading">${c.readHeading}</h3>
           <div class="assumptions-list">
             ${dataSourceRows.join('')}
           </div>
 
-          <p class="section-heading">${c.cantSeeHeading}</p>
+          <h3 class="section-heading">${c.cantSeeHeading}</h3>
           <div class="assumptions-list">
             ${c.cantSeeRows.map((row) => figureRowHTML({ label: row })).join('')}
           </div>
 
           ${openBankingRowHTML({ title: c.openBankingTitle, caption: c.openBankingCaption })}
 
-          <p class="section-heading">${c.wrongHeading}</p>
+          <h3 class="section-heading">${c.wrongHeading}</h3>
           <p class="body-text">${c.wrongBody}</p>
 
           <p class="legal-text">${reg.guidanceNotAdvice}</p>

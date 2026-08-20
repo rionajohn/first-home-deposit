@@ -88,8 +88,8 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: content.shared.appBar })}
-    <div class="screen-content">
-      <p class="screen-title">${c.headline}</p>
+    <main class="screen-content" role="main">
+      <h2 class="screen-title">${c.headline}</h2>
       ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions-deposit' })}
       <p class="body-text-lg-primary">${c.body}</p>
 
@@ -108,7 +108,7 @@ export function render(container, ctx) {
         },
       ])}
 
-      <p class="section-heading">${c.comparisonHeading}</p>
+      <h3 class="section-heading">${c.comparisonHeading}</h3>
       <div class="ltv-comparison-table-wrap">
         <table class="ltv-comparison-table">
           <thead>
@@ -186,7 +186,7 @@ export function render(container, ctx) {
 
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
-    </div>
+    </main>
     ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'done' })}
   `;
 

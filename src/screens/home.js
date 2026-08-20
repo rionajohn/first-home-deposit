@@ -33,12 +33,12 @@ export function render(container, { content, setState }) {
   const c = content['/home'];
 
   container.innerHTML = `
-    <div class="app-bar">
+    <header class="app-bar" role="banner">
       <div class="app-bar__cell"></div>
-      <p class="app-bar__title">${c.appBarTitle}</p>
+      <h1 class="app-bar__title">${c.appBarTitle}</h1>
       <div class="app-bar__cell"></div>
-    </div>
-    <div class="screen-content">
+    </header>
+    <main class="screen-content" role="main">
       <div class="card balance-card">
         <p class="balance-card__label">${c.balanceLabel}</p>
         <p class="balance-card__amount">${c.balanceAmount}</p>
@@ -59,9 +59,9 @@ export function render(container, { content, setState }) {
           ${c.entryCardCta}
         </button>
       </div>
-    </div>
+    </main>
 
-    <nav class="bottom-nav">
+    <nav class="bottom-nav" aria-label="Primary">
       ${navTab('home', c.bottomNav.home, true)}
       ${navTab('payments', c.bottomNav.payments, false)}
       ${navTab('goals', c.bottomNav.goals, false)}

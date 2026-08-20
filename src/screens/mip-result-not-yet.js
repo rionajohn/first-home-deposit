@@ -59,7 +59,7 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: shared.appBar })}
-    <div class="screen-content">
+    <main class="screen-content" role="main">
       ${resultPanelHTML({ icon: 'assets/icons/arrow-up.svg', headline: c.resultHeadline, body: c.resultBody })}
 
       ${figureDisplayHTML({ value: gapResult.error ? '—' : formatCurrency(gapResult.value), caption: c.gapCaption })}
@@ -107,7 +107,7 @@ export function render(container, ctx) {
 
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
-    </div>
+    </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,
       primaryAction: 'update-goal',

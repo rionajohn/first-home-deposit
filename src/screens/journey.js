@@ -27,20 +27,20 @@ export function render(container, { content, setState }) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: content.shared.appBar })}
-    <div class="screen-content">
+    <main class="screen-content" role="main">
       <div class="routes-illustration">
         <img src="assets/icons/routes-illustration.svg" alt="" width="32" height="32" />
         <p class="routes-illustration__caption">${c.illustrationCaption}</p>
       </div>
-      <p class="screen-title">${c.headline}</p>
+      <h2 class="screen-title">${c.headline}</h2>
       <p class="body-text-lg">${c.body}</p>
-      <p class="section-heading">${c.goalsHeading}</p>
+      <h3 class="section-heading">${c.goalsHeading}</h3>
       <div class="goal-rows">
         ${c.goalRows.map(goalRow).join('')}
       </div>
       ${infoBannerHTML(c.infoBanner)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
-    </div>
+    </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,
       primaryAction: 'show-possible',

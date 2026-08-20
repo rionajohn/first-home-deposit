@@ -22,10 +22,10 @@ export function render(container, ctx) {
   container.innerHTML = `
     <div class="sheet-overlay">
       <div class="sheet-scrim" data-action="dismiss"></div>
-      <div class="bottom-sheet sheet">
+      <div class="bottom-sheet sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-heading">
         <div class="bottom-sheet__drag-handle"><div class="bottom-sheet__drag-handle-bar"></div></div>
         <div class="bottom-sheet__content">
-          <p class="screen-title">${c.heading}</p>
+          <h2 class="screen-title" id="sheet-heading">${c.heading}</h2>
           <p class="entry-card__body">${c.body}</p>
         </div>
         <div class="action-bar">

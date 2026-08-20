@@ -32,6 +32,7 @@
  */
 import { appBarHTML, bindAppBarBack, pillSegmentsHTML } from '../components/ui.js';
 import { CACHE_VERSION_FALLBACK } from '../cache-version.js';
+import { applyScenarioClasses } from '../router.js';
 
 export const anchors = [];
 
@@ -70,11 +71,16 @@ export function render(container, ctx) {
   // this class on every hash-driven navigation so it never leaks onto
   // another route.
   container.classList.add('settings-screen');
+  // router.js applies this on every hash-driven navigation; a text-size
+  // toggle here re-renders in place (bypassing router.js), so this screen
+  // has to reapply it itself for the change to show immediately rather
+  // than on the next navigation.
+  applyScenarioClasses(container, state);
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: content.shared.appBar })}
-    <div class="screen-content">
-      <p class="screen-title">${c.headline}</p>
+    <main class="screen-content" role="main">
+      <h2 class="screen-title">${c.headline}</h2>
       <p class="entry-card__body">${c.body}</p>
 
       <div class="card card--muted settings-card">
@@ -101,7 +107,7 @@ export function render(container, ctx) {
       <div class="settings-footer">
         <p class="settings-footer__text" data-role="build-caption">${fill(c.buildCaptionTemplate, { version: CACHE_VERSION_FALLBACK })}</p>
       </div>
-    </div>
+    </main>
   `;
 
   bindAppBarBack(container, () => { window.location.hash = '#/home'; });

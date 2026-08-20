@@ -1,0 +1,32 @@
+{
+  "name": "Your first home",
+  "short_name": "First home",
+  "description": "A click-through prototype: guidance towards a first home deposit, built around a participant's own account activity.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#17171c",
+  "background_color": "#f7f7f8",
+  "lang": "en-GB",
+  "icons": [
+    {
+      "src": "assets/icons/app/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/app/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/app/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

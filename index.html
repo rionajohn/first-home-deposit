@@ -4,6 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Your first home</title>
+
+    <!-- PWA manifest (SPEC.md build-order stage 1 / this session's PWA pass) -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#17171c" />
+    <link rel="icon" href="assets/icons/favicon.ico" sizes="any" />
+    <link rel="icon" href="assets/icons/app/icon-192.png" type="image/png" sizes="192x192" />
+
+    <!--
+      iOS ignores parts of the web app manifest (no install-banner/beforeinstallprompt, and Home
+      Screen icon/title come from these tags, not from manifest.icons/short_name) — see
+      https://web.dev/learn/pwa/installation, "On iOS and iPadOS ... A browser prompt to install
+      your PWA doesn't exist". apple-touch-icon must be a flat, opaque PNG (no transparency); iOS
+      applies its own corner rounding.
+    -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="First home" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="assets/icons/app/apple-touch-icon.png" />
+
     <link rel="stylesheet" href="src/css/tokens.css" />
     <link rel="stylesheet" href="src/css/shell.css" />
     <link rel="stylesheet" href="src/css/components.css" />

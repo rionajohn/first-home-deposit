@@ -115,7 +115,7 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
-    <div class="screen-content">
+    <main class="screen-content" role="main">
       <p class="figure-display">${formatCurrency(savedTowardDeposit)}</p>
       <p class="provenance-caption provenance-caption--center">${c.savedCaption}</p>
       <p class="provenance-caption provenance-caption--center">${fill(c.goalCaptionTemplate, { target: formatCurrency(depositTargetValue) })}</p>
@@ -179,7 +179,7 @@ export function render(container, ctx) {
 
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
-    </div>
+    </main>
     ${actionBarHTML({
       primaryLabel: unlocked ? c.checkpointReachedCta : c.belowCheckpointCta,
       primaryAction: unlocked ? 'check-mip' : 'adjust-goal',

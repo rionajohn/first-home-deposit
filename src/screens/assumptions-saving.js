@@ -53,18 +53,18 @@ export function render(container, ctx) {
   container.innerHTML = `
     <div class="sheet-overlay">
       <div class="sheet-scrim" data-action="dismiss"></div>
-      <div class="bottom-sheet sheet">
+      <div class="bottom-sheet sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-heading">
         ${sheetHeaderHTML({ closeLabel: content.shared.appBar.closeLabel })}
         <div class="bottom-sheet__content">
-          <p class="screen-title">${c.heading}</p>
+          <h2 class="screen-title" id="sheet-heading">${c.heading}</h2>
           <p class="body-text-lg">${c.intro}</p>
 
-          <p class="section-heading">${c.assumptionsHeading}</p>
+          <h3 class="section-heading">${c.assumptionsHeading}</h3>
           <div class="assumptions-list">
             ${assumptionsRows.map((row) => figureRowHTML({ label: row })).join('')}
           </div>
 
-          <p class="section-heading">${c.exclusionsHeading}</p>
+          <h3 class="section-heading">${c.exclusionsHeading}</h3>
           <div class="assumptions-list">
             ${exclusionsRows.map((row) => figureRowHTML({ label: row })).join('')}
           </div>

@@ -74,8 +74,8 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
-    <div class="screen-content">
-      <p class="screen-title">${fill(c.headlineTemplate, { property: formatCurrency(propertyValue), low: formatCurrency(rangeLowAmount), high: formatCurrency(rangeHighAmount) })}</p>
+    <main class="screen-content" role="main">
+      <h2 class="screen-title">${fill(c.headlineTemplate, { property: formatCurrency(propertyValue), low: formatCurrency(rangeLowAmount), high: formatCurrency(rangeHighAmount) })}</h2>
 
       ${rangeFigureHTML({
         lowText: formatCurrency(rangeLowAmount),
@@ -126,7 +126,7 @@ export function render(container, ctx) {
       </button>
 
       ${unreachable ? '' : `
-        <p class="section-heading">${c.chartHeading}</p>
+        <h3 class="section-heading">${c.chartHeading}</h3>
         ${(() => {
           const points = [];
           for (let i = 1; i <= 12; i += 1) {
@@ -158,7 +158,7 @@ export function render(container, ctx) {
       `}
 
       <div class="card why-bigger-deposit-card">
-        <p class="section-heading">${c.whyBiggerHeading}</p>
+        <h3 class="section-heading">${c.whyBiggerHeading}</h3>
         ${c.benefitRows.map((row) => `
           <div class="benefit-row">
             <p class="benefit-row__label">${row.label}</p>
@@ -187,7 +187,7 @@ export function render(container, ctx) {
 
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
-    </div>
+    </main>
   `;
 
   bindAppBarBack(container, () => {

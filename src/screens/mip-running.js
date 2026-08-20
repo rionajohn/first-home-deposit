@@ -35,9 +35,9 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: content.shared.appBar })}
-    <div class="screen-content screen-content--centered">
+    <main class="screen-content screen-content--centered" role="main">
       ${processingStateHTML({ title: c.title, body: c.body, caption: c.caption })}
-    </div>
+    </main>
   `;
 
   bindAppBarBack(container, () => { window.location.hash = '#/mip/pre-check'; });

@@ -33,19 +33,19 @@ export function render(container, ctx) {
   container.innerHTML = `
     <div class="sheet-overlay">
       <div class="sheet-scrim" data-action="dismiss"></div>
-      <div class="bottom-sheet sheet">
+      <div class="bottom-sheet sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-heading">
         <div class="bottom-sheet__drag-handle"><div class="bottom-sheet__drag-handle-bar"></div></div>
         <div class="bottom-sheet__content">
           <div class="media-placeholder">
             <img class="media-placeholder__icon" src="assets/icons/play-circle.svg" alt="" width="32" height="32" />
-            <p class="media-placeholder__title">${c.videoTitle}</p>
+            <h2 class="media-placeholder__title" id="sheet-heading">${c.videoTitle}</h2>
             <p class="media-placeholder__duration">${c.videoDuration}</p>
           </div>
           <div class="media-placeholder__accessibility-row">
             <p class="media-placeholder__accessibility-link">${c.captionsLabel}</p>
             <p class="media-placeholder__accessibility-link">${c.transcriptLabel}</p>
           </div>
-          <p class="section-heading">${c.shortVersionHeading}</p>
+          <h3 class="section-heading">${c.shortVersionHeading}</h3>
           <p class="body-text">${c.shortVersionBody}</p>
           <div class="visual-aid-placeholder">
             <p class="visual-aid-placeholder__label">${c.visualAidLabel}</p>

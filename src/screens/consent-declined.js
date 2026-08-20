@@ -55,10 +55,10 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: content.shared.appBar })}
-    <div class="screen-content declined-content">
-      <p class="screen-title">${c.headline}</p>
+    <main class="screen-content declined-content" role="main">
+      <h2 class="screen-title">${c.headline}</h2>
       <p class="entry-card__body">${c.body}</p>
-      <p class="section-heading">${c.monthlyHeading}</p>
+      <h3 class="section-heading">${c.monthlyHeading}</h3>
       <p class="entry-card__body">${c.monthlySubhead}</p>
 
       <div class="value-slider">
@@ -119,7 +119,7 @@ export function render(container, ctx) {
       ${flagRowHTML(c.flagLabel)}
 
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
-    </div>
+    </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,
       primaryAction: 'continue-general',

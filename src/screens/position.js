@@ -96,9 +96,9 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
-    <div class="screen-content">
+    <main class="screen-content" role="main">
       ${isEstimate ? infoBannerHTML(c.estimateModeBanner) : ''}
-      <p class="screen-title screen-title--center">${c.headline}</p>
+      <h2 class="screen-title screen-title--center">${c.headline}</h2>
       <p class="entry-card__body">${c.body}</p>
       ${figureInputHTML({ id: 'left-over', value: displayValue, caption: c.figureCaption, ariaLabel: c.figureAriaLabel })}
       ${storedLeftOver.provenance === 'entered' ? `<p class="provenance-caption provenance-caption--center">${c.enteredCaption}</p>` : ''}
@@ -111,7 +111,7 @@ export function render(container, ctx) {
       ${isEstimate ? `<p class="legal-text">${reg.estimateDisclosure}</p>` : ''}
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
-    </div>
+    </main>
     ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'continue', primaryDisabled: !!errorText })}
   `;
 

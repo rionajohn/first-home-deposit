@@ -99,8 +99,8 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
-    <div class="screen-content">
-      <p class="screen-title">${c.headline}</p>
+    <main class="screen-content" role="main">
+      <h2 class="screen-title">${c.headline}</h2>
       <p class="entry-card__body">${c.subhead}</p>
 
       <div class="card savings-question-card">
@@ -114,7 +114,7 @@ export function render(container, ctx) {
 
       <hr class="divider" />
 
-      <p class="section-heading">${c.usingWhatWeCanSeeHeading}</p>
+      <h3 class="section-heading">${c.usingWhatWeCanSeeHeading}</h3>
 
       ${checkboxRow({
         checked: state.consentStatementChecked,
@@ -147,7 +147,7 @@ export function render(container, ctx) {
       ${infoBannerHTML(c.withdrawBanner)}
 
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
-    </div>
+    </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,
       primaryAction: 'agree-continue',

@@ -29,9 +29,9 @@ export function render(container, ctx) {
   if (!state.mipUnlocked) {
     container.innerHTML = `
       ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: content.shared.appBar })}
-      <div class="screen-content">
+      <main class="screen-content" role="main">
         ${emptyStateCardHTML({ title: c.lockedHeadline, body: c.lockedBody, ctaLabel: c.lockedCta, ctaAction: 'back-to-tracker' })}
-      </div>
+      </main>
     `;
     bindAppBarBack(container, () => { window.location.hash = '#/tracker'; });
     container.querySelector('[data-action="back-to-tracker"]').addEventListener('click', () => {
@@ -42,8 +42,8 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: content.shared.appBar })}
-    <div class="screen-content">
-      <p class="screen-title">${c.headline}</p>
+    <main class="screen-content" role="main">
+      <h2 class="screen-title">${c.headline}</h2>
       <p class="body-text-lg-primary">${c.body}</p>
       <div class="card mip-step-card">
         <p class="mip-heading-s">${c.whatThisStepDoesHeading}</p>
@@ -51,7 +51,7 @@ export function render(container, ctx) {
         ${infoLinkHTML({ label: c.learnMoreLabel, action: 'open-about' })}
       </div>
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
-    </div>
+    </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,
       primaryAction: 'start-check',

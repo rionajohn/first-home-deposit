@@ -27,12 +27,12 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: content.shared.appBar })}
-    <div class="screen-content">
+    <main class="screen-content" role="main">
       ${emptyStateCardHTML({ title: c.headline, body: c.body })}
       <p class="provenance-caption provenance-caption--center">${c.confirmationLabel}</p>
       <p class="legal-text">${reg.adviserScope}</p>
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
-    </div>
+    </main>
     ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'done' })}
   `;
 

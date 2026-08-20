@@ -28,51 +28,58 @@
  */
 
 :root {
-  /* --- Type scale (DECISIONS.md D1 font stack; Dynamic Type "Large" sizes) --- */
+  /* --- Type scale (DECISIONS.md D1 font stack; Dynamic Type "Large" sizes) ---
+     Every -size and -line value below is `calc(<base px> * var(--text-scale))`
+     rather than a bare px, so frame 33's "Text size: Large" control (build-spec.md
+     section 7) can scale the entire type scale from one place: setting
+     --text-scale on .screen (see .text-large below and router.js's
+     applyScenarioClasses) rescales every token at once, and every consumer
+     (var(--text-*-size)) picks it up with no per-screen change needed. */
+  --text-scale: 1;
   --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, Roboto, sans-serif;
 
-  --text-large-title-size: 34px;
-  --text-large-title-line: 41px;
+  --text-large-title-size: calc(34px * var(--text-scale));
+  --text-large-title-line: calc(41px * var(--text-scale));
   --text-large-title-weight: 700;
 
-  --text-title1-size: 28px;
-  --text-title1-line: 34px;
+  --text-title1-size: calc(28px * var(--text-scale));
+  --text-title1-line: calc(34px * var(--text-scale));
   --text-title1-weight: 400;
 
-  --text-title2-size: 22px;
-  --text-title2-line: 28px;
+  --text-title2-size: calc(22px * var(--text-scale));
+  --text-title2-line: calc(28px * var(--text-scale));
   --text-title2-weight: 400;
 
-  --text-title3-size: 20px;
-  --text-title3-line: 25px;
+  --text-title3-size: calc(20px * var(--text-scale));
+  --text-title3-line: calc(25px * var(--text-scale));
   --text-title3-weight: 400;
 
-  --text-headline-size: 17px;
-  --text-headline-line: 22px;
+  --text-headline-size: calc(17px * var(--text-scale));
+  --text-headline-line: calc(22px * var(--text-scale));
   --text-headline-weight: 600;
 
-  --text-body-size: 17px;
-  --text-body-line: 22px;
+  --text-body-size: calc(17px * var(--text-scale));
+  --text-body-line: calc(22px * var(--text-scale));
   --text-body-weight: 400;
 
-  --text-callout-size: 16px;
-  --text-callout-line: 21px;
+  --text-callout-size: calc(16px * var(--text-scale));
+  --text-callout-line: calc(21px * var(--text-scale));
   --text-callout-weight: 400;
 
-  --text-subheadline-size: 15px;
-  --text-subheadline-line: 22px;
+  --text-subheadline-size: calc(15px * var(--text-scale));
+  --text-subheadline-line: calc(22px * var(--text-scale));
   --text-subheadline-weight: 400;
 
-  --text-footnote-size: 13px;
-  --text-footnote-line: 18px;
+  --text-footnote-size: calc(13px * var(--text-scale));
+  --text-footnote-line: calc(18px * var(--text-scale));
   --text-footnote-weight: 400;
 
-  --text-caption1-size: 12px;
-  --text-caption1-line: 16px;
+  --text-caption1-size: calc(12px * var(--text-scale));
+  --text-caption1-line: calc(16px * var(--text-scale));
   --text-caption1-weight: 400;
 
-  --text-caption2-size: 11px;
-  --text-caption2-line: 13px;
+  --text-caption2-size: calc(11px * var(--text-scale));
+  --text-caption2-line: calc(13px * var(--text-scale));
   --text-caption2-weight: 400;
 
   /* --- Spacing: 8pt grid, with the 4pt half-step Apple also uses --- */
@@ -104,27 +111,111 @@
   --ease-out: cubic-bezier(0, 0, 0.58, 1);          /* easeOut */
   --ease-in: cubic-bezier(0.42, 0, 1, 1);           /* easeIn */
 
-  /* --- Color: light mode (default) --- */
+  /* --- Color: light mode (default) ---
+     label-tertiary, warning, border-strong, action-secondary-border and the
+     new border-control below were all adjusted in the accessibility pass
+     (this session) from their original Figma-sourced values — each
+     originally failed WCAG 2.2 AA (4.5:1 text / 3:1 non-text UI boundary)
+     against every background it actually appears against, verified with a
+     relative-luminance contrast script rather than eyeballed. Each was
+     darkened by the minimum amount that clears the threshold with a small
+     safety margin, not redesigned — see the same script's output for the
+     measured ratios before/after. */
   --color-bg: #f7f7f8;              /* surface/page */
   --color-surface: #ffffff;          /* surface/card */
   --color-surface-raised: #efeff1;   /* surface/raised — a shade distinct from surface/page, for muted content blocks that must read as their own block against the page (Figma "Inputs / Currency input" empty-state card, "Content / Range figure" track) */
   --color-label: #17171c;            /* text/primary */
   --color-label-secondary: #6b6b74;  /* text/secondary */
-  --color-label-tertiary: #8a8a93;   /* text/tertiary */
+  --color-label-tertiary: #6c6c73;   /* text/tertiary — accessibility pass: darkened from #8a8a93 (3.20:1 on page, failed AA's 4.5:1 for the small-text captions/legal-text this token is actually used for) to >=4.56:1 on every background it appears on */
   --color-label-inverse: #ffffff;    /* text/inverse */
-  --color-border-subtle: #e2e2e6;    /* border/subtle */
-  --color-border-strong: #a8a8b0;    /* border/strong */
+  --color-border-subtle: #e2e2e6;    /* border/subtle — decorative dividers and card outlines only, where a background-colour change already conveys the boundary; left as designed (not a WCAG 1.4.11 case) */
+  --color-border-control: #8a8a8c;   /* border/control — accessibility pass, new token: the border IS the sole boundary cue on a handful of controls (unselected chip/pill, currency-input field, radio circle) where background colour doesn't differ from its surroundings. #e2e2e6 measured 1.21-1.45:1 there, short of 1.4.11's 3:1; this passes at >=3.00:1 everywhere it's used */
+  --color-border-strong: #8f8f96;    /* border/strong — accessibility pass: darkened from #a8a8b0 (2.21:1, failed 3:1) to >=3.01:1. Used on genuine control boundaries (unselected choice buttons, checkboxes, step circles) as well as a few decorative ones (card--emphasis, dashed placeholders); strengthening it doesn't regress the decorative cases, just makes them a little more visible too */
   --color-action-secondary-bg: #ffffff;
-  --color-action-secondary-border: #a8a8b0;
+  --color-action-secondary-border: #8f8f96; /* accessibility pass: was #a8a8b0 (2.21:1, failed 3:1), same fix as border-strong (secondary-button borders are the same "unselected control needs a visible boundary" case) */
   --color-accent: #007aff;           /* systemBlue — reserved for a future "Brand" theme, unused while the default Greyscale theme (frame 33) is in effect */
   --color-accent-neutral: #4d4d55;   /* accent/brand — the Greyscale theme's own "on" colour for checkboxes, the Yes/No choice buttons and slider fill, read from the project's Figma variables */
-  --color-warning: #ff3b30;          /* systemRed, for future MCOB-type warning boxes */
+  --color-warning: #d63228;          /* systemRed — accessibility pass: darkened from #ff3b30 (3.31:1 on page, failed AA's 4.5:1 for the MCOB repossession-warning body text this renders) to >=4.51:1 */
   --color-canvas: #e5e5ea;           /* page behind the device frame at >=768px, shell.css only */
+}
+
+/* --- Text size: Large (build-spec.md section 7's "Text size: Default,
+   Large" scenario control). build-spec.md/DECISIONS.md give no numeric
+   rule for how much larger "Large" is — same kind of gap as D2's range
+   spread or D6's LISA trigger — so this build picks one value and states
+   it here rather than guessing per screen. +15% is one iOS Dynamic Type
+   step (roughly the Large -> xLarge delta) applied as a single flat
+   multiplier rather than Apple's full non-linear per-style step table,
+   chosen because build-spec.md's own control is a single on/off toggle,
+   not a multi-step Dynamic Type picker, and a flat multiplier is what lets
+   every screen in the flow stay clip-free at this size (verified by
+   sweeping every route's rendered width at 390px — see the PR/commit this
+   ships in). Applied via a `.text-large` class on `.screen` (router.js's
+   applyScenarioClasses, driven by state.textSize) rather than a media
+   query, since this is a participant-facing in-app control, not an OS
+   accessibility setting.
+
+   Why every --text-*-size/-line token is repeated here rather than just
+   setting --text-scale: a custom property that references another custom
+   property (--text-headline-size: calc(17px * var(--text-scale)), declared
+   once at :root) resolves that inner var() once, at its declaration point
+   — :root, where --text-scale is always 1 — and inherits that already-
+   substituted value down unchanged. Redeclaring --text-scale alone on
+   .text-large does NOT reach it: :root's --text-headline-size stays frozen
+   at calc(17px * 1) for every descendant, confirmed empirically (a
+   Playwright getComputedStyle check against .app-bar__title showed exactly
+   this: --text-scale correctly read 1.15 there, but --text-headline-size
+   still read "calc(17px * 1)"). Real properties that reference --text-scale
+   directly in their own calc() (e.g. .screen-title's
+   `font-size: calc(24px * var(--text-scale))`, components.css) don't have
+   this problem — that var() resolves fresh at the point of use, verified
+   separately at 27.6px = 24 * 1.15. So the token block is redeclared here,
+   on the same rule as --text-scale, where both resolve together in one
+   pass instead of across an inheritance boundary. --- */
+.text-large {
+  --text-scale: 1.15;
+
+  --text-large-title-size: calc(34px * var(--text-scale));
+  --text-large-title-line: calc(41px * var(--text-scale));
+
+  --text-title1-size: calc(28px * var(--text-scale));
+  --text-title1-line: calc(34px * var(--text-scale));
+
+  --text-title2-size: calc(22px * var(--text-scale));
+  --text-title2-line: calc(28px * var(--text-scale));
+
+  --text-title3-size: calc(20px * var(--text-scale));
+  --text-title3-line: calc(25px * var(--text-scale));
+
+  --text-headline-size: calc(17px * var(--text-scale));
+  --text-headline-line: calc(22px * var(--text-scale));
+
+  --text-body-size: calc(17px * var(--text-scale));
+  --text-body-line: calc(22px * var(--text-scale));
+
+  --text-callout-size: calc(16px * var(--text-scale));
+  --text-callout-line: calc(21px * var(--text-scale));
+
+  --text-subheadline-size: calc(15px * var(--text-scale));
+  --text-subheadline-line: calc(22px * var(--text-scale));
+
+  --text-footnote-size: calc(13px * var(--text-scale));
+  --text-footnote-line: calc(18px * var(--text-scale));
+
+  --text-caption1-size: calc(12px * var(--text-scale));
+  --text-caption1-line: calc(16px * var(--text-scale));
+
+  --text-caption2-size: calc(11px * var(--text-scale));
+  --text-caption2-line: calc(13px * var(--text-scale));
 }
 
 /* --- Color: dark mode. Figma defines light mode only for this project's
    roles; these are reasoned equivalents following Apple's standard dark
-   semantic-color pattern (stable since iOS 13), not measured from a design. --- */
+   semantic-color pattern (stable since iOS 13), not measured from a design.
+   label-tertiary, border-strong, action-secondary-border and the new
+   border-control below got the same accessibility-pass treatment as their
+   light-mode counterparts above (measured, not eyeballed) — --color-warning
+   already passed AA here (6.16:1/4.99:1) so it's untouched. --- */
 @media (prefers-color-scheme: dark) {
   :root {
     --color-bg: #000000;
@@ -132,12 +223,13 @@
     --color-surface-raised: #2c2c2e; /* secondarySystemBackground-equivalent step up from surface/card in dark mode */
     --color-label: #ffffff;
     --color-label-secondary: rgba(235, 235, 245, 0.6);
-    --color-label-tertiary: rgba(235, 235, 245, 0.36);
+    --color-label-tertiary: rgba(235, 235, 245, 0.54); /* accessibility pass: alpha raised from 0.36 (2.81:1, failed 4.5:1) to >=4.57:1 */
     --color-label-inverse: #000000;
-    --color-border-subtle: #38383a;
-    --color-border-strong: #545458;
+    --color-border-subtle: #38383a; /* decorative only in this theme too — see the light-mode comment */
+    --color-border-control: #767677; /* accessibility pass, new token — see light-mode comment; #38383a measured 1.45-1.79:1, this passes at >=3.06:1 */
+    --color-border-strong: #67676a; /* accessibility pass: lightened from #545458 (2.79:1, failed 3:1) to >=3.01:1 */
     --color-action-secondary-bg: #1c1c1e;
-    --color-action-secondary-border: #545458;
+    --color-action-secondary-border: #67676a; /* accessibility pass: same fix as border-strong */
     --color-accent: #0a84ff;
     --color-accent-neutral: #98989f;
     --color-warning: #ff453a;

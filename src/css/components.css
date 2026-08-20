@@ -371,16 +371,16 @@
    pinned to the actual design so built screens match the reference PNGs. */
 .screen-title {
   margin: 0;
-  font-size: 24px;
-  line-height: 30px;
+  font-size: calc(24px * var(--text-scale));
+  line-height: calc(30px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
 }
 
 .section-heading {
   margin: 0;
-  font-size: 20px;
-  line-height: 26px;
+  font-size: calc(20px * var(--text-scale));
+  line-height: calc(26px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
 }
@@ -395,8 +395,8 @@
 
 .body-text-lg {
   margin: 0;
-  font-size: 17px;
-  line-height: 26px;
+  font-size: calc(17px * var(--text-scale));
+  line-height: calc(26px * var(--text-scale));
   font-weight: 400;
   color: var(--color-label-secondary);
 }
@@ -407,8 +407,8 @@
    from .body-text-lg above (frame 04's own secondary-coloured 17px copy). */
 .body-text-lg-primary {
   margin: 0;
-  font-size: 17px;
-  line-height: 26px;
+  font-size: calc(17px * var(--text-scale));
+  line-height: calc(26px * var(--text-scale));
   font-weight: 400;
   color: var(--color-label);
 }
@@ -527,7 +527,9 @@
   width: 24px;
   height: 24px;
   border-radius: var(--radius-full);
-  border: 2px solid var(--color-border-subtle);
+  /* accessibility pass: border-control — an unchecked radio's ring is its
+     only visible affordance. */
+  border: 2px solid var(--color-border-control);
   box-sizing: border-box;
   position: relative;
 }
@@ -554,8 +556,8 @@
 
 .radio-option__title {
   margin: 0;
-  font-size: 17px;
-  line-height: 24px;
+  font-size: calc(17px * var(--text-scale));
+  line-height: calc(24px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
 }
@@ -908,8 +910,8 @@
 
 .empty-state-card__title {
   margin: 0;
-  font-size: 17px;
-  line-height: 24px;
+  font-size: calc(17px * var(--text-scale));
+  line-height: calc(24px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
 }
@@ -928,8 +930,8 @@
    deposit calculator later). --- */
 .figure-display {
   margin: 0;
-  font-size: 40px;
-  line-height: 44px;
+  font-size: calc(40px * var(--text-scale));
+  line-height: calc(44px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
   text-align: center;
@@ -954,8 +956,8 @@
 }
 
 .figure-input__currency {
-  font-size: 40px;
-  line-height: 44px;
+  font-size: calc(40px * var(--text-scale));
+  line-height: calc(44px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
 }
@@ -964,8 +966,8 @@
   border: none;
   background: none;
   font-family: inherit;
-  font-size: 40px;
-  line-height: 44px;
+  font-size: calc(40px * var(--text-scale));
+  line-height: calc(44px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
   text-align: center;
@@ -993,8 +995,8 @@
 
 .how-this-works-card__title {
   margin: 0;
-  font-size: 20px;
-  line-height: 26px;
+  font-size: calc(20px * var(--text-scale));
+  line-height: calc(26px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
 }
@@ -1174,7 +1176,10 @@
   min-height: 52px;
   padding-right: var(--space-lg);
   background: var(--color-surface);
-  border: 1px solid var(--color-border-subtle);
+  /* accessibility pass: border-control, not border-subtle — this field sits
+     on the same surface colour as its surroundings, so the border is the
+     only cue it's a distinct input (WCAG 1.4.11), not a decorative divider. */
+  border: 1px solid var(--color-border-control);
   border-radius: var(--radius-md);
   box-sizing: border-box;
 }
@@ -1185,8 +1190,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  line-height: 34px;
+  font-size: calc(28px * var(--text-scale));
+  line-height: calc(34px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label-tertiary);
 }
@@ -1197,8 +1202,8 @@
   border: none;
   background: none;
   font-family: inherit;
-  font-size: 28px;
-  line-height: 34px;
+  font-size: calc(28px * var(--text-scale));
+  line-height: calc(34px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
   min-height: var(--touch-target-min);
@@ -1229,7 +1234,9 @@
   min-height: var(--touch-target-min);
   min-width: var(--touch-target-min);
   padding: var(--space-sm) var(--space-lg);
-  border: 1px solid var(--color-border-subtle);
+  /* accessibility pass: border-control — an unselected chip's background
+     matches its surroundings, so the border alone marks its boundary. */
+  border: 1px solid var(--color-border-control);
   border-radius: var(--radius-full);
   background: var(--color-surface);
   font-family: inherit;
@@ -1277,8 +1284,8 @@
 
 .option-comparison-card__amount {
   margin: 0;
-  font-size: 17px;
-  line-height: 24px;
+  font-size: calc(17px * var(--text-scale));
+  line-height: calc(24px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
 }
@@ -1482,8 +1489,8 @@ button.milestone-row {
 
 .milestone-row__title {
   margin: 0;
-  font-size: 17px;
-  line-height: 24px;
+  font-size: calc(17px * var(--text-scale));
+  line-height: calc(24px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
 }
@@ -1734,16 +1741,16 @@ button.milestone-row {
 
 .result-panel__headline {
   margin: 0;
-  font-size: 24px;
-  line-height: 30px;
+  font-size: calc(24px * var(--text-scale));
+  line-height: calc(30px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
 }
 
 .result-panel__body {
   margin: 0;
-  font-size: 17px;
-  line-height: 26px;
+  font-size: calc(17px * var(--text-scale));
+  line-height: calc(26px * var(--text-scale));
   font-weight: 400;
   color: var(--color-label-secondary);
 }
@@ -1801,8 +1808,8 @@ button.milestone-row {
 
 .next-steps-card__step-title {
   margin: 0;
-  font-size: 17px;
-  line-height: 24px;
+  font-size: calc(17px * var(--text-scale));
+  line-height: calc(24px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
 }
@@ -1851,8 +1858,8 @@ button.milestone-row {
 
 .processing-state__title {
   margin: 0;
-  font-size: 20px;
-  line-height: 26px;
+  font-size: calc(20px * var(--text-scale));
+  line-height: calc(26px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
 }
@@ -1948,7 +1955,8 @@ button.milestone-row {
   align-items: center;
   justify-content: center;
   padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--color-border-subtle);
+  /* accessibility pass: border-control — same reasoning as .chip above. */
+  border: 1px solid var(--color-border-control);
   border-radius: var(--radius-full);
   background: var(--color-surface);
   box-sizing: border-box;

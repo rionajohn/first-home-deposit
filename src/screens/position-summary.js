@@ -130,7 +130,7 @@ export function render(container, ctx) {
         <p class="account-row__caption">${fill(c.lisaCaption, { cap: formatCurrency(LISA_CAP_PROPERTY_VALUE) })}</p>
         ${sortCount > 0 ? `
           <div class="status-card__still-to-sort">
-            <p class="section-heading">${sortHeading}</p>
+            <h3 class="section-heading">${sortHeading}</h3>
             ${unassignedAccounts.map((a) => `
               ${figureRowHTML({ label: a.name, value: formatCurrency(a.balance), caption: c.onlyYouKnowCaption })}
               <button type="button" class="list-row" data-action="sort-account" data-account-id="${a.id}">
@@ -171,8 +171,8 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
-    <div class="screen-content">
-      <p class="screen-title">${c.headline}</p>
+    <main class="screen-content" role="main">
+      <h2 class="screen-title">${c.headline}</h2>
       <p class="entry-card__body">${c.body}</p>
 
       <div class="check-results">
@@ -207,10 +207,10 @@ export function render(container, ctx) {
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
 
       <div class="card decision-card">
-        <p class="section-heading">${c.decisionHeadline}</p>
+        <h3 class="section-heading">${c.decisionHeadline}</h3>
         <p class="entry-card__body">${c.decisionBody}</p>
       </div>
-    </div>
+    </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,
       primaryAction: 'goal-yes',

@@ -28,7 +28,7 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: shared.appBar })}
-    <div class="screen-content">
+    <main class="screen-content" role="main">
       <div class="media-placeholder">
         <img class="media-placeholder__icon" src="assets/icons/play-circle.svg" alt="" width="32" height="32" />
         <p class="media-placeholder__title">${c.videoTitle}</p>
@@ -38,7 +38,7 @@ export function render(container, ctx) {
         <p class="media-placeholder__accessibility-link">${c.captionsLabel}</p>
         <p class="media-placeholder__accessibility-link">${c.transcriptLabel}</p>
       </div>
-      <p class="section-heading">${c.shortVersionHeading}</p>
+      <h3 class="section-heading">${c.shortVersionHeading}</h3>
       <p class="body-text">${c.shortVersionBody}</p>
       <div class="visual-aid-placeholder">
         <p class="visual-aid-placeholder__label">${c.visualAidLabel}</p>
@@ -49,7 +49,7 @@ export function render(container, ctx) {
       ${riskWarningHTML(shared.mipAgreementNotOffer)}
       ${infoBannerHTML(c.infoBannerText)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
-    </div>
+    </main>
     ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'continue' })}
   `;
 

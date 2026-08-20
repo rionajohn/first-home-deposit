@@ -37,11 +37,11 @@ export function appBarHTML({ title, left = null, appBarLabels }) {
     : '<div class="app-bar__cell"></div>';
 
   return `
-    <div class="app-bar">
+    <header class="app-bar" role="banner">
       ${leftCell}
-      <p class="app-bar__title">${title}</p>
+      <h1 class="app-bar__title">${title}</h1>
       <div class="app-bar__cell"></div>
-    </div>
+    </header>
   `;
 }
 
@@ -110,13 +110,16 @@ export function provenanceCaptionHTML(text) {
  * its own open/closed state.
  */
 export function disclosureHTML({ id, title, open, contentHtml }) {
+  const contentId = `disclosure-content-${id}`;
   return `
     <div class="disclosure${open ? '' : ' disclosure--closed'}">
-      <button type="button" class="disclosure__header" data-action="toggle-disclosure" data-disclosure-id="${id}" aria-expanded="${open}">
-        <span class="disclosure__title">${title}</span>
-        <img class="disclosure__chevron" src="assets/icons/chevron-up.svg" alt="" width="20" height="20" />
-      </button>
-      <div class="disclosure__content">${contentHtml}</div>
+      <h3 class="disclosure__heading">
+        <button type="button" class="disclosure__header" data-action="toggle-disclosure" data-disclosure-id="${id}" aria-expanded="${open}" aria-controls="${contentId}">
+          <span class="disclosure__title">${title}</span>
+          <img class="disclosure__chevron" src="assets/icons/chevron-up.svg" alt="" width="20" height="20" />
+        </button>
+      </h3>
+      <div class="disclosure__content" id="${contentId}"${open ? '' : ' hidden'}>${contentHtml}</div>
     </div>
   `;
 }
@@ -256,12 +259,12 @@ export function figureDisplayHTML({ value, caption }) {
  */
 export function formStepHeaderHTML({ title, step, appBarLabels }) {
   return `
-    <div class="form-step-header">
+    <header class="form-step-header" role="banner">
       <div class="form-step-header__title-bar">
         <button type="button" class="form-step-header__cell form-step-header__cell--action" data-action="form-step-back" aria-label="${appBarLabels?.backLabel}">
           <img class="app-bar__icon" src="assets/icons/back.svg" alt="" width="24" height="24" />
         </button>
-        <p class="form-step-header__title">${title}</p>
+        <h1 class="form-step-header__title">${title}</h1>
         <button type="button" class="form-step-header__cell form-step-header__cell--action" data-action="form-step-close" aria-label="${appBarLabels?.closeLabel}">
           <img class="app-bar__icon" src="assets/icons/close.svg" alt="" width="20" height="20" />
         </button>
@@ -269,7 +272,7 @@ export function formStepHeaderHTML({ title, step, appBarLabels }) {
       <div class="form-step-header__step-row">
         <p class="form-step-header__step">${step}</p>
       </div>
-    </div>
+    </header>
   `;
 }
 
@@ -321,8 +324,8 @@ export function chipRowHTML({ chips, selected, action }) {
  */
 export function optionComparisonCardHTML({ headerText, rows, infoLinkLabel, infoLinkAction }) {
   return `
-    <div class="card option-comparison-card">
-      <p class="section-heading">${headerText}</p>
+    <div class="card option-comparison-card" role="status" aria-live="polite">
+      <h3 class="section-heading">${headerText}</h3>
       ${rows.map((row) => `
         <div class="option-comparison-card__row">
           <div class="option-comparison-card__left">
@@ -411,7 +414,7 @@ export function dateStepperHTML({ monthLabel, yearLabel, hint, monthAction, year
 export function rangeFigureHTML({ lowText, highText, caption, markerPct, trackLabel }) {
   const clampedPct = Math.max(0, Math.min(100, markerPct));
   return `
-    <div class="range-figure">
+    <div class="range-figure" role="status" aria-live="polite">
       <div class="range-figure__readout">
         <p class="range-figure__value">${lowText}</p>
         <p class="range-figure__to">-</p>

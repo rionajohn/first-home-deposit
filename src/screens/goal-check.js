@@ -28,8 +28,8 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: content.shared.appBar })}
-    <div class="screen-content">
-      <p class="screen-title">${c.headline}</p>
+    <main class="screen-content" role="main">
+      <h2 class="screen-title">${c.headline}</h2>
       <p class="entry-card__body">${c.body}</p>
 
       <div class="card accounts-card">
@@ -47,7 +47,7 @@ export function render(container, ctx) {
       ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions' })}
 
       <div class="card calculator-handoff-card">
-        <p class="section-heading">${c.handoffHeading}</p>
+        <h3 class="section-heading">${c.handoffHeading}</h3>
         ${figureRowHTML({ label: c.propertyRowLabel, caption: c.propertyRowCaption })}
         ${figureRowHTML({ label: c.depositRowLabel, caption: c.depositRowCaption })}
         ${figureRowHTML({ label: c.everythingElseLabel, caption: c.everythingElseCaption })}
@@ -56,7 +56,7 @@ export function render(container, ctx) {
 
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
-    </div>
+    </main>
     ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'track-goal' })}
   `;
 

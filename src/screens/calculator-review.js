@@ -41,8 +41,8 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${formStepHeaderHTML({ title: c.appBarTitle, step: c.stepLabel, appBarLabels: content.shared.appBar })}
-    <div class="screen-content">
-      <p class="screen-title">${c.headline}</p>
+    <main class="screen-content" role="main">
+      <h2 class="screen-title">${c.headline}</h2>
       <div class="review-rows-stack">
         ${reviewRowHTML({
           label: c.propertyValueLabel,
@@ -95,7 +95,7 @@ export function render(container, ctx) {
       ${infoBannerHTML(c.noteBannerText)}
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
-    </div>
+    </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,
       primaryAction: 'work-it-out',

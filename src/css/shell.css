@@ -26,6 +26,38 @@
   box-sizing: border-box;
 }
 
+/* Every heading class in this codebase already sets its own margin
+   explicitly (matching the .screen-title / .section-heading pattern), but
+   h1-h6 carry a nonzero default margin from the UA stylesheet that would
+   otherwise apply the instant a heading tag is used without one — this
+   reset makes "no explicit margin" the same safe default everywhere else
+   in this codebase already assumes, rather than a silent layout shift
+   waiting on the next new heading class. Accessibility pass (this
+   session): the first h1-h3 elements in the app. */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font: inherit;
+}
+
+/* --- Visible keyboard focus (WCAG 2.2 AA, 2.4.7/2.4.11) — accessibility
+   pass. No rule anywhere in this codebase suppressed the browser default
+   outline, but nothing gave it a deliberate, on-brand, always-legible
+   appearance either, and the default varies by browser/theme and can look
+   accidental on a rounded pill or a dark-filled selected control. One
+   accent-neutral ring, everywhere, on :focus-visible only (so a mouse/touch
+   click never shows it — matches how this app's own buttons already only
+   show a *pressed* state on click, not a ring). --color-accent-neutral
+   already carries meaning in this app ("the Greyscale theme's own 'on'
+   colour", tokens.css) — reused here rather than introducing a second
+   accent hue. 2px offset keeps the ring clear of a control's own border
+   instead of overlapping it, and clear of small icon-only buttons'
+   touch-target padding. --- */
+:focus-visible {
+  outline: 2px solid var(--color-accent-neutral);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 html,
 body {
   margin: 0;
