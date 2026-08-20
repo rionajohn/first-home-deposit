@@ -42,6 +42,7 @@ import { formatCurrency, formatPercent, formatMonthYearRange } from '../format.j
 import { gapToCheckpoint, onTrackFor, rateBandForDepositPct } from '../model/model.js';
 import { RATES, CHART_DEPOSIT_PCTS, CHECKPOINT_FRACTION } from '../model/rates.js';
 import { MOCK_POSITION } from '../model/accounts.js';
+import { chevronRight } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice', 'mcob3aRepossessionWarning'];
 
@@ -173,7 +174,7 @@ export function render(container, ctx) {
         })}
         <button type="button" class="list-row" data-action="open-provenance-key">
           <span class="list-row__label">${c.provenanceKeyLabel}</span>
-          <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+          ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
         </button>
       </div>
 

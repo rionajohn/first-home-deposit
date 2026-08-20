@@ -26,10 +26,11 @@
  * the pushback mechanism (edit the figure where it appears). No flag row is
  * drawn in the reference PNG, so none is added.
  */
-import { sheetHeaderHTML, figureRowHTML } from '../components/ui.js';
+import { sheetHeaderHTML, figureRowHTML, actionBarDockHTML } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { RATES } from '../model/rates.js';
 import { effectiveAccounts } from '../model/accounts.js';
+import { arrowRight } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -54,7 +55,7 @@ function openBankingRowHTML({ title, caption }) {
         <span class="open-banking-row__title">${title}</span>
         <span class="open-banking-row__caption">${caption}</span>
       </span>
-      <span class="open-banking-row__arrow" aria-hidden="true">→</span>
+      ${arrowRight({ size: 'body', className: 'open-banking-row__arrow' })}
     </button>
   `;
 }
@@ -126,9 +127,9 @@ export function render(container, ctx) {
 
           <p class="legal-text">${reg.guidanceNotAdvice}</p>
         </div>
-        <div class="action-bar">
+        ${actionBarDockHTML(`
           <button type="button" class="button button--primary" data-action="dismiss">${c.primaryCta}</button>
-        </div>
+        `)}
       </div>
     </div>
   `;

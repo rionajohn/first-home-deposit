@@ -28,10 +28,12 @@ import {
   infoLinkHTML,
   emptyStateCardHTML,
   howThisWorksCardHTML,
+  rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency } from '../format.js';
 import { effectiveAccounts, groupTotals } from '../model/accounts.js';
 import { LISA_CAP_PROPERTY_VALUE } from '../model/rates.js';
+import { arrowUpRight, checkmarkCircle, chevronRight, infoCircle } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -39,11 +41,11 @@ function fill(template, values) {
   return Object.entries(values).reduce((s, [k, v]) => s.replace(`{${k}}`, v), template);
 }
 
-function statusCard({ iconSrc, headline, body, contentHtml }) {
+function statusCard({ icon, headline, body, contentHtml }) {
   return `
     <div class="card status-card">
       <div class="status-card__header">
-        <div class="status-card__glyph"><img src="${iconSrc}" alt="" width="20" height="20" /></div>
+        <div class="status-card__glyph">${icon({ size: 'body' })}</div>
         <div class="status-card__text">
           <p class="status-card__headline">${headline}</p>
           <p class="status-card__body">${body}</p>
@@ -95,7 +97,7 @@ export function render(container, ctx) {
   const leftOverPct = moneyIn ? Math.round((leftOverValue / moneyIn) * 100) : 0;
 
   const emergencyCard = statusCard({
-    iconSrc: emergencyCovered ? 'assets/icons/status-check.svg' : 'assets/icons/info.svg',
+    icon: emergencyCovered ? checkmarkCircle : infoCircle,
     headline: emergencyCovered ? c.emergencyCoveredHeadline : c.emergencyShortHeadline,
     body: fill(emergencyCovered ? c.emergencyCoveredBody : c.emergencyShortBody, { amount: formatCurrency(emergencyFund) }),
     contentHtml: emergencyAccounts.length
@@ -117,7 +119,7 @@ export function render(container, ctx) {
     depositCard = `
       <div class="card status-card">
         <div class="status-card__header">
-          <div class="status-card__glyph"><img src="assets/icons/status-up.svg" alt="" width="20" height="20" /></div>
+          <div class="status-card__glyph">${arrowUpRight({ size: 'body' })}</div>
           <div class="status-card__text">
             <p class="status-card__headline">${c.depositOnWayHeadline}</p>
             <p class="status-card__body">${fill(c.depositOnWayBody, { amount: formatCurrency(savedTowardDeposit) })}</p>
@@ -135,7 +137,7 @@ export function render(container, ctx) {
               ${figureRowHTML({ label: a.name, value: formatCurrency(a.balance), caption: c.onlyYouKnowCaption })}
               <button type="button" class="list-row" data-action="sort-account" data-account-id="${a.id}">
                 <span class="list-row__label">${c.tellUsLabel}</span>
-                <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+                ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
               </button>
             `).join('')}
           </div>
@@ -165,7 +167,7 @@ export function render(container, ctx) {
     ${figureRowHTML({ label: c.savedTowardDepositLabel, value: formatCurrency(savedTowardDeposit), caption: c.savedTowardDepositCaption })}
     <button type="button" class="list-row" data-action="open-provenance-key">
       <span class="list-row__label">${c.provenanceKeyLabel}</span>
-      <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+      ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
     </button>
   `;
 
@@ -188,7 +190,7 @@ export function render(container, ctx) {
 
       <button type="button" class="list-row" data-action="open-assumptions-mid">
         <span class="list-row__label">${c.assumptionsLinkLabel}</span>
-        <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+        ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
       </button>
 
       ${howThisWorksCardHTML({
@@ -225,7 +227,7 @@ export function render(container, ctx) {
 
   container.querySelector('[data-action="toggle-disclosure"]').addEventListener('click', () => {
     const next = setState({ summaryDisclosureOpen: !state.summaryDisclosureOpen });
-    render(container, { ...ctx, state: next });
+    rerenderInPlace(container, render, { ...ctx, state: next });
   });
 
   ['open-provenance-key', 'open-assumptions-top', 'open-assumptions-mid', 'open-assumptions-card'].forEach((action) => {

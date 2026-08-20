@@ -10,6 +10,7 @@
 import { appBarHTML, bindAppBarBack, actionBarHTML, flagRowHTML, figureRowHTML, infoLinkHTML } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { RATES } from '../model/rates.js';
+import { chevronRight } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -40,7 +41,7 @@ export function render(container, ctx) {
         ${figureRowHTML({ label: c.savingsInterestLabel, trailing: `${formatPercent(RATES.bankRate)} ${c.savingsInterestSuffix}` })}
         <button type="button" class="list-row" data-action="open-provenance-key">
           <span class="list-row__label">${c.provenanceKeyLabel}</span>
-          <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+          ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
         </button>
       </div>
 

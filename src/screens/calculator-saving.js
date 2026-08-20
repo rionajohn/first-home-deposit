@@ -28,11 +28,13 @@ import {
   dateStepperHTML,
   reviewRowHTML,
   warningBannerHTML,
+  rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { monthlyAmountFromDate, rangeFromCentral } from '../model/model.js';
 import { RATES } from '../model/rates.js';
 import { MOCK_POSITION } from '../model/accounts.js';
+import { chevronRight } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -183,7 +185,7 @@ export function render(container, ctx) {
         })}
         <button type="button" class="list-row" data-action="open-provenance-key">
           <span class="list-row__label">${c.provenanceKeyLabel}</span>
-          <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+          ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
         </button>
       </div>
 
@@ -208,7 +210,7 @@ export function render(container, ctx) {
   container.querySelectorAll('[data-action="select-solve-for"]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const next = setState({ solveFor: btn.dataset.value });
-      render(container, { ...ctx, state: next });
+      rerenderInPlace(container, render, { ...ctx, state: next });
     });
   });
 
@@ -242,7 +244,7 @@ export function render(container, ctx) {
         'monthly-low': { value: low, provenance: 'entered' },
         'monthly-high': { value: high, provenance: 'entered' },
       });
-      render(container, { ...ctx, state: next });
+      rerenderInPlace(container, render, { ...ctx, state: next });
     }
 
     rangeLow.addEventListener('change', () => {
@@ -262,21 +264,21 @@ export function render(container, ctx) {
       let m = targetMonth + 1, y = targetYear;
       if (m > 12) { m = 1; y += 1; }
       const next = setState({ targetMonth: m, targetYear: y });
-      render(container, { ...ctx, state: next });
+      rerenderInPlace(container, render, { ...ctx, state: next });
     });
     container.querySelector('[data-action="step-month-down"]').addEventListener('click', () => {
       let m = targetMonth - 1, y = targetYear;
       if (m < 1) { m = 12; y -= 1; }
       const next = setState({ targetMonth: m, targetYear: y });
-      render(container, { ...ctx, state: next });
+      rerenderInPlace(container, render, { ...ctx, state: next });
     });
     container.querySelector('[data-action="step-year-up"]').addEventListener('click', () => {
       const next = setState({ targetYear: targetYear + 1 });
-      render(container, { ...ctx, state: next });
+      rerenderInPlace(container, render, { ...ctx, state: next });
     });
     container.querySelector('[data-action="step-year-down"]').addEventListener('click', () => {
       const next = setState({ targetYear: targetYear - 1 });
-      render(container, { ...ctx, state: next });
+      rerenderInPlace(container, render, { ...ctx, state: next });
     });
   }
 

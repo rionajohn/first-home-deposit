@@ -16,11 +16,41 @@
  * do (the holiday pot). Frame 03b can move an account between the first
  * three groups; the current account is never movable (no chevron row is
  * wired to open 03b for it in the reference).
+ *
+ * ---------------------------------------------------------------------------
+ * `countsTowardDeposit` — THE ONE PLACE THE RULE LIVES
+ * ---------------------------------------------------------------------------
+ * Whether an account is the kind of account that can be counted toward a
+ * house deposit. It is an explicit flag on each account rather than something
+ * inferred from the account's name or category at render time, so the rule
+ * can be changed here, once, without touching a screen.
+ *
+ * It is a property of the ACCOUNT, not of where the account currently sits.
+ * Frame 03b moves an account between groups; it never changes what kind of
+ * account it is. So this flag fixes the denominator of frame 03's
+ * "N of M selected" — M is the number of accounts flagged true, and does not
+ * move as a participant files things.
+ *
+ * Current rule (see the flag on each account below):
+ *   counts      Pot, Savings, Cash ISA, Lifetime ISA, Stocks and shares ISA,
+ *               including one the bank has not sorted yet
+ *   never       a current account (everyday spending, not savings)
+ *   never       a short-term goal pot, e.g. a holiday pot
+ *   never       the emergency fund
+ *
+ * The emergency fund is the one judgement call in that list. It is a Pot, so
+ * on type alone it would count — but `emergency-fund` is its own build-spec.md
+ * section 6 variable, kept deliberately separate from `saved-toward-deposit`,
+ * and frame 06 tells the participant in as many words that it is not counted
+ * toward a deposit. Counting it here would contradict the screen that follows.
+ * Flip its flag below if that is the wrong call.
  */
 
 export const MOCK_ACCOUNTS = [
   {
     id: 'stocks-isa',
+    // Not sorted yet, but a Stocks and shares ISA is a savings account.
+    countsTowardDeposit: true,
     name: 'Stocks and shares ISA',
     category: 'Stocks and shares ISA',
     balance: 2400,
@@ -30,6 +60,7 @@ export const MOCK_ACCOUNTS = [
   },
   {
     id: 'house-pot',
+    countsTowardDeposit: true,
     name: 'House pot',
     category: 'Pot',
     balance: 3150,
@@ -38,6 +69,7 @@ export const MOCK_ACCOUNTS = [
   },
   {
     id: 'instant-saver',
+    countsTowardDeposit: true,
     name: 'Instant saver',
     category: 'Savings',
     balance: 1850,
@@ -46,6 +78,7 @@ export const MOCK_ACCOUNTS = [
   },
   {
     id: 'cash-isa',
+    countsTowardDeposit: true,
     name: 'Cash ISA',
     category: 'Cash ISA',
     balance: 1200,
@@ -54,6 +87,7 @@ export const MOCK_ACCOUNTS = [
   },
   {
     id: 'lifetime-isa',
+    countsTowardDeposit: true,
     name: 'Lifetime ISA',
     category: 'Lifetime ISA',
     balance: 2750,
@@ -63,6 +97,8 @@ export const MOCK_ACCOUNTS = [
   },
   {
     id: 'emergency-fund',
+    // A Pot by type, but held for emergencies — see the header note.
+    countsTowardDeposit: false,
     name: 'Emergency fund',
     category: 'Pot',
     balance: 5600,
@@ -72,6 +108,8 @@ export const MOCK_ACCOUNTS = [
   },
   {
     id: 'current-account',
+    // Everyday spending, not savings.
+    countsTowardDeposit: false,
     name: 'Current account',
     category: 'Current account',
     balance: 1042.16,
@@ -82,6 +120,8 @@ export const MOCK_ACCOUNTS = [
   },
   {
     id: 'holiday-pot',
+    // A Pot by type, but a short-term goal, not a house deposit.
+    countsTowardDeposit: false,
     name: 'Holiday pot',
     category: 'Pot',
     balance: 420,
@@ -160,17 +200,136 @@ export function groupTotals(accounts) {
   const totals = { unassigned: 0, deposit: 0, emergency: 0, notCounted: 0 };
   for (const account of accounts) {
     if (account.excludeFromTotal) continue;
-    if (account.group === 'deposit' && !account.included) continue;
     if (account.group === 'unassigned') totals.unassigned += account.balance;
-    else if (account.group === 'deposit') totals.deposit += account.balance;
+    else if (account.group === 'deposit') {
+      // The deposit total is the sum of exactly what the "N of M selected"
+      // row says is selected — same predicate, so the headline figure and
+      // the count can never disagree. An account filed here that the flag
+      // says cannot count (a holiday pot moved to "Toward my deposit" on
+      // 03b) still shows in the group, and still does not add to the total,
+      // the same way the current account's own caption already describes.
+      if (isSelectedForDeposit(account)) totals.deposit += account.balance;
+    }
     else if (account.group === 'emergency') totals.emergency += account.balance;
     else if (account.group === 'excluded') totals.notCounted += account.balance;
   }
   return totals;
 }
 
+/**
+ * Is this account currently being counted toward the deposit?
+ *
+ * Three things have to hold, and each is a different question:
+ *   - it is the kind of account that can count at all (the flag above),
+ *   - the participant has it filed under "Toward your deposit" (03b moves
+ *     this),
+ *   - and it has not been deselected by the "Select all accounts" row.
+ */
+export function isSelectedForDeposit(account) {
+  return account.countsTowardDeposit && account.group === 'deposit' && account.included;
+}
+
+/**
+ * Frame 03's "N of M selected" and the state of its three-state checkbox.
+ *
+ * M (`total`) is every account the flag says can count — it does not shrink
+ * when a participant files one elsewhere, because the question the row asks
+ * is "how many of your savings accounts are we counting", and an account
+ * moved to the emergency fund is still one of your savings accounts. N
+ * (`selected`) is how many of those are actually being counted right now.
+ *
+ * `checked` / `indeterminate` / neither map straight onto the checkbox's
+ * three states. Both are false when M is 0, which cannot happen with the
+ * current mock data but would otherwise make an empty set read as
+ * "all selected".
+ */
 export function depositSelection(accounts) {
-  const depositAccounts = accounts.filter((a) => a.group === 'deposit');
-  const selected = depositAccounts.filter((a) => a.included).length;
-  return { selected, total: depositAccounts.length };
+  const counting = accounts.filter((a) => a.countsTowardDeposit);
+  const selected = counting.filter(isSelectedForDeposit).length;
+  return {
+    selected,
+    total: counting.length,
+    checked: counting.length > 0 && selected === counting.length,
+    indeterminate: selected > 0 && selected < counting.length,
+  };
+}
+
+/**
+ * The state patch for tapping "Select all accounts".
+ *
+ * Selecting: every counting account is both marked included and filed under
+ * "Toward your deposit", because "select all" has to be able to reach
+ * N === M, and an account sitting under "Not sorted yet" is not being
+ * counted however its included flag reads. This does override an earlier 03b
+ * move — that is what the control says it does.
+ *
+ * Deselecting: only the included flags are cleared. Groups are left alone, so
+ * a participant who deselects everything and changes their mind still has
+ * their own filing intact rather than a flattened list.
+ */
+export function selectAllPatch(accounts, assignments, included, target) {
+  const nextAssignments = { ...assignments };
+  const nextIncluded = { ...included };
+  for (const account of accounts) {
+    if (!account.countsTowardDeposit) continue;
+    nextIncluded[account.id] = target;
+    if (target) nextAssignments[account.id] = 'deposit';
+  }
+  return { accountAssignments: nextAssignments, accountIncluded: nextIncluded };
+}
+
+/**
+ * The state patch for tapping one account's own checkbox.
+ *
+ * The same two rules `selectAllPatch` applies, narrowed to a single account,
+ * so the per-account control and the select-all control cannot drift apart:
+ * ticking marks the account included AND files it under "Toward your
+ * deposit", because an account sitting under "Not sorted yet" is not being
+ * counted however its included flag reads; unticking clears the flag and
+ * leaves the filing alone.
+ *
+ * Ticking an account the participant had filed under emergencies or
+ * not-counted does move it — that is what "count this toward my deposit"
+ * means, and it is the same behaviour the select-all row already has.
+ */
+export function toggleAccountPatch(account, assignments, included, target) {
+  const nextIncluded = { ...included, [account.id]: target };
+  const nextAssignments = { ...assignments };
+  if (target) nextAssignments[account.id] = 'deposit';
+  return { accountAssignments: nextAssignments, accountIncluded: nextIncluded };
+}
+
+/**
+ * The three section 6 figures frame 03 owns, recomputed from the current
+ * account state — `saved-toward-deposit`, `emergency-fund` and `unassigned`.
+ *
+ * Called on every change that can move a figure: selecting or deselecting
+ * accounts on frame 03, and confirming a move on frame 03b. Not only on
+ * "Agree and continue", so the figures in state always match what the screen
+ * is showing.
+ *
+ * Provenance (DECISIONS.md D5). Untouched, these are read straight from
+ * account data: 'read' in personalised mode, 'estimated' where the bank
+ * cannot see the balances. Once a participant has changed which accounts
+ * count — by the select-all row or by a 03b move — the figures contain the
+ * participant's own input, so they carry 'entered', and D5's propagation rule
+ * carries that on to everything derived from them downstream. All three move
+ * together rather than only the one whose total changed: a 03b move shifts a
+ * balance from one of these totals to another, so the pair is entered input
+ * either way, and tracking them separately would claim a precision the
+ * participant's action does not have.
+ */
+export function accountFigures(state) {
+  const accounts = effectiveAccounts(state.accountAssignments, state.accountIncluded);
+  const totals = groupTotals(accounts);
+  const provenance = state.accountSelectionEdited
+    ? 'entered'
+    : state.savingsWithUs === false
+      ? 'estimated'
+      : 'read';
+  return {
+    'saved-toward-deposit': { value: totals.deposit, provenance },
+    'emergency-fund': { value: totals.emergency, provenance },
+    unassigned: { value: totals.unassigned, provenance },
+  };
 }

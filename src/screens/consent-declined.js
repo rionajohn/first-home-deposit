@@ -12,10 +12,18 @@
  *     (DECISIONS.md D5 — the annual figure inherits 'entered' too, since
  *     it's derived from an entered value)
  */
-import { appBarHTML, bindAppBarBack, actionBarHTML, infoBannerHTML, flagRowHTML } from '../components/ui.js';
+import {
+  appBarHTML,
+  bindAppBarBack,
+  actionBarHTML,
+  infoBannerHTML,
+  flagRowHTML,
+  rerenderInPlace,
+} from '../components/ui.js';
 import { formatCurrency } from '../format.js';
 import { generalAnnualRange } from '../model/model.js';
 import { GENERAL_SAVINGS_RANGE } from '../model/rates.js';
+import { bullet } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
 
@@ -105,7 +113,7 @@ export function render(container, ctx) {
         </div>
         ${c.assumptionsRows.map((row) => `
           <div class="assumptions-card__row">
-            <p class="assumptions-card__bullet">•</p>
+            ${bullet({ size: 'subheadline', className: 'assumptions-card__bullet' })}
             <p class="assumptions-card__text">${row}</p>
           </div>
         `).join('')}
@@ -164,7 +172,7 @@ export function render(container, ctx) {
       generalMonthlyLow: { value: low, provenance },
       generalMonthlyHigh: { value: high, provenance },
     });
-    render(container, { ...ctx, state: next });
+    rerenderInPlace(container, render, { ...ctx, state: next });
   }
 
   rangeLow.addEventListener('change', () => {

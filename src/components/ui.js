@@ -11,6 +11,23 @@
  * itself, the same pattern src/screens/home.js already established.
  */
 import { formatDigits } from '../format.js';
+import {
+  arrowLeft,
+  checkmark,
+  checkmarkCircle,
+  chevronRight,
+  circle,
+  chevronDown,
+  chevronUp,
+  exclamationTriangle,
+  flag as flagIcon,
+  infoCircle,
+  starCircle,
+  starCircleDashed,
+  starCircleFill,
+  xmark,
+  TAB_ICONS,
+} from '../icons.js';
 
 /**
  * App bar: a left icon (back arrow, close/X, or none), a centred title, and
@@ -25,10 +42,13 @@ import { formatDigits } from '../format.js';
  * change, not a visual one.
  */
 export function appBarHTML({ title, left = null, appBarLabels }) {
+  // Both leading controls render at the same size and weight. They did not
+  // before — back.svg drew at 24px and close.svg at 20px in the same 44px
+  // cell, on screens sitting side by side in the flow.
   const iconMarkup = left === 'back'
-    ? '<img class="app-bar__icon" src="assets/icons/back.svg" alt="" width="24" height="24" />'
+    ? arrowLeft({ size: 'title3', className: 'app-bar__icon' })
     : left === 'close'
-      ? '<img class="app-bar__icon" src="assets/icons/close.svg" alt="" width="20" height="20" />'
+      ? xmark({ size: 'title3', className: 'app-bar__icon' })
       : '';
   const label = left === 'close' ? appBarLabels?.closeLabel : appBarLabels?.backLabel;
 
@@ -43,6 +63,142 @@ export function appBarHTML({ title, left = null, appBarLabels }) {
       <div class="app-bar__cell"></div>
     </header>
   `;
+}
+
+/**
+ * Bank tab bar (Figma frame 01's own bottom navigation).
+ *
+ * Drawn in the reference set on frame 01 alone. DECISIONS.md D11 keeps it on
+ * every full-screen journey screen as well, so that a participant who has
+ * gone several screens deep always has one visible, always-in-the-same-place
+ * route back to frame 01 rather than only a chain of back taps. Because it
+ * is the same five-tab component frame 01 already draws, the journey reads
+ * as sitting inside a bank app rather than having grown a control of its
+ * own — see D11 for why it is a deliberate deviation from the wireframes and
+ * exempt from the screenshot-comparison pass.
+ *
+ * Only the Home tab resolves. The other four are exactly as inert here as
+ * they already are on frame 01 — they are the surrounding bank app, which is
+ * out of prototype scope — so they are rendered `disabled` and hidden from
+ * assistive technology rather than left as tappable dead ends. Tapping the
+ * Home tab from frame 01 itself is a no-op re-navigation to the route
+ * already showing, which is the standard tab-bar behaviour for the active
+ * tab.
+ *
+ * router.js mounts this on every non-excluded route and wires
+ * `data-action="nav-home"`; no screen module needs to render or bind it.
+ */
+export function bottomNavHTML(labels) {
+  const tab = (id, label) => {
+    const isHome = id === 'home';
+    return `
+      <button
+        type="button"
+        class="bottom-nav__tab${isHome ? ' bottom-nav__tab--active' : ''}"
+        data-tab="${id}"
+        ${isHome ? `data-action="nav-home" aria-label="${labels.homeTabHint}"` : 'disabled aria-hidden="true" tabindex="-1"'}
+      >
+        ${isHome ? '<div class="bottom-nav__active-rule"></div>' : ''}
+        ${TAB_ICONS[id]({ size: 'body', className: 'bottom-nav__icon' })}
+        <span class="bottom-nav__label">${label}</span>
+      </button>
+    `;
+  };
+
+  return `
+    <nav class="bottom-nav" aria-label="${labels.ariaLabel}">
+      ${tab('home', labels.home)}
+      ${tab('payments', labels.payments)}
+      ${tab('goals', labels.goals)}
+      ${tab('insights', labels.insights)}
+      ${tab('profile', labels.profile)}
+    </nav>
+  `;
+}
+
+/**
+ * Re-renders a screen in place without throwing the participant back to the
+ * top of it.
+ *
+ * THE PROBLEM THIS SOLVES
+ * Every screen module builds itself with `container.innerHTML = ...`, so a
+ * toggle handler that calls its own `render` destroys and rebuilds
+ * `.screen-content` — the element that owns the scroll position. The browser
+ * has nothing to restore `scrollTop` onto, so it starts again at 0, and
+ * `document.activeElement` falls back to `<body>` because the focused control
+ * no longer exists. Tapping a control two thirds of the way down a long
+ * screen sent the screen to the top and dropped keyboard focus, on frames 03,
+ * 04, 05, 05b, 06, 09, 09a, 09b, 10, 10b and 33.
+ *
+ * WHAT IT DOES
+ * Records the scroll offset and enough about the focused element to find it
+ * again, re-renders, then puts both back. The element is found by the
+ * `data-action` (plus `data-account-id` / `data-disclosure-id` / `data-value`
+ * where present) this codebase already puts on every interactive control, so
+ * nothing needs an id and no screen has to opt in.
+ *
+ * `focus({ preventScroll: true })` matters: without it the browser scrolls
+ * the refocused control into view and undoes the line above it.
+ *
+ * Text selection is restored too, so a re-render triggered while someone is
+ * mid-edit in a currency field does not drop their caret to the start.
+ *
+ * WHEN NOT TO USE IT
+ * This is the general fallback for a screen that rebuilds itself wholesale.
+ * Where a change only affects part of a screen, updating that part directly
+ * is better still — nothing is destroyed, so there is nothing to restore. See
+ * `syncAccounts` in screens/consent.js, which patches the account card rather
+ * than re-rendering frame 03 around it.
+ */
+const FOCUS_KEY_ATTRS = ['accountId', 'disclosureId', 'value', 'tab', 'group'];
+
+function focusSelector(el) {
+  if (!el || !el.dataset) return null;
+  const { action, role } = el.dataset;
+  if (!action && !role) return null;
+
+  const esc = (v) => (window.CSS && CSS.escape ? CSS.escape(v) : v);
+  const parts = [];
+  if (action) parts.push(`[data-action="${esc(action)}"]`);
+  if (role) parts.push(`[data-role="${esc(role)}"]`);
+  for (const key of FOCUS_KEY_ATTRS) {
+    const value = el.dataset[key];
+    if (value != null) {
+      const attr = key.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase());
+      parts.push(`[data-${attr}="${esc(value)}"]`);
+    }
+  }
+  return parts.join('');
+}
+
+export function rerenderInPlace(container, render, ctx) {
+  const scroller = container.querySelector('.screen-content, .bottom-sheet__content');
+  const scrollTop = scroller ? scroller.scrollTop : 0;
+
+  const active = document.activeElement;
+  const focused = active && container.contains(active) ? active : null;
+  const selector = focusSelector(focused);
+  const caret = focused && typeof focused.selectionStart === 'number'
+    ? { start: focused.selectionStart, end: focused.selectionEnd }
+    : null;
+
+  render(container, ctx);
+
+  const nextScroller = container.querySelector('.screen-content, .bottom-sheet__content');
+  if (nextScroller) nextScroller.scrollTop = scrollTop;
+
+  if (!selector) return;
+  const target = container.querySelector(selector);
+  if (!target) return;
+  target.focus({ preventScroll: true });
+  if (caret && typeof target.setSelectionRange === 'function') {
+    try {
+      target.setSelectionRange(caret.start, caret.end);
+    } catch {
+      // Some input types (number, email) throw on setSelectionRange. Focus is
+      // the part that matters; the caret is a nicety.
+    }
+  }
 }
 
 /** Wires the app bar's left button, if the screen rendered one. No-op if this screen's app bar has no back control. */
@@ -63,10 +219,32 @@ export function actionBarHTML({ primaryLabel, primaryAction, secondaryLabel, sec
       : `<button type="button" class="text-action" data-action="${secondaryAction}">${secondaryLabel}</button>`
     : '';
 
+  return actionBarDockHTML(`
+    <button type="button" class="button button--primary" data-action="${primaryAction}" ${primaryDisabled ? 'disabled' : ''}>${primaryLabel}</button>
+    ${secondaryMarkup}
+  `);
+}
+
+/**
+ * The shell every action bar sits in (DECISIONS.md D17).
+ *
+ * The dock exists so the scroll affordance — the "there is more below" fade —
+ * has somewhere to live. It cannot live on the bar itself: the bar's hidden
+ * state is `opacity: 0`, and opacity applies to an element's pseudo-elements
+ * too, so a gradient drawn on the bar would be invisible in exactly the state
+ * that needs it. The dock stays fully opaque and draws the fade immediately
+ * above itself with `bottom: 100%`.
+ *
+ * Every action bar in the app goes through here — the seventeen full screens
+ * via `actionBarHTML` above, and the seven sheets, which build their own
+ * buttons but wrap them in this.
+ */
+export function actionBarDockHTML(buttonsHTML) {
   return `
-    <div class="action-bar">
-      <button type="button" class="button button--primary" data-action="${primaryAction}" ${primaryDisabled ? 'disabled' : ''}>${primaryLabel}</button>
-      ${secondaryMarkup}
+    <div class="action-bar-dock">
+      <div class="action-bar">
+        ${buttonsHTML}
+      </div>
     </div>
   `;
 }
@@ -74,7 +252,7 @@ export function actionBarHTML({ primaryLabel, primaryAction, secondaryLabel, sec
 export function infoBannerHTML(text) {
   return `
     <div class="info-banner">
-      <img class="info-banner__icon" src="assets/icons/info.svg" alt="" width="20" height="20" />
+      ${infoCircle({ size: 'body', className: 'info-banner__icon' })}
       <p class="info-banner__text">${text}</p>
     </div>
   `;
@@ -89,9 +267,9 @@ export function infoBannerHTML(text) {
 export function flagRowHTML(label) {
   return `
     <button type="button" class="flag-row" data-action="report-issue">
-      <img class="flag-row__icon" src="assets/icons/flag.svg" alt="" width="20" height="20" />
+      ${flagIcon({ size: 'body', className: 'flag-row__icon' })}
       <span class="flag-row__label">${label}</span>
-      <img class="flag-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+      ${chevronRight({ size: 'body', className: 'flag-row__chevron' })}
     </button>
   `;
 }
@@ -116,7 +294,7 @@ export function disclosureHTML({ id, title, open, contentHtml }) {
       <h3 class="disclosure__heading">
         <button type="button" class="disclosure__header" data-action="toggle-disclosure" data-disclosure-id="${id}" aria-expanded="${open}" aria-controls="${contentId}">
           <span class="disclosure__title">${title}</span>
-          <img class="disclosure__chevron" src="assets/icons/chevron-up.svg" alt="" width="20" height="20" />
+          ${chevronUp({ size: 'body', weight: 'semibold', className: 'disclosure__chevron' })}
         </button>
       </h3>
       <div class="disclosure__content" id="${contentId}"${open ? '' : ' hidden'}>${contentHtml}</div>
@@ -184,7 +362,7 @@ export function figureRowHTML({ label, value, caption, trailing }) {
 export function infoLinkHTML({ label, action }) {
   return `
     <button type="button" class="info-link" data-action="${action}">
-      <img class="info-link__icon" src="assets/icons/info.svg" alt="" width="16" height="16" />
+      ${infoCircle({ size: 'body', className: 'info-link__icon' })}
       <span class="info-link__label">${label}</span>
     </button>
   `;
@@ -198,7 +376,7 @@ export function infoLinkHTML({ label, action }) {
 export function warningBannerHTML(text) {
   return `
     <div class="warning-banner">
-      <img class="warning-banner__icon" src="assets/icons/info.svg" alt="" width="20" height="20" />
+      ${infoCircle({ size: 'body', className: 'warning-banner__icon' })}
       <p class="warning-banner__text">${text}</p>
     </div>
   `;
@@ -262,11 +440,11 @@ export function formStepHeaderHTML({ title, step, appBarLabels }) {
     <header class="form-step-header" role="banner">
       <div class="form-step-header__title-bar">
         <button type="button" class="form-step-header__cell form-step-header__cell--action" data-action="form-step-back" aria-label="${appBarLabels?.backLabel}">
-          <img class="app-bar__icon" src="assets/icons/back.svg" alt="" width="24" height="24" />
+          ${arrowLeft({ size: 'title3', className: 'app-bar__icon' })}
         </button>
         <h1 class="form-step-header__title">${title}</h1>
         <button type="button" class="form-step-header__cell form-step-header__cell--action" data-action="form-step-close" aria-label="${appBarLabels?.closeLabel}">
-          <img class="app-bar__icon" src="assets/icons/close.svg" alt="" width="20" height="20" />
+          ${xmark({ size: 'title3', className: 'app-bar__icon' })}
         </button>
       </div>
       <div class="form-step-header__step-row">
@@ -384,11 +562,11 @@ export function dateStepperHTML({ monthLabel, yearLabel, hint, monthAction, year
     return `
       <div class="date-stepper__control">
         <button type="button" class="date-stepper__step" data-action="${upAction}" aria-label="${increaseLabel} ${ariaLabel}">
-          <img src="assets/icons/chevron-up.svg" alt="" width="12" height="12" />
+          ${chevronUp({ size: 'micro', weight: 'semibold' })}
         </button>
         <p class="date-stepper__value">${value}</p>
         <button type="button" class="date-stepper__step date-stepper__step--down" data-action="${downAction}" aria-label="${decreaseLabel} ${ariaLabel}">
-          <img src="assets/icons/chevron-up.svg" alt="" width="12" height="12" />
+          ${chevronDown({ size: 'micro', weight: 'semibold' })}
         </button>
       </div>
     `;
@@ -485,7 +663,7 @@ export function growthChartHTML({ thresholds, points, xAxisLabels, legend, yTop,
 export function riskWarningHTML(text) {
   return `
     <div class="risk-warning-card">
-      <img class="risk-warning-card__icon" src="assets/icons/warning.svg" alt="" width="20" height="20" />
+      ${exclamationTriangle({ size: 'body', className: 'risk-warning-card__icon' })}
       <p class="risk-warning-card__text">${text}</p>
     </div>
   `;
@@ -521,9 +699,9 @@ export function progressBarHTML({ fillPct, markerPct, label }) {
  * secondary-coloured text). `milestones` is `[{ title, body, state }]`.
  */
 const MILESTONE_ICON = {
-  done: 'milestone-done.svg',
-  current: 'milestone-current.svg',
-  locked: 'milestone-locked.svg',
+  done: starCircleFill,
+  current: starCircle,
+  locked: starCircleDashed,
 };
 
 export function milestoneTrackerHTML(milestones) {
@@ -532,7 +710,7 @@ export function milestoneTrackerHTML(milestones) {
       ${milestones.map((m, i) => `
         ${i > 0 ? '<div class="milestone-row__divider"></div>' : ''}
         ${m.action ? `<button type="button" class="milestone-row milestone-row--${m.state}" data-action="${m.action}">` : `<div class="milestone-row milestone-row--${m.state}">`}
-          <img class="milestone-row__icon" src="assets/icons/${MILESTONE_ICON[m.state]}" alt="" width="32" height="32" />
+          ${MILESTONE_ICON[m.state]({ size: 'large', className: 'milestone-row__icon' })}
           <div class="milestone-row__content">
             <p class="milestone-row__title">${m.title}</p>
             <p class="milestone-row__body">${m.body}</p>
@@ -600,9 +778,9 @@ export function howThisWorksCardHTML({ title, intro, rows, navLabel, navAction, 
         `).join('')}
       </div>
       <button type="button" class="how-this-works-card__nav" data-action="${navAction}">
-        <img class="info-link__icon" src="assets/icons/info.svg" alt="" width="20" height="20" />
+        ${infoCircle({ size: 'body', className: 'info-link__icon' })}
         <span class="how-this-works-card__nav-label">${navLabel}</span>
-        <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+        ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
       </button>
       ${footnote ? `<p class="how-this-works-card__footnote">${footnote}</p>` : ''}
     </div>
@@ -620,7 +798,7 @@ export function tickListHTML(rows) {
     <div class="tick-list">
       ${rows.map((text) => `
         <div class="tick-list__row">
-          <img class="tick-list__icon" src="assets/icons/status-check.svg" alt="" width="20" height="20" />
+          ${checkmarkCircle({ size: 'body', className: 'tick-list__icon' })}
           <p class="tick-list__text">${text}</p>
         </div>
       `).join('')}
@@ -630,16 +808,26 @@ export function tickListHTML(rows) {
 
 /**
  * Content / List row, checked/unchecked variant (frame 19's "We've already
- * got" card and its own "What you'll still be asked" disclosure): a
- * character glyph ("✓" or "○", exactly as the reference PNG draws it — not
- * an icon asset) beside a label, an optional bold value, and an optional
- * caption. `value`/`caption` omitted renders just the glyph + label, the
- * shape the disclosure rows need.
+ * got" card and its own "What you'll still be asked" disclosure): a state
+ * icon beside a label, an optional bold value, and an optional caption.
+ * `value`/`caption` omitted renders just the icon + label, the shape the
+ * disclosure rows need.
+ *
+ * `state` is 'checked' (the bank already holds this figure) or 'pending'
+ * (it will be asked for). These were literal "✓" and "○" characters until
+ * the icon-set pass — whatever weight and baseline the participant's system
+ * font happened to give them, next to real icons drawn at a fixed weight on
+ * the same row.
  */
-export function checklistRowHTML({ glyph, label, value, caption }) {
+const CHECKLIST_ICON = {
+  checked: checkmark,
+  pending: circle,
+};
+
+export function checklistRowHTML({ state = 'pending', label, value, caption }) {
   return `
     <div class="checklist-row">
-      <p class="checklist-row__glyph" aria-hidden="true">${glyph}</p>
+      ${CHECKLIST_ICON[state]({ size: 'subheadline', weight: 'semibold', className: 'checklist-row__glyph' })}
       <div class="checklist-row__content">
         <p class="checklist-row__label">${label}</p>
         ${value ? `<p class="checklist-row__value">${value}</p>` : ''}
@@ -654,10 +842,10 @@ export function checklistRowHTML({ glyph, label, value, caption }) {
  * inside its own card — the top-of-screen summary of a Mortgage in
  * Principle result, positive or not-yet.
  */
-export function resultPanelHTML({ icon, headline, body }) {
+export function resultPanelHTML({ icon: iconFn, headline, body }) {
   return `
     <div class="card result-panel">
-      <img class="result-panel__icon" src="${icon}" alt="" width="32" height="32" />
+      ${iconFn({ size: 'large', className: 'result-panel__icon' })}
       <p class="result-panel__headline">${headline}</p>
       <p class="result-panel__body">${body}</p>
     </div>
@@ -680,7 +868,7 @@ export function nextStepsCardHTML({ title, steps }) {
             <p class="next-steps-card__step-title">${step.title}</p>
             <p class="next-steps-card__caption">${step.caption}</p>
           </div>
-          <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+          ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
         </button>
       `).join('')}
     </div>
@@ -703,7 +891,7 @@ export function sheetHeaderHTML({ closeLabel }) {
     <div class="bottom-sheet__header">
       <div class="bottom-sheet__drag-handle-bar"></div>
       <button type="button" class="bottom-sheet__close" data-action="dismiss" aria-label="${closeLabel}">
-        <img src="assets/icons/close.svg" alt="" width="16" height="16" />
+        ${xmark({ size: 'footnote', weight: 'semibold' })}
       </button>
     </div>
   `;

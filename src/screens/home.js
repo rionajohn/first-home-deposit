@@ -2,7 +2,16 @@
  * Frame 01 — Home (bank home screen with the feature entry point).
  * Figma node 9:17. Reference: reference/frames/01 Home - Your first home
  * entry point.png.
+ *
+ * The tab bar this frame draws is now the shared `bottomNavHTML` component
+ * (ui.js), because DECISIONS.md D11 puts the same bar on every full-screen
+ * journey screen and one copy of it is better than two that can drift.
+ * Rendering it here rather than leaving it to router.js's mount keeps frame
+ * 01's own markup self-describing — the bar is part of what this frame is —
+ * and router.js's mount is a no-op when a screen already drew one.
  */
+import { bottomNavHTML } from '../components/ui.js';
+import { chevronRight } from '../icons.js';
 
 function transactionRow({ merchant, category, amount }) {
   return `
@@ -48,7 +57,7 @@ export function render(container, { content, setState }) {
         ${c.transactionGroups.map((group, i) => transactionGroup(group, i === c.transactionGroups.length - 1)).join('<hr class="divider" />')}
         <button type="button" class="list-row" data-action="see-all-transactions">
           <span class="list-row__label">${c.seeAllTransactions}</span>
-          <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+          ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
         </button>
       </div>
 
@@ -61,27 +70,11 @@ export function render(container, { content, setState }) {
       </div>
     </main>
 
-    <nav class="bottom-nav" aria-label="Primary">
-      ${navTab('home', c.bottomNav.home, true)}
-      ${navTab('payments', c.bottomNav.payments, false)}
-      ${navTab('goals', c.bottomNav.goals, false)}
-      ${navTab('insights', c.bottomNav.insights, false)}
-      ${navTab('profile', c.bottomNav.profile, false)}
-    </nav>
+    ${bottomNavHTML(content.shared.bottomNav)}
   `;
 
   container.querySelector('[data-action="start-journey"]').addEventListener('click', () => {
     setState({ journeyStarted: true });
     window.location.hash = '#/journey';
   });
-}
-
-function navTab(id, label, active) {
-  return `
-    <button type="button" class="bottom-nav__tab${active ? ' bottom-nav__tab--active' : ''}" data-tab="${id}">
-      ${active ? '<div class="bottom-nav__active-rule"></div>' : ''}
-      <img class="bottom-nav__icon" src="assets/icons/nav/${id}.svg" alt="" width="20" height="20" />
-      <span class="bottom-nav__label">${label}</span>
-    </button>
-  `;
 }

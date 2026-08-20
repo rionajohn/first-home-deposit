@@ -176,25 +176,67 @@
   margin-bottom: var(--space-sm);
 }
 
+/* The row is a plain container now, not a button: it holds two separate
+   targets — the selection checkbox and the button that opens 03b
+   (DECISIONS.md D16). The bottom rule and the 64px minimum stay on the row so
+   the list keeps its drawn rhythm whether or not a row has a checkbox. */
 .account-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-lg);
+  /* No gap: the checkbox label is 48px wide around a 24px box, so it already
+     carries 12px of clear space on the side facing the name. Adding a gap on
+     top of that took another 12px off the name column, which is the width
+     that decides whether "Stocks and shares ISA" fits on one line. */
+  gap: 0;
   min-height: 64px;
   width: 100%;
-  padding: var(--space-md) 0;
   border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* Target one: the checkbox. 48x48 in its own right (D1), which is larger
+   than the 24px box it draws — the padding around the glyph is the target,
+   the same way .checkbox-row makes its whole row tappable. */
+.account-row__select {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  cursor: pointer;
+}
+
+/* The shared box has a 2px top margin for sitting beside multi-line label
+   text; centred in its own square here, it does not want it. */
+.account-row__select .checkbox-row__box {
+  margin-top: 0;
+}
+
+/* Target two: everything else, opening 03b. Rows with no checkbox — a
+   current account, a holiday pot — start at the card's left edge instead of
+   against an empty box, so "this one cannot be counted" reads from the row's
+   shape rather than from an unticked control that would invite a tap. */
+.account-row__open {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* Was --space-lg. Tightened by the same reasoning as the row gap above:
+     the balance and chevron do not need 16px of clearance from the name, and
+     the name column is where the width is worth spending. */
+  gap: var(--space-md);
+  min-height: var(--touch-target-min);
+  padding: var(--space-md) 0;
   background: none;
-  border-left: none;
-  border-right: none;
-  border-top: none;
+  border: none;
   cursor: pointer;
   font: inherit;
   text-align: left;
+  color: inherit;
 }
 
-.account-row:disabled {
+.account-row__open:disabled {
   cursor: default;
 }
 
@@ -252,12 +294,25 @@
 /* absolute, not fixed: contained within .screen (position:relative in
    shell.css) so the sheet stays inside the device frame at >=768px rather
    than covering the whole browser viewport. */
+/* The overlay spans the whole screen including the reserved safe-area bands
+   (`inset: 0` resolves against `.screen`'s padding box), so the scrim dims
+   edge to edge the way a real sheet does — see the .sheet-scrim note in
+   shell.css. Its TOP padding holds the card out of the status-bar area.
+
+   It has NO bottom padding, deliberately. It used to, and that was the bug:
+   padding here sits OUTSIDE the card, so with `justify-content: flex-end` it
+   lifted the whole sheet 34px off the bottom of the phone screen and left a
+   band of scrim beneath it — the sheet visibly floating away from the bottom
+   of the device. The bottom inset belongs INSIDE the card, below its action
+   bar (see `.bottom-sheet .action-bar` below), so the sheet's own surface
+   reaches the bottom edge the way a real sheet's does. */
 .sheet-overlay {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  padding-top: var(--safe-top);
   z-index: 10;
 }
 
@@ -265,12 +320,61 @@
   position: relative;
   z-index: 1;
   width: 100%;
-  max-height: 92vh;
+  /* 92% of the overlay's safe content box, not 92vh. `vh` measured the
+     browser viewport, which at framed widths is unrelated to the 852px frame
+     — at 1440x900 it resolved to 828px, taller than the frame's own safe
+     area, so a tall sheet could push up through the reserved top band. A
+     percentage resolves against the padded overlay, so the sheet is capped by
+     the space it is actually allowed to use, in both views. */
+  max-height: 92%;
   display: flex;
   flex-direction: column;
   background: var(--color-surface);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   overflow: hidden;
+}
+
+/* --- The sheet's action bar overlays the end of its own scroller ---
+   Same intent as the full-screen rule in components.css, by a different
+   mechanism. A full screen uses negative margin plus flex-grow, which needs
+   the flex container to have a definite height; a sheet card does not have
+   one — it is sized by its content up to `max-height: 92%` — so that trick
+   dragged the bar up over the last row instead (it hid 03b's third purpose
+   option). Taking the dock out of flow works either way: an absolutely
+   positioned child contributes nothing to its parent's height, so the card is
+   sized by the scroller alone, and the scroller's own bottom padding is what
+   reserves room for the bar. Nothing is ever blank: while the bar is hidden
+   the content shows through where it sits, and while it is revealed the bar's
+   own surface covers it.
+
+   Neither the card's height nor the scroller's depends on whether the bar is
+   showing, so there is no feedback loop between "does the content overflow"
+   and "should the bar be revealed". */
+.bottom-sheet .action-bar-dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* The bottom safe-area inset, carried by the bar itself. The bar is the
+   lowest thing on a sheet, so it sits at the bottom of the phone screen with
+   the inset below it — as its own padding, so the band paints the bar's
+   surface rather than leaving a gap for the scrim to show through. */
+.bottom-sheet .action-bar {
+  padding-bottom: calc(var(--space-lg) + var(--safe-bottom));
+}
+
+/* Reserves the dock's height inside the scroller so the last piece of real
+   content clears the bar. --action-bar-height is measured by
+   src/action-bar.js and already includes the inset padding above.
+
+   `.bottom-sheet >` for specificity, not decoration: `.bottom-sheet__content`
+   sets `padding` as a shorthand further down this file, and a same-specificity
+   shorthand later in the sheet would reset this longhand back to its own
+   bottom value. */
+.bottom-sheet > .bottom-sheet__content {
+  padding-bottom: calc(var(--space-2xl) + var(--action-bar-height, 0px));
 }
 
 .bottom-sheet__drag-handle {
@@ -613,8 +717,11 @@
   border-bottom: none;
 }
 
+/* Was a <p> holding a literal "•"; it is the bullet icon from icons.js
+   now. margin-top puts the dot on the first line's optical centre — a text
+   bullet sat on the baseline, which drifted as soon as a row wrapped. */
 .assumptions-card__bullet {
-  margin: 0;
+  margin-top: 6px;
   color: var(--color-label-secondary);
 }
 
@@ -831,9 +938,9 @@
   cursor: pointer;
 }
 
-.date-stepper__step--down img {
-  transform: rotate(180deg);
-}
+/* The down control used to render the up chevron rotated 180deg. It renders
+   chevronDown now — icons.js draws all four chevrons from the same geometry,
+   so nothing has to depend on a transform to point the right way. */
 
 .date-stepper__hint {
   margin: 0;
@@ -1402,7 +1509,8 @@
 
 /* Frame 32's "Connect another bank through open banking" row: title +
    caption on the left, a trailing arrow glyph on the right (Figma draws a
-   literal "→" character, not a chevron icon). A stub — build-spec.md
+   arrowRight, not a chevron — it leaves the app rather than pushing a
+   screen). A stub — build-spec.md
    section 1 marks it "Out of prototype scope", so it's tappable but goes
    nowhere further than the same exit /home already gives every other
    out-of-scope branch (see assumptions-sources.js). */
@@ -1447,9 +1555,10 @@
   color: var(--color-label-secondary);
 }
 
+/* Was a literal "→" character sized with font-size; it is arrowRight from
+   icons.js now, so the icon size class owns the box and only the colour and
+   the row layout are set here. */
 .open-banking-row__arrow {
   flex: 0 0 auto;
-  margin: 0;
-  font-size: calc(16px * var(--text-scale));
   color: var(--color-label-secondary);
 }

@@ -13,8 +13,9 @@
  * the video area is the same dashed-border placeholder pattern as the
  * visual-aid diagram beneath it.
  */
-import { flagRowHTML, infoBannerHTML } from '../components/ui.js';
+import { flagRowHTML, infoBannerHTML, actionBarDockHTML } from '../components/ui.js';
 import { formatCurrency } from '../format.js';
+import { playCircle } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -37,7 +38,7 @@ export function render(container, ctx) {
         <div class="bottom-sheet__drag-handle"><div class="bottom-sheet__drag-handle-bar"></div></div>
         <div class="bottom-sheet__content">
           <div class="media-placeholder">
-            <img class="media-placeholder__icon" src="assets/icons/play-circle.svg" alt="" width="32" height="32" />
+            ${playCircle({ size: 'large', className: 'media-placeholder__icon' })}
             <h2 class="media-placeholder__title" id="sheet-heading">${c.videoTitle}</h2>
             <p class="media-placeholder__duration">${c.videoDuration}</p>
           </div>
@@ -55,9 +56,9 @@ export function render(container, ctx) {
           ${flagRowHTML(c.flagLabel)}
           <p class="legal-text">${reg.guidanceNotAdvice}</p>
         </div>
-        <div class="action-bar">
+        ${actionBarDockHTML(`
           <button type="button" class="button button--primary" data-action="dismiss">${c.primaryCta}</button>
-        </div>
+        `)}
       </div>
     </div>
   `;

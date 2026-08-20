@@ -18,7 +18,7 @@
  * (e.g. 04, 05, 06, 08, all reached before the deposit calculator), so a
  * text fallback stands in for the figure when it isn't yet known.
  */
-import { sheetHeaderHTML, figureRowHTML } from '../components/ui.js';
+import { sheetHeaderHTML, figureRowHTML, actionBarDockHTML } from '../components/ui.js';
 import { formatCurrency, formatPercent, formatFullDate } from '../format.js';
 import { depositTarget } from '../model/model.js';
 import { RATES } from '../model/rates.js';
@@ -72,9 +72,9 @@ export function render(container, ctx) {
           <p class="legal-text">${fill(c.metadataTemplate, { date: formatFullDate(RATES.asAt) })}</p>
           <p class="legal-text">${reg.guidanceNotAdvice}</p>
         </div>
-        <div class="action-bar">
+        ${actionBarDockHTML(`
           <button type="button" class="button button--primary" data-action="dismiss">${c.primaryCta}</button>
-        </div>
+        `)}
       </div>
     </div>
   `;

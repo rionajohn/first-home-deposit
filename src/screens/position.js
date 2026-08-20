@@ -28,9 +28,11 @@ import {
   figureRowHTML,
   figureInputHTML,
   warningBannerHTML,
+  rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency } from '../format.js';
 import { leftOver } from '../model/model.js';
+import { chevronRight } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
 
@@ -84,7 +86,7 @@ export function render(container, ctx) {
     ${isEstimate ? figureRowHTML({ label: c.missedLabel, trailing: c.missedValue }) : ''}
     <button type="button" class="list-row" data-action="open-provenance-key">
       <span class="list-row__label">${c.provenanceKeyLabel}</span>
-      <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+      ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
     </button>
   `;
 
@@ -106,7 +108,7 @@ export function render(container, ctx) {
       ${disclosureHTML({ id: 'breakdown', title: disclosureTitle, open: state.breakdownOpen, contentHtml: disclosureContent })}
       <button type="button" class="list-row" data-action="open-sources">
         <span class="list-row__label">${c.whereFiguresLabel}</span>
-        <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+        ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
       </button>
       ${isEstimate ? `<p class="legal-text">${reg.estimateDisclosure}</p>` : ''}
       ${flagRowHTML(c.flagLabel)}
@@ -121,7 +123,7 @@ export function render(container, ctx) {
 
   container.querySelector('[data-action="toggle-disclosure"]').addEventListener('click', () => {
     const next = setState({ breakdownOpen: !state.breakdownOpen });
-    render(container, { ...ctx, state: next });
+    rerenderInPlace(container, render, { ...ctx, state: next });
   });
 
   const input = container.querySelector('[data-role="left-over"]');
@@ -131,7 +133,7 @@ export function render(container, ctx) {
     const next = setState({
       'left-over': { value: Number.isFinite(typed) ? typed : 0, provenance: 'entered' },
     });
-    render(container, { ...ctx, state: next });
+    rerenderInPlace(container, render, { ...ctx, state: next });
   });
 
   container.querySelector('[data-action="open-provenance-key"]').addEventListener('click', () => {

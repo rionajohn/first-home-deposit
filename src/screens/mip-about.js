@@ -15,6 +15,7 @@ import {
   riskWarningHTML,
   infoBannerHTML,
 } from '../components/ui.js';
+import { playCircle } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -30,7 +31,7 @@ export function render(container, ctx) {
     ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: shared.appBar })}
     <main class="screen-content" role="main">
       <div class="media-placeholder">
-        <img class="media-placeholder__icon" src="assets/icons/play-circle.svg" alt="" width="32" height="32" />
+        ${playCircle({ size: 'large', className: 'media-placeholder__icon' })}
         <p class="media-placeholder__title">${c.videoTitle}</p>
         <p class="media-placeholder__duration">${c.videoDuration}</p>
       </div>

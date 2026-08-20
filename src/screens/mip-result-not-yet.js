@@ -25,6 +25,7 @@ import {
 } from '../components/ui.js';
 import { formatCurrency, formatMonthsDuration } from '../format.js';
 import { gap, neededLoanAmount, borrowRange, maxProperty, monthsToReachAmount } from '../model/model.js';
+import { arrowUp } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice', 'adviserScope', 'mcob3aRepossessionWarning', 'estimateDisclosure'];
 
@@ -60,7 +61,7 @@ export function render(container, ctx) {
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: shared.appBar })}
     <main class="screen-content" role="main">
-      ${resultPanelHTML({ icon: 'assets/icons/arrow-up.svg', headline: c.resultHeadline, body: c.resultBody })}
+      ${resultPanelHTML({ icon: arrowUp, headline: c.resultHeadline, body: c.resultBody })}
 
       ${figureDisplayHTML({ value: gapResult.error ? '—' : formatCurrency(gapResult.value), caption: c.gapCaption })}
       <p class="legal-text">${reg.estimateDisclosure}</p>

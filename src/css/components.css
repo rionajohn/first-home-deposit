@@ -5,6 +5,107 @@
  * speculatively ahead of need.
  */
 
+/* ==========================================================================
+   Icons (src/icons.js)
+   ==========================================================================
+
+   Every icon in the app is an inline <svg class="icon ..."> from icons.js,
+   drawn on one 24x24 canvas. This block is where the canvas turns into
+   rendered pixels: the size classes set the box, the weight classes set the
+   stroke, and the two combine in `.icon` itself.
+
+   Why stroke-width lives here rather than as an attribute on the SVG: it is
+   the sum of two independent decisions — the icon's weight (which tracks the
+   weight of the text beside it) and an optical correction for its size — and
+   calc() can add them only as a CSS property. A presentation attribute
+   cannot hold a var() or a calc().
+
+   Why width/height multiply by --text-scale here rather than being baked
+   into the tokens: a custom property that references another custom property
+   resolves the inner var() once, at its own declaration point (:root, where
+   --text-scale is always 1) and inherits that frozen value down. See the
+   note above .text-large in tokens.css, which hit exactly this. A real
+   property resolves its var() fresh at the point of use, so this picks up
+   frame 33's "Text size: Large" correctly. */
+
+.icon {
+  flex: 0 0 auto;
+  display: block;
+  width: calc(var(--icon-base) * var(--text-scale));
+  height: calc(var(--icon-base) * var(--text-scale));
+  /* `* 1px` rather than a bare number: inside a viewBox, an SVG px IS one
+     user unit, so this is the same 24-unit measurement either way — but a
+     unitless calc() for stroke-width is accepted inconsistently, and this
+     leaves nothing to a browser's coercion. */
+  stroke-width: calc(var(--icon-weight) * 1px + var(--icon-optical) * 1px);
+}
+
+/* --- Size, with its optical correction ---
+   --icon-optical is added to the stroke width in canvas units, so its effect
+   on the rendered stroke is scaled by the box size like everything else.
+   Small sizes get a positive correction so a 12px icon does not thin out to
+   a hairline; display sizes get a negative one so a 40px icon does not read
+   as heavy. Rendered stroke at `regular` across the ladder, in px:
+
+     micro       (1.85 + 0.95) * 12/24 = 1.40
+     footnote    (1.85 + 0.45) * 16/24 = 1.53
+     subheadline (1.85 + 0.22) * 18/24 = 1.55
+     body        (1.85 + 0.00) * 20/24 = 1.54
+     title3      (1.85 + 0.00) * 24/24 = 1.85
+     large       (1.85 - 0.20) * 32/24 = 2.20
+     hero        (1.85 - 0.45) * 40/24 = 2.33
+
+   i.e. flat at ~1.5px through the text-paired sizes, then growing
+   sub-linearly at display sizes. That is what Apple's three scales do. */
+.icon--micro       { --icon-base: var(--icon-size-micro);       --icon-optical: 0.95; }
+.icon--footnote    { --icon-base: var(--icon-size-footnote);    --icon-optical: 0.45; }
+.icon--subheadline { --icon-base: var(--icon-size-subheadline); --icon-optical: 0.22; }
+.icon--body        { --icon-base: var(--icon-size-body);        --icon-optical: 0; }
+.icon--title3      { --icon-base: var(--icon-size-title3);      --icon-optical: 0; }
+.icon--large       { --icon-base: var(--icon-size-large);       --icon-optical: -0.2; }
+.icon--hero        { --icon-base: var(--icon-size-hero);        --icon-optical: -0.45; }
+
+/* --- Weight, tracking the font weight of the text the icon sits beside --- */
+.icon--regular  { --icon-weight: var(--icon-weight-regular); }
+.icon--medium   { --icon-weight: var(--icon-weight-medium); }
+.icon--semibold { --icon-weight: var(--icon-weight-semibold); }
+.icon--bold     { --icon-weight: var(--icon-weight-bold); }
+
+/* --- Per-shape modifiers, applied to elements inside an icon --- */
+
+/* Filled AND stroked in the same colour: the stroke's round joins are what
+   round off a filled shape's corners (a star's points, a play triangle's
+   apexes), which is how a filled SF symbol gets its soft geometry. */
+.icon__fill {
+  fill: currentColor;
+}
+
+/* Filled only. For a shape with no terminals to round — the list bullet. */
+.icon__solid {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* A glyph reversed out of a filled shape (the star on a completed
+   milestone). Painted in the inverse label colour rather than hardcoded
+   white, so it stays legible in either palette. */
+.icon__knockout {
+  fill: var(--color-label-inverse);
+  stroke: var(--color-label-inverse);
+}
+
+/* The dot of a lowercase i, and an exclamation mark's point. Drawn as a
+   zero-length round-capped subpath so it scales with the icon's weight;
+   widened relative to the stem the way SF Pro's own lowercase i is. */
+.icon__dot {
+  stroke-width: calc((var(--icon-weight) + var(--icon-optical)) * 1.45px);
+}
+
+/* Not-yet-unlocked ring (frame 15's locked milestone). */
+.icon__dashed {
+  stroke-dasharray: 2.6 2.6;
+}
+
 /* --- App bar --- */
 .app-bar {
   display: flex;
@@ -172,9 +273,10 @@
   color: var(--color-label);
 }
 
+/* Sizing comes from the .icon size class (icons.js passes 'body' here);
+   this only handles the row layout. Same for every other __icon/__chevron
+   rule in this file — none of them set a px box any more. */
 .list-row__chevron {
-  width: 20px;
-  height: 20px;
   flex: 0 0 auto;
 }
 
@@ -254,7 +356,165 @@
   color: var(--color-label);
 }
 
-/* --- Action bar (bottom, fixed within the flex column like .bottom-nav) --- */
+/* ==========================================================================
+   Action bar — reveal on reach (DECISIONS.md D17)
+   ==========================================================================
+
+   The bar appears once the participant has reached the end of the content, on
+   screens that have an end to reach; on screens that fit without scrolling it
+   is visible from the start. src/action-bar.js owns the decision and toggles
+   `.action-bar--revealed` here; this file owns what the two states look like.
+
+   THE DOCK exists so the "more below" fade has somewhere to live. It cannot
+   live on the bar: the hidden state is `opacity: 0`, and opacity applies to an
+   element's pseudo-elements too, so a gradient drawn on the bar would be
+   invisible in exactly the state that needs it. The dock stays opaque and
+   draws the fade above itself.
+
+   THE DOCK, not the bar, is the flex child of `.screen` / `.bottom-sheet`.
+   `z-index` puts it above the content it overlaps — see the note on
+   `.screen-content` below for why it overlaps at all. */
+.action-bar-dock {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  flex: 0 0 auto;
+  /* The dock overlaps the last ~136px of the scroller, so as a plain box it
+     would swallow taps on whatever content sits under it — a link row, a
+     disclosure header — whether or not the bar was showing. It is only a
+     positioning wrapper, so it never takes pointer events itself; the bar
+     inside it opts back in when revealed, and `pointer-events: none` on a
+     parent does not stop a child from setting `auto`. */
+  pointer-events: none;
+}
+
+/* --- The content scrolls UNDER the bar, and clears it at the end ---
+   The first build of this reserved the bar's height in the flex column
+   whether or not the bar was visible. That was stable, but it left ~136px of
+   empty screen — 18% of the app's own 759px — blank for the whole scroll on
+   every long screen, which is the same "cramped and loose at once" problem
+   D14 was about.
+
+   The fix is the standard negative-margin-plus-flex-grow overlap. The
+   negative bottom margin frees the dock's height as flex space;
+   `.screen-content` is `flex: 1 1 auto`, so it immediately grows back into
+   it. Outer size unchanged, so the dock and the tab bar stay exactly where
+   they were — but the content BOX now extends the bar's height further down,
+   under the dock. The matching padding then reserves that same height inside
+   the scroller, so the last piece of real content clears the bar rather than
+   sitting permanently beneath it.
+
+   Why this and not simply collapsing the bar when hidden: collapsing changes
+   the scroller's height, which changes whether the content overflows, which
+   changes whether the bar should show. On a screen that overflows by less
+   than the bar's own height — 09a overflowed by 104px, 13b by 61px, both
+   under a ~136px bar — that loop genuinely oscillates. Overlapping keeps the
+   scroller's height constant in both states, so "reaching the bottom" is a
+   fact about the screen and not about the bar.
+
+   --action-bar-height is measured and set by src/action-bar.js, because the
+   bar is 1 or 2 buttons tall depending on the screen.
+
+   SCOPED TO `.screen-content` DELIBERATELY. The trick depends on the flex
+   container having a definite height, so that the space the negative margin
+   frees is redistributed back to a `flex-grow` item. `.screen` has one.
+   `.bottom-sheet` does not — it is sized by its content up to `max-height:
+   92%` — so there is no free space to redistribute, and the negative margin
+   simply drags the bar up over the last row of the sheet (it hid 03b's third
+   purpose option). Sheets keep the bar in flow below their content, which
+   costs nothing there: a sheet card is only as tall as it needs to be, so
+   there is no wasted band to reclaim.
+
+   `.screen > .screen-content`, NOT `.screen-content`. The plain class loses:
+   `.screen-content` further down this file sets the `padding` SHORTHAND, at
+   equal specificity and later in the source, which silently reset this
+   longhand back to `var(--space-lg)`. The margin survived (a shorthand only
+   resets its own longhands), so the scroller's BOX grew under the bar while
+   nothing reserved that height INSIDE it — and the last element on every
+   overflowing full screen ended up 121px behind an opaque bar, or dissolved
+   under the fade while the bar was still hidden. G39 hit precisely this on
+   `.bottom-sheet__content` and fixed it with the child combinator; the same
+   defect was sitting one selector away on full screens the whole time. The
+   child combinator is exact — `.screen-content` is always a direct child of
+   `.screen` (src/action-bar.js looks it up as `:scope > .screen-content`) —
+   and specificity, not source order, is what makes it hold. See GAPS.md G41. */
+.screen > .screen-content {
+  margin-bottom: calc(-1 * var(--action-bar-height, 0px));
+  padding-bottom: calc(var(--space-lg) + var(--action-bar-height, 0px));
+}
+
+/* --- The scroll affordance ---
+   A short fade sitting directly above the dock, saying "there is more below".
+   Shown only while the content overflows AND the bar is still hidden; it goes
+   the moment the bar arrives, because by then the bar itself is the signal.
+
+   `bottom: 100%` puts it immediately above the dock, overlaying the last 56px
+   of the scroller. It fades to --color-bg, the colour the content sits on, so
+   text passing under it dissolves rather than being cut off. `pointer-events:
+   none` keeps it from intercepting a scroll or a tap on the row beneath it,
+   and it is decorative, so it carries no content of its own. */
+.action-bar-dock::before {
+  content: '';
+  position: absolute;
+  /* Spans the dock itself PLUS 56px above it, not just the strip above.
+     The content scrolls under the bar, and while the bar is hidden it is
+     transparent — so without covering the dock's own area the content would
+     fade out under the gradient and then reappear, perfectly legible,
+     underneath an invisible bar. The mask is solid --color-bg across the bar
+     region and fades out over the 56px above it, so the content dissolves
+     once and stays dissolved. */
+  top: -56px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-standard) var(--ease-out);
+  background: linear-gradient(
+    to top,
+    var(--color-bg) var(--action-bar-height, 0px),
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+/* A sheet's content scrolls under its bar too (screens.css), so the mask has
+   the same job as on a full screen: solid across the bar's own area, fading
+   out over the 56px above it. `calc(100% - 56px)` expresses that without
+   naming the bar's height again — the pseudo-element already spans the dock
+   plus that 56px. Only the colour differs: a sheet fades to its own card
+   surface, not to the page behind it. */
+.bottom-sheet .action-bar-dock::before {
+  background: linear-gradient(
+    to top,
+    var(--color-surface) calc(100% - 56px),
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+.action-bar-dock--more-below::before {
+  opacity: 1;
+}
+
+/* --- Action bar (bottom, fixed within the flex column like .bottom-nav) ---
+
+   HIDDEN IS `opacity: 0`, NOT `visibility: hidden`. The two are not
+   interchangeable: `visibility: hidden` removes an element from the
+   accessibility tree and makes it unfocusable, which would mean a keyboard or
+   screen-reader participant on a long screen could not reach the control that
+   moves them forward. Opacity leaves the bar rendered, focusable and
+   announced; `pointer-events: none` is what stops a tap landing on a button
+   nobody can see. Neither `display` nor `visibility` is ever touched while a
+   screen is active.
+
+   THE BAR IS OPAQUE, and on a full screen it overlaps the end of the content
+   — see the `.screen-content` note above. While hidden it is transparent, so
+   the content shows through where it sits; while revealed its own surface
+   colour covers whatever is behind it. Either way the scroller's height never
+   changes, so the reveal cannot shift the content being read.
+
+   The safe-area bottom inset (D14) sits BELOW all of this, as padding on
+   `.screen`, so the reserved band stays empty and the bar rises within the
+   app's own area rather than into the home-indicator space. */
 .action-bar {
   display: flex;
   flex-direction: column;
@@ -264,7 +524,60 @@
   padding: var(--space-lg);
   background: var(--color-surface);
   border-top: 1px solid var(--color-border-subtle);
-  flex: 0 0 auto;
+
+  opacity: 0;
+  pointer-events: none;
+  /* A short rise, per the HIG motion tokens — the same easeOut curve the
+     sheets use, at the standard duration. */
+  transform: translateY(var(--space-sm));
+  transition:
+    opacity var(--duration-standard) var(--ease-out),
+    transform var(--duration-standard) var(--ease-out);
+}
+
+.action-bar--revealed {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+/* --- An action bar with no tab bar under it carries the inset itself ---
+   The same rule as `.bottom-nav` above and as the sheet's action bar (G39):
+   whatever sits lowest reaches the bottom of the phone screen, with the inset
+   inside it. `:last-child` is the test for "no tab bar below me" —
+   `mountBottomNav` appends the tab bar after the dock whenever there is one.
+
+   The selector is deliberately more specific than the `padding` shorthand on
+   `.action-bar` above rather than merely later in the file. G39 lost a
+   morning to a longhand that was quietly reset by a same-specificity
+   shorthand further down; specificity makes source order irrelevant.
+
+   `--action-bar-height` is measured from the bar's `offsetHeight`
+   (src/action-bar.js), so D17's content-scrolls-under-the-bar overlap grows
+   by the inset automatically — the bar's own background covers the whole of
+   what the content scrolls beneath.
+
+   No full screen currently reaches this rule: every screen that has an action
+   bar also has the tab bar below it, and the screens without a tab bar (19b,
+   33) have no action bar either. It is here so the rule holds if D11's
+   exclusion list ever changes, and it is exercised directly in the
+   verification pass by removing the tab bar from a screen that has one. */
+.screen > .action-bar-dock:last-child .action-bar {
+  padding-bottom: calc(var(--space-lg) + var(--safe-bottom));
+}
+
+/* Reduced motion: cross-fade only. The rise is decorative; the fade is what
+   carries the state change, so it stays. Matches how D1 treats every other
+   transition in the app. */
+@media (prefers-reduced-motion: reduce) {
+  .action-bar {
+    transform: none;
+    transition: opacity var(--duration-quick) var(--ease-out);
+  }
+
+  .action-bar-dock::before {
+    transition: opacity var(--duration-quick) var(--ease-out);
+  }
 }
 
 .text-action {
@@ -452,16 +765,61 @@
   justify-content: center;
 }
 
-.checkbox-row[aria-checked="true"] .checkbox-row__box {
+/* --- The native control ---
+   Visually hidden, deliberately NOT `display: none` or `visibility: hidden`:
+   either would take it out of the accessibility tree, and this input is the
+   thing a screen reader reads. It is also what carries `indeterminate`, which
+   exists only as a DOM property — there is no attribute and no ARIA state on
+   a button that a browser will announce as reliably. Kept focusable, with its
+   focus ring drawn on the box beside it. */
+.checkbox-row__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* :focus-visible would otherwise land on a 1px invisible input. */
+.checkbox-row__input:focus-visible + .checkbox-row__box {
+  outline: 2px solid var(--color-accent-neutral);
+  outline-offset: 2px;
+}
+
+/* --- The three states ---
+   Filled box for both checked and mixed; empty box for neither. The glyphs
+   both live in the box and CSS picks one, so the box never has to be
+   re-rendered to change state — the browser flips it from the input's own
+   state, which is also what keeps the visual and the announced state from
+   drifting apart. */
+.checkbox-row__input:checked + .checkbox-row__box,
+.checkbox-row__input:indeterminate + .checkbox-row__box {
   background: var(--color-accent-neutral);
   border-color: var(--color-accent-neutral);
 }
 
-.checkbox-row__box img {
+.checkbox-row__box .icon {
+  display: none;
+  /* Reversed out of the filled box. */
+  color: var(--color-label-inverse);
+}
+
+.checkbox-row__input:checked + .checkbox-row__box .icon--checkmark {
+  display: block;
+}
+
+/* Mixed wins over checked if both were ever set at once, so the box can
+   never show a tick and a dash on top of each other. */
+.checkbox-row__input:indeterminate + .checkbox-row__box .icon--checkmark {
   display: none;
 }
 
-.checkbox-row[aria-checked="true"] .checkbox-row__box img {
+.checkbox-row__input:indeterminate + .checkbox-row__box .icon--minus {
   display: block;
 }
 
@@ -570,13 +928,35 @@
   color: var(--color-label-secondary);
 }
 
-/* --- Bottom navigation --- */
+/* --- Bottom navigation ---
+   Frame 01's bank tab bar, now persistent across the journey (DECISIONS.md
+   D11 — see ui.js's bottomNavHTML and router.js's mountBottomNav).
+
+   Safe area: the bar carries the bottom inset ITSELF, so its background
+   reaches the bottom of the phone screen and the inset becomes part of the
+   bar rather than a band of page background beneath it. `.screen` zeroes its
+   own `padding-bottom` whenever a bar is present (shell.css), so the two can
+   never double up.
+
+   `height` is the bar plus the inset and `padding-bottom` is the inset, which
+   under the global `box-sizing: border-box` leaves the tabs exactly 56px of
+   content box to sit in. The 48px touch target (D1) is measured on the tab,
+   inside that 56px — the inset padding is below the tabs and is not part of
+   any target. `env()` resolves to 0 wherever there is no inset, so on a
+   desktop browser at frameless widths this is the plain 56px it always was.
+
+   This restores what DECISIONS.md D11 originally described and D14's first
+   pass reversed. D14's reserved-band rule still holds at the top of the
+   screen, where nothing is drawn; at the bottom the band is now the bar's own
+   surface, which is what a native tab bar does and what stops the app reading
+   as floating off the bottom edge. */
 .bottom-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  height: 56px;
+  height: calc(56px + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
   background: var(--color-surface);
   border-top: 1px solid var(--color-border-subtle);
   flex: 0 0 auto;
@@ -598,6 +978,14 @@
   cursor: pointer;
 }
 
+/* The four non-Home tabs are the surrounding bank app, out of prototype
+   scope and inert on frame 01 already; ui.js renders them `disabled` so they
+   are not focus stops that do nothing. They keep their drawn appearance —
+   this only stops the pointer implying they are tappable. */
+.bottom-nav__tab:disabled {
+  cursor: default;
+}
+
 .bottom-nav__active-rule {
   height: 2px;
   width: 40px;
@@ -607,8 +995,7 @@
 }
 
 .bottom-nav__icon {
-  width: 20px;
-  height: 20px;
+  flex: 0 0 auto;
 }
 
 .bottom-nav__label {
@@ -635,6 +1022,30 @@
   min-height: 0; /* let this child shrink below its content size so it (not .screen) is what scrolls */
   overflow-y: auto;
   box-sizing: border-box;
+}
+
+/* --- Normal document flow inside the scroller ---
+   `.screen-content` is a flex column, and a flex item's default
+   `flex-shrink: 1` means that when the content is taller than the box, items
+   are compressed *below their content height* rather than the box scrolling.
+   An item whose automatic minimum size protects it (a plain text block)
+   survives that; one that sets its own `min-height` does not, because an
+   explicit min-height replaces the automatic minimum. `.checkbox-row` sets
+   `min-height: var(--touch-target-min)` for the 48px touch target, so on
+   frame 03 it was squashed from its natural 132px to exactly 48px — its
+   title and body text spilled out of the shrunken box, and the "Your
+   accounts" card, laid out immediately after the 48px box, drew straight
+   over them.
+
+   Pinning every child to its natural height is what puts the column back
+   into normal document flow: items stack at full height and
+   `.screen-content`'s own `overflow-y: auto` scrolls, which is the
+   behaviour the device frame is meant to show. Nothing in this app wants a
+   `.screen-content` child to flex — the one screen that positions content
+   mid-viewport (19b) does it with `justify-content`, below, not by letting
+   a child grow. */
+.screen-content > * {
+  flex: 0 0 auto;
 }
 
 /* Centred variant (frame 19b's processing state, the only screen so far
@@ -1684,14 +2095,14 @@ button.milestone-row {
   box-sizing: border-box;
 }
 
+/* Was a <p> holding a literal "✓" or "○" in a fixed 20px column, centred
+   with text-align. It is checkmark/circle from icons.js now: the size class
+   owns the box, and margin-top nudges it onto the first line's optical
+   centre the way a leading icon beside multi-line text should sit. */
 .checklist-row__glyph {
   flex: 0 0 auto;
-  width: 20px;
-  margin: 0;
-  font-size: var(--text-subheadline-size);
-  line-height: var(--text-subheadline-line);
+  margin-top: 2px;
   color: var(--color-label);
-  text-align: center;
 }
 
 .checklist-row__content {

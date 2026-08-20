@@ -34,6 +34,7 @@ import {
   optionComparisonCardHTML,
   warningBannerHTML,
   infoLinkHTML,
+  rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { depositTarget, loanAmount, ltv } from '../model/model.js';
@@ -130,13 +131,13 @@ export function render(container, ctx) {
     const typed = input.value.replace(/[^0-9.-]/g, '');
     const parsed = typed === '' ? NaN : Number(typed);
     const next = setState({ 'property-value': { value: typed === '' ? null : parsed, provenance: 'entered' } });
-    render(container, { ...ctx, state: next });
+    rerenderInPlace(container, render, { ...ctx, state: next });
   });
 
   container.querySelectorAll('[data-action="select-deposit-pct"]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const next = setState({ 'deposit-pct': { value: Number(btn.dataset.value), provenance: 'entered' } });
-      render(container, { ...ctx, state: next });
+      rerenderInPlace(container, render, { ...ctx, state: next });
     });
   });
 

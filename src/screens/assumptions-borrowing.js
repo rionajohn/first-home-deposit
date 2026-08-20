@@ -26,7 +26,7 @@
  * same way against this screen's own reference PNG and Figma design
  * context.
  */
-import { sheetHeaderHTML, figureRowHTML, riskWarningHTML } from '../components/ui.js';
+import { sheetHeaderHTML, figureRowHTML, riskWarningHTML, actionBarDockHTML } from '../components/ui.js';
 import { formatCurrency, formatFullDate } from '../format.js';
 import { RATES } from '../model/rates.js';
 import { MOCK_MIP_DATA } from '../model/accounts.js';
@@ -80,9 +80,9 @@ export function render(container, ctx) {
           <p class="legal-text">${fill(c.metadataTemplate, { date: formatFullDate(RATES.asAt), searchDate: formatFullDate(RATES.asAt) })}</p>
           <p class="legal-text">${reg.guidanceNotAdvice}</p>
         </div>
-        <div class="action-bar">
+        ${actionBarDockHTML(`
           <button type="button" class="button button--primary" data-action="dismiss">${c.primaryCta}</button>
-        </div>
+        `)}
       </div>
     </div>
   `;

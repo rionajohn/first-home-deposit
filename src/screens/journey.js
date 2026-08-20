@@ -6,13 +6,14 @@
  * beyond navigation flags. Only anchor carried: guidanceNotAdvice.
  */
 import { appBarHTML, bindAppBarBack, actionBarHTML, infoBannerHTML } from '../components/ui.js';
+import { photo, starCircle } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
 function goalRow({ title, body }) {
   return `
     <div class="goal-row">
-      <img class="goal-row__icon" src="assets/icons/goal-star.svg" alt="" width="40" height="40" />
+      ${starCircle({ size: 'hero', className: 'goal-row__icon' })}
       <div class="goal-row__text">
         <p class="goal-row__title">${title}</p>
         <p class="goal-row__body">${body}</p>
@@ -29,7 +30,7 @@ export function render(container, { content, setState }) {
     ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: content.shared.appBar })}
     <main class="screen-content" role="main">
       <div class="routes-illustration">
-        <img src="assets/icons/routes-illustration.svg" alt="" width="32" height="32" />
+        ${photo({ size: 'large' })}
         <p class="routes-illustration__caption">${c.illustrationCaption}</p>
       </div>
       <h2 class="screen-title">${c.headline}</h2>

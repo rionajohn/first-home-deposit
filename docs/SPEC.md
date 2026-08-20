@@ -203,7 +203,17 @@ would change what a participant sees or does; log purely cosmetic ones. Every sc
 normally, including 06, 12, 15 and 16 (the adviser-scope line is deliberately absent there — no
 addition is made, so nothing exempts them). Exempt, and recorded as intentional deviations rather
 than diffs to fix: frame 13 (diagram row removed), frame 32 (FSCS note removed), and frame 05b (DUAA
-flag row added). The new `/mip/adviser` screen has no reference PNG — see step 4.
+flag row added). Two further exemptions were added in the 20 August 2026 shell pass: the persistent
+bottom navigation bar, on every screen it appears on (`DECISIONS.md` D11, `GAPS.md` G29), and the
+closed-on-load state of the disclosures on 05, 05b, 06 and 19 (`DECISIONS.md` D12, `GAPS.md` G30).
+A third was added by the icon-set pass: icon rendering, on every screen, since every icon is redrawn
+from one canvas at one weight (`DECISIONS.md` D15, `GAPS.md` G34). A fourth covers frame 03's
+select-all row only — its count and checkbox state now open at "4 of 5 selected", indeterminate,
+where the PNG draws "4 of 4 selected", checked (`GAPS.md` G36) — a fifth covers frame 03's
+per-account checkboxes, which the PNG does not draw at all (`DECISIONS.md` D16, `GAPS.md` G37), and
+a sixth covers the action bar's visibility and the scroll affordance on the 22 screens whose content
+overflows, where the PNGs draw the bar present from the start (`DECISIONS.md` D17, `GAPS.md` G38). In every case the exemption
+covers that difference only, and everything else on those screens is diffed normally. The new `/mip/adviser` screen has no reference PNG — see step 4.
 
 **2. Regulatory anchor audit — mechanical, not by eye.** Run the Stage 10 script comparing every
 screen module's declared `anchors` list against `anchors.js`, and confirming the exact
@@ -215,7 +225,30 @@ screen module's declared `anchors` list against `anchors.js`, and confirming the
 - Not-yet outcome (21) branch.
 - Every one of the 11 no-frame-drawn fallback states, forced via frame 33 toggles / crafted input.
 - Breakpoint check at both sides of 768px, and explicitly at 1366×768 — confirm the framed view
-  scales to fit with no vertical overflow or clipping.
+  scales to fit with no vertical overflow or clipping, and that the page *behind* the frame does not
+  scroll at any viewport size (`DECISIONS.md` D14).
+- Colour scheme: open the prototype on a device set to dark mode at OS level and confirm it still
+  renders light (`DECISIONS.md` D13).
+- Collapsible sections: confirm every disclosure is closed on entering its screen, and closed again
+  on returning to that screen by the back control (`DECISIONS.md` D12).
+- Frame 03 account selection: confirm the select-all row opens at "4 of 5 selected" and announces as
+  partially checked; that tapping it reaches 5 of 5 and then 0 of 5; and that `saved-toward-deposit`
+  changes with it and again after a 03b move, carrying `entered` provenance once edited
+  (`GAPS.md` G36). Confirm each counting account carries its own checkbox and the three that cannot
+  be counted carry none; that tapping a checkbox toggles only that account while tapping elsewhere on
+  the row still opens 03b (`DECISIONS.md` D16).
+- In-place updates hold their place: scroll to the bottom of frames 03, 05, 06 and 19, toggle a
+  control, and confirm the screen does not jump to the top and focus stays on the control just
+  used (`DECISIONS.md` D16, `GAPS.md` G37).
+- Action bar: on an overflowing screen (19), confirm it is hidden on load with the scroll affordance
+  showing, appears on reaching the bottom, and hides again on scrolling back up. On a fitting screen
+  (17), confirm it is visible on load and stays. Open frame 05's disclosure and confirm the screen
+  switches from the fits case to the overflow case, and back on closing it. Then repeat the whole
+  check by keyboard only: tab to the bar on an overflowing screen, confirm it reveals, scrolls the
+  content to the end, and activates (`DECISIONS.md` D17, `GAPS.md` G38).
+- Bottom navigation: confirm the bar is present on every full-screen journey screen and absent from
+  the seven sheets, 19b and 33; that its Home tab reaches frame 01 from anywhere; and that from the
+  calculator's step flow it opens 10c rather than discarding draft inputs (`DECISIONS.md` D11).
 - PWA installability: add-to-home-screen on an actual iOS device and an actual Android device.
 - `prefers-reduced-motion` at the OS level, confirming cross-fade replaces all slide/rise motion.
 - `/settings` reachable only by typing the URL — confirmed absent from every visible nav element.

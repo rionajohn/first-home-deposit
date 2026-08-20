@@ -13,13 +13,41 @@
  * than silently changed.
  *
  * No status bar element anywhere below — DECISIONS.md D1 and the build
- * brief both say so explicitly.
+ * brief both say so explicitly. The SPACE a status bar occupies is a separate
+ * matter from the element, and is reserved: see --frame-safe-top /
+ * --frame-safe-bottom below and DECISIONS.md D14.
  */
 
 :root {
   --frame-width: 393px;
   --frame-height: 852px;
   --frame-bezel: 14px;
+
+  /* --- Reserved safe-area space inside the phone screen (DECISIONS.md D14) ---
+     The 393x852 Figma frame is a whole device screen, and part of that height
+     belongs to the system: 59px at the top for the status-bar area and 34px at
+     the bottom for the home indicator. No status bar element is drawn (D1) —
+     but the space it occupies is real, and without it every screen sat 93px
+     taller than the wireframe and read flush against the bezel.
+
+     These are floors, not fixed values. Both are used as
+     `max(env(safe-area-inset-*), <floor>)` at framed widths only, so a real
+     device's own inset wins wherever it is larger, and `env()` alone applies
+     below the breakpoint where the app is running on the actual hardware
+     rather than in a mock of it. On a desktop browser env() resolves to 0, so
+     the floor is what shows — which is the case these exist for. */
+  --frame-safe-top: 59px;
+  --frame-safe-bottom: 34px;
+
+  /* --- The resolved insets, as one value each ---
+     Both `.screen` and the sheet card have to place the bottom inset, and
+     before this they each spelled out the `max(env(...), floor)` expression
+     themselves — which is how they came to disagree about where it belonged.
+     Defining it once means "the bottom inset" is a single thing that can only
+     be placed in one place per screen. Overridden below the :root block for
+     framed widths; see the media query at the end of this file. */
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
 }
 
 * {
@@ -58,11 +86,29 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 2px;
 }
 
+/* --- The page itself never scrolls, in either view ---
+   Framed (>=768px) the phone is the thing that scrolls, not the page behind
+   it: a real phone's content is clipped by the device, and reaching it by
+   scrolling the browser window instead would be an artefact of the mock, not
+   the interaction being tested. `#app-frame` is scaled with a transform,
+   which does not shrink its layout box, so on a short viewport the unscaled
+   box would otherwise push the body past 100vh and hand the participant a
+   browser scrollbar down the side of the frame.
+
+   Frameless (<768px) `.screen` is already exactly 100vh with its own
+   `overflow: hidden`, so this changes nothing there — it just makes "the
+   page does not scroll" a stated rule rather than a side effect of the
+   height happening to match.
+
+   The scrolling that does happen is `.screen-content` and
+   `.bottom-sheet__content` (components.css / screens.css), both
+   `overflow-y: auto` — untouched here. */
 html,
 body {
   margin: 0;
   padding: 0;
-  min-height: 100%;
+  height: 100%;
+  overflow: hidden;
   font-family: var(--font-family);
   background: var(--color-bg);
   color: var(--color-label);
@@ -72,9 +118,45 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-#app {
-  min-height: 100vh;
+/* --- Hidden scrollbars, still scrollable ---
+   A real phone shows no persistent scrollbar track, and at framed widths a
+   desktop scrollbar appearing inside the bezel reads as a browser artefact
+   rather than part of the app. Applied to the whole subtree in both views
+   rather than named per scroll container, so a scroll container added to a
+   future screen inherits it instead of showing a stray track.
+
+   `overflow` is deliberately not touched here: the elements stay
+   `overflow-y: auto`, so wheel, touch/trackpad, momentum and — importantly —
+   focus-driven scrolling all still work exactly as before. Tabbing to a
+   control below the fold still scrolls it into view; only the visible track
+   is gone. `-ms-overflow-style` covers legacy Edge, `scrollbar-width` covers
+   Firefox, and the `::-webkit-scrollbar` rule covers Safari and Chrome. */
+html,
+body,
+#app-frame,
+.screen,
+.screen * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#app-frame::-webkit-scrollbar,
+.screen::-webkit-scrollbar,
+.screen *::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* `#app` deliberately has no height rule of its own. It *is* the `.screen`
+   element (index.html: `<div id="app" class="screen">`), and `.screen`
+   already sets an exact height in both views — 100vh frameless,
+   --frame-height framed. An earlier `#app { min-height: 100vh }` here
+   out-specified (id beats class) the framed `height: var(--frame-height)`
+   on any viewport taller than 852px, stretching the screen past the bezel it
+   is supposed to be clipped by. Removed as part of the overflow pass. */
 
 /* --- Below 768px: frameless, fills the viewport ---
    .screen is a fixed-height flex column so an app bar and bottom nav (both
@@ -88,12 +170,71 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--color-bg);
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
+  /* --- Safe-area space, reserved as padding on the screen itself ---
+     Padding, not a spacer element, for three reasons. It applies to every
+     screen at once, including sheets and overlays, with nothing to remember
+     per screen. Under `box-sizing: border-box` it comes out of the frame's
+     own 852px, so the content area shrinks to what the wireframe actually
+     gives it rather than the frame growing. And because `.screen` is the flex
+     container, every child — app bar, form-step header, scrolling content,
+     action bar, tab bar — begins below the top inset and ends above the
+     bottom one without any of them knowing the inset exists.
+
+     Scrolling content therefore scrolls UNDER the top inset rather than into
+     it: `.screen-content` is a flex child, so its box starts below the
+     padding, and its own `overflow-y: auto` clips at that edge. Content
+     disappears beneath the reserved band; it is never visible inside it. The
+     band stays empty screen background.
+
+     The BOTTOM inset is different, and only lives here as a fallback — see
+     the rule immediately below. Where a screen has chrome at its bottom edge,
+     that chrome carries the inset itself so its background reaches the bottom
+     of the phone screen; `.screen` keeps it only on the screens that have no
+     bottom chrome at all to carry it.
+
+     Below the 768px breakpoint the app is on real hardware, so `env()` alone
+     is used — the device's own inset, never a hardcoded stand-in. The framed
+     view adds the floor; see the media query at the end of this file. */
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   position: relative;
   overflow: hidden;
+}
+
+/* --- The bottom inset belongs INSIDE the lowest chrome, not beneath it ---
+   `.screen`'s own `padding-bottom` above put the inset UNDER the tab bar, so
+   the bar stopped 34px short of the bottom of the phone screen and left a
+   band of page background below it. That band read as the app floating off
+   the bottom edge — the same complaint G39 fixed on sheets, in the same
+   place, for the same reason: the inset was being placed outside the thing it
+   belongs to rather than inside it.
+
+   So it is zeroed here wherever something at the bottom edge can carry it,
+   and that element takes it as its own padding instead (components.css). Its
+   background then reaches the bottom of the phone screen, exactly as a native
+   tab bar's does, and the inset becomes part of the bar rather than a gap
+   under it. The inset is not removed — it moves.
+
+   The two cases, matching the two kinds of bottom chrome:
+     - a tab bar (19 full screens)
+     - an action bar with no tab bar under it — `:last-child` is what
+       distinguishes it, since `mountBottomNav` always appends the tab bar
+       after the dock when there is one
+
+   Screens with neither (19b, 33) keep the inset here, on `.screen`. There is
+   no chrome to carry it and content still has to clear the home indicator, so
+   the fallback is the correct behaviour rather than an oversight.
+
+   Sheets are untouched by all of this: their card is `position: absolute`
+   inside `.sheet-overlay`, which resolves `inset: 0` against `.screen`'s
+   PADDING box — identical to its border box when the border is 0 — so
+   `.screen`'s padding never affected them either way. G39 put their inset
+   inside the sheet's own action bar and that is unchanged. */
+.screen:has(> .bottom-nav),
+.screen:has(> .action-bar-dock:last-child) {
+  padding-bottom: 0;
 }
 
 /* Below 768px, the bezel wrapper is a no-op so .screen alone fills the
@@ -129,6 +270,11 @@ body {
     height: calc(var(--frame-height) + var(--frame-bezel) * 2);
     padding: var(--frame-bezel);
     border-radius: var(--radius-device);
+    /* Belt and braces on the clipping rule: `.screen` already clips its own
+       overflow, so nothing should ever reach past the bezel — but if a
+       screen ever does, the device is what cuts it off, exactly as a real
+       phone would, rather than it spilling onto the page. */
+    overflow: hidden;
     background: #1c1c1e; /* neutral surround, deliberately theme-independent */
     box-shadow:
       0 24px 60px rgba(0, 0, 0, 0.28),
@@ -139,12 +285,30 @@ body {
     width: var(--frame-width);
     height: var(--frame-height);
     border-radius: calc(var(--radius-device) - var(--frame-bezel));
-    /* No safe-area inset needed inside the mocked frame — there's no real
-       notch/Dynamic Island to clear, and none is drawn (D1). */
-    padding-top: 0;
-    padding-bottom: 0;
-    padding-left: 0;
-    padding-right: 0;
+    /* Inside the mocked frame `env()` resolves to 0 on a desktop browser, so
+       the floors are what reserve the space the wireframe's status-bar area
+       and home indicator occupy. `max()` rather than a flat value so a real
+       device wide enough to land here — an iPad, or a phone in landscape —
+       still wins with its own larger inset instead of being cut back to the
+       mock's number.
+
+       Left and right stay at env() alone: the 393px frame has no side inset
+       drawn, and forcing one would narrow every screen against the
+       wireframe. */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* The framed view is a mock of a device, so `env()` resolves to 0 in a
+   desktop browser and the floors are what reserve the space. `max()` so a
+   real device wide enough to land here still wins with its own larger inset.
+   Set on `:root` rather than on `.screen`, because the sheet card reads the
+   same values and must resolve them identically. */
+@media (min-width: 768px) {
+  :root {
+    --safe-top: max(env(safe-area-inset-top), var(--frame-safe-top));
+    --safe-bottom: max(env(safe-area-inset-bottom), var(--frame-safe-bottom));
   }
 }
 
@@ -169,7 +333,15 @@ body {
 
 /* Absolute, not fixed: every sheet in this app renders inside .screen
    (position:relative above), so the scrim stays within the device frame at
-   >=768px instead of covering the whole browser viewport. */
+   >=768px instead of covering the whole browser viewport.
+
+   The scrim deliberately DOES cover the reserved safe-area bands. An
+   absolutely positioned box resolves `inset: 0` against its containing
+   block's padding box, so this already spans the insets, and that is correct:
+   a safe-area inset keeps content clear of the system's furniture, it does
+   not stop a background painting there — dimming the whole screen is what a
+   real sheet does. The sheet CARD is the thing held inside the insets, by
+   padding on .sheet-overlay (screens.css). */
 .sheet-scrim {
   position: absolute;
   inset: 0;

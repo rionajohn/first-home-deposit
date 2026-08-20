@@ -13,7 +13,9 @@
  *     own account activity) and isn't affected.
  *
  * The three "What you'll..." sections are Content / Disclosure accordions,
- * open by default (state.mipAskedOpen / mipBenefitsOpen / mipAwareOpen),
+ * closed on load (state.mipAskedOpen / mipBenefitsOpen / mipAwareOpen, see
+ * COLLAPSIBLE_DEFAULTS in state.js and DECISIONS.md D12 — the reference PNG
+ * draws them open, this build deliberately does not),
  * the same toggle pattern position.js's breakdown disclosure uses.
  */
 import {
@@ -24,6 +26,7 @@ import {
   figureRowHTML,
   riskWarningHTML,
   disclosureHTML,
+  rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency } from '../format.js';
 import { MOCK_MIP_DATA } from '../model/accounts.js';
@@ -39,7 +42,7 @@ function withDividers(rows) {
 }
 
 function askedRowsHTML(rows) {
-  return withDividers(rows.map((text) => checklistRowHTML({ glyph: '○', label: text })));
+  return withDividers(rows.map((text) => checklistRowHTML({ state: 'pending', label: text })));
 }
 
 function plainRowsHTML(rows) {
@@ -60,20 +63,20 @@ export function render(container, ctx) {
 
   const salaryRow = isGeneral
     ? checklistRowHTML({ glyph: '!', label: c.salaryLabel, value: c.incompleteValue, caption: c.incompleteCaption })
-    : checklistRowHTML({ glyph: '✓', label: c.salaryLabel, value: formatCurrency(MOCK_MIP_DATA.annualSalaryBeforeTax), caption: c.salaryCaption });
+    : checklistRowHTML({ state: 'checked', label: c.salaryLabel, value: formatCurrency(MOCK_MIP_DATA.annualSalaryBeforeTax), caption: c.salaryCaption });
 
   const incomeValue = state['money-in'].value;
   const incomeRow = incomeValue === null
     ? checklistRowHTML({ glyph: '!', label: c.incomeLabel, value: c.incompleteValue, caption: c.incompleteCaption })
-    : checklistRowHTML({ glyph: '✓', label: c.incomeLabel, value: formatCurrency(incomeValue) });
+    : checklistRowHTML({ state: 'checked', label: c.incomeLabel, value: formatCurrency(incomeValue) });
 
   const outgoingsValue = state['essential-spending'].value;
   const outgoingsRow = outgoingsValue === null
     ? checklistRowHTML({ glyph: '!', label: c.outgoingsLabel, value: c.incompleteValue, caption: c.incompleteCaption })
-    : checklistRowHTML({ glyph: '✓', label: c.outgoingsLabel, value: formatCurrency(outgoingsValue), caption: c.outgoingsCaption });
+    : checklistRowHTML({ state: 'checked', label: c.outgoingsLabel, value: formatCurrency(outgoingsValue), caption: c.outgoingsCaption });
 
   const creditRow = checklistRowHTML({
-    glyph: '✓',
+    state: 'checked',
     label: c.creditLabel,
     value: c.creditCaptionTemplate.replace('{amount}', formatCurrency(MOCK_MIP_DATA.creditCommitmentsMonthly)),
     caption: c.creditNote,
@@ -82,7 +85,7 @@ export function render(container, ctx) {
   const depositValue = state['saved-toward-deposit'].value;
   const depositRow = depositValue === null
     ? checklistRowHTML({ glyph: '!', label: c.depositLabel, value: c.incompleteValue, caption: c.incompleteCaption })
-    : checklistRowHTML({ glyph: '✓', label: c.depositLabel, value: formatCurrency(depositValue), caption: c.depositCaption });
+    : checklistRowHTML({ state: 'checked', label: c.depositLabel, value: formatCurrency(depositValue), caption: c.depositCaption });
 
   const expectRowsHtml = c.expectRows.map((row) => figureRowHTML({ label: row.label, trailing: row.value })).join('');
 
@@ -125,7 +128,7 @@ export function render(container, ctx) {
     btn.addEventListener('click', () => {
       const key = disclosureKeys[btn.dataset.disclosureId];
       const next = setState({ [key]: !state[key] });
-      render(container, { ...ctx, state: next });
+      rerenderInPlace(container, render, { ...ctx, state: next });
     });
   });
 

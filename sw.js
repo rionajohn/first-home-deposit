@@ -29,7 +29,7 @@
  * src/cache-version.js's CACHE_VERSION_FALLBACK in step with the version
  * below; see that file's own comment for why the two are separate.
  */
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v12';
 const CACHE_NAME = `yfh-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
@@ -40,12 +40,14 @@ const SHELL_ASSETS = [
   './src/css/shell.css',
   './src/css/components.css',
   './src/css/screens.css',
+  './src/action-bar.js',
   './src/app.js',
   './src/cache-version.js',
   './src/components/ui.js',
   './src/config.js',
   './src/content.js',
   './src/format.js',
+  './src/icons.js',
   './src/model/accounts.js',
   './src/model/model.js',
   './src/model/rates.js',
@@ -83,31 +85,7 @@ const SHELL_ASSETS = [
   './assets/icons/app/icon-192.png',
   './assets/icons/app/icon-512-maskable.png',
   './assets/icons/app/icon-512.png',
-  './assets/icons/arrow-up.svg',
-  './assets/icons/back.svg',
-  './assets/icons/chevron-right.svg',
-  './assets/icons/chevron-up.svg',
-  './assets/icons/close.svg',
-  './assets/icons/diagram.svg',
   './assets/icons/favicon.ico',
-  './assets/icons/flag.svg',
-  './assets/icons/goal-star.svg',
-  './assets/icons/info.svg',
-  './assets/icons/milestone-current.svg',
-  './assets/icons/milestone-done.svg',
-  './assets/icons/milestone-locked.svg',
-  './assets/icons/nav/goals.svg',
-  './assets/icons/nav/home.svg',
-  './assets/icons/nav/insights.svg',
-  './assets/icons/nav/payments.svg',
-  './assets/icons/nav/profile.svg',
-  './assets/icons/play-circle.svg',
-  './assets/icons/routes-illustration.svg',
-  './assets/icons/slider-handle.svg',
-  './assets/icons/status-check.svg',
-  './assets/icons/status-up.svg',
-  './assets/icons/tick.svg',
-  './assets/icons/warning.svg',
 ];
 
 self.addEventListener('install', (event) => {

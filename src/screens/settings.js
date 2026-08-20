@@ -30,9 +30,10 @@
  * applies either — this screen sets test scenario state, it does not read
  * or derive a deposit-journey figure.
  */
-import { appBarHTML, bindAppBarBack, pillSegmentsHTML } from '../components/ui.js';
+import { appBarHTML, bindAppBarBack, pillSegmentsHTML, rerenderInPlace } from '../components/ui.js';
 import { CACHE_VERSION_FALLBACK } from '../cache-version.js';
 import { applyScenarioClasses } from '../router.js';
+import { chevronRight } from '../icons.js';
 
 export const anchors = [];
 
@@ -100,7 +101,7 @@ export function render(container, ctx) {
         <p class="settings-card__header">${c.resetHeader}</p>
         <button type="button" class="list-row list-row--plain" data-action="reset-progress">
           <span class="list-row__label">${c.resetRowLabel}</span>
-          <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="16" height="16" />
+          ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
         </button>
       </div>
 
@@ -116,7 +117,7 @@ export function render(container, ctx) {
     container.querySelectorAll(`[data-action="${action}"]`).forEach((btn) => {
       btn.addEventListener('click', () => {
         const next = setState({ [stateKey]: btn.dataset.value });
-        render(container, { ...ctx, state: next });
+        rerenderInPlace(container, render, { ...ctx, state: next });
       });
     });
   }

@@ -62,6 +62,21 @@ const content = {
     // inline-duplicated four times.
     mipAgreementNotOffer:
       'An agreement in principle is not a mortgage offer. It is usually valid for 90 days and is subject to further checks.',
+
+    // Bank tab bar. Drawn on frame 01 only in the reference set; DECISIONS.md
+    // D11 keeps it on every full-screen journey screen too, so the labels
+    // moved here from '/home' rather than being duplicated per screen. The
+    // ariaLabel/homeTabLabel pair is what a screen reader announces for the
+    // one tab that actually navigates.
+    bottomNav: {
+      ariaLabel: 'Primary',
+      homeTabHint: 'Back to Home',
+      home: 'Home',
+      payments: 'Payments',
+      goals: 'Goals',
+      insights: 'Insights',
+      profile: 'Profile',
+    },
   },
 
   '/home': {
@@ -89,13 +104,6 @@ const content = {
     entryCardBody:
       "See what buying your first home could actually look like, using what's already in your accounts.",
     entryCardCta: "See what's involved",
-    bottomNav: {
-      home: 'Home',
-      payments: 'Payments',
-      goals: 'Goals',
-      insights: 'Insights',
-      profile: 'Profile',
-    },
   },
 
   '/journey': {
@@ -141,6 +149,10 @@ const content = {
     accountsCardHeader: 'Your accounts',
     accountsCardIntro: "We've had a guess at what each of these is for. Tap any account to change it - only you know.",
     selectAllLabel: 'Select all accounts',
+    // Each account's own checkbox is a bare box beside the row, so the input
+    // carries this as its aria-label — without it a screen reader announces
+    // five checkboxes all called nothing. {account} is the account name.
+    accountSelectLabelTemplate: 'Count {account} toward your deposit',
     selectedCountOf: 'of',
     selectedCountSuffix: 'selected',
     groups: {

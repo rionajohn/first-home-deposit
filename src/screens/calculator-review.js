@@ -20,6 +20,7 @@ import {
 import { formatCurrency, formatPercent } from '../format.js';
 import { monthsToTarget, onTrackFor, checkpointAmount } from '../model/model.js';
 import { RATES } from '../model/rates.js';
+import { chevronRight } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -88,7 +89,7 @@ export function render(container, ctx) {
         })}
         <button type="button" class="list-row" data-action="open-provenance-key">
           <span class="list-row__label">${c.provenanceKeyLabel}</span>
-          <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+          ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
         </button>
       </div>
 

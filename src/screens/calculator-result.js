@@ -38,6 +38,7 @@ import {
 import { formatCurrency, formatPercent, formatMonthsDuration } from '../format.js';
 import { balanceAtMonth, monthsToReachAmount, checkpointAmount, monthsToTarget } from '../model/model.js';
 import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS } from '../model/rates.js';
+import { chevronRight } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
 
@@ -122,7 +123,7 @@ export function render(container, ctx) {
       <p class="legal-text">${reg.estimateDisclosure}</p>
       <button type="button" class="list-row" data-action="open-provenance-key">
         <span class="list-row__label">${c.provenanceKeyLabel}</span>
-        <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+        ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
       </button>
 
       ${unreachable ? '' : `

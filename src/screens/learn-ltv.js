@@ -39,6 +39,7 @@ import {
   totalMortgageInterest,
 } from '../model/model.js';
 import { CHART_DEPOSIT_PCTS, MORTGAGE_TERM_YEARS } from '../model/rates.js';
+import { chartBarCircle, chevronRight, playCircle } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice', 'mcob3aRepossessionWarning'];
 
@@ -154,21 +155,21 @@ export function render(container, ctx) {
         <p class="filled-in-details-card__title">${c.explainerHeading}</p>
         <hr class="divider" />
         <button type="button" class="explainer-row" data-action="open-video">
-          <img class="explainer-row__icon" src="assets/icons/play-circle.svg" alt="" width="32" height="32" />
+          ${playCircle({ size: 'large', className: 'explainer-row__icon' })}
           <div class="explainer-row__content">
             <p class="explainer-row__title">${c.explainerVideoTitle}</p>
             <p class="explainer-row__duration">${c.explainerVideoDuration}${state.ltvVideoSeen ? ` · ${c.explainerWatchedLabel}` : ''}</p>
           </div>
-          <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+          ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
         </button>
         <hr class="divider" />
         <button type="button" class="explainer-row" data-action="open-diagram">
-          <img class="explainer-row__icon" src="assets/icons/diagram.svg" alt="" width="32" height="32" />
+          ${chartBarCircle({ size: 'large', className: 'explainer-row__icon' })}
           <div class="explainer-row__content">
             <p class="explainer-row__title">${c.explainerDiagramTitle}</p>
             <p class="explainer-row__duration">${fill(c.explainerDiagramDurationTemplate, { property: formatCurrency(propertyValue) })}</p>
           </div>
-          <img class="list-row__chevron" src="assets/icons/chevron-right.svg" alt="" width="20" height="20" />
+          ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
         </button>
       </div>
 

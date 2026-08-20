@@ -11,6 +11,7 @@
  * SPEC.md's regulatory anchor map confirms this screen carries none of the
  * four content.shared.regulatory lines.
  */
+import { actionBarDockHTML } from '../components/ui.js';
 export const anchors = [];
 
 export function render(container, ctx) {
@@ -28,10 +29,10 @@ export function render(container, ctx) {
           <h2 class="screen-title" id="sheet-heading">${c.heading}</h2>
           <p class="entry-card__body">${c.body}</p>
         </div>
-        <div class="action-bar">
+        ${actionBarDockHTML(`
           <button type="button" class="button button--primary" data-action="save-and-leave">${c.primaryCta}</button>
           <button type="button" class="button button--secondary" data-action="dismiss">${c.secondaryCta}</button>
-        </div>
+        `)}
       </div>
     </div>
   `;

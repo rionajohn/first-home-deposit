@@ -8,7 +8,8 @@
  * before opening this screen.
  */
 import { formatAccountBalance } from '../format.js';
-import { MOCK_ACCOUNTS } from '../model/accounts.js';
+import { MOCK_ACCOUNTS, accountFigures } from '../model/accounts.js';
+import { actionBarDockHTML } from '../components/ui.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -57,10 +58,10 @@ export function render(container, ctx) {
           </div>
           <p class="legal-text">${reg.guidanceNotAdvice}</p>
         </div>
-        <div class="action-bar">
+        ${actionBarDockHTML(`
           <button type="button" class="button button--primary" data-action="save">${c.save}</button>
           <button type="button" class="text-action" data-action="dismiss">${c.cancel}</button>
-        </div>
+        `)}
       </div>
     </div>
   `;
@@ -83,8 +84,18 @@ export function render(container, ctx) {
   });
 
   container.querySelector('[data-action="save"]').addEventListener('click', () => {
-    setState({
+    // Moving an account changes which totals its balance lands in, so the
+    // three account-derived figures are recalculated here exactly as they are
+    // when the "Select all accounts" row changes — one helper, one rule. The
+    // move is the participant's own input, so accountSelectionEdited flips
+    // and the figures carry 'entered' from here on (DECISIONS.md D5).
+    const moved = {
       accountAssignments: { ...state.accountAssignments, [account.id]: pendingGroup },
+      accountSelectionEdited: true,
+    };
+    setState({
+      ...moved,
+      ...accountFigures({ ...state, ...moved }),
       selectedAccountId: null,
     });
     window.location.hash = returnHash;

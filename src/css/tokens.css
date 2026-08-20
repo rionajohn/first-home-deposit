@@ -28,6 +28,24 @@
  */
 
 :root {
+  /* --- Colour scheme: pinned to light, deterministically ---
+     This prototype is a research instrument. Participants join a moderated
+     Teams session from their own devices, so whatever each of them happens
+     to have set at OS level would otherwise decide which palette they see.
+     Two participants seeing different colour schemes is a confound, not a
+     preference, so nothing in this stylesheet reads
+     prefers-color-scheme any more — the dark palette at the bottom of this
+     file is behind an explicit `.theme-dark` class instead, and no OS
+     setting can apply it.
+
+     `color-scheme: light` (not `light dark`) is the other half of the fix:
+     it pins the UA-rendered parts the tokens above can't reach — form
+     control chrome, the canvas behind the page, text selection, and
+     scrollbar colours — to light on a device set to dark mode. Without it
+     an OS-dark device would paint dark form controls inside a light app.
+     --- */
+  color-scheme: light;
+
   /* --- Type scale (DECISIONS.md D1 font stack; Dynamic Type "Large" sizes) ---
      Every -size and -line value below is `calc(<base px> * var(--text-scale))`
      rather than a bare px, so frame 33's "Text size: Large" control (build-spec.md
@@ -102,6 +120,51 @@
 
   /* --- Touch target (DECISIONS.md D1) --- */
   --touch-target-min: 48px;
+
+  /* --- Icon scale (src/icons.js; the .icon rules live in components.css) ---
+     Two ladders, both derived from the type scale above.
+
+     SIZES are the icon's rendered box, at roughly 1.2x the font size the
+     icon sits beside — an SF Symbols symbol at a given point size draws a
+     little larger than the glyphs around it, because its cap height has to
+     match theirs while its bounding box has to clear its descender-side
+     detail. Pairings:
+
+       micro       12px  ->  beside 11px caption2 / inside a stepper control
+       footnote    16px  ->  beside 13px footnote
+       subheadline 18px  ->  beside 15px subheadline
+       body        20px  ->  beside 17px body and headline
+       title3      24px  ->  beside 20px title3, and app-bar leading controls
+       large       32px  ->  standalone glyph in a card or media placeholder
+       hero        40px  ->  standalone glyph as a screen's own illustration
+
+     These are PLAIN LENGTHS, not calc(... * var(--text-scale)), and that is
+     deliberate — see the long note under .text-large below for why a custom
+     property that references another custom property freezes at :root.
+     components.css multiplies by --text-scale in the real `width`/`height`
+     properties instead, where the var() resolves fresh at the point of use.
+     Net effect: icons scale with frame 33's "Text size: Large" control,
+     which the fixed-pixel .svg assets they replaced never did.
+
+     WEIGHTS are stroke widths in canvas units on icons.js's shared 24-unit
+     canvas, one per font weight this prototype's type scale actually uses.
+     Apple ships nine weights; the five with no matching text style here are
+     not drawn. Values are calibrated so an icon's stroke reads at the same
+     optical weight as SF Pro's stems at the paired size — ~1.5px rendered
+     at regular/body. components.css adds a per-size optical correction on
+     top. */
+  --icon-size-micro: 12px;
+  --icon-size-footnote: 16px;
+  --icon-size-subheadline: 18px;
+  --icon-size-body: 20px;
+  --icon-size-title3: 24px;
+  --icon-size-large: 32px;
+  --icon-size-hero: 40px;
+
+  --icon-weight-regular: 1.85;  /* pairs with font-weight 400 */
+  --icon-weight-medium: 2.1;    /* pairs with font-weight 500 */
+  --icon-weight-semibold: 2.4;  /* pairs with font-weight 600 */
+  --icon-weight-bold: 2.7;      /* pairs with font-weight 700 */
 
   /* --- Motion (named CAMediaTimingFunction curves) --- */
   --duration-quick: 200ms;
@@ -209,30 +272,47 @@
   --text-caption2-line: calc(13px * var(--text-scale));
 }
 
-/* --- Color: dark mode. Figma defines light mode only for this project's
-   roles; these are reasoned equivalents following Apple's standard dark
-   semantic-color pattern (stable since iOS 13), not measured from a design.
+/* --- Color: dark mode — explicit opt-in only, never the OS's decision.
+   Figma defines light mode only for this project's roles; these are
+   reasoned equivalents following Apple's standard dark semantic-color
+   pattern (stable since iOS 13), not measured from a design.
    label-tertiary, border-strong, action-secondary-border and the new
    border-control below got the same accessibility-pass treatment as their
    light-mode counterparts above (measured, not eyeballed) — --color-warning
-   already passed AA here (6.16:1/4.99:1) so it's untouched. --- */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #000000;
-    --color-surface: #1c1c1e;
-    --color-surface-raised: #2c2c2e; /* secondarySystemBackground-equivalent step up from surface/card in dark mode */
-    --color-label: #ffffff;
-    --color-label-secondary: rgba(235, 235, 245, 0.6);
-    --color-label-tertiary: rgba(235, 235, 245, 0.54); /* accessibility pass: alpha raised from 0.36 (2.81:1, failed 4.5:1) to >=4.57:1 */
-    --color-label-inverse: #000000;
-    --color-border-subtle: #38383a; /* decorative only in this theme too — see the light-mode comment */
-    --color-border-control: #767677; /* accessibility pass, new token — see light-mode comment; #38383a measured 1.45-1.79:1, this passes at >=3.06:1 */
-    --color-border-strong: #67676a; /* accessibility pass: lightened from #545458 (2.79:1, failed 3:1) to >=3.01:1 */
-    --color-action-secondary-bg: #1c1c1e;
-    --color-action-secondary-border: #67676a; /* accessibility pass: same fix as border-strong */
-    --color-accent: #0a84ff;
-    --color-accent-neutral: #98989f;
-    --color-warning: #ff453a;
-    --color-canvas: #1c1c1e;
-  }
+   already passed AA here (6.16:1/4.99:1) so it's untouched.
+
+   This block used to be `@media (prefers-color-scheme: dark)`. It is now a
+   `.theme-dark` class applied to `.screen` by router.js's
+   applyScenarioClasses, driven solely by `state.theme` — i.e. only frame
+   33's Theme control can ever reach it, and `resetState()` restores the
+   default in the same step it clears a participant's progress, so a theme
+   change cannot survive a reset into the next session. Frame 33's Theme
+   control currently offers Greyscale and Brand (build-spec.md section 7);
+   no Dark option is drawn anywhere in the reference set, so this palette is
+   defined but not currently selectable — deliberately left defined rather
+   than deleted, so the accessibility-pass measurements above aren't lost,
+   and left unselectable rather than wired to a new option, because adding
+   one would be inventing a frame 33 control the spec never drew.
+
+   `.screen` also re-declares `color-scheme: dark` so the UA-rendered chrome
+   follows the palette when this class is on — the mirror of the
+   `color-scheme: light` pin at the top of this file. --- */
+.theme-dark {
+  color-scheme: dark;
+  --color-bg: #000000;
+  --color-surface: #1c1c1e;
+  --color-surface-raised: #2c2c2e; /* secondarySystemBackground-equivalent step up from surface/card in dark mode */
+  --color-label: #ffffff;
+  --color-label-secondary: rgba(235, 235, 245, 0.6);
+  --color-label-tertiary: rgba(235, 235, 245, 0.54); /* accessibility pass: alpha raised from 0.36 (2.81:1, failed 4.5:1) to >=4.57:1 */
+  --color-label-inverse: #000000;
+  --color-border-subtle: #38383a; /* decorative only in this theme too — see the light-mode comment */
+  --color-border-control: #767677; /* accessibility pass, new token — see light-mode comment; #38383a measured 1.45-1.79:1, this passes at >=3.06:1 */
+  --color-border-strong: #67676a; /* accessibility pass: lightened from #545458 (2.79:1, failed 3:1) to >=3.01:1 */
+  --color-action-secondary-bg: #1c1c1e;
+  --color-action-secondary-border: #67676a; /* accessibility pass: same fix as border-strong */
+  --color-accent: #0a84ff;
+  --color-accent-neutral: #98989f;
+  --color-warning: #ff453a;
+  --color-canvas: #1c1c1e;
 }

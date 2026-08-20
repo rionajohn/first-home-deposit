@@ -11,8 +11,10 @@
  * built yet" placeholder rather than a broken screen.
  */
 
-import { getState, setState, resetState } from './state.js';
+import { getState, setState, resetState, resetCollapsibles } from './state.js';
 import content from './content.js';
+import { bottomNavHTML } from './components/ui.js';
+import { mountActionBars } from './action-bar.js';
 
 export const ROUTES = [
   '/home',
@@ -87,6 +89,88 @@ const DIALOG_ROUTES = new Set([
   '/assumptions/borrowing',
   '/assumptions/sources',
 ]);
+
+/**
+ * Routes that do NOT carry the persistent bank tab bar (DECISIONS.md D11).
+ * Everything else in the section 3 inventory gets it mounted automatically
+ * by `mountBottomNav` below, so a new full-screen journey screen inherits it
+ * without touching this file.
+ *
+ * The seven sheets are `DIALOG_ROUTES` verbatim, spread in rather than
+ * relisted so the two sets cannot drift apart. A tab bar under a sheet would
+ * sit inside the sheet's own card, below the scrim, and offer a second
+ * dismissal that skips the close behaviour each sheet defines for itself
+ * (13b's video-seen flag, 10c's journeyPaused). Apple's HIG says the same
+ * thing structurally: a tab bar belongs to the screen behind a sheet, not to
+ * the sheet.
+ *
+ * The two others:
+ *   - `/mip/running` (19b) — a determinate processing state that resolves to
+ *     20 or 21 on its own. Offering an exit mid-check would leave
+ *     `checkRunAt` set with no result, and "did the participant wait" is
+ *     part of what 19b is for.
+ *   - `/settings` (33) — facilitator-only, deliberately outside the
+ *     participant journey and reachable only by typing the URL (GAPS.md
+ *     G23). It has its own close control back to /home already.
+ */
+const BOTTOM_NAV_EXCLUDED_ROUTES = new Set([
+  ...DIALOG_ROUTES,
+  '/mip/running',
+  '/settings',
+]);
+
+/**
+ * The calculator's step flow (frames 09, 09a, 09b, 10, 10b, 11). These keep
+ * the tab bar — they are full-screen journey screens, and "from anywhere in
+ * the journey" includes mid-calculator — but its Home tab routes through
+ * frame 10c ("Leave this for now?") rather than jumping straight to frame
+ * 01, because build-spec.md section 1 already defines what leaving the
+ * calculator means: the form-header close on 09/10/10b opens 10c, and only
+ * 10c's own "Leave" sets `journeyPaused = true` and retains the draft
+ * inputs. A tab bar that bypassed that would silently drop a participant's
+ * part-entered figures — a data-loss bug, not a shortcut. Frame 11 has no
+ * close control drawn, but it is the same step flow holding the same drafts,
+ * so it is treated the same way.
+ */
+const CALCULATOR_STEP_ROUTES = new Set([
+  '/calculator/property',
+  '/calculator/saving',
+  '/calculator/review',
+]);
+
+/**
+ * Mounts the persistent tab bar on any route that should carry it.
+ *
+ * Called after the screen has rendered, and again by the observer below
+ * whenever a screen rewrites `#app`'s children — every screen module builds
+ * itself with `container.innerHTML = ...`, and several of them re-render
+ * themselves in place from a toggle handler without going through the
+ * router at all (position.js's breakdown, consent.js's account rows,
+ * settings.js's five controls). Re-appending on mutation is what makes the
+ * bar genuinely persistent across those in-place re-renders without adding
+ * a nav call to ~20 screen modules and having to remember it in the 21st.
+ *
+ * A no-op when the screen already drew its own bar (frame 01) or when the
+ * bar is already mounted, so it neither duplicates nor churns the DOM.
+ */
+function mountBottomNav(container, path) {
+  if (BOTTOM_NAV_EXCLUDED_ROUTES.has(path)) return;
+  if (container.querySelector('.bottom-nav')) return;
+
+  container.insertAdjacentHTML('beforeend', bottomNavHTML(content.shared.bottomNav));
+
+  const homeTab = container.querySelector('[data-action="nav-home"]');
+  if (!homeTab) return;
+
+  homeTab.addEventListener('click', () => {
+    if (CALCULATOR_STEP_ROUTES.has(path)) {
+      setState({ returnFrame: path });
+      window.location.hash = '#/calculator/exit';
+      return;
+    }
+    window.location.hash = '#/home';
+  });
+}
 
 function isDialogOpen(container) {
   return !!container.querySelector('[role="dialog"]');
@@ -171,6 +255,12 @@ function handleDialogTabTrap(event) {
  */
 export function applyScenarioClasses(container, state) {
   container.classList.toggle('text-large', state.textSize === 'large');
+  // The app renders light on every device, deterministically — tokens.css
+  // no longer reads prefers-color-scheme at all, so `state.theme` (frame
+  // 33's Theme control, and `resetState()`'s default) is the only thing that
+  // can select a palette. See the `.theme-dark` block in tokens.css for why
+  // no frame 33 option currently reaches it.
+  container.classList.toggle('theme-dark', state.theme === 'dark');
 }
 
 function renderCurrentRoute() {
@@ -195,6 +285,14 @@ function renderCurrentRoute() {
   // this function) don't hit this reset, which is correct — the class was
   // already set correctly for that same screen.
   container.className = 'screen';
+
+  // Every accordion / disclosure starts closed each time a screen is
+  // *entered*, including on back navigation — see COLLAPSIBLE_DEFAULTS in
+  // state.js. This sits here, on the hash-driven path only, so that a screen
+  // re-rendering itself in place from its own toggle handler keeps what the
+  // participant just opened.
+  resetCollapsibles();
+
   applyScenarioClasses(container, getState());
 
   if (path === '/reset') {
@@ -216,6 +314,12 @@ function renderCurrentRoute() {
     content,
   });
 
+  mountBottomNav(container, path);
+  // Reveal-on-reach for this screen's action bar (DECISIONS.md D17). Mounted
+  // here rather than per screen so a screen added later inherits it, and
+  // re-mounted by the observer below when a screen rebuilds itself.
+  mountActionBars(container);
+
   if (enteringDialog) {
     focusIntoDialog(container);
   } else if (wasDialogOpen && pendingFocusRestoreAction) {
@@ -228,5 +332,20 @@ function renderCurrentRoute() {
 export function startRouter() {
   window.addEventListener('hashchange', renderCurrentRoute);
   document.addEventListener('keydown', handleDialogTabTrap);
+
+  // See mountBottomNav: screens that re-render themselves in place replace
+  // every child of #app, tab bar included. Re-mounting on mutation keeps the
+  // bar present without every screen module having to know about it.
+  // Appending the bar mutates #app and re-enters this callback once, where
+  // the "already mounted" guard stops it — no loop.
+  const container = document.getElementById('app');
+  new MutationObserver(() => {
+    mountBottomNav(container, parseHash().path);
+    // The action bar is rebuilt along with everything else when a screen
+    // re-renders itself, so its controller has to be rewired at the same
+    // point the tab bar is re-mounted.
+    mountActionBars(container);
+  }).observe(container, { childList: true });
+
   renderCurrentRoute();
 }

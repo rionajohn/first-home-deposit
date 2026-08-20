@@ -35,6 +35,51 @@ const SECTION_6_KEYS = [
 
 const STORAGE_KEY = 'yfh-state';
 
+/**
+ * Every accordion / disclosure / expandable section in the app, and the one
+ * state each of them is in when its screen loads: closed.
+ *
+ * WHY CLOSED, AND WHY IN ONE PLACE
+ * These previously defaulted to open, matching the reference PNGs (frames
+ * 05, 05b, 06 and 19 all draw their disclosures expanded, chevron up) and
+ * build-spec.md section 2's "breakdown open / closed — opens by default"
+ * row. That is now deliberately overridden: a section that is already open
+ * cannot show whether a participant would have chosen to open it, and
+ * "did they go looking for the breakdown" is one of the things these
+ * sessions are meant to observe. Starting closed makes every expansion a
+ * participant action rather than a default. Recorded as an intentional
+ * deviation in DECISIONS.md D12 and GAPS.md G30 — the affected frames are
+ * exempt from the screenshot-comparison pass.
+ *
+ * WHY IT IS NOT ENOUGH TO CHANGE THE DEFAULTS
+ * This store is persisted to sessionStorage and survives navigation, so an
+ * accordion a participant opened on frame 05 would still be open when they
+ * came back to frame 05 by the app bar's back control. `resetCollapsibles()`
+ * below is called by router.js on every hash-driven navigation, so a screen
+ * is closed every time it is *entered*, including on back navigation, while
+ * a screen re-rendering itself in place (a toggle handler calling its own
+ * `render`) bypasses the router and correctly keeps what the participant
+ * just opened.
+ *
+ * Open state is therefore never persisted in any meaningful sense: it is
+ * written to sessionStorage as part of the store, but it is overwritten with
+ * `false` before any screen next reads it.
+ *
+ * Add a new disclosure? Add its key here and it inherits both rules.
+ */
+const COLLAPSIBLE_DEFAULTS = {
+  // Frames 05 / 05b (What we can see) — build-spec.md section 1's "Toggle
+  // the breakdown" row: breakdownOpen only, no figure changes.
+  breakdownOpen: false,
+  // Frame 06 (What we found) — same accordion pattern, its own key so
+  // opening/closing one screen's disclosure doesn't affect the other's.
+  summaryDisclosureOpen: false,
+  // Frame 19 (Before you run the check) — its three chevron sections.
+  mipAskedOpen: false,
+  mipBenefitsOpen: false,
+  mipAwareOpen: false,
+};
+
 function defaultState() {
   const figures = {};
   for (const key of SECTION_6_KEYS) {
@@ -60,24 +105,23 @@ function defaultState() {
 
     // Frame 19 (Before you run the check) — build-spec.md section 1's own
     // "Run the check -> checkRunAt set; soft search recorded" row, plus the
-    // three chevron disclosures, default open (▲) per the reference PNG.
+    // three chevron disclosures (see COLLAPSIBLE_DEFAULTS below for why
+    // they start closed).
     checkRunAt: null,
     softSearchRecorded: false,
-    mipAskedOpen: true,
-    mipBenefitsOpen: true,
-    mipAwareOpen: true,
 
-    // Frame 05 / 05b (What we can see) — build-spec.md section 1's "Toggle
-    // the breakdown" row: breakdownOpen only, no figure changes.
-    breakdownOpen: true,
-    // Frame 06 (What we found) — same accordion pattern, its own toggle so
-    // opening/closing one screen's disclosure doesn't affect the other's.
-    summaryDisclosureOpen: true,
+    ...COLLAPSIBLE_DEFAULTS,
 
     // Frame 03 (Consent and linked accounts)
     savingsWithUs: null, // null | true | false — build-spec.md section 2's "none-selected" variant
     accountAssignments: {}, // accountId -> group, set by 03b moves (src/model/accounts.js)
     accountIncluded: {}, // accountId -> boolean, set by the "Select all accounts" row
+    // Has the participant changed which accounts are counted — by the
+    // "Select all accounts" row or by a 03b move? Drives the provenance of
+    // saved-toward-deposit / emergency-fund / unassigned (DECISIONS.md D5):
+    // read or estimated while untouched, entered once it is true. See
+    // accountFigures() in src/model/accounts.js.
+    accountSelectionEdited: false,
     consentStatementChecked: true,
     selectedAccountId: null, // set before opening 03b
 
@@ -133,6 +177,17 @@ export function setState(patch) {
   state = { ...state, ...patch };
   persist(state);
   return state;
+}
+
+/**
+ * Closes every collapsible section. Called by router.js on each hash-driven
+ * navigation, so every screen is entered with its disclosures shut — see
+ * COLLAPSIBLE_DEFAULTS above. Does not persist: the write goes through
+ * `setState`, which persists, but the value written is always the closed
+ * default.
+ */
+export function resetCollapsibles() {
+  return setState({ ...COLLAPSIBLE_DEFAULTS });
 }
 
 export function resetState() {

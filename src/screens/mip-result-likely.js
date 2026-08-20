@@ -29,6 +29,7 @@ import {
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { mipEstimatedLtv } from '../model/model.js';
+import { checkmarkCircle } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice', 'adviserScope', 'mcob3aRepossessionWarning', 'estimateDisclosure'];
 
@@ -59,7 +60,7 @@ export function render(container, ctx) {
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: shared.appBar })}
     <main class="screen-content" role="main">
-      ${resultPanelHTML({ icon: 'assets/icons/status-check.svg', headline: c.resultHeadline, body: c.resultBody })}
+      ${resultPanelHTML({ icon: checkmarkCircle, headline: c.resultHeadline, body: c.resultBody })}
 
       ${rangeFigureHTML({
         lowText: formatCurrency(borrowLow),
