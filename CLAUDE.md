@@ -15,7 +15,7 @@ from there. See `docs/README.md` for how to rename any of the three.
 
 ## Commands
 - Serve: `python -m http.server 8080` on Windows (ES modules need a server, not file://)
-- Test the model: `node --test src/model/`
+- Test the model: `node --test src/model/*.test.js` (the bare directory form fails on Node 24)
 
 ## Stack rules
 - Vanilla HTML, CSS and ES modules. No framework, no bundler, no build step.

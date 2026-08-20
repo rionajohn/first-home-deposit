@@ -18,12 +18,23 @@
  *     rows). Anything computed belongs in src/model/ or src/format.js, not
  *     here.
  *
+ * ONE EXCEPTION to the literal-strings rule: the app display name is read
+ * from src/config.js rather than typed here, so the name lives in exactly
+ * one place across index.html, the manifest and these screens. It is used
+ * ONLY where the string IS the product name (an app-bar title). Where the
+ * words "your first home" appear inside a sentence — the /home entry card,
+ * the /journey headline, the /consent/declined app-bar title — they are
+ * English prose, not the name, and stay literal: substituting a variable
+ * there would break the sentence the moment the name changed.
+ *
  * shared.regulatory is FIXED WORDING (SPEC.md, GAPS.md G24/G26/G28):
  * transcribed verbatim from the reference PNGs. Screens reference these
  * keys; they must not be reworded, paraphrased, or duplicated inline in a
  * screen module. If a regulatory line's wording ever needs to change, that
  * is a DECISIONS.md-level decision, not a routine copy edit.
  */
+
+import config from './config.js';
 
 const content = {
   shared: {
@@ -88,7 +99,7 @@ const content = {
   },
 
   '/journey': {
-    appBarTitle: 'Your first home',
+    appBarTitle: config.name,
     illustrationCaption:
       'Diagram: three different routes rising from a single starting point to the same house, showing there is more than one way to get there',
     headline: "There's more than one route to your first home",
@@ -293,7 +304,7 @@ const content = {
   },
 
   '/goal-check': {
-    appBarTitle: 'Your first home',
+    appBarTitle: config.name,
     headline: 'Next: work out your deposit',
     body: "How much you'll need depends on the sort of place you're after, and on how much of it you want to put down.",
     alreadyKnowHeading: 'What we already know',

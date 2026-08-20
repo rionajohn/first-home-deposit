@@ -27,6 +27,11 @@ src/
     components.css           — shared UI: cards, buttons, sliders, steppers, accordions, flag rows,
                                warning boxes, milestone tracker, progress bar, review rows
     screens.css               — per-screen-family layout rules
+  config.js                  — app identity: display name, short name, description, theme and
+                               background colour, start URL. Single source of truth, read by
+                               index.html, content.js and app.js. manifest.webmanifest mirrors it
+                               (static JSON cannot import a module) and scripts/set-app-name.mjs
+                               changes both together; app.js warns on drift in dev. See docs/README.md.
   content.js                 — single content module, all on-screen copy keyed by screen id — the one
                                file to edit for copy changes without touching logic.
                                Includes a `shared.regulatory` block with four fixed keys:

@@ -1,3 +1,59 @@
+# Merged from the former .gitignore.txt, which was never active: with a .txt
+# suffix Git ignored the file itself, so none of its research-data rules had
+# any effect. Nothing sensitive was ever committed (checked against the full
+# history), but nothing was stopping it either. Everything below is now live.
+
+# ---------------------------------------------------------------------------
+# Never commit research data
+# ---------------------------------------------------------------------------
+/participants/
+/transcripts/
+/recordings/
+/screening/
+*.consent.pdf
+
+# NVivo project files — these embed coded transcript text, not just analysis
+*.nvp
+*.nvpx
+
+# Qualtrics exports: screening responses carry participant contact details.
+# Root-anchored, so a stray export dropped in the repo root cannot be added by
+# accident, while a legitimate data file inside a subfolder is still possible.
+/*.csv
+/*.tsv
+/*.xlsx
+/*.xls
+
+# Session artefacts — Teams recordings and transcripts. Deliberately not
+# root-anchored: a recording is sensitive wherever it lands.
+*.mp4
+*.m4a
+*.vtt
+
+# ---------------------------------------------------------------------------
+# Deploy and secrets
+# ---------------------------------------------------------------------------
 .vercel
 .env*
+
+# ---------------------------------------------------------------------------
+# OS and editor
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ---------------------------------------------------------------------------
+# Dev only
+# ---------------------------------------------------------------------------
+node_modules/
+
+# Both spellings on purpose: this repo uses .screenshots/, the old file said
+# /screenshots/, and neither covered the other.
 .screenshots
+/screenshots/
+
+# Also covered by the user-level ignore file, but repeated here so protection
+# does not depend on one machine's global Git config.
+.claude/settings.local.json

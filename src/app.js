@@ -18,8 +18,13 @@
  * Also registers the service worker (sw.js), if supported, so the settings
  * screen's build-version caption has a live CACHE_VERSION to read back from
  * Cache Storage (see sw.js / src/cache-version.js).
+ *
+ * Finally, on localhost only, runs a drift check between src/config.js and
+ * manifest.webmanifest — the one pair of files that necessarily duplicates
+ * the app's identity, since static JSON cannot import a module.
  */
 
+import config from './config.js';
 import { registerRoute, startRouter } from './router.js';
 import { render as renderHome } from './screens/home.js';
 import { render as renderJourney } from './screens/journey.js';
@@ -89,4 +94,69 @@ if ('serviceWorker' in navigator) {
       // non-secure origin in local dev) shouldn't block the app itself.
     });
   });
+}
+
+/**
+ * Development-only guard against config/manifest drift.
+ *
+ * manifest.webmanifest is static JSON: it cannot import src/config.js, so
+ * the display name, colours and start URL are necessarily written twice.
+ * scripts/set-app-name.mjs updates both together, but a hand-edit to one
+ * would otherwise diverge silently and only show up as a wrong name on a
+ * participant's home screen after install — the worst possible place to
+ * find it. This logs the mismatch the first time the app runs locally.
+ *
+ * Gated on hostname because this prototype has no build step and no
+ * NODE_ENV: vanilla ES modules served straight from disk, so the hostname
+ * is the only development signal available. On the deployed Vercel URL this
+ * never runs.
+ */
+const DEV_HOSTS = ['localhost', '127.0.0.1', '::1', '[::1]'];
+const isDevelopment =
+  DEV_HOSTS.includes(location.hostname) || location.hostname.endsWith('.local');
+
+/** config.js key -> the manifest member it must match. */
+const IDENTITY_PAIRS = [
+  ['name', 'name'],
+  ['shortName', 'short_name'],
+  ['description', 'description'],
+  ['themeColour', 'theme_color'],
+  ['backgroundColour', 'background_color'],
+  ['startUrl', 'start_url'],
+];
+
+if (isDevelopment) {
+  fetch('./manifest.webmanifest')
+    .then((response) => (response.ok ? response.json() : null))
+    .then((manifest) => {
+      if (!manifest) return;
+
+      const drifted = IDENTITY_PAIRS.filter(
+        ([configKey, manifestKey]) => config[configKey] !== manifest[manifestKey]
+      );
+      if (drifted.length === 0) return;
+
+      const detail = drifted
+        .map(
+          ([configKey, manifestKey]) =>
+            `  ${configKey}: config.js has ${JSON.stringify(config[configKey])}, ` +
+            `manifest ${manifestKey} has ${JSON.stringify(manifest[manifestKey])}`
+        )
+        .join('\n');
+
+      console.warn(
+        [
+          'App identity has drifted: src/config.js and manifest.webmanifest disagree.',
+          detail,
+          '',
+          'Fix both at once with:  node scripts/set-app-name.mjs "<new name>"',
+          'If you have not edited either, a stale service-worker cache may be serving',
+          'an old manifest - bump CACHE_VERSION in sw.js and hard-reload.',
+        ].join('\n')
+      );
+    })
+    .catch(() => {
+      // The check is a convenience, never a gate. If the manifest cannot be
+      // fetched (offline, or opened over file://) the app runs regardless.
+    });
 }

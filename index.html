@@ -3,11 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Your first home</title>
+    <!--
+      Title, home-screen label and theme colour are all filled in below from
+      src/config.js — the single source of truth for app identity. They are
+      deliberately left empty here so nothing hardcodes the display name; see
+      the module script at the end of this <head>.
+    -->
+    <title></title>
 
     <!-- PWA manifest (SPEC.md build-order stage 1 / this session's PWA pass) -->
-    <link rel="manifest" href="manifest.json" />
-    <meta name="theme-color" content="#17171c" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="" />
     <link rel="icon" href="assets/icons/favicon.ico" sizes="any" />
     <link rel="icon" href="assets/icons/app/icon-192.png" type="image/png" sizes="192x192" />
 
@@ -19,9 +25,24 @@
       applies its own corner rounding.
     -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="First home" />
+    <meta name="apple-mobile-web-app-title" content="" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="apple-touch-icon" href="assets/icons/app/apple-touch-icon.png" />
+
+    <!--
+      Applied in <head>, before the stylesheets, so the tab title is correct
+      by the time anything paints. A module script is deferred, so this runs
+      after the document parses but well before first render — the empty
+      <title> above is never visible. iOS reads apple-mobile-web-app-title
+      only when the user taps "Add to Home Screen", long after this runs.
+    -->
+    <script type="module">
+      import config from './src/config.js';
+
+      document.title = config.name;
+      document.querySelector('meta[name="apple-mobile-web-app-title"]').content = config.shortName;
+      document.querySelector('meta[name="theme-color"]').content = config.themeColour;
+    </script>
 
     <link rel="stylesheet" href="src/css/tokens.css" />
     <link rel="stylesheet" href="src/css/shell.css" />

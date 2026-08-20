@@ -29,13 +29,13 @@
  * src/cache-version.js's CACHE_VERSION_FALLBACK in step with the version
  * below; see that file's own comment for why the two are separate.
  */
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `yfh-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
   './',
   './index.html',
-  './manifest.json',
+  './manifest.webmanifest',
   './src/css/tokens.css',
   './src/css/shell.css',
   './src/css/components.css',
@@ -43,6 +43,7 @@ const SHELL_ASSETS = [
   './src/app.js',
   './src/cache-version.js',
   './src/components/ui.js',
+  './src/config.js',
   './src/content.js',
   './src/format.js',
   './src/model/accounts.js',
