@@ -10,7 +10,6 @@
 import { appBarHTML, bindAppBarBack, actionBarHTML, flagRowHTML, figureRowHTML, infoLinkHTML } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { RATES } from '../model/rates.js';
-import { chevronRight } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -39,10 +38,6 @@ export function render(container, ctx) {
         ${figureRowHTML({ label: c.savedTowardDepositLabel, value: formatCurrency(savedTowardDeposit), caption: c.savedTowardDepositCaption })}
         ${figureRowHTML({ label: c.leftOverEachMonthLabel, value: formatCurrency(leftOverValue), caption: c.leftOverEachMonthCaption })}
         ${figureRowHTML({ label: c.savingsInterestLabel, trailing: `${formatPercent(RATES.bankRate)} ${c.savingsInterestSuffix}` })}
-        <button type="button" class="list-row" data-action="open-provenance-key">
-          <span class="list-row__label">${c.provenanceKeyLabel}</span>
-          ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
-        </button>
       </div>
 
       ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions' })}
@@ -65,11 +60,9 @@ export function render(container, ctx) {
     window.location.hash = '#/position/summary';
   });
 
-  container.querySelector('[data-action="open-provenance-key"]').addEventListener('click', () => {
-    setState({ returnFrame: '/goal-check' });
-    window.location.hash = '#/assumptions/saving';
-  });
-
+  // One link to frame 29, not two. The "How we worked these out" chevron row
+  // inside the "What we already know" card opened exactly the same sheet as
+  // the underlined link below the card.
   container.querySelector('[data-action="open-assumptions"]').addEventListener('click', () => {
     setState({ returnFrame: '/goal-check' });
     window.location.hash = '#/assumptions/saving';

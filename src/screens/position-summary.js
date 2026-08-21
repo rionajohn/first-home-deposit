@@ -25,7 +25,6 @@ import {
   proportionRowsHTML,
   figureRowHTML,
   figureDisplayHTML,
-  infoLinkHTML,
   emptyStateCardHTML,
   howThisWorksCardHTML,
   rerenderInPlace,
@@ -165,10 +164,6 @@ export function render(container, ctx) {
     ${figureRowHTML({ label: c.essentialSpendingLabel, value: formatCurrency(-essentialSpending), caption: c.essentialSpendingCaption })}
     ${figureRowHTML({ label: c.leftOverEachMonthLabel, value: formatCurrency(leftOverValue), caption: c.leftOverEachMonthCaption })}
     ${figureRowHTML({ label: c.savedTowardDepositLabel, value: formatCurrency(savedTowardDeposit), caption: c.savedTowardDepositCaption })}
-    <button type="button" class="list-row" data-action="open-provenance-key">
-      <span class="list-row__label">${c.provenanceKeyLabel}</span>
-      ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
-    </button>
   `;
 
   container.innerHTML = `
@@ -182,18 +177,13 @@ export function render(container, ctx) {
         ${depositCard}
       </div>
 
-      ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions-top' })}
-
       ${disclosureHTML({ id: 'summary-breakdown', title: c.disclosureTitle, open: state.summaryDisclosureOpen, contentHtml: disclosureContent })}
 
       ${infoBannerHTML(c.calculatorNote)}
 
-      <button type="button" class="list-row" data-action="open-assumptions-mid">
-        <span class="list-row__label">${c.assumptionsLinkLabel}</span>
-        ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
-      </button>
-
       ${howThisWorksCardHTML({
+        id: 'summary-how-we-worked',
+        open: state.summaryHowWeWorkedOpen,
         title: c.howWeWorkedTitle,
         intro: c.howWeWorkedIntro,
         rows: [
@@ -225,19 +215,39 @@ export function render(container, ctx) {
     window.location.hash = '#/position';
   });
 
-  container.querySelector('[data-action="toggle-disclosure"]').addEventListener('click', () => {
-    const next = setState({ summaryDisclosureOpen: !state.summaryDisclosureOpen });
-    rerenderInPlace(container, render, { ...ctx, state: next });
+  // TWO COLLAPSIBLES ON THIS SCREEN, SO THE BINDING ROUTES ON THE ID.
+  // The "What we used to check this" breakdown and the "How we worked this
+  // out" card both emit `data-action="toggle-disclosure"`; a bare
+  // querySelector would have bound the first and left the card inert, which
+  // is exactly the silent half-wiring a single-match query invites when a
+  // second instance of a component arrives later. Each has its own state key
+  // (D12), so opening one never opens the other.
+  const DISCLOSURE_KEYS = {
+    'summary-breakdown': 'summaryDisclosureOpen',
+    'summary-how-we-worked': 'summaryHowWeWorkedOpen',
+  };
+
+  container.querySelectorAll('[data-action="toggle-disclosure"]').forEach((btn) => {
+    const key = DISCLOSURE_KEYS[btn.dataset.disclosureId];
+    if (!key) return;
+    btn.addEventListener('click', () => {
+      const next = setState({ [key]: !state[key] });
+      rerenderInPlace(container, render, { ...ctx, state: next });
+    });
   });
 
-  ['open-provenance-key', 'open-assumptions-top', 'open-assumptions-mid', 'open-assumptions-card'].forEach((action) => {
-    const el = container.querySelector(`[data-action="${action}"]`);
-    if (el) {
-      el.addEventListener('click', () => {
-        setState({ returnFrame: '/position/summary' });
-        window.location.hash = '#/assumptions/saving';
-      });
-    }
+  // ONE ROUTE TO FRAME 29 FROM THIS SCREEN, NOT TWO.
+  // This screen used to draw the underlined "How did we work this out?"
+  // info-link AND the card's own "See how we worked this out" nav row, and
+  // both opened /assumptions/saving — the same sheet, from two controls a
+  // thumb's width apart, worded almost identically. The card's nav row is
+  // the one that survives: it belongs to howThisWorksCardHTML rather than
+  // being a loose link, it sits under the rows whose working it explains,
+  // and it is the same footer 12, 13, 20 and 21 draw. The loose link had no
+  // such anchor — it named no figure and sat between two unrelated cards.
+  container.querySelector('[data-action="open-assumptions-card"]').addEventListener('click', () => {
+    setState({ returnFrame: '/position/summary' });
+    window.location.hash = '#/assumptions/saving';
   });
 
   const openConsentBtn = container.querySelector('[data-action="open-consent"]');
@@ -260,10 +270,15 @@ export function render(container, ctx) {
   });
 
   container.querySelector('[data-action="goal-no"]').addEventListener('click', () => {
-    // Frame 07 ("Generic savings goal") is out of scope (build-spec.md
-    // section 3: "Remove") — the journey ends by returning to bank home,
-    // the same exit pattern frame 02's "Not right now" uses.
+    // "Not right now - save for something else" now lands somewhere that
+    // answers it. Frame 07 ("Generic savings goal") is still out of scope
+    // (build-spec.md section 3: "Remove") — this is NOT that screen, and no
+    // generic goal-setting flow was built. It is /goals, the bank's own
+    // goals area, which already holds the participant's pots and offers one
+    // card back into the deposit calculator. Returning to frame 01 made a
+    // considered "no" indistinguishable from a dead end. See DECISIONS.md
+    // D21.
     setState({ goal: 'other' });
-    window.location.hash = '#/home';
+    window.location.hash = '#/goals';
   });
 }

@@ -47,6 +47,11 @@ src/
                                33 scenario toggles, returnFrame stack, reset()
   router.js                  — route table, push/pop + sheet transition orchestration,
                                prefers-reduced-motion handling
+  sheet-drag.js              — drag-to-dismiss on the seven sheets' grabbers; a completed drag
+                               closes by clicking the sheet's own dismiss control, so every
+                               on-close state change runs exactly as it does on a tap. Shares
+                               that control lookup with router.js's Escape key. See DECISIONS.md
+                               D18
   model/
     model.js                 — pure calculation functions: deposit-target, loan-amount, ltv,
                                checkpoint-amount, left-over, months-to-target, gap
@@ -138,9 +143,13 @@ This makes the anchor audit mechanical — run once across all screens — rathe
 
 - Push/pop: horizontal slide, outgoing view parallaxes.
 - Sheets (03b, 10c, 13b, 29, 30, 31, 32): rise from bottom over a dimmed scrim; dismiss by
-  drag-down or scrim tap.
+  drag-down or scrim tap. The drag is live on the grabber: the card follows the gesture, releases
+  past a quarter of its own height (or on a downward flick) to dismiss, and settles back below
+  that. Dismissing by drag runs the sheet's own close control, not a bare route change — see
+  DECISIONS.md D18 for why that distinction is load-bearing.
 - `/mip/adviser` is a push (full screen), consistent with the result screens it's reached from.
-- `prefers-reduced-motion`: everything drops to a cross-fade.
+- `prefers-reduced-motion`: everything drops to a cross-fade. A sheet still follows a drag —
+  that is a response to a gesture, not an animation — but settles and dismisses without motion.
 - No iOS-only-gesture-only routes: edge-swipe back, if implemented, is always paired with a visible
   back control.
 
@@ -212,7 +221,9 @@ select-all row only — its count and checkbox state now open at "4 of 5 selecte
 where the PNG draws "4 of 4 selected", checked (`GAPS.md` G36) — a fifth covers frame 03's
 per-account checkboxes, which the PNG does not draw at all (`DECISIONS.md` D16, `GAPS.md` G37), and
 a sixth covers the action bar's visibility and the scroll affordance on the 22 screens whose content
-overflows, where the PNGs draw the bar present from the start (`DECISIONS.md` D17, `GAPS.md` G38). In every case the exemption
+overflows, where the PNGs draw the bar present from the start (`DECISIONS.md` D17, `GAPS.md` G38). A seventh covers the sheet
+header on frames 29, 30, 31 and 32 only: the close control is a plain glyph rather than the PNGs' filled circle, and the heading
+sits beside it in the header rather than scrolling with the body (`DECISIONS.md` D19, `GAPS.md` G42). In every case the exemption
 covers that difference only, and everything else on those screens is diffed normally. The new `/mip/adviser` screen has no reference PNG — see step 4.
 
 **2. Regulatory anchor audit — mechanical, not by eye.** Run the Stage 10 script comparing every

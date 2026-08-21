@@ -456,39 +456,39 @@
 .action-bar-dock::before {
   content: '';
   position: absolute;
-  /* Spans the dock itself PLUS 56px above it, not just the strip above.
-     The content scrolls under the bar, and while the bar is hidden it is
-     transparent — so without covering the dock's own area the content would
-     fade out under the gradient and then reappear, perfectly legible,
-     underneath an invisible bar. The mask is solid --color-bg across the bar
-     region and fades out over the 56px above it, so the content dissolves
-     once and stays dissolved. */
-  top: -56px;
+  /* ANCHORED TO THE BOTTOM OF THE SCROLLER, 56px TALL.
+     This first spanned the whole dock plus 56px above it — solid --color-bg
+     across the bar's own height, fading out over the 56px above that. The
+     reasoning was that the content scrolls under the bar, and while the bar is
+     hidden it is transparent, so a gradient sitting only ABOVE the dock would
+     fade the content out and then let it reappear, perfectly legible,
+     underneath an invisible bar.
+
+     True of a gradient above the dock; not true of one at the bottom of it.
+     The dock's bottom edge IS the bottom edge of the scroller (the negative
+     margin above makes the scroller run to exactly there), so a fade anchored
+     to `bottom: 0` dissolves the content once, at the last thing the
+     participant can see, and there is nowhere below it for anything to
+     reappear. The old geometry masked 193px on a two-button screen — 26% of
+     the screen — in flat --color-bg at every scroll position, which is what
+     read as "a blurred or blank region below the last element". Same job,
+     56px instead of 193, and the content behind the hidden bar stays legible
+     until it reaches the bottom edge rather than dissolving 137px early. */
   bottom: 0;
+  height: 56px;
   left: 0;
   right: 0;
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--duration-standard) var(--ease-out);
-  background: linear-gradient(
-    to top,
-    var(--color-bg) var(--action-bar-height, 0px),
-    rgba(0, 0, 0, 0) 100%
-  );
+  background: linear-gradient(to top, var(--color-bg), rgba(0, 0, 0, 0));
 }
 
-/* A sheet's content scrolls under its bar too (screens.css), so the mask has
-   the same job as on a full screen: solid across the bar's own area, fading
-   out over the 56px above it. `calc(100% - 56px)` expresses that without
-   naming the bar's height again — the pseudo-element already spans the dock
-   plus that 56px. Only the colour differs: a sheet fades to its own card
-   surface, not to the page behind it. */
+/* A sheet's content scrolls under its bar too (screens.css), so the fade has
+   the same job and the same geometry. Only the colour differs: a sheet
+   dissolves into its own card surface, not into the page behind it. */
 .bottom-sheet .action-bar-dock::before {
-  background: linear-gradient(
-    to top,
-    var(--color-surface) calc(100% - 56px),
-    rgba(0, 0, 0, 0) 100%
-  );
+  background: linear-gradient(to top, var(--color-surface), rgba(0, 0, 0, 0));
 }
 
 .action-bar-dock--more-below::before {
@@ -656,6 +656,35 @@
 
 .flag-row__chevron {
   flex: 0 0 auto;
+}
+
+/* --- Visually hidden, but read ---
+   Text removed from the visual layout while staying in the accessibility
+   tree, for the cases where a visual cue carries meaning that a screen
+   reader would otherwise never receive — the selected row of frame 09's
+   comparison card is the first user.
+
+   `clip-path: inset(50%)` and a 1px box, NOT `display: none`, `visibility:
+   hidden` or `width: 0` — every one of those removes the element from the
+   accessibility tree, which is the exact opposite of the point. This is the
+   same technique `.checkbox-row__input` above already uses to hide a real
+   focusable input while keeping it announced; that rule predates this one and
+   is left as it is, since it also has to stay focusable and so needs
+   `position: absolute` for reasons this utility does not share.
+
+   `white-space: nowrap` stops a long string being wrapped into a tall
+   1px-wide column before it is clipped, which some engines will otherwise
+   reflow around. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* --- Provenance caption (DECISIONS.md D5) --- */
@@ -976,21 +1005,78 @@
   border: none;
   font-family: inherit;
   cursor: pointer;
+
+  /* THE REST STATE FOR FOUR OF THE FIVE TABS, AND THE FIX FOR THE ORIGINAL
+     DEFECT. Nothing used to set `color` here at all, so an enabled tab
+     inherited the full-strength label colour from the document while a
+     disabled one was greyed by the USER AGENT's own `:disabled` styling.
+     That is two treatments, and neither of them was chosen: Goals on /home
+     — enabled, not current — drew exactly as dark as Home and read as
+     selected. Declaring the colour on the tab takes it back from the UA, and
+     `.bottom-nav__label` below now inherits rather than re-stating it, so
+     icon and label can never disagree about which state they are in.
+
+     `transition` covers the press response below. Colour is not motion, so
+     `prefers-reduced-motion` leaves it alone. */
+  color: var(--color-label-tertiary);
+  transition: color var(--duration-quick) var(--ease-out);
 }
 
-/* The four non-Home tabs are the surrounding bank app, out of prototype
-   scope and inert on frame 01 already; ui.js renders them `disabled` so they
-   are not focus stops that do nothing. They keep their drawn appearance —
-   this only stops the pointer implying they are tappable. */
+/* --- State 2: enabled, not active ---
+   Identical to a disabled tab standing still. What marks it as tappable is
+   that it answers a finger: it goes to full label colour under the press and
+   returns. Deliberately NOT a difference at rest — a tab that looked
+   "available" while another looked "current" is the two-state bar this
+   replaced, and the whole problem was that participants read the available
+   one as the current one.
+
+   Hover is behind `(hover: hover)` so a touch device, which synthesises a
+   hover on tap and then keeps it, does not end up with a permanently
+   darkened tab that looks active. Pointer devices get the same affordance
+   the rest of the app's controls get. */
+@media (hover: hover) {
+  .bottom-nav__tab[data-action]:hover {
+    color: var(--color-label-secondary);
+  }
+}
+
+.bottom-nav__tab[data-action]:active {
+  color: var(--color-label);
+}
+
+/* --- State 3: disabled ---
+   Payments, Insights and Profile: the surrounding bank app, out of prototype
+   scope and inert on frame 01 already. `disabled` in the markup is what makes
+   them unfocusable and untappable; `aria-disabled` is what announces it. They
+   inherit the same rest colour as state 2 by design — see the note there —
+   so the only thing this rule adds is the pointer.
+
+   Which tabs are live is decided by `NAVIGABLE_TABS` in ui.js, not here. */
 .bottom-nav__tab:disabled {
   cursor: default;
+}
+
+/* --- State 1: active ---
+   The current route IS this tab's destination. Three cues, not one:
+   the indicator above the icon, the bold label, and the filled icon variant
+   (`TAB_ICONS_ACTIVE` in icons.js — a different drawing, chosen in the
+   markup, not a CSS `fill` that would turn the Goals bullseye into a disc).
+   Full label colour is the fourth, and the only one of the four that is a
+   colour, so the state does not rest on colour alone.
+
+   At most one tab, and only on /home and /goals — `TAB_FOR_ROUTE` in
+   router.js decides, and every other route lights nothing. */
+.bottom-nav__tab--active {
+  color: var(--color-label);
 }
 
 .bottom-nav__active-rule {
   height: 2px;
   width: 40px;
   border-radius: 1px;
-  background: var(--color-label);
+  /* currentColor, so the indicator cannot drift from the icon and label it
+     belongs to — it is only ever drawn inside `--active`. */
+  background: currentColor;
   margin-bottom: 2px;
 }
 
@@ -1002,12 +1088,12 @@
   font-size: var(--text-caption2-size);
   line-height: var(--text-caption2-line);
   font-weight: 400;
-  color: var(--color-label-tertiary);
+  /* From the tab, so all three states move icon and label together. */
+  color: inherit;
 }
 
 .bottom-nav__tab--active .bottom-nav__label {
   font-weight: 600;
-  color: var(--color-label);
 }
 
 /* --- Content column --- */
@@ -1404,12 +1490,83 @@
   align-items: flex-start;
 }
 
+/* --- The card is a disclosure (DECISIONS.md D12) ---
+   The title is the header, so a closed card is one tappable line and
+   nothing else. `gap` on `.how-this-works-card` above would otherwise leave
+   16px of dead space under that line while the content is hidden — a
+   `[hidden]` child is display:none and so is not a flex item, but the gap is
+   only suppressed because there is a single item left to space. Stated here
+   rather than relied on: the closed card's height is the header's height
+   plus the card's own 20px padding, and nothing else.
+
+   The header carries no border. Every other disclosure in the app draws a
+   rule under its header, but this one sits inside a card that already has
+   its own outline, and a second rule 20px inside the first read as a stray
+   divider rather than as structure. */
+.how-this-works-card__heading {
+  margin: 0;
+  width: 100%;
+}
+
+.how-this-works-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
 .how-this-works-card__title {
   margin: 0;
   font-size: calc(20px * var(--text-scale));
   line-height: calc(26px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
+}
+
+.how-this-works-card__chevron {
+  flex: 0 0 auto;
+  transition: transform var(--duration-quick) var(--ease-standard);
+}
+
+/* Closed points down, open points up — the same direction and the same
+   200ms easeInEaseOut as `.disclosure__chevron`, so the two collapsibles on
+   frame 06 cannot animate differently from each other. */
+.how-this-works-card--closed .how-this-works-card__chevron {
+  transform: rotate(180deg);
+}
+
+/* The card's own `gap` spaces the header from this block; inside it, the
+   intro, the rows, the nav row and the footnote keep the spacing they had
+   when they were direct children of the card. */
+.how-this-works-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  align-items: flex-start;
+  width: 100%;
+}
+
+/* THE `hidden` ATTRIBUTE IS NOT ENOUGH ON ITS OWN, AND THIS IS WHY.
+   `[hidden] { display: none }` comes from the UA stylesheet, so ANY author
+   rule setting `display` beats it — including the `display: flex` directly
+   above. The markup was correct (`hidden` present, `aria-expanded="false"`,
+   `--closed` on the card) and the chevron pointed the right way, while the
+   content stayed fully visible: a closed card that looked open.
+
+   `.disclosure--closed .disclosure__content` further up carries the same
+   rule for the same reason. A DOM-level check for the attribute passes in
+   this state, which is what let it through — it took a screenshot to see.
+   Anything that hides a flex or grid container needs this line. */
+.how-this-works-card--closed .how-this-works-card__content {
+  display: none;
 }
 
 .how-this-works-card__intro {
@@ -1685,6 +1842,38 @@
 
 .option-comparison-card__row:last-of-type {
   border-bottom: none;
+}
+
+/* --- The selected option (frames 09 / 09b) ---
+   THE SAME TREATMENT `.rate-band-row--highlighted` ALREADY USES, not a new
+   one: 2px `--color-label`, `--radius-sm`, and horizontal padding added so
+   the content is inset from the box edge the outline now draws. Frames 15/16
+   mark the rate band matching the participant's own Loan-to-Value exactly
+   this way, and this is the same job — "of these three, yours is this one".
+
+   VERTICAL PADDING IS DELIBERATELY UNCHANGED, which is also what the
+   rate-band rule does (`--space-md 0` becomes `--space-md`, not a new pair).
+   The row still grows by 3px when it becomes selected — 2px of border where
+   there was none at the top, and a bottom edge going from the 1px divider to
+   the 2px box — and everything below it in the card shifts by that much. The
+   scroller's offset does not move (the chip handler re-renders through
+   `rerenderInPlace`), so this is a few pixels of reflow inside one card, not
+   a jump. Equalising it would mean writing `calc(var(--space-lg) - 2px)`
+   paddings that no longer read as the documented treatment, which is a worse
+   trade for 3px. */
+.option-comparison-card__row--selected {
+  border: 2px solid var(--color-label);
+  border-radius: var(--radius-sm);
+  padding: var(--space-lg) var(--space-md);
+}
+
+/* The divider belonging to the row ABOVE the selected one would otherwise sit
+   1px off the selected row's top border — two nearly-touching lines reading
+   as a drawing error. `transparent` rather than `none` so suppressing it
+   costs no height and cannot itself shift the rows. `:has()` is already used
+   in shell.css for the safe-area rules; this is the same support baseline. */
+.option-comparison-card__row:has(+ .option-comparison-card__row--selected) {
+  border-bottom-color: transparent;
 }
 
 .option-comparison-card__left {

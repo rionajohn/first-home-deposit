@@ -11,7 +11,7 @@
  * SPEC.md's regulatory anchor map confirms this screen carries none of the
  * four content.shared.regulatory lines.
  */
-import { actionBarDockHTML } from '../components/ui.js';
+import { sheetHeaderHTML, actionBarDockHTML } from '../components/ui.js';
 export const anchors = [];
 
 export function render(container, ctx) {
@@ -24,9 +24,8 @@ export function render(container, ctx) {
     <div class="sheet-overlay">
       <div class="sheet-scrim" data-action="dismiss"></div>
       <div class="bottom-sheet sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-heading">
-        <div class="bottom-sheet__drag-handle"><div class="bottom-sheet__drag-handle-bar"></div></div>
+        ${sheetHeaderHTML({ heading: c.heading })}
         <div class="bottom-sheet__content">
-          <h2 class="screen-title" id="sheet-heading">${c.heading}</h2>
           <p class="entry-card__body">${c.body}</p>
         </div>
         ${actionBarDockHTML(`

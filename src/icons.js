@@ -408,10 +408,48 @@ export function diamond(o) {
  * that tab as a plain ring, and inventing a person glyph for it would be a
  * design change, not a restyle.
  */
+/**
+ * FILLED VARIANTS FOR THE TWO TABS THAT CAN BE ACTIVE.
+ *
+ * Apple's tab bars swap an outline symbol for its filled twin on the selected
+ * tab, and that swap is one of the three cues `.bottom-nav__tab--active`
+ * carries (indicator, bold label, filled icon — see components.css). The
+ * existing `starCircle` / `starCircleFill` pair is the same convention: a
+ * separate export rather than a flag on `icon()`, because "filled" is a
+ * different drawing, not a different rendering of the same one.
+ *
+ * A blanket `fill: currentColor` in CSS would have been fewer lines and wrong
+ * for `target`: it is two sibling `<circle>` elements, and `fill-rule` applies
+ * within a path rather than across siblings, so both would fill solid and the
+ * bullseye would become an unrecognisable disc. Filling only the inner circle
+ * keeps the ring and reads as "on".
+ *
+ * Only Home and Goals are here. Payments, Insights and Profile are disabled
+ * and can never be the active tab, so a filled variant for them would be a
+ * drawing nothing renders (DESIGN.md rule 6).
+ */
+export function houseFill(o) {
+  return icon('house-fill', '<path class="icon__fill" d="M12 3.6L20.4 12H17.28V20.4H6.72V12H3.6Z"/>', o);
+}
+
+export function targetFill(o) {
+  return icon(
+    'target-fill',
+    '<circle cx="12" cy="12" r="9"/><circle class="icon__fill" cx="12" cy="12" r="5"/>',
+    o
+  );
+}
+
 export const TAB_ICONS = {
   home: house,
   payments: arrowLeftArrowRight,
   goals: target,
   insights: diamond,
   profile: circle,
+};
+
+/** The active-tab drawing, keyed the same way. Only the live tabs have one. */
+export const TAB_ICONS_ACTIVE = {
+  home: houseFill,
+  goals: targetFill,
 };

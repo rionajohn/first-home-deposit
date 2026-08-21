@@ -36,7 +36,10 @@ One row per transition, including back paths and dismissals. "In file" means the
 | 05 / 05b What we can see | App bar back | 03 Consent and linked accounts | none | Assumed |
 | 06 What we found | "What we used to check this" | 32 Where these figures come from | returnFrame = 06 | In file |
 | 06 What we found | "Is a house still your goal right now?" - yes | 08 Ready for the calculator | goal = house | In file |
-| 06 What we found | "Is a house still your goal right now?" - no | 07 Generic savings goal (out of scope) | goal = other; journey ends | In file |
+| 06 What we found | "Is a house still your goal right now?" - no | /goals (bank goals area) | goal = other; journey ends | In file (branch), destination added - DECISIONS.md D21 |
+| /goals Bank goals area | "Work out my deposit" | 09a if no property-value held, otherwise 09 | goal = house; returnFrame = /goals; mode = general when consentGiven is not true | Added - DECISIONS.md D21, amended |
+| /goals Bank goals area | App bar back | 01 Home | none | Added - DECISIONS.md D21 |
+| Any screen with the tab bar | Goals tab | /goals Bank goals area | none (mid-calculator routes through 10c first) | Added - DECISIONS.md D21 |
 | 06 What we found | Action bar continue | 08 Ready for the calculator | none | In file |
 | 06 What we found | App bar back | 05 / 05b What we can see | none | Assumed |
 | 08 Ready for the calculator | Checkpoint button ("Work out my deposit") | 09a if no values held, otherwise 09 | calculatorEntered = true | In file (annotation) |
@@ -128,6 +131,7 @@ Variant names follow the component properties already in the library (`prefilled
 | 10 How you'll save | solveFor = date | User picks a monthly amount | savings-rate given; months-to-target solved with 4.1% AER, monthly compounding |  |
 | 10b Date stepper variant | solveFor = amount | User picks a target date | months-to-target given; savings-rate solved |  |
 | 10 / 10b How you'll save | error | savings-rate > left-over, or target date in the past | Slider or stepper state = error | No frame drawn |
+| 10 How you'll save | general mode | mode = general; left-over never read, so the slider has no ceiling to scale to | Reached from frame 04's "Continue with general figures" and from /goals; the screen does not render and returns to 09 | No frame drawn - see `GAPS.md` G50 |
 | 11 Check your figures | read-only rows | No figure edited | All six rows, provenance = read or derived |  |
 | 11 Check your figures | edited rows | Any figure overridden upstream | Affected row provenance = entered |  |
 | 12 Your deposit range | within the chart window | months-to-target <= 60 | Growth chart plotted to 5 years, thresholds at 5, 10, 15% |  |
@@ -164,6 +168,7 @@ Shared vocabulary between the Figma file and the code. The frame name is the sys
 | 05b What we can see - estimate mode | 02 Personalised savings | /position?mode=estimate | Same screen where some inputs are estimated | Reviewed |
 | 06 What we found | 02 Personalised savings | /position/summary | Emergency fund and deposit position; goal confirmation | Reviewed |
 | 07 Generic savings goal | 02 Personalised savings | - | Non-house goals; out of scope | Remove |
+| (no frame) Bank goals area | - | /goals | The bank's own goals area: short- and long-term pots, and one card into the deposit calculator. Where frame 06's "save for something else" branch lands. NOT frame 07 - no goal-setting flow | Added - DECISIONS.md D21 |
 | 08 Ready for the calculator | 02 Personalised savings | /goal-check | Checkpoint before the calculator | Reviewed |
 | 09 Deposit calculator - property and deposit | 03 Deposit calculator | /calculator/property | Property value and deposit percentage | Reviewed |
 | 09a Before a value is entered | 03 Deposit calculator | /calculator/property (empty) | Empty state of the same step | Reviewed |

@@ -3,14 +3,20 @@
  * Figma node 9:17. Reference: reference/frames/01 Home - Your first home
  * entry point.png.
  *
- * The tab bar this frame draws is now the shared `bottomNavHTML` component
- * (ui.js), because DECISIONS.md D11 puts the same bar on every full-screen
- * journey screen and one copy of it is better than two that can drift.
- * Rendering it here rather than leaving it to router.js's mount keeps frame
- * 01's own markup self-describing — the bar is part of what this frame is —
- * and router.js's mount is a no-op when a screen already drew one.
+ * THIS FRAME NO LONGER DRAWS ITS OWN TAB BAR. It used to render
+ * `bottomNavHTML` directly, on the reasoning that the bar is part of what
+ * frame 01 is and router.js's mount is a no-op when a screen already drew
+ * one. That second half was the problem: `mountBottomNav` is what BINDS the
+ * tabs, and it returns early the moment it finds a bar already in the DOM —
+ * so on this one screen the bar was rendered and then wired to nothing.
+ *
+ * That was invisible while Home was the only tab that resolved, because
+ * tapping Home on frame 01 is a no-op either way. The moment Goals became a
+ * live tab (D11, as amended) it stopped being invisible: an enabled,
+ * focusable Goals button that did nothing, on the first screen of the study,
+ * and only on that screen. Letting router.js own the bar everywhere removes
+ * the special case rather than adding a second place that binds it.
  */
-import { bottomNavHTML } from '../components/ui.js';
 import { chevronRight } from '../icons.js';
 
 function transactionRow({ merchant, category, amount }) {
@@ -69,8 +75,6 @@ export function render(container, { content, setState }) {
         </button>
       </div>
     </main>
-
-    ${bottomNavHTML(content.shared.bottomNav)}
   `;
 
   container.querySelector('[data-action="start-journey"]').addEventListener('click', () => {

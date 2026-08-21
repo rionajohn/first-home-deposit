@@ -159,7 +159,7 @@ Contributions are paid at the start of each month, per `build-spec.md` section 4
 
 ## D11. A persistent bottom navigation bar, not drawn in the wireframes
 
-**Decision.** Frame 01's five-tab bank navigation bar (Home, Payments, Goals, Insights, Profile) is rendered on every full-screen journey screen, not on frame 01 alone. Its Home tab is the one tab that resolves, and it routes back to frame 01 from anywhere in the journey. The other four stay exactly as inert as they already are on frame 01 - they are the surrounding bank app, which is out of prototype scope - and are rendered `disabled` so they are not focus stops that do nothing.
+**Decision.** Frame 01's five-tab bank navigation bar (Home, Payments, Goals, Insights, Profile) is rendered on every full-screen journey screen, not on frame 01 alone. **Two tabs resolve: Home and Goals.** Home routes back to frame 01 from anywhere in the journey. Payments, Insights and Profile stay exactly as inert as they already are on frame 01 - they are the surrounding bank app, which is out of prototype scope - and are rendered `disabled` so they are not focus stops that do nothing.
 
 This is a **deliberate deviation from the reference wireframes.** No frame other than 01 draws a bottom bar. It was added at the build stage, knowingly, and it is **exempt from the screenshot-comparison pass** on every screen it appears on - see `GAPS.md` G29, recorded alongside the frame 13 and frame 32 exemptions.
 
@@ -177,7 +177,19 @@ Frame 01's own bar was reused rather than a new control designed, for two reason
 
 **One qualification, on the calculator's step flow (09, 09a, 09b, 10, 10b, 11).** These *keep* the bar - "from anywhere in the journey" includes mid-calculator - but its Home tab opens frame 10c ("Leave this for now?") instead of jumping straight to frame 01. `build-spec.md` section 1 already defines what leaving the calculator means: the form-header close on 09/10/10b opens 10c, and only 10c's own "Leave" sets `journeyPaused = true` and retains the draft inputs. A tab bar that bypassed that would silently discard a participant's part-entered figures. Frame 11 draws no close control, but it is the same step flow holding the same drafts, so it is treated the same way.
 
-**Implementation.** `bottomNavHTML` in `src/components/ui.js`; mounted by `src/router.js`'s `mountBottomNav` against an exclusion set, so a screen added later inherits the bar without anyone remembering to add it. Because several screens re-render themselves in place from a toggle handler and rewrite every child of `#app`, a `MutationObserver` re-mounts the bar rather than ~20 screen modules each having to render it. Each tab is at least 48px in both dimensions (D1).
+### Amended 21 August 2026: Goals is a live tab
+
+**What changed.** `/goals` exists now (D21), so the Goals tab has a destination. It is enabled, it routes to `/goals`, and it is the lit tab while the participant is on that screen - `aria-current="page"`, the active rule, and the bold label, the same three cues Home has always used. Payments, Insights and Profile are unchanged.
+
+**Why this is not a new deviation.** D11's original reasoning was that four of the five tabs are the surrounding bank app and out of prototype scope, so they are drawn but inert. `/goals` moved one of them *into* scope: it is a built screen with a route, and D21 put the journey's own "save for something else" exit there. A tab pointing at a screen that exists and is deliberately reachable is no longer a dead end, and leaving it `disabled` would mean the participant could reach `/goals` from frame 06's exit but not from the bar that is showing Goals as one of five places they can be. The tab bar is also now the only cue that `/goals` is *outside* the feature - it lights a different tab, which is the clearest signal the app has that the participant has stepped out of "Your first home" and into the bank around it.
+
+**What the tab does not do.** It does not become live on the screens D11 already excludes - the seven sheets, 19b and 33 have no bar at all - and mid-calculator it behaves exactly as the Home tab does, routing through 10c so a part-entered set of drafts is never silently discarded. That qualification below was written for Home and now covers both live tabs; the rule was always about the calculator, not about which tab was pressed.
+
+**Which tab is lit is a fact about the route**, held in `router.js`'s `TAB_FOR_ROUTE` map. Only exceptions are listed; everything else falls back to Home, because as far as the surrounding bank app is concerned the whole "Your first home" journey lives under Home.
+
+**One place renders the bar, and it is the same place that binds it.** Frame 01 used to draw its own copy of `bottomNavHTML`, on the reasoning that the bar is part of what frame 01 is and `mountBottomNav` is a no-op when a bar is already present. That no-op is what broke: `mountBottomNav` is also what attaches the tab listeners, and its "already mounted" guard - there so the `MutationObserver` does not re-append on every mutation - made it return before binding anything. Frame 01's tabs were rendered and wired to nothing. Invisible for as long as Home was the only live tab, since tapping Home on frame 01 is a no-op either way; not invisible once Goals resolved, when it became an enabled, focusable button that did nothing, on the first screen of the study and on no other. Frame 01 no longer renders the bar; `mountBottomNav` renders and binds it everywhere.
+
+**Implementation.** `bottomNavHTML` in `src/components/ui.js`, which takes `{ active }` and reads `NAVIGABLE_TABS` - the single list of which tabs resolve, shared with `src/router.js`'s `mountBottomNav`, so a tab cannot be rendered enabled in one file and left unbound in the other. Mounted against an exclusion set, so a screen added later inherits the bar without anyone remembering to add it. Because several screens re-render themselves in place from a toggle handler and rewrite every child of `#app`, a `MutationObserver` re-mounts the bar rather than ~20 screen modules each having to render it. Each tab is at least 48px in both dimensions (D1).
 
 **Superseded, then restored.** This originally read: "Height is 56px plus `env(safe-area-inset-bottom)`, carried by the bar itself so its surface runs to the bottom edge of the display the way a native tab bar's does; `.screen` takes the bottom inset only on the screens with no bar, so the two never double up." D14's safe-area pass reversed it — the bar became a plain 56px above a reserved band on `.screen` — and D14's bottom-inset pass (20 August 2026) restored it, because the band read as the app floating off the bottom edge. The original wording is accurate again, with one refinement: `.screen` now zeroes its own bottom padding whenever *any* bottom chrome is present, not only a tab bar, so the tab bar, a lone action bar and a sheet's action bar are all handled by one rule. See D14.
 
@@ -198,6 +210,37 @@ This is a **deliberate deviation from the reference wireframes**, which draw all
 **Implementation.** `COLLAPSIBLE_DEFAULTS` in `src/state.js` names every collapsible key in one place, and both rules hang off it: it seeds `defaultState()`, and `resetCollapsibles()` is called by `src/router.js` on each hash-driven navigation. Changing the default alone would not have been enough - the store is persisted to `sessionStorage`, so a section opened on frame 05 would still be open on returning to frame 05 by the back control. A screen re-rendering *itself* in place from its own toggle handler bypasses the router and correctly keeps what the participant just opened. A new disclosure inherits both rules by adding its key to that one object.
 
 **To reverse.** Set the keys in `COLLAPSIBLE_DEFAULTS` to `true` and remove the `resetCollapsibles()` call in `src/router.js`.
+
+### Extended to the "How we worked this out" card (20 August 2026)
+
+`howThisWorksCardHTML` - the card on frames 06, 12, 13, 20 and 21 - is a disclosure too, closed on load, with its title as the header. Five more keys in `COLLAPSIBLE_DEFAULTS`, one per screen for the reason above: opening the card on the results screen must not pre-open it on the tracker, or the second screen stops measuring anything.
+
+It is the largest always-open block in the flow - an intro, three label/value/caption rows and a nav row, roughly a third of a phone screen, on five of the journey's most-read screens - and it is exactly the kind of working-out D12 exists to leave unopened. The nav row into the assumptions sheet collapses with the rest, deliberately: it is the footer of the working-out, not a second entry point to it, and leaving it visible under a closed heading that says the same thing would recreate the duplication D20 below just removed.
+
+Frame 06 now carries two collapsibles - its "What we used to check this" breakdown and this card - so its toggle handler routes on `data-disclosure-id` instead of binding the first match. That id is already in `rerenderInPlace`'s `FOCUS_KEY_ATTRS`, so the pressed header is the element refocused after the re-render: the card opens in place, the scroller keeps its offset, and focus never leaves the control. Measured on all five screens: scroll offset unchanged to the pixel, the header's own viewport position unchanged to the pixel, `document.activeElement` still the header.
+
+---
+
+## D20. One control per destination on a screen, and a link that names where it goes
+
+**Decision.** Where a screen drew two near-identical controls into the **same** assumptions sheet, one is removed. Where it draws two into **different** sheets, both stay and both are reworded to name what they explain.
+
+The flow had three phrasings of the same idea - "How did we work this out?" (an underlined `.info-link`), "How we worked these out" (a `.list-row` with a chevron) and "See how we worked this out" (the nav row inside the how-this-works card) - and all four assumptions sheets share the heading "How we worked this out". So a screen carrying two of them offered the participant no way to tell, before tapping, whether they led to the same place.
+
+| Screen | Was | Now |
+|---|---|---|
+| 06 `/position/summary` | Info-link and card nav row, **both** to 29 | Card nav row only |
+| 12 `/calculator/result` | Info-link to 30, chevron row to 29, card nav row to 29 | Info-link "How we worked out the deposit range" (30) + card nav "How we worked out your monthly saving" (29) |
+| 13 `/learn/ltv` | Info-link to 30 and card nav to 29, worded almost identically | "How we worked out these rate figures" (30) + "How we worked out your monthly saving" (29) |
+| 15/16 `/tracker` | Info-link to 30 and chevron row to 29, worded almost identically | "How we worked out these rate figures" (30) + "How we worked out your monthly saving" (29) |
+
+**Which one survives a merge.** The card's own nav row, every time. It belongs to `howThisWorksCardHTML` rather than floating in the page, it sits directly under the rows whose working it explains, and it is the footer 12, 13, 20 and 21 already draw - so keeping it is the choice that leaves the flow with fewer patterns, not more. The loose info-link on 06 had no such anchor: it named no figure and sat between two unrelated cards.
+
+**Screens with one control keep their wording.** 04, 08, 10, 10b, 11, 20 and 21 have nothing to be confused with, so "How did we work this out?", "How we worked these out" and "See how we worked this out" all survive where they are unambiguous. Rewording them would be churn against the reference PNGs for no gain.
+
+**Not done, and deliberately.** The four sheets still share the heading "How we worked this out". Renaming them would make the destinations self-evident on arrival, but the headings are Figma frame content and the change would touch `build-spec.md`'s frame mapping - a bigger decision than this one, and not needed once the links themselves say where they go.
+
+**Found on the way.** Frame 21's card nav row had rendered since the screen was built with nothing bound to it - a dead control. Frame 20 binds the identical row. Now bound, same target and same `returnFrame` as 21's action-bar secondary. See `GAPS.md` G45.
 
 ---
 
@@ -403,9 +446,17 @@ Verified against the real accessibility tree over CDP, not a proxy for it: on an
 
 A short fade at the bottom of the scroll container, shown only while the content overflows *and* the bar is still hidden, removed the moment the bar arrives — by then the bar is the signal and two would be noise. It lives on the dock rather than the bar, because the bar's hidden state is `opacity: 0` and opacity applies to an element's pseudo-elements, so a gradient drawn on the bar would be invisible in exactly the state that needs it.
 
+**Revised 20 August 2026 (screen-tail pass): 56px anchored to the bottom, not 193px spanning the bar.** The fade first spanned the dock's whole height plus 56px above it — solid `--color-bg` across the bar's own area, fading out over the 56px above that. The reasoning: the content scrolls under the bar, and a hidden bar is transparent, so a gradient sitting only *above* the dock would fade the content out and then let it reappear, perfectly legible, underneath an invisible bar.
+
+That is true of a gradient above the dock and false of one at the bottom of it. The dock's bottom edge *is* the bottom edge of the scroller — the negative margin above makes the scroller run to exactly there — so a fade anchored to `bottom: 0` dissolves the content once, at the last thing the participant can see, with nowhere below it for anything to reappear.
+
+The cost of the old geometry was 193px of flat `--color-bg` on a two-button screen, 26% of the phone screen, at *every* scroll position while the bar was hidden. Real content sat under it — the next card's top edge would appear and then dissolve into a slab. That is what read as a blurred or blank region below the last element. Same job, 56px instead of 193, and content behind the hidden bar now stays legible until it reaches the bottom edge instead of dissolving 137px early.
+
 ### Layout: the content scrolls under the bar
 
 The bar overlaps the end of the scroller rather than carving a slot out of it, with a matching bottom padding inside the scroller so the last real content still clears it.
+
+**Corrected 20 August 2026 (screen-tail pass): that padding was never applying on a full screen.** The rule was written and correct, and lost — `.screen-content` sets the `padding` shorthand further down the same file, at equal specificity, which reset the longhand back to `var(--space-lg)`. The margin survived, because a shorthand only resets its own longhands. So the scroller's *box* grew under the bar while nothing reserved that height *inside* it, and the last element on every overflowing full screen ended 121px behind an opaque bar. Fixed by `.screen > .screen-content`, which wins on specificity rather than on source order. Sheets were never affected: G39 had already hit this exact failure on `.bottom-sheet__content` and fixed it the same way. Measured at both breakpoints: the last element now clears the bar by `--space-lg` on every full screen and `--space-2xl` on every sheet. See `GAPS.md` G41.
 
 The first build reserved the bar's height in the flex column whether or not the bar was showing. That was stable but left ~136px of empty screen — 18% of the app's own 759px (D14) — blank for the whole scroll on every long screen, which is the "cramped and loose at once" problem D14 was about.
 
@@ -425,11 +476,178 @@ Sheets were left reserving the bar's height instead, which was wrong for the sam
 
 **For the write-up.** This one needs stating clearly, because it changes what a participant had to do before they could act. Any finding about whether someone read a disclosure, a provenance caption or a regulatory line has to be read against the fact that the button was withheld until they had scrolled past it.
 
+## D18. Drag-to-dismiss closes a sheet through the sheet's own close control
+
+**Decision.** The grabber at the top of all seven sheets (03b, 10c, 13b, 29, 30, 31, 32) is now the gesture surface `SPEC.md`'s transition rules always said it was: dragging down moves the card with the finger, releasing past a threshold dismisses it, releasing short of it settles the card back. A completed drag does not navigate. It **clicks the sheet's own dismiss control** — the same element a participant would tap — and lets that element's existing handler do the closing.
+
+**Why the indirection matters.** Closing a sheet is not the same as changing the route. 13b sets `ltvVideoSeen` on close, which is what makes frame 13's explainer row read "watched" afterwards. 03b returns to whichever screen set `returnFrame`. 10c's dismiss is "Keep going", which deliberately leaves `journeyPaused` alone — only its own "Leave" sets it (`build-spec.md` section 1). A gesture that merely set `window.location.hash` would look completely correct on screen while recording a participant as never having seen something they did see. That is a silent data error in the session record, and the sessions are what this prototype exists for.
+
+Routing the gesture through the control means there is no second close path to keep in step with the first, and a sheet added later inherits the behaviour by drawing the same markup. It is also what the Escape key has always done, so the two now share one helper (`dismissControlFor` in `src/sheet-drag.js`) rather than two copies of the same selector.
+
+### The threshold, which the spec does not give
+
+`SPEC.md` requires "dismiss by drag-down or scrim tap" and stops there. Two rules, either sufficient:
+
+| Rule | Value | Why |
+|---|---|---|
+| Distance | 25% of the sheet's own height, minimum 72px | A quarter of the card is the point iOS's own sheets commit at. The floor matters because 10c is a heading and one line of copy — a quarter of a short card is a twitch, not a decision. |
+| Velocity | released while still moving down at 0.5px/ms or more | A fast, short flick is how most people actually dismiss a sheet. Without this rule it would spring back and read as the gesture having failed. |
+
+Dragging up is clamped at the resting position rather than rubber-banded: the card's bottom edge is flush with the bottom of the phone screen, so any upward travel would lift it off that edge and show scrim underneath.
+
+### Under `prefers-reduced-motion`
+
+The sheet still tracks the finger — following a gesture is not decoration, and removing it would leave a grabber that once again does nothing. What is dropped is the un-commanded motion at the end: the settle and the exit slide both become instant. The reduced-motion branch also has to skip *waiting* for a transition that will not run, which is why this one case is decided in `sheet-drag.js` rather than in a `@media` block.
+
+### The spring does not overshoot
+
+`--ease-spring` (`cubic-bezier(0.22, 1, 0.36, 1)`) is fast off the mark with a long tail, which is what reads as a spring. A true overshooting curve was rejected for the same reason upward drag is clamped: overshoot past the resting position lifts the card off the bottom edge and flashes scrim beneath it.
+
+**Verified, not asserted by description.** `scripts/sheet-drag.test.mjs` drives a real browser: it opens 03b and 13b twice each from identical fresh sessions, closes one run with the control and the other with a drag, and compares the whole persisted store — `assert.deepStrictEqual(viaDrag.state, viaControl.state)` — in both motion modes. All seven sheets are separately asserted to dismiss on a drag and land where their close control lands.
+
+---
+
+## D19. One way of drawing a close control, and a sheet heading that shares its row
+
+**Decision.** The close control on frames 29-32 is now a plain `title3` xmark from `src/icons.js` in a transparent 48px box — the same treatment `.app-bar__cell--action` and `.form-step-header__cell--action` already give every other close and back control in the feature. The filled circular background is gone. The control sits at the top right of the sheet, **on the same row as the sheet's heading**, and that row lives in the sheet header rather than in the scroller.
+
+This deviates from the reference PNGs for these four frames, which draw a grey disc above the heading. Recorded in `GAPS.md` G42; frames 29-32 are **exempt from the screenshot-comparison pass for the sheet header** and for nothing else.
+
+**Why the circle went.** It was the only circular control in the app. Every other close in the flow — 15 app-bar screens and the six calculator steps — is a bare glyph, and these sheets are reached *from* those screens, so the same action changed appearance halfway through a journey. The sheet's glyph was also two sizes smaller than all of them (`footnote`, 16px, against `title3`, 24px).
+
+**Why the heading moved into the header.** The overlap that prompted this was not a spacing slip; it was structural. The close was `position: absolute; top: 50%` against a header band that was only the drag bar plus its padding, so a 48px button centred on that band hung down over the first line of a heading that lived in a different box. Three requirements then pin the layout exactly:
+
+| Requirement | What it rules out |
+|---|---|
+| The glyph aligns with the heading, not floats over it | Any absolute positioning — alignment between two independently laid-out boxes is a coincidence that copy changes break |
+| The heading never runs under the glyph, at any number of lines | The heading and the glyph must share one flex row, so the heading's column *ends* where the glyph begins |
+| The close stays reachable anywhere in a long sheet | The row cannot be in the scroller, or the only close control scrolls off the top |
+
+One structure satisfies all three: a flex row in the fixed header, heading `flex: 1 1 0; min-width: 0`, glyph `flex: 0 0 auto`. The heading is therefore pinned above the scrolling body rather than scrolling with it — the second deviation from the reference, and the price of the other two requirements.
+
+### The touch target is 48px and the glyph is 24px, so the box is offset, not the glyph
+
+Laying the 48px box flush against the row's padding edge would leave the *visible* glyph 12px inside the right margin and 9px below the centre of the heading's first line — misaligned with the one thing it is meant to line up with. Each margin is negative half the difference between glyph and target, which pulls the box out by exactly the slack around the glyph: the target keeps its full 48x48 and simply overhangs into the card's edge padding, while the glyph lands on the margin. Both formulas are written against `--text-scale`, because glyph size and heading line-height both scale with frame 33's Large text control.
+
+**Measured at 390px on all four sheets, at both text sizes and with a heading forced to three lines** — 12 combinations, every one of them: gap between heading and glyph 22-24px (never negative), glyph's right edge exactly on the body copy's right margin (0.0px), heading's left edge exactly on the body copy's left margin (0.0px), glyph centre exactly on the centre of the heading's first line (0.0px), no clipped or overflowing heading, and 16px between the heading and the top of the scroller.
+
+### The head of a sheet clears the grabber, and every sheet with a heading uses the same one
+
+Two amendments, both from the same complaint: the heading started too close to the top edge of the card.
+
+**Top clearance.** `.bottom-sheet__title-row`'s top padding is `--space-2xl` (24px), not `--space-lg`. The padding that matters is not the heading's - it is the close control's, because the negative top margin above pulls its 48px target 9px *above* the heading's first line. At 16px that put the target's top edge 7px under the grabber: the heading read as starting immediately below the bar, and a downward drag begun on the grabber and a tap on the close were separated by single-figure pixels. At 24px the heading sits 24px below the grabber and the target still clears it by 15px, so the two are visibly separate controls. Measured at 390px: card top 67.5, grabber 79.5-83.5, close target top 98.5, heading first line 107.5 - the same numbers at Large text, where the overhang shrinks to 6.75px and the clearance grows.
+
+**One header, six sheets.** `sheetHeaderHTML` now takes `closeLabel` as optional, and frames 03b and 10c use it without one. They previously put their heading inside the scroller, directly under a bare 28px drag handle - 12px below the grabber, the same defect the assumptions sheets had, in a sheet that had never been looked at for it. Adopting the header gives them the identical clearance and margins and pins their heading above their body, and it costs nothing: neither sheet overflows, so nothing that used to scroll has stopped.
+
+**What 03b and 10c deliberately do not get is the glyph.** Their reference PNGs draw no close control, and both already offer an explicit labelled pair - "Not now" on 03b, "Keep going" on 10c. A third, unlabelled exit beside a decision the participant is being asked to make is a control this prototype would be inventing, and on 10c it would be genuinely ambiguous (an X on a "leave this for now?" sheet reads as either answer). If that glyph is wanted on those two frames it is a one-line change - pass `closeLabel` - but it is a design decision, not a consistency fix, and it is not made here.
+
+**Frame 13b takes neither.** Its only heading belongs to the video placeholder inside the scroller, so it keeps the bare drag handle and gets the 24px of head clearance as `padding-top` on the scroller instead (`.bottom-sheet__drag-handle + .bottom-sheet__content`), two classes deep so the shorthand on `.bottom-sheet__content` cannot reset it.
+
+---
+
+## D21. The way out of the journey leads somewhere - /goals, the bank's own goals area
+
+**Decision.** Frame 06's secondary action, "Not right now - save for something else", now goes to a new screen at `/goals` instead of returning to frame 01. `/goals` is the bank's goals area: two sections (short-term and long-term) listing the participant's own pots, and one card under the long-term heading whose action routes into the deposit calculator. See **"Where the card goes"** below for the routing, which has been amended twice since.
+
+**WHAT THIS DOES AND DOES NOT REVERSE.** Frame 07 ("Generic savings goal") stays excluded. `build-spec.md` section 3 still marks it **Remove**, no goal-setting flow was built, and nothing on `/goals` creates, edits or targets a goal. What changes is only the *destination* of the branch that used to point at it: the participant who says "no, something else" now lands somewhere that acknowledges the answer, rather than being returned to the screen they started on.
+
+A note on the cross-reference, because it matters for anyone reading back: **D8 does not cover frame 07.** D8 is about frames 14 and 22 to 28, and frame 07's exclusion has only ever lived in `build-spec.md` section 3's "Remove" marking and in the comment on `position-summary.js`'s `goal-no` handler. So this decision partially reverses *that* exclusion, not D8's. What it does share with D8 is the reasoning D8 set out - that a dead-end control is better removed than stubbed - and this is the qualifying case: the control could not be removed, because the question frame 06 asks has to have both answers, so the answer needed a destination instead.
+
+**Why the old behaviour was wrong.** "Not right now - save for something else" and the app bar's back control did exactly the same thing. A participant who considered the question and decided against a house was returned to frame 01 in the same state as one who had simply backed out, which makes the two indistinguishable in a session recording - and "did they leave the journey deliberately" is a finding, not a navigation detail. It also read as the app having nothing to say to someone whose answer was no.
+
+**What makes it a bank screen and not a feature screen.** The same design system throughout - a bank does not change its design language between two of its own screens - and the difference is carried by what is absent: the app bar says "Goals" rather than `config.name`, and there is no journey framing, no provenance caption, no flag row, no assumptions link and no regulatory line. The tab bar shows **Goals** as the active tab rather than Home, which is the clearest single signal that the participant has stepped out of the feature and into the surrounding app.
+
+**Figures.** Every number on the screen is a `balance` already in `MOCK_ACCOUNTS`, reached through the same `effectiveAccounts()` pass frames 03, 03b, 05 and 06 use. A participant who saw "Holiday pot GBP 420" on frame 03 sees GBP 420 here because it is the same field, not a second copy. Classification is a new `goalHorizon` flag on the account - `'short'`, `'long'`, or absent for "not a goal" - sitting beside `countsTowardDeposit` for the same reason that one exists: the rule lives in the data, not in a screen's render logic.
+
+The rule it encodes is "a goal is a Pot with a purpose", which selects the three Pots and leaves the four savings accounts and the current account out. A Cash ISA is where money sits, not something you are saving for.
+
+**No goals were invented, and no figures were.** The brief allowed adding goals to the data source if the screen needed them; it did not need them. Three real pots populate two sections, and **nothing on the screen is computed** - no targets, no progress bars, no projections. Every one of those would have been a number this prototype made up, on a screen whose whole point is that it shows what the bank already holds. Adding `goalHorizon` changed no total anywhere: `groupTotals` returns `{unassigned: 2400, deposit: 8950, emergency: 5600, notCounted: 420}` before and after.
+
+**Regulatory anchors: none.** `SPEC.md`'s anchor map puts the guidance-not-advice line on every screen presenting a worked figure, and confirms it **absent from frame 01** - the bank's home screen, which draws the feature's own entry card and still carries no guidance line, because an entry point is not guidance. `/goals` is the same shape of screen: the bank's own area, listing balances it already holds, with one card leading into the feature. Nothing is worked out, so there is nothing to disclaim. The DUAA triad does not apply either - no automated decision is presented, so there is no pushback to offer and no source to surface beyond the balances themselves. The guidance line resumes at frame 08, on the far side of the card, which is where the first computed figure also resumes. Verified in a browser: zero `.legal-text`, zero `.flag-row`, zero `.provenance-caption` on `/goals`, and frame 08 still carrying its line.
+
+**The tab bar became a real tab bar.** `bottomNavHTML` took no arguments and hardcoded Home as active with the other four `disabled`; it now takes `{ active }`, and `NAVIGABLE_TABS` is the one list both it and `router.js`'s `mountBottomNav` read, so a tab cannot be rendered enabled in one place and left unbound in the other. Two tabs are live (Home, Goals); the other three stay disabled, exactly as inert as they already were on frame 01. Leaving mid-calculator still routes through 10c whichever tab is used, because `build-spec.md` section 1 defines what leaving the calculator means and that definition does not depend on which piece of chrome was tapped.
+
+### Where the card goes - amended 21 August 2026, replacing the /journey routing
+
+**Decision.** The card's action routes to **frame 09 / 09a** (`/calculator/property`), for everyone, in one line and with no branch. If `consentGiven` is not `true` it sets `mode = 'general'` first.
+
+This replaces two earlier answers. It first routed to frame 08, which bounced through three guards to the consent screen (`GAPS.md` G48). D22 then split it: frame 02 for a cold arrival, frame 08 when the journey was under way. That is now withdrawn.
+
+**Why the calculator, and not a preamble.** The card says "Work out my deposit". The screen that works out a deposit is the calculator. A card that says one thing and opens an explainer is asking a participant to trust a label that did not hold, which is the wrong lesson for a prototype whose subject is whether people trust what the interface tells them. Frame 02 was the right answer to "where does a cold arrival get context"; it was the wrong answer to "what does this button do".
+
+**Why it needs no branch.** `/calculator/property` renders `property-value === null` as frame 09a, its own documented empty variant, so it renders for every participant and no guard can redirect them off it. D22's rule - write state only once the destination is settled - is therefore satisfied unconditionally rather than by testing two flags. `goal` and `returnFrame` are written on the single path.
+
+**`mode = 'general'` is not a new state.** `build-spec.md` section 1 already defines this exact situation in its frame 04 row: "Continue with general figures" sets `mode = general` and enters the calculator with nothing read from an account. A participant arriving from `/goals` without consent is in the same position - the bank has read nothing - so they enter the calculator the same way and are marked the same way. `consent.js`'s own "Not now" sets the identical pair. The test is `consentGiven !== true` rather than `=== false`, because `null` (never asked) and `false` (declined) both mean the same thing here and only the strict test catches the first.
+
+Nothing in frames 09 to 12 reads `mode`; only frame 19 and frame 33 do. It is set because it is true and because frame 19 asks it later, not because the calculator needs it.
+
+**What this route does NOT fix, stated because it was walked and found.** Step 2 does not render on it. Frame 10 guards on `left-over === null` and returns to `/calculator/property`, so Continue on frame 09 is an unbreakable loop, and frames 11 and 12 are unreachable. **The same is true of `build-spec.md`'s own frame 04 path**, verified by walking it: this route reaches a pre-existing gap rather than creating one. See `GAPS.md` G50 - it needs a design decision about what step 2 is in general mode, and is deliberately not papered over here.
+
+**To reverse.** Point `goal-no` back at `#/home`, drop `/goals` from `ROUTES` and `TAB_FOR_ROUTE`, and pass no `active` to `bottomNavHTML`. The `goalHorizon` flags are inert without the screen. To reverse the routing alone, restore D22's two-flag branch from this file's history.
+
+---
+
+## D22. Arriving at the calculator from Goals, and what /goals is allowed to show before consent
+
+Two decisions from the same trace (`GAPS.md` G48), kept together because they are the two halves of "what may a participant do from the bank's goals area before they have agreed to anything".
+
+### The card sends a cold arrival to frame 02, not into the guard chain
+
+> **Superseded 21 August 2026 for the routing only.** The card now goes to frame 09/09a for
+> everyone - see D21's "Where the card goes". The rest of D22 stands: the state-write ordering
+> below is still the rule, and the pre-consent balances decision is untouched. Kept rather than
+> deleted because the reasoning for frame 02 is why the current answer had to be defended on
+> different grounds.
+
+**Decision.** `/goals`'s "Want to calculate the deposit for your house?" card routes to **frame 02** (`/journey`) unless the journey is genuinely underway, in which case it routes to **frame 08** (`/goal-check`) as before.
+
+**Why frame 02.** It is the screen that explains what the feature does and what it will ask for, before asking for anything. A participant reaching `/goals` from the Goals tab has been told nothing: they have not seen the journey overview, not answered the savings question, not granted account access. Frame 02 is the beginning of the thing they just asked for.
+
+What it replaces is worse than a wrong destination. The card used to go straight to frame 08, whose guard bounced to 06, whose guard bounced to 05, whose guard bounced to 03 - **four hash changes in one tap**, none of them animated (Drift D-7), landing on a permission request with no explanation of why a request to calculate a deposit had produced a question about where savings are kept. The guards were doing their job; they were written for deep links and reloads, and this route was neither.
+
+**The test is both flags, not just `journeyStarted`.**
+
+```
+journeyStarted && saved-toward-deposit !== null   ->  /goal-check
+otherwise                                        ->  /journey
+```
+
+`journeyStarted` alone is not sufficient, and the reason matters for the second decision below. It is set by frame 01's entry card and by nothing else in the flow, so a participant who tapped that card, backed out, and came round through Goals would carry `journeyStarted: true` with every figure still `null` - and the guard chain would fire exactly as before. `saved-toward-deposit` is the condition frame 08's own guard tests, so testing it here is what guarantees the card never hands off to a screen that will immediately redirect. **A branch that decides a destination should ask the same question the destination's guard asks.**
+
+### State is written after the destination is settled, never before
+
+**Decision.** The card writes nothing until it knows which screen will actually render.
+
+- **To frame 08:** `goal: 'house'` and `returnFrame: '/goals'`. Frame 08 renders - no guard stands between the tap and the screen - so "you came from Goals" is true and will stay true.
+- **To frame 02:** `journeyStarted: true` only.
+
+**Why `returnFrame` is not written on the cold path.** It is the value sheets and explainers read to send someone back. A participant entering the journey at its first screen is not stepping sideways out of anything, and `returnFrame: '/goals'` would sit in state for the rest of the journey - so the next assumptions sheet they opened, several screens later, would offer to return them to the bank's goals area. That is the defect G48 named: a `returnFrame` pointing at a flow they are not in.
+
+**Why `goal` is not written on the cold path either.** Frame 06 asks "Is a house still your goal right now?" and that is where the answer belongs. Pre-filling it from a card tap answers a question the journey has not put yet, and D21 already routes frame 06's "no" back to `/goals` - so the participant would have arrived pre-committed to an answer the journey is about to ask them for.
+
+**Why `journeyStarted` IS written.** Arriving at frame 02 is entering the journey, which is precisely what frame 01's entry card means by setting it, and frame 02's own "Not right now" clears it again. One flag, set by the same event on both routes in.
+
+### Back from consent now lands on a screen the participant has seen
+
+Frame 03's back control goes to `/journey`. Before this change that was a screen a Goals-arriving participant had never seen - pressing back moved them *forward* into the middle of a journey they had not started. With the route through frame 02 they have been there: `/home -> /goals -> /journey -> /consent -> back -> /journey`. Verified from a fresh session; `/journey` appears at hop 3 and is returned to at hop 5.
+
+### The pre-consent balances on /goals stay
+
+**Decision.** `/goals` goes on showing Emergency fund, Holiday pot and House pot with their real balances to a participant who has granted nothing. No gate, no placeholder, no "connect your accounts first" state.
+
+**Why this is not a consent bypass.** `/goals` is **the bank's own goals area**, and the bank already holds these balances - they are its own pots, in its own accounts, shown in its own app. Showing a customer their pot balance is the ordinary operation of the account they opened; it needs no separate permission, and a bank that hid a customer's own savings behind a consent gate would be the strange behaviour, not this.
+
+**What frame 03 actually asks for is a different thing.** It asks permission to *analyse income and outgoings* - to read twelve months of salary credits and average six months of direct debits into `money-in` and `essential-spending` - and to *assign accounts to a deposit*, producing `saved-toward-deposit` and everything derived from it. That is a **new processing purpose**: new inferences drawn from existing data, for a purpose the customer did not have when they opened the account. Permission to draw those inferences is not the same as permission to see money the bank can already see, and conflating the two would make the consent screen ask for something it does not need while implying the balances were somehow secret.
+
+The line between the two is visible on the screen itself. `/goals` shows a `balance` field and nothing else - no provenance captions, no computed figures, no regulatory line, because there is nothing worked out to disclaim (D21). The first computed figure a participant sees is on the far side of consent.
+
+**To reverse.** Gate the card list on `state.consentGiven` and give `/goals` an empty state. Recorded as a decision rather than left implicit precisely because it looks like a bypass and is not.
+
 ---
 
 ## Open questions
 
-None remain open as of 20 August 2026. Nothing in D11-D17 (this session's shell, icon-set, frame 03 and action-bar passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
+None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
 
 As of 19 August 2026 (second pass): All five originally listed here have been closed and folded into the decisions above: Q1 → D2 (confirmed), Q2 → D6, Q3 → D7, Q4 → D8, Q5 → D9. A sixth item, not originally an open question, was also corrected this pass: the regulatory basis for the Mortgage-in-Principle adviser route — see D10.
 
@@ -445,6 +663,17 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 20 August 2026 (icon set) | D15 recorded: one drawn icon set in src/icons.js, SF Symbols drawing conventions, sized from the type scale. assets/icons/*.svg deleted. Deviation from the reference PNGs, exempt from the screenshot pass for icon rendering. |
 | 20 August 2026 (safe area) | D14 extended: the 59px status-bar and 34px home-indicator space is reserved inside the phone screen, while the status bar element stays absent per D1 — the two are separate and are now written down as such. D11's tab-bar inset detail superseded. |
 | 20 August 2026 (frame 03 selection) | D16 recorded: a checkbox on every countable account (deviation from the wireframes, exempt from the screenshot pass), and in-place updates that hold scroll position and focus — an 18-call-site defect across 8 screens, fixed by `syncAccounts` on frame 03 and `rerenderInPlace` everywhere else. |
+| 20 August 2026 (screen tail) | D17 corrected on two counts: the scroller's reserve for the bar was being silently reset by a `padding` shorthand, leaving the last element on every overflowing full screen behind the bar; and the scroll affordance's fade spanned 193px of the screen in flat `--color-bg` rather than 56px at the bottom edge, which is what read as a blurred region below the last element. See `GAPS.md` G41. |
 | 20 August 2026 (bottom inset) | D14 revised: the bottom safe-area inset now lives INSIDE the lowest chrome on every screen type — the tab bar, a lone action bar, or the sheet's action bar — rather than as a band beneath it on `.screen`. The chrome's background reaches the bottom of the phone screen; `.screen` keeps the inset only on 19b and 33, which have no bottom chrome. D11's original tab-bar arrangement is restored. See `GAPS.md` G40. |
 | 20 August 2026 (sheet bottom) | D14 and D17 corrected: the sheet's bottom safe-area inset moved from `.sheet-overlay`'s padding (outside the card, which lifted every sheet off the bottom of the phone screen) to inside the card below its action bar; both insets now resolve from one `--safe-top`/`--safe-bottom` pair; and a sheet's content now scrolls under its own action bar via an out-of-flow dock. See `GAPS.md` G39. |
 | 20 August 2026 (action bar) | D17 recorded: the action bar appears once the participant reaches the end of the content, on the 22 screens that overflow; the 7 that fit show it immediately. Deviation from the wireframes, exempt from the screenshot pass. Kept focusable and in the accessibility tree throughout — `opacity`, never `visibility: hidden`. |
+| 20 August 2026 (sheet gesture) | D18 recorded: the grabber on all seven sheets drags, dismisses past a threshold and settles back short of it, and a drag closes by clicking the sheet's own dismiss control rather than navigating — so 13b's `ltvVideoSeen` and every other on-close state change happen exactly as they do on a tap. Asserted in a browser by `scripts/sheet-drag.test.mjs`. |
+| 20 August 2026 (sheet header) | D19 recorded: 29-32's close control loses its circular background for the app's standard plain-glyph treatment, and the sheet heading moves into the header row beside it so the two align and the heading's column ends where the glyph begins. Deviation from the reference PNGs for the sheet header on those four frames, exempt from the screenshot pass. See `GAPS.md` G42. |
+| 20 August 2026 (sheet head spacing) | D19 amended: the title row's top padding goes to `--space-2xl`, so the close control's 48px target clears the grabber by 15px instead of 7px and the heading starts 24px below it rather than 16px; `sheetHeaderHTML`'s `closeLabel` becomes optional and frames 03b and 10c adopt the header without a glyph, 13b taking the same 24px as scroller padding. No close control is added to a frame whose reference PNG does not draw one. |
+| 20 August 2026 (assumptions links) | D20 recorded: where a screen drew two near-identical "how we worked this out" controls into the same sheet, one is removed (06, 12); where they go to different sheets, both stay and are reworded to name the figures they explain (12, 13, 15, 16). Frame 21's card nav row, unbound since it was built, now works. See `GAPS.md` G45. |
+| 20 August 2026 (card disclosure) | D12 extended to `howThisWorksCardHTML` on frames 06, 12, 13, 20 and 21: closed on load, opening in place with scroll and focus held. Frame 06 now routes two collapsibles on `data-disclosure-id`. |
+| 20 August 2026 (goals area) | D21 recorded: frame 06's "save for something else" branch now lands on `/goals`, the bank's own goals area, instead of returning to frame 01. Partially reverses `build-spec.md` section 3's exclusion of frame 07 - the generic savings-goal SCREEN stays excluded, only the branch's destination changes. New `goalHorizon` flag on the account data; no invented figures; no regulatory anchor, on the frame 01 precedent. Tab bar gains an `active` parameter and a live Goals tab. |
+| 21 August 2026 (Goals tab) | D11 amended: Goals is a live tab - enabled, routing to `/goals`, lit while on that screen. Payments, Insights and Profile stay `disabled`. Frame 01 stopped rendering its own copy of the bar, which had left its tabs bound to nothing: `mountBottomNav` is the only renderer and the only binder now. See `GAPS.md` G47. |
+| 21 August 2026 (tab states) | D11 amended again: the bar has three tab states, not two — active (indicator + bold label + filled icon + `aria-current`), enabled-not-active (identical to disabled at rest, darkens under a press), and disabled (`aria-disabled`, not focusable). A tab is active only where the route IS its destination, so `/home` and `/goals` light one and every other screen lights none. The old two-state split was an accident: no rule set `color` on a tab, so enabled inherited full strength and disabled was greyed by the user agent. See `GAPS.md` G49. |
+| 21 August 2026 (Goals -> calculator) | D22 recorded: the /goals deposit card routes to frame 02 for a cold arrival and frame 08 only when `journeyStarted` AND `saved-toward-deposit` are both set, so it never hands off to a screen that will redirect; `goal` and `returnFrame` are written only once the destination is settled; and the pre-consent balances on /goals stay, because the bank already holds them and frame 03 asks for a different processing purpose. Closes `GAPS.md` G48. |
+| 21 August 2026 (Goals -> 09a) | D21 amended: the /goals card routes to frame 09/09a for everyone, setting `mode = 'general'` when `consentGiven !== true`, exactly as `build-spec.md`'s frame 04 row does. Replaces D22's /journey-for-cold-arrivals split, whose routing half is now superseded. Walked 09a to 12 in that state: 09a and 09 work, **frame 10 does not render** - it guards on `left-over` and loops back to 09 - and `build-spec.md`'s own frame 04 general path does the same. Recorded as `GAPS.md` G50, open. |

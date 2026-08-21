@@ -128,6 +128,8 @@ a mismatch shows as a visible seam around the status bar on an installed copy.
 ## Commands
 
 ```bash
-python -m http.server 8080   # serve (ES modules need a server, not file://)
-node --test src/model/       # test the model
+python -m http.server 8080               # serve (ES modules need a server, not file://)
+node --test src/model/                   # test the model
+node --test scripts/sheet-drag.test.mjs  # sheet drag-to-dismiss, in a real browser (Playwright)
+node --test scripts/overlap.test.mjs     # no rule crosses text on any of the 32 frames, both text sizes
 ```

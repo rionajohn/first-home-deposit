@@ -79,6 +79,12 @@ export function render(container, ctx) {
           amount: formatCurrency(target.value),
           sublabel: fill(c.comparisonSublabelTemplate, { pct: formatPercent(pct, 0) }),
           technical: fill(c.comparisonTechnicalTemplate, { ltv: formatPercent(value.value, 0) }),
+          // Compared against the same `depositPct` the chip row is given as
+          // its `selected`, so the pill above and the outlined row below can
+          // never disagree about which percentage is chosen. Exactly one of
+          // the three rows matches: `neighbourPcts` always returns a window
+          // containing the selected value.
+          selected: pct === depositPct,
         };
       });
     }
@@ -107,7 +113,7 @@ export function render(container, ctx) {
            </div>`
         : errorText
           ? ''
-          : optionComparisonCardHTML({ headerText: c.comparisonHeaderText, rows: comparisonRows, infoLinkLabel: c.ltvInfoLinkLabel, infoLinkAction: 'open-ltv-info' })}
+          : optionComparisonCardHTML({ headerText: c.comparisonHeaderText, rows: comparisonRows, infoLinkLabel: c.ltvInfoLinkLabel, infoLinkAction: 'open-ltv-info', selectedLabel: c.comparisonSelectedLabel })}
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
     </main>

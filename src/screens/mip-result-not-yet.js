@@ -22,6 +22,7 @@ import {
   nextStepsCardHTML,
   howThisWorksCardHTML,
   flagRowHTML,
+  rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency, formatMonthsDuration } from '../format.js';
 import { gap, neededLoanAmount, borrowRange, maxProperty, monthsToReachAmount } from '../model/model.js';
@@ -94,6 +95,8 @@ export function render(container, ctx) {
       <p class="legal-text">${reg.adviserScope}</p>
 
       ${howThisWorksCardHTML({
+        id: 'mip-not-yet-how-we-worked',
+        open: state.mipNotYetHowWeWorkedOpen,
         title: c.howWeWorkedTitle,
         intro: summaryContent.howWeWorkedIntro,
         rows: [
@@ -122,6 +125,28 @@ export function render(container, ctx) {
 
   container.querySelectorAll('[data-action="update-goal"]').forEach((el) => {
     el.addEventListener('click', () => { window.location.hash = '#/tracker'; });
+  });
+
+  // The card is a disclosure now (D12). rerenderInPlace, not a bare render:
+  // it restores the scroller's offset and refocuses the very button that was
+  // pressed (found by its data-action + data-disclosure-id), so the card
+  // opens under the participant's thumb rather than throwing the screen back
+  // to the top and dropping focus to <body>.
+  container.querySelectorAll('[data-action="toggle-disclosure"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const next = setState({ mipNotYetHowWeWorkedOpen: !state.mipNotYetHowWeWorkedOpen });
+      rerenderInPlace(container, render, { ...ctx, state: next });
+    });
+  });
+
+  // The card's own nav row. It rendered from the day this screen was built
+  // and nothing ever bound it, so "See how we worked this out" was a dead
+  // control: frame 20 binds the identical row, and the only working route
+  // from here into the borrowing sheet was the action bar's secondary
+  // button. Same target, same returnFrame as that button.
+  container.querySelector('[data-action="open-assumptions-borrowing"]').addEventListener('click', () => {
+    setState({ returnFrame: '/mip/result/not-yet' });
+    window.location.hash = '#/assumptions/borrowing';
   });
 
   container.querySelector('[data-action="change-property-target"]').addEventListener('click', () => {

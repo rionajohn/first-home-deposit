@@ -377,6 +377,44 @@
   padding-bottom: calc(var(--space-2xl) + var(--action-bar-height, 0px));
 }
 
+/* --- Normal document flow inside the sheet's scroller ---
+   The exact rule components.css already applies to `.screen-content > *`,
+   and for the exact same reason — it was simply never given to the sheet
+   scroller, which is the other flex column in this app that scrolls.
+
+   A flex item's default `flex-shrink: 1` means that when a flex column's
+   content is taller than its box, the items are compressed BELOW their
+   content height rather than the box scrolling. A plain text block survives
+   that, because its automatic minimum size protects it. A row that sets its
+   own `min-height` does not: an explicit min-height REPLACES the automatic
+   minimum, so the row collapses to exactly that height and its content
+   spills out of it.
+
+   That is what put a divider through frame 32's "You'd reconfirm this
+   permission periodically": `.open-banking-row` is a direct child of this
+   scroller and asks for `min-height: var(--touch-target-min)` for its touch
+   target, so on a sheet that overflows it was squeezed from the 91px its
+   two lines and padding need to exactly 48px — and its own border-bottom,
+   which sits at the bottom of that 48px box, landed across the caption's
+   second line. 13b's `.flag-row` is the same shape and was being squeezed
+   by 1.2px at frame 33's Large text size.
+
+   Note also that the rows are the ONLY things that shrank: everything else
+   in these sheets is text, protected by its automatic minimum, so the whole
+   of the overflow was absorbed by the one or two children that had offered
+   to shrink. That is why the damage looked isolated rather than spread thin
+   across the screen, and why it got worse — 21.5px of spill at the default
+   text size, 36.5px at Large — exactly where a spacing collision is meant
+   to show up first.
+
+   `.bottom-sheet >` rather than the bare class, for the G39/G41 reason: at
+   one class of specificity this would be a coin-toss against any later
+   single-class rule setting `flex` on a component that happens to sit in a
+   sheet. Two classes puts it out of reach of source order. */
+.bottom-sheet > .bottom-sheet__content > * {
+  flex: 0 0 auto;
+}
+
 .bottom-sheet__drag-handle {
   flex: 0 0 auto;
   display: flex;
@@ -393,36 +431,168 @@
   background: var(--color-border-subtle);
 }
 
-/* Sheet header (frames 29, 30, 31, 32 — see ui.js's sheetHeaderHTML): the
-   same centred drag-handle bar as .bottom-sheet__drag-handle, plus a
-   circular close button pinned to the top right. Used in place of
-   .bottom-sheet__drag-handle on sheets that draw a close glyph. */
+/* --- Drag to dismiss (src/sheet-drag.js) ---
+   The grabber is the gesture surface on all seven sheets: its own row on
+   03b/10c/13b, the whole header band on 29-32 — which since D19 includes the
+   heading, so those sheets drag from their title as well as their grabber,
+   the way a native sheet drags from any non-scrolling part of itself.
+   `user-select: none` below is what stops that dragging select the heading's
+   text instead. `touch-action: none` is what makes any of it work on a touch
+   device — without it the browser claims the vertical drag for scrolling
+   before a single pointermove is delivered.
+
+   The three state classes below go on `.sheet-overlay`, not on the card, for
+   two reasons: the scrim is a sibling of the card and has to move with it,
+   and `.sheet-overlay--x .bottom-sheet` outranks shell.css's `.sheet`
+   animation on specificity, so a drag begun while the sheet is still rising
+   wins regardless of stylesheet order.
+
+   `prefers-reduced-motion` is handled in sheet-drag.js rather than here: it
+   has to skip not only the transition but the wait for it, so that a
+   dismissal runs its close behaviour immediately instead of 200ms later. */
+.bottom-sheet__drag-handle,
 .bottom-sheet__header {
-  position: relative;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.sheet-overlay--dragging .bottom-sheet__drag-handle,
+.sheet-overlay--dragging .bottom-sheet__header {
+  cursor: grabbing;
+}
+
+/* Following the finger: no transition, no entry animation to fight. */
+.sheet-overlay--dragging .bottom-sheet {
+  animation: none;
+  transition: none;
+}
+
+.sheet-overlay--dragging .sheet-scrim {
+  animation: none;
+}
+
+/* Released short of the threshold — settles back to rest. */
+.sheet-overlay--settling .bottom-sheet {
+  animation: none;
+  transition: transform var(--duration-standard) var(--ease-spring);
+}
+
+.sheet-overlay--settling .sheet-scrim {
+  animation: none;
+  transition: opacity var(--duration-standard) var(--ease-spring);
+}
+
+/* Released past the threshold — leaves the way it arrived, then runs the
+   sheet's own close behaviour. Pointer-events off so nothing behind the
+   departing card can be tapped in the meantime. */
+.sheet-overlay--closing {
+  pointer-events: none;
+}
+
+.sheet-overlay--closing .bottom-sheet {
+  animation: none;
+  transition: transform var(--duration-quick) var(--ease-in);
+}
+
+.sheet-overlay--closing .sheet-scrim {
+  animation: none;
+  transition: opacity var(--duration-quick) var(--ease-in);
+}
+
+/* Sheet header (frames 29, 30, 31, 32 — see ui.js's sheetHeaderHTML): the
+   same centred drag-handle bar as .bottom-sheet__drag-handle, above a row
+   carrying the sheet's heading and its close control. Used in place of
+   .bottom-sheet__drag-handle on sheets that draw a close glyph.
+
+   The header sits OUTSIDE `.bottom-sheet__content`, so everything in it is
+   fixed while the sheet's body scrolls beneath — which is what keeps the
+   close control reachable from anywhere in a long sheet, and what stops
+   scrolled content ever passing behind the icon (the scroller clips at its
+   own top edge). See DECISIONS.md D19. */
+.bottom-sheet__header {
   flex: 0 0 auto;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
   padding-top: var(--space-md);
   width: 100%;
   box-sizing: border-box;
 }
 
+/* Heading and close control on one row. The heading takes the remaining
+   width (`flex: 1 1 0` + `min-width: 0`), so its text column ENDS where the
+   icon begins and a heading of any length wraps within it — two lines,
+   three, or one at frame 33's Large text size. Nothing is clipped and
+   nothing runs underneath, because the two never share horizontal space.
+
+   The row's horizontal padding is `.bottom-sheet__content`'s own, so the
+   heading starts on the same left margin as the body copy below it.
+   `align-items: flex-start` keeps a wrapped heading growing downward with
+   the icon held on its first line.
+
+   THE TOP PADDING HAS TO CLEAR THE CLOSE CONTROL'S OVERHANG, NOT THE
+   HEADING'S. `.bottom-sheet__close` below pulls its 48px touch target
+   upward by half the slack around its 24px glyph — 9px at the default text
+   size — so the target's top edge sits 9px above the heading's first line,
+   inside this padding. At `--space-lg` the box's top landed 7px under the
+   grabber: the heading read as starting immediately below the bar, and the
+   target was close enough to it that a downward drag begun on the grabber
+   and a tap on the close control were the same few pixels of screen.
+   `--space-2xl` — the sheet's own content padding — puts the heading 24px
+   below the grabber and still leaves the target 15px clear of it, so the
+   two controls are visibly separate things. */
+.bottom-sheet__title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-2xl) var(--space-2xl) var(--space-lg);
+  box-sizing: border-box;
+}
+
+.bottom-sheet__title {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* A plain icon, no container — the same way every other close and back
+   control in the app is drawn (`.app-bar__cell--action`,
+   `.form-step-header__cell--action`): a 24px title3 xmark in a transparent
+   48px box. It previously had a filled circular background and a 16px
+   glyph, which matched neither.
+
+   THE NEGATIVE MARGINS ARE WHAT ALIGN THE GLYPH RATHER THAN ITS BOX.
+   The touch target is 48px in both axes (D1) while the glyph inside it is
+   24px, so a box laid out flush against the row's padding edge would sit
+   the visible icon 12px in from the right margin and 9px below the
+   heading's first line — visibly misaligned with the very thing it is
+   supposed to line up with. Each margin is half the difference between the
+   glyph and the target, which pulls the BOX outward by exactly the slack
+   around the glyph and leaves the GLYPH aligned: its right edge on the
+   heading's right margin, its centre on the centre of the heading's first
+   line. The full 48px target is untouched — it simply overhangs into the
+   card's own edge padding and into the header's padding above.
+
+   Both formulas track --text-scale, because the glyph and the heading's
+   line height both do. */
 .bottom-sheet__close {
-  position: absolute;
-  top: 50%;
-  right: var(--space-lg);
-  transform: translateY(-50%);
-  width: var(--touch-target-min);
-  height: var(--touch-target-min);
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg);
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  margin-right: calc((var(--icon-size-title3) * var(--text-scale) - var(--touch-target-min)) / 2);
+  margin-top: calc((30px * var(--text-scale) - var(--touch-target-min)) / 2);
+  margin-bottom: calc((30px * var(--text-scale) - var(--touch-target-min)) / 2);
+  background: none;
   border: none;
-  border-radius: var(--radius-full);
-  cursor: pointer;
+  border-radius: 0;
   padding: 0;
+  color: var(--color-label);
+  cursor: pointer;
 }
 
 .bottom-sheet__content {
@@ -433,6 +603,21 @@
   flex-direction: column;
   gap: var(--space-lg);
   padding: 0 var(--space-2xl) var(--space-2xl);
+}
+
+/* The same 24px of head clearance on a sheet that has no title row to carry
+   it. 13b is the only one: its heading belongs to the video placeholder
+   inside the scroller, so it keeps the bare `.bottom-sheet__drag-handle`
+   rather than a header, and its first block otherwise began 12px under the
+   grabber. The handle is 28px tall (12 above the bar, the 4px bar, 12
+   below), so 12px more here matches the 24px every headed sheet now has.
+
+   Two classes, for the G39/G41 reason: `.bottom-sheet__content` above sets
+   the `padding` SHORTHAND at one class, and a shorthand at equal
+   specificity later in the file silently resets this longhand. Specificity
+   is what makes this hold, not source order. */
+.bottom-sheet__drag-handle + .bottom-sheet__content {
+  padding-top: var(--space-md);
 }
 
 .account-summary-card {
@@ -1561,4 +1746,164 @@
 .open-banking-row__arrow {
   flex: 0 0 auto;
   color: var(--color-label-secondary);
+}
+
+/* ============================================================ */
+/* /goals — the bank's own goals area (DECISIONS.md D21)         */
+/* ============================================================ */
+
+/* THE VISUAL SEPARATION BETWEEN THE TWO SECTIONS IS SPACE, NOT A RULE.
+   `.screen-content`'s own 16px gap is the spacing between everything else on
+   a screen, so two sections separated by 16px would read as one list with two
+   headings in it. 32px is the first step on the scale that reads as "these
+   are different things" without introducing a divider — and this app already
+   carries structure with surface and spacing rather than extra rules (see
+   DESIGN.md section 4: elevation is none, dividers are 1px and belong to
+   rows). Each section then has its own heading, its own caption and its own
+   card, which is three cues before any line is drawn. */
+.goals-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 100%;
+}
+
+.goals-screen > .goals-section + .goals-section {
+  margin-top: var(--space-lg);
+}
+
+.goals-section__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: 100%;
+}
+
+.goals-section__caption {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  font-weight: 400;
+  color: var(--color-label-secondary);
+}
+
+.goals-section__list {
+  padding: 0 var(--space-xl);
+}
+
+.goals-section__empty {
+  margin: 0;
+  padding: var(--space-lg) 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  color: var(--color-label-secondary);
+}
+
+/* One goal. Not a `.list-row`: nothing here navigates — /goals presents the
+   pots, it does not drill into them — so this is a presentational row with no
+   chevron and no touch target of its own. The 64px minimum is the reference
+   milestone row's height rather than the 48px control minimum, because it is
+   sizing a two-line block, not a tap. */
+.goals-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  min-height: 64px;
+  padding: var(--space-lg) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  box-sizing: border-box;
+}
+
+.goals-item:last-child {
+  border-bottom: none;
+}
+
+.goals-item__content {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.goals-item__name {
+  margin: 0;
+  font-size: calc(17px * var(--text-scale));
+  line-height: calc(24px * var(--text-scale));
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.goals-item__label {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  color: var(--color-label-secondary);
+}
+
+.goals-item__amount {
+  margin: 0;
+  flex: 0 0 auto;
+  font-size: calc(17px * var(--text-scale));
+  line-height: calc(24px * var(--text-scale));
+  font-weight: 600;
+  color: var(--color-label);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* The one card on this screen that leads into "Your first home". Same shape
+   as frame 01's `.entry-card` — title, body, then a bordered action row —
+   because it does the same job from the other side of the journey. */
+.goals-cta-card {
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  align-items: flex-start;
+}
+
+.goals-cta-card__title {
+  margin: 0;
+  font-size: calc(20px * var(--text-scale));
+  line-height: calc(26px * var(--text-scale));
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.goals-cta-card__body {
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label-secondary);
+}
+
+.goals-cta-card__action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: var(--touch-target-min);
+  margin-top: var(--space-xs);
+  padding: var(--space-md) 0 0;
+  border-top: 1px solid var(--color-border-subtle);
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.goals-cta-card__action-label {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 500;
+  color: var(--color-label);
 }

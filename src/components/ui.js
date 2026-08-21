@@ -27,6 +27,7 @@ import {
   starCircleFill,
   xmark,
   TAB_ICONS,
+  TAB_ICONS_ACTIVE,
 } from '../icons.js';
 
 /**
@@ -77,29 +78,84 @@ export function appBarHTML({ title, left = null, appBarLabels }) {
  * own — see D11 for why it is a deliberate deviation from the wireframes and
  * exempt from the screenshot-comparison pass.
  *
- * Only the Home tab resolves. The other four are exactly as inert here as
- * they already are on frame 01 — they are the surrounding bank app, which is
- * out of prototype scope — so they are rendered `disabled` and hidden from
- * assistive technology rather than left as tappable dead ends. Tapping the
- * Home tab from frame 01 itself is a no-op re-navigation to the route
- * already showing, which is the standard tab-bar behaviour for the active
- * tab.
+ * TWO TABS RESOLVE: Home, and — since /goals exists — Goals. The other three
+ * are exactly as inert here as they already are on frame 01: they are the
+ * surrounding bank app, out of prototype scope, so they are rendered
+ * `disabled` and hidden from assistive technology rather than left as
+ * tappable dead ends. Tapping the tab you are already on is a no-op
+ * re-navigation to the route already showing, which is the standard tab-bar
+ * behaviour for the active tab.
  *
- * router.js mounts this on every non-excluded route and wires
- * `data-action="nav-home"`; no screen module needs to render or bind it.
+ * `active` names which tab is lit. It is a parameter rather than a constant
+ * because the bar is genuinely a bank tab bar now: /goals is the bank's own
+ * goals area, and a tab bar that showed Home lit while the participant stood
+ * in Goals would be telling them they were somewhere they were not. Defaults
+ * to 'home', so every existing caller is unchanged.
+ *
+ * `NAVIGABLE_TABS` is the single list both this function and router.js's
+ * `mountBottomNav` read — one place decides which tabs are live, so a tab
+ * cannot be rendered enabled here and left unbound there (or the reverse,
+ * which is worse: a bound listener on a `disabled` button that never fires).
+ *
+ * router.js mounts this on every non-excluded route and wires the live tabs;
+ * no screen module needs to render or bind it.
  */
-export function bottomNavHTML(labels) {
+export const NAVIGABLE_TABS = { home: '/home', goals: '/goals' };
+
+/**
+ * THREE STATES, NOT TWO.
+ *
+ *   active     the current route IS this tab's destination. Full emphasis:
+ *              the indicator above the icon, a bold label, and the filled
+ *              icon variant. At most one tab, and only on /home and /goals.
+ *   enabled    tappable, but not where the participant is. Identical to a
+ *              disabled tab at rest — same colour, same weight, outline icon,
+ *              no indicator. It says it is tappable by responding to touch
+ *              (components.css), not by looking different standing still.
+ *   disabled   Payments, Insights, Profile. Reduced contrast, not focusable,
+ *              not tappable.
+ *
+ * The bar previously had two treatments and the difference between them was
+ * an accident: nothing set `color` on a tab, so an enabled tab inherited the
+ * full-strength label colour while a disabled one was greyed by the USER
+ * AGENT's own disabled styling. That made Goals on /home — enabled, not
+ * current — draw exactly as dark as Home, so it read as selected when it was
+ * not. Every state now sets its own colour, and the UA has no say.
+ *
+ * `active` is nullable and defaults to null: most screens in this app are
+ * inside the "Your first home" journey, which as far as the surrounding bank
+ * app is concerned is not any of its five tabs. Lighting Home on all of them
+ * would have claimed the participant was on the bank's home screen when they
+ * were ten steps into a mortgage calculator.
+ *
+ * ARIA CARRIES THE SAME THREE STATES, because the visual treatment
+ * deliberately does not distinguish enabled from disabled:
+ *   - `aria-current="page"` on the active tab only.
+ *   - `aria-disabled="true"` on the three disabled ones, alongside the real
+ *     `disabled` attribute. `disabled` is what makes them unfocusable and
+ *     untappable; `aria-disabled` is what states it, since these three were
+ *     previously `aria-hidden="true"` and so absent from the accessibility
+ *     tree entirely — a screen-reader participant could not tell there were
+ *     five tabs, let alone which were which. `tabindex="-1"` went with it:
+ *     redundant beside `disabled`, and misleading to leave in.
+ */
+export function bottomNavHTML(labels, { active = null } = {}) {
   const tab = (id, label) => {
-    const isHome = id === 'home';
+    const isLive = Object.prototype.hasOwnProperty.call(NAVIGABLE_TABS, id);
+    const isActive = isLive && id === active;
+    const hint = id === 'home' ? labels.homeTabHint : labels.goalsTabHint;
+    const glyph = (isActive ? TAB_ICONS_ACTIVE[id] : TAB_ICONS[id]);
     return `
       <button
         type="button"
-        class="bottom-nav__tab${isHome ? ' bottom-nav__tab--active' : ''}"
+        class="bottom-nav__tab${isActive ? ' bottom-nav__tab--active' : ''}"
         data-tab="${id}"
-        ${isHome ? `data-action="nav-home" aria-label="${labels.homeTabHint}"` : 'disabled aria-hidden="true" tabindex="-1"'}
+        ${isLive
+          ? `data-action="nav-tab" aria-label="${hint}"${isActive ? ' aria-current="page"' : ''}`
+          : 'disabled aria-disabled="true"'}
       >
-        ${isHome ? '<div class="bottom-nav__active-rule"></div>' : ''}
-        ${TAB_ICONS[id]({ size: 'body', className: 'bottom-nav__icon' })}
+        ${isActive ? '<div class="bottom-nav__active-rule"></div>' : ''}
+        ${glyph({ size: 'body', className: 'bottom-nav__icon' })}
         <span class="bottom-nav__label">${label}</span>
       </button>
     `;
@@ -500,17 +556,43 @@ export function chipRowHTML({ chips, selected, action }) {
  * — a header and up to 3 option-rows (amount, sub-label, technical figure),
  * plus the shared inline info link at the bottom.
  */
-export function optionComparisonCardHTML({ headerText, rows, infoLinkLabel, infoLinkAction }) {
+/**
+ * MARKING THE SELECTED ROW (frames 09 / 09b).
+ *
+ * The chip row above the card already shows the chosen deposit % as a filled
+ * pill, but the card listing three percentages for comparison marked none of
+ * them — so nothing on screen said which of the three figures the rest of the
+ * screen was actually built from. `row.selected` marks it.
+ *
+ * THREE CUES, ONLY ONE OF WHICH IS VISUAL:
+ *   1. `--selected` draws the 2px box outline (see components.css) — the same
+ *      treatment `.rate-band-row--highlighted` already uses on frames 15/16 to
+ *      mark the band matching the participant's own LTV. Same job, same
+ *      treatment, not a second invention.
+ *   2. `aria-current="true"` — the ARIA state for "the one within a set that
+ *      is current".
+ *   3. `selectedLabel`, rendered into the row as visually-hidden text. This is
+ *      the part that satisfies "not by colour alone" properly: 1.4.1 is about
+ *      colour, and an outline is a shape rather than a colour, but a shape is
+ *      still no use to a screen-reader participant. The hidden text puts the
+ *      same fact in the row's own announced content, after its figures.
+ *
+ * `aria-current` alone would not do it. On a `<div>` with no role it is a
+ * state on a generic element, and support for announcing it there is
+ * inconsistent — hence the text, which is read in flow by everything.
+ */
+export function optionComparisonCardHTML({ headerText, rows, infoLinkLabel, infoLinkAction, selectedLabel }) {
   return `
     <div class="card option-comparison-card" role="status" aria-live="polite">
       <h3 class="section-heading">${headerText}</h3>
       ${rows.map((row) => `
-        <div class="option-comparison-card__row">
+        <div class="option-comparison-card__row${row.selected ? ' option-comparison-card__row--selected' : ''}"${row.selected ? ' aria-current="true"' : ''}>
           <div class="option-comparison-card__left">
             <p class="option-comparison-card__amount">${row.amount}</p>
             <p class="option-comparison-card__sublabel">${row.sublabel}</p>
           </div>
           <p class="option-comparison-card__technical">${row.technical}</p>
+          ${row.selected && selectedLabel ? `<span class="visually-hidden">${selectedLabel}</span>` : ''}
         </div>
       `).join('')}
       ${infoLinkHTML({ label: infoLinkLabel, action: infoLinkAction })}
@@ -762,27 +844,57 @@ export function rateBandRowHTML({ label, sublabel, value, highlighted }) {
  * screen. Built for frame 06 but written generically (rows as data) since
  * the Figma component name marks it as a design-system piece likely reused
  * by the assumptions/results screens later.
+ *
+ * IT IS A DISCLOSURE, CLOSED ON LOAD (DECISIONS.md D12). Everything below
+ * the title collapses behind it — the intro, the rows and the nav row into
+ * the assumptions sheet. The title is the header, so the card reads as one
+ * line until it is asked for. D12's reasoning applies to this card exactly
+ * as it does to frames 05/06/19's accordions: a working-out a participant
+ * never chose to open cannot tell you whether they would have, and this is
+ * the largest always-open block in the flow — five screens, roughly a third
+ * of a phone screen each.
+ *
+ * IT SHARES `data-action="toggle-disclosure"` AND `data-disclosure-id` WITH
+ * `disclosureHTML` ABOVE, deliberately. Frame 06 now carries two collapsibles
+ * (its "What we used to check this" breakdown and this card), so a screen can
+ * no longer bind a single `querySelector('[data-action="toggle-disclosure"]')`
+ * — it binds them all and routes on the id. One action name keeps that one
+ * loop, rather than a second name every screen has to know about.
+ *
+ * The nav row lives INSIDE the collapsed region on purpose. It is the footer
+ * of the working-out, not a second entry point to it: leaving it visible
+ * while the card is closed would put an unexplained "how we worked out X"
+ * link directly under a heading that says the same thing, which is the
+ * duplication this card was just untangled from.
  */
-export function howThisWorksCardHTML({ title, intro, rows, navLabel, navAction, footnote }) {
+export function howThisWorksCardHTML({ id, open = false, title, intro, rows, navLabel, navAction, footnote }) {
+  const contentId = `how-this-works-content-${id}`;
   return `
-    <div class="card how-this-works-card">
-      <p class="how-this-works-card__title">${title}</p>
-      <p class="how-this-works-card__intro">${intro}</p>
-      <div class="how-this-works-card__rows">
-        ${rows.map((row) => `
-          <div class="how-this-works-card__row">
-            <p class="how-this-works-card__row-label">${row.label}</p>
-            <p class="how-this-works-card__row-value">${row.value}</p>
-            <p class="how-this-works-card__row-caption">${row.caption}</p>
-          </div>
-        `).join('')}
+    <div class="card how-this-works-card${open ? '' : ' how-this-works-card--closed'}">
+      <h3 class="how-this-works-card__heading">
+        <button type="button" class="how-this-works-card__header" data-action="toggle-disclosure" data-disclosure-id="${id}" aria-expanded="${open}" aria-controls="${contentId}">
+          <span class="how-this-works-card__title">${title}</span>
+          ${chevronUp({ size: 'body', weight: 'semibold', className: 'how-this-works-card__chevron' })}
+        </button>
+      </h3>
+      <div class="how-this-works-card__content" id="${contentId}"${open ? '' : ' hidden'}>
+        <p class="how-this-works-card__intro">${intro}</p>
+        <div class="how-this-works-card__rows">
+          ${rows.map((row) => `
+            <div class="how-this-works-card__row">
+              <p class="how-this-works-card__row-label">${row.label}</p>
+              <p class="how-this-works-card__row-value">${row.value}</p>
+              <p class="how-this-works-card__row-caption">${row.caption}</p>
+            </div>
+          `).join('')}
+        </div>
+        <button type="button" class="how-this-works-card__nav" data-action="${navAction}">
+          ${infoCircle({ size: 'body', className: 'info-link__icon' })}
+          <span class="how-this-works-card__nav-label">${navLabel}</span>
+          ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
+        </button>
+        ${footnote ? `<p class="how-this-works-card__footnote">${footnote}</p>` : ''}
       </div>
-      <button type="button" class="how-this-works-card__nav" data-action="${navAction}">
-        ${infoCircle({ size: 'body', className: 'info-link__icon' })}
-        <span class="how-this-works-card__nav-label">${navLabel}</span>
-        ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
-      </button>
-      ${footnote ? `<p class="how-this-works-card__footnote">${footnote}</p>` : ''}
     </div>
   `;
 }
@@ -876,23 +988,49 @@ export function nextStepsCardHTML({ title, steps }) {
 }
 
 /**
- * Sheet header (frames 29, 30, 31, 32): a centred drag handle with a
- * circular close button at the top right — distinct from every earlier
- * sheet (03b, 10c, 13b), which dismiss only via the scrim or a labelled
- * button and draw no close glyph in their reference PNGs. Introduced here
- * rather than duplicated four times because all four "Assumptions and
- * sources" sheets draw this exact header. `data-action="dismiss"` matches
- * the action name every other sheet already binds its scrim/button dismiss
- * handlers to, so one querySelectorAll('[data-action="dismiss"]') wires the
- * scrim, this button, and any other dismiss control together.
+ * Sheet header (frames 03b, 10c, 29, 30, 31, 32): a centred drag handle above
+ * a row holding the sheet's heading and, where the frame draws one, its close
+ * control. Introduced for the four "Assumptions and sources" sheets, which all
+ * draw this exact header, and since extended to every sheet that has a heading
+ * of its own so the head of a sheet is one shape across the feature.
+ *
+ * `closeLabel` IS OPTIONAL, AND ITS ABSENCE IS THE WHOLE POINT ON 03b/10c.
+ * Those two dismiss via the scrim or a labelled button ("Not now", "Keep
+ * going") and draw no close glyph in their reference PNGs; a second, unlabelled
+ * exit next to an explicit pair of choices would be a control this prototype
+ * invented. What they take from the header is its structure — the heading
+ * fixed above the scroller, on the same margins and with the same clearance
+ * below the grabber. Frame 13b takes neither: its only heading belongs to the
+ * video placeholder inside the scroller, so it keeps the bare drag handle.
+ *
+ * THE HEADING BELONGS TO THE HEADER, NOT THE SCROLLER (DECISIONS.md D19).
+ * It used to be the first child of `.bottom-sheet__content`, with the close
+ * control absolutely positioned over the top-right corner — which is what
+ * put a 48px circular button on top of the first line of the title. The
+ * close control has to share a row with the heading for the two to align
+ * and for the heading's text column to end where the icon begins; and that
+ * row has to sit outside the scroller, or the only way out of a sheet
+ * scrolls off the top of it. Both facts point at the same structure, so the
+ * heading moved up here.
+ *
+ * `data-action="dismiss"` matches the action name every other sheet already
+ * binds its scrim/button dismiss handlers to, so one
+ * querySelectorAll('[data-action="dismiss"]') wires the scrim, this button,
+ * and any other dismiss control together — and src/sheet-drag.js closes
+ * through this same button when the sheet is dragged down.
  */
-export function sheetHeaderHTML({ closeLabel }) {
+export function sheetHeaderHTML({ heading, headingId = 'sheet-heading', closeLabel }) {
   return `
     <div class="bottom-sheet__header">
       <div class="bottom-sheet__drag-handle-bar"></div>
-      <button type="button" class="bottom-sheet__close" data-action="dismiss" aria-label="${closeLabel}">
-        ${xmark({ size: 'footnote', weight: 'semibold' })}
-      </button>
+      <div class="bottom-sheet__title-row">
+        <h2 class="screen-title bottom-sheet__title" id="${headingId}">${heading}</h2>
+        ${closeLabel ? `
+        <button type="button" class="bottom-sheet__close" data-action="dismiss" aria-label="${closeLabel}">
+          ${xmark({ size: 'title3', className: 'app-bar__icon' })}
+        </button>
+        ` : ''}
+      </div>
     </div>
   `;
 }

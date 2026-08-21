@@ -13,8 +13,9 @@
 
 import { getState, setState, resetState, resetCollapsibles } from './state.js';
 import content from './content.js';
-import { bottomNavHTML } from './components/ui.js';
+import { bottomNavHTML, NAVIGABLE_TABS } from './components/ui.js';
 import { mountActionBars } from './action-bar.js';
+import { mountSheetDrag, dismissControlFor } from './sheet-drag.js';
 
 export const ROUTES = [
   '/home',
@@ -24,6 +25,7 @@ export const ROUTES = [
   '/consent/declined',
   '/position',
   '/position/summary',
+  '/goals',
   '/goal-check',
   '/calculator/property',
   '/calculator/saving',
@@ -139,6 +141,25 @@ const CALCULATOR_STEP_ROUTES = new Set([
 ]);
 
 /**
+ * Which tab bar entry is lit on which route — and on most routes, none is.
+ *
+ * A tab is active when the current route IS that tab's destination, which is
+ * true on exactly two screens. Everything else in the app is the "Your first
+ * home" journey, which is not one of the bank's five tabs: it is a feature
+ * reached FROM Home, not Home itself. Lighting Home on all 18 of those
+ * screens claimed the participant was on the bank's home screen while they
+ * were mid-way through a mortgage calculator, and left the bar with no way to
+ * show the one case where they really were on Home.
+ *
+ * Any route not listed gets `null`, which `bottomNavHTML` renders as "no tab
+ * active".
+ */
+const TAB_FOR_ROUTE = new Map([
+  ['/home', 'home'],
+  ['/goals', 'goals'],
+]);
+
+/**
  * Mounts the persistent tab bar on any route that should carry it.
  *
  * Called after the screen has rendered, and again by the observer below
@@ -150,25 +171,39 @@ const CALCULATOR_STEP_ROUTES = new Set([
  * bar genuinely persistent across those in-place re-renders without adding
  * a nav call to ~20 screen modules and having to remember it in the 21st.
  *
- * A no-op when the screen already drew its own bar (frame 01) or when the
- * bar is already mounted, so it neither duplicates nor churns the DOM.
+ * THIS FUNCTION IS THE ONLY PLACE THE BAR IS RENDERED OR BOUND. Frame 01
+ * used to draw its own copy, and the `querySelector` guard below — there to
+ * stop the observer re-appending on every mutation — then made this a no-op
+ * on exactly that screen, so frame 01's tabs were rendered and wired to
+ * nothing. Harmless while Home was the only live tab; not harmless once
+ * Goals resolved. The guard stays (the observer still needs it); what went
+ * is the second renderer.
  */
 function mountBottomNav(container, path) {
   if (BOTTOM_NAV_EXCLUDED_ROUTES.has(path)) return;
   if (container.querySelector('.bottom-nav')) return;
 
-  container.insertAdjacentHTML('beforeend', bottomNavHTML(content.shared.bottomNav));
+  // Which tab is lit is a fact about the route, not about the bar — and on
+  // most routes the answer is "none". See TAB_FOR_ROUTE above.
+  const active = TAB_FOR_ROUTE.get(path) ?? null;
+  container.insertAdjacentHTML('beforeend', bottomNavHTML(content.shared.bottomNav, { active }));
 
-  const homeTab = container.querySelector('[data-action="nav-home"]');
-  if (!homeTab) return;
-
-  homeTab.addEventListener('click', () => {
-    if (CALCULATOR_STEP_ROUTES.has(path)) {
-      setState({ returnFrame: path });
-      window.location.hash = '#/calculator/exit';
-      return;
-    }
-    window.location.hash = '#/home';
+  container.querySelectorAll('[data-action="nav-tab"]').forEach((tab) => {
+    const target = NAVIGABLE_TABS[tab.dataset.tab];
+    if (!target) return;
+    tab.addEventListener('click', () => {
+      // Leaving mid-calculator goes through 10c whichever tab is used to do
+      // it — build-spec.md section 1 already defines what leaving the
+      // calculator means, and that definition does not depend on which piece
+      // of chrome the participant reached for. `returnFrame` is what brings
+      // them back if they choose "Keep going".
+      if (CALCULATOR_STEP_ROUTES.has(path)) {
+        setState({ returnFrame: path });
+        window.location.hash = '#/calculator/exit';
+        return;
+      }
+      window.location.hash = `#${target}`;
+    });
   });
 }
 
@@ -215,9 +250,13 @@ function handleDialogTabTrap(event) {
   // to `[data-action="dismiss"]`, each with its own screen-specific close
   // behaviour (e.g. learn-ltv-video.js also sets ltvVideoSeen). Escape
   // reuses that existing, already-correct handler via a synthetic click
-  // rather than duplicating what each screen's dismiss does.
+  // rather than duplicating what each screen's dismiss does. The drag
+  // gesture (sheet-drag.js) closes through the very same control, found by
+  // the very same helper — that is why the selector lives there and is
+  // imported here, rather than being written out in both places and left to
+  // drift.
   if (event.key === 'Escape') {
-    const dismiss = dialog.querySelector('[data-action="dismiss"]') || document.querySelector('.sheet-scrim[data-action="dismiss"]');
+    const dismiss = dismissControlFor(container);
     if (dismiss) dismiss.click();
     return;
   }
@@ -319,6 +358,10 @@ function renderCurrentRoute() {
   // here rather than per screen so a screen added later inherits it, and
   // re-mounted by the observer below when a screen rebuilds itself.
   mountActionBars(container);
+  // Drag-to-dismiss on the grabber of whatever sheet just rendered
+  // (SPEC.md transition rules). Mounted generically for the same reason as
+  // the two above, and a no-op on the ~25 screens that are not sheets.
+  mountSheetDrag(container);
 
   if (enteringDialog) {
     focusIntoDialog(container);
@@ -343,8 +386,11 @@ export function startRouter() {
     mountBottomNav(container, parseHash().path);
     // The action bar is rebuilt along with everything else when a screen
     // re-renders itself, so its controller has to be rewired at the same
-    // point the tab bar is re-mounted.
+    // point the tab bar is re-mounted. The same applies to a sheet's
+    // grabber; `mountSheetDrag` marks the card it has wired, so re-entering
+    // here for an unrelated mutation costs one querySelector and stops.
     mountActionBars(container);
+    mountSheetDrag(container);
   }).observe(container, { childList: true });
 
   renderCurrentRoute();

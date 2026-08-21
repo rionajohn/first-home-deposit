@@ -26,6 +26,7 @@ import {
   nextStepsCardHTML,
   howThisWorksCardHTML,
   flagRowHTML,
+  rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { mipEstimatedLtv } from '../model/model.js';
@@ -88,6 +89,8 @@ export function render(container, ctx) {
       <p class="legal-text">${reg.adviserScope}</p>
 
       ${howThisWorksCardHTML({
+        id: 'mip-likely-how-we-worked',
+        open: state.mipLikelyHowWeWorkedOpen,
         title: c.howWeWorkedTitle,
         intro: summaryContent.howWeWorkedIntro,
         rows: [
@@ -117,6 +120,18 @@ export function render(container, ctx) {
   container.querySelector('[data-action="open-assumptions-borrowing"]').addEventListener('click', () => {
     setState({ returnFrame: '/mip/result/likely' });
     window.location.hash = '#/assumptions/borrowing';
+  });
+
+  // The card is a disclosure now (D12). rerenderInPlace, not a bare render:
+  // it restores the scroller's offset and refocuses the very button that was
+  // pressed (found by its data-action + data-disclosure-id), so the card
+  // opens under the participant's thumb rather than throwing the screen back
+  // to the top and dropping focus to <body>.
+  container.querySelectorAll('[data-action="toggle-disclosure"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const next = setState({ mipLikelyHowWeWorkedOpen: !state.mipLikelyHowWeWorkedOpen });
+      rerenderInPlace(container, render, { ...ctx, state: next });
+    });
   });
 
   container.querySelector('[data-action="keep-saving"]').addEventListener('click', () => {

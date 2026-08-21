@@ -2,8 +2,11 @@
  * App entry point: registers the built screens against the router and
  * starts it. Pages registered so far: "01 Entry and consent" (/home,
  * /journey, /consent, /consent/move-account, /consent/declined),
- * "02 Personalised savings" (/position, /position/summary, /goal-check —
- * frame 07 excluded per build-spec.md section 3's "Remove" marking), and
+ * "02 Personalised savings" (/position, /position/summary, /goals,
+ * /goal-check — frame 07 stays excluded per build-spec.md section 3's
+ * "Remove" marking, but its route out of the journey now lands on /goals,
+ * the bank's own goals area, rather than bouncing to frame 01: DECISIONS.md
+ * D21), and
  * "03 Deposit calculator" (/calculator/property, /calculator/saving,
  * /calculator/exit, /calculator/review, /calculator/result), and
  * "04 Understanding and tracking" (/learn/ltv, /learn/ltv/video, /tracker),
@@ -33,6 +36,7 @@ import { render as renderConsentMoveAccount } from './screens/consent-move-accou
 import { render as renderConsentDeclined } from './screens/consent-declined.js';
 import { render as renderPosition } from './screens/position.js';
 import { render as renderPositionSummary } from './screens/position-summary.js';
+import { render as renderGoals } from './screens/goals.js';
 import { render as renderGoalCheck } from './screens/goal-check.js';
 import { render as renderCalculatorProperty } from './screens/calculator-property.js';
 import { render as renderCalculatorSaving } from './screens/calculator-saving.js';
@@ -62,6 +66,7 @@ registerRoute('/consent/move-account', renderConsentMoveAccount);
 registerRoute('/consent/declined', renderConsentDeclined);
 registerRoute('/position', renderPosition);
 registerRoute('/position/summary', renderPositionSummary);
+registerRoute('/goals', renderGoals);
 registerRoute('/goal-check', renderGoalCheck);
 registerRoute('/calculator/property', renderCalculatorProperty);
 registerRoute('/calculator/saving', renderCalculatorSaving);

@@ -22,10 +22,12 @@
  * from src/config.js rather than typed here, so the name lives in exactly
  * one place across index.html, the manifest and these screens. It is used
  * ONLY where the string IS the product name (an app-bar title). Where the
- * words "your first home" appear inside a sentence — the /home entry card,
- * the /journey headline, the /consent/declined app-bar title — they are
- * English prose, not the name, and stay literal: substituting a variable
- * there would break the sentence the moment the name changed.
+ * words "your first home" appear inside a sentence — the /home entry card
+ * and the /journey headline — they are English prose, not the name, and stay
+ * literal: substituting a variable there would break the sentence the moment
+ * the name changed. (This list named /consent/declined's app-bar title as a
+ * third place until 21 August 2026, when that title stopped asserting a goal
+ * the participant had just declined to state — see the note on it below.)
  *
  * shared.regulatory is FIXED WORDING (SPEC.md, GAPS.md G24/G26/G28):
  * transcribed verbatim from the reference PNGs. Screens reference these
@@ -71,6 +73,7 @@ const content = {
     bottomNav: {
       ariaLabel: 'Primary',
       homeTabHint: 'Back to Home',
+      goalsTabHint: 'Your goals',
       home: 'Home',
       payments: 'Payments',
       goals: 'Goals',
@@ -190,7 +193,26 @@ const content = {
   },
 
   '/consent/declined': {
-    appBarTitle: 'Saving towards your first home',
+    // THE TITLE DESCRIBES THE SCREEN, NOT THE PARTICIPANT'S INTENT.
+    //
+    // It read "Saving towards your first home", which named a goal the
+    // participant has not stated — on the one screen that exists BECAUSE they
+    // just declined and gave nothing. This is the branch reached by tapping
+    // "Not now" on frame 03; asserting a goal at that exact moment is the
+    // app telling them what they want immediately after they said no.
+    //
+    // The live wording is the deliberate twin of `/consent`'s own
+    // "Using your accounts". These two screens are the two branches of one
+    // decision, so their titles now differ by exactly the thing the decision
+    // changed: whose figures are being used.
+    appBarTitle: 'Using general figures',
+
+    // Alternative, kept live in the file so a swap is a one-line move.
+    //
+    // Plainer, and shorter than any other app-bar title in the app — which
+    // may be the point on a screen whose whole message is "less than usual":
+    // appBarTitle: 'General figures',
+
     headline: 'A general picture, for now',
     body:
       "You can keep your account information private and still use this. We'll work from general figures, and you can switch to your own whenever you want.",
@@ -274,7 +296,6 @@ const content = {
     noAccountsBody:
       "You haven't assigned any accounts toward a deposit yet. Choose which ones count, and we'll track it from here.",
     noAccountsCta: 'Choose accounts',
-    assumptionsLinkLabel: 'How did we work this out?',
     disclosureTitle: 'What we used to check this',
     proportions: {
       essentialsLabel: 'Essentials',
@@ -287,7 +308,6 @@ const content = {
     essentialSpendingCaption: 'Worked out from your direct debits, standing orders and card payments',
     leftOverEachMonthLabel: 'Left over each month',
     leftOverEachMonthCaption: 'Worked out from your salary and your regular spending',
-    provenanceKeyLabel: 'How we worked these out',
     calculatorNote:
       "How much you put aside each month is entirely your call. You'll set that in the deposit calculator, where you can see what each amount would mean.",
     howWeWorkedTitle: 'How we worked this out',
@@ -309,10 +329,89 @@ const content = {
     },
     seeHowWeWorkedLabel: 'See how we worked this out',
     flagLabel: "Something doesn't look right",
-    decisionHeadline: 'Is a house still your goal right now?',
+    // "STILL" PRESUMED THE GOAL HAD ALREADY BEEN STATED.
+    //
+    // Two paths reach this card and only one of them has said anything about
+    // a house: the journey proper, and a participant who arrived cold from
+    // /goals (DECISIONS.md D22) and has been asked about a house exactly
+    // never. "Still" made the second one a question about a commitment they
+    // could not remember making.
+    //
+    // IT HAS TO STAY A REAL QUESTION. Its "no" is not a dead end — it routes
+    // to /goals, the bank's own goals area (D21) — so the wording must leave
+    // "no" genuinely open rather than framing it as abandoning something.
+    // Dropping "still" does that on its own: the question becomes about what
+    // they want now, which both paths can answer from a standing start.
+    //
+    // The live wording also pairs with the answers below it. It asks what
+    // they want to SAVE FOR; the secondary answers "save for something
+    // else". Question and answer share a verb, so the alternative is stated
+    // rather than implied.
+    decisionHeadline: 'Is a house what you want to save for?',
+
+    // Alternative, kept live in the file so a swap is a one-line move.
+    //
+    // Keeps the temporal framing the original had in "right now" — which is
+    // what makes "Not right now" a natural answer — without "still" carrying
+    // a prior commitment into it:
+    // decisionHeadline: 'Is a house the right goal for you now?',
+
     decisionBody: "Plans change, and that's fine. You can switch this later.",
     primaryCta: 'Yes, keep going',
     secondaryCta: 'Not right now - save for something else',
+  },
+
+  // The bank's own goals area, not part of "Your first home" — so the app-bar
+  // title is the bank's word for the section, not config.name, and there is no
+  // journey framing anywhere on the screen. The one link INTO the feature is
+  // `houseCardCta` below, which is the same job frame 01's entry card does.
+  '/goals': {
+    appBarTitle: 'Goals',
+    headline: 'Your goals',
+    body: "What you're putting money aside for, and how each one is doing.",
+    shortTermHeading: 'Short-term goals',
+    shortTermCaption: 'Things you are saving for now',
+    longTermHeading: 'Long-term goals',
+    longTermCaption: 'The bigger ones, further out',
+    savedLabel: 'Saved so far',
+    emptySectionBody: 'Nothing here yet.',
+    // THE CARD TITLE — ONE WORDING, WHATEVER THE STATE.
+    //
+    // The routing behind this card branches on whether the journey is under
+    // way (goals.js, DECISIONS.md D22); the copy deliberately does not. Most
+    // participants meet this card having never opened the feature, and a
+    // title that changed under them between two visits would be a second
+    // thing to notice on a screen whose job is to be unremarkable.
+    //
+    // It replaces "Want to calculate the deposit for your house?", which
+    // presumed a house the participant does not have. Note that frame 01's
+    // own entry card already gets this right — "Thinking about buying a
+    // house?", indefinite article — so the register was set, not invented.
+    //
+    // Two constraints on any replacement, both worth stating because they
+    // are easy to break:
+    //   - It sits directly above "House pot GBP 3,150" in the same section.
+    //     A title asking whether they are thinking about a home reads oddly
+    //     beside a pot they have evidently already opened for one, which is
+    //     why the live wording asks about the DEPOSIT rather than about the
+    //     intention.
+    //   - It must not echo `houseCardBody` below. "need", "take", "work out"
+    //     and "accounts" are all spoken for one line later.
+    houseCardTitle: 'What would a deposit actually involve?',
+
+    // Alternatives, kept live in the file so a swap is a one-line move.
+    //
+    // Closest to frame 01's entry card in construction, and the warmest of
+    // the three. Leaves the deposit entirely to the body and the CTA:
+    // houseCardTitle: 'Thinking about a first home?',
+    //
+    // Explicitly second person, and pitched at someone who has not begun —
+    // "where to start" says beginner without saying beginner:
+    // houseCardTitle: 'Where do you start with a deposit?',
+
+    houseCardBody:
+      "We'll work out what you'd need and how long it could take, using what's already in your accounts.",
+    houseCardCta: 'Work out my deposit',
   },
 
   '/goal-check': {
@@ -326,7 +425,6 @@ const content = {
     leftOverEachMonthCaption: 'Worked out from your salary and your regular spending',
     savingsInterestLabel: 'Savings interest',
     savingsInterestSuffix: 'AER (Annual Equivalent Rate)',
-    provenanceKeyLabel: 'How we worked these out',
     assumptionsLinkLabel: 'How did we work this out?',
     handoffHeading: 'The calculator asks you two things',
     propertyRowLabel: "The sort of property you're after",
@@ -345,13 +443,35 @@ const content = {
     stepLabel: 'Step 1 of 3',
     headline: 'What sort of property are you thinking about?',
     propertyValueLabel: 'Likely property value',
-    propertyValueHintEmpty: 'How much is the house likely to cost?',
+    // "THE house" ASSUMED A PROPERTY THE PARTICIPANT HAS NOT GOT.
+    //
+    // This is the hint on frame 09a — the empty state, where by definition
+    // nothing has been entered and nothing has been chosen. It sat directly
+    // under a neutral label ("Likely property value") and beside a neutral
+    // filled-state hint, so it was the only string on its own screen making
+    // that assumption.
+    //
+    // The live wording is the minimum change that fixes it: an indefinite
+    // article, and the label's own two words — "property" and "likely" —
+    // reused rather than a third vocabulary introduced one line below it.
+    propertyValueHintEmpty: 'How much is a property likely to cost?',
+
+    // Alternative, kept live in the file so a swap is a one-line move.
+    //
+    // Warmer, and leans on the headline directly above ("What sort of
+    // property are you thinking about?") rather than restating the label:
+    // propertyValueHintEmpty: 'Roughly what would a place like that cost?',
+
     propertyValueHintFilled: "A rough figure is fine - you can change it later",
     propertyValueAriaLabel: 'Likely property value',
     areaAverageCaption: 'The average first-time-buyer property in your area is around {amount}.',
     depositQuestionHeading: 'How much would you put down?',
     comparisonHeaderText: 'What each one means',
     comparisonSublabelTemplate: '{pct} deposit',
+    // Read out after the selected row's own figures, never drawn. The box
+    // outline marks the row for anyone who can see it; this is the same fact
+    // in text, so selection is not carried by the outline alone.
+    comparisonSelectedLabel: 'Selected. This is the figure the rest of this screen uses.',
     comparisonTechnicalTemplate: '{ltv} Loan-to-Value',
     ltvInfoLinkLabel: 'What is Loan-to-Value?',
     emptyStateCaption: "Enter a property value and we'll show you what each deposit %age would come to.",
@@ -430,11 +550,10 @@ const content = {
     rangeCaptionTemplate: 'Depending on whether you put down {lowPct} or {highPct}',
     goalTrackLabelTemplate: 'Your goal - {target}',
     provenanceCaption: "Worked out from what you've set aside and what you're putting away",
-    assumptionsLinkLabel: 'How did we work this out?',
+    assumptionsLinkLabel: 'How we worked out the deposit range',
     timingWithinTemplate: '{pct} - within {months}',
     timingRangeTemplate: '{pct} - {low} to {high}',
     timingAlreadyTemplate: "{pct} - you've already saved this",
-    provenanceKeyLabel: 'How we worked these out',
     chartHeading: 'How your savings would build up',
     chartCaptionTemplate: 'With interest at {aer} AER. Illustrative.',
     thresholdLabelTemplate: '{pct} - {amount}',
@@ -464,7 +583,7 @@ const content = {
     assumptionsBannerText: "These figures assume your saving stays the same and rates don't change.",
     howWeWorkedTitle: 'How we worked this out',
     howWeWorkedIntro: "We worked this out from what's already in your accounts, so you didn't have to fill anything in.",
-    seeHowWeWorkedLabel: 'See how we worked this out',
+    seeHowWeWorkedLabel: 'How we worked out your monthly saving',
     flagLabel: "Something doesn't look right",
     primaryCta: 'See what this means for borrowing',
     unreachableHeadline: 'Nothing being put aside yet',
@@ -475,7 +594,7 @@ const content = {
   '/learn/ltv': {
     appBarTitle: 'Loan-to-Value',
     headline: "Loan-to-Value decides the rate you're offered",
-    assumptionsLinkLabel: 'How did we work this out?',
+    assumptionsLinkLabel: 'How we worked out these rate figures',
     body:
       "It's the share of the property price you'd be borrowing. Put down more, and you borrow a smaller share - which lenders treat as less risky, so they offer a better rate.",
     depositPartLabel: 'Your deposit',
@@ -503,7 +622,7 @@ const content = {
     explainerDiagramDurationTemplate: 'The same {property} home at 95%, 90% and 85%',
     howWeWorkedTitle: 'How we worked this out',
     howWeWorkedIntro: "We worked this out from what's already in your accounts, so you didn't have to fill anything in.",
-    seeHowWeWorkedLabel: 'See how we worked this out',
+    seeHowWeWorkedLabel: 'How we worked out your monthly saving',
     flagLabel: "Something doesn't look right",
     primaryCta: 'Got it',
   },
@@ -551,7 +670,7 @@ const content = {
     rateCautionText:
       "These are typical market ranges, not rates we're offering you. The rate any lender offers depends on their checks and your circumstances.",
     rateBandDepositCaptionTemplate: '{pct} deposit',
-    assumptionsLinkLabel: 'How did we work this out?',
+    assumptionsLinkLabel: 'How we worked out these rate figures',
     thisMonthHeading: 'This month',
     savedLabel: 'Saved',
     savedRowCaption: 'Read from your transfers this month',
@@ -559,7 +678,7 @@ const content = {
     interestRowCaption: 'Read from your savings accounts',
     onTrackLabel: 'On track for',
     onTrackCaption: "Worked out from what you're putting aside each month",
-    provenanceKeyLabel: 'How we worked these out',
+    provenanceKeyLabel: 'How we worked out your monthly saving',
     flagLabel: "Something doesn't look right",
     belowCheckpointCta: 'Adjust my goal',
     checkpointReachedCta: 'Check my Mortgage in Principle',

@@ -44,6 +44,28 @@
  * and frame 06 tells the participant in as many words that it is not counted
  * toward a deposit. Counting it here would contradict the screen that follows.
  * Flip its flag below if that is the wrong call.
+ *
+ * ---------------------------------------------------------------------------
+ * `goalHorizon` — WHAT /goals SHOWS, AND WHY IT IS A FLAG AND NOT A SCREEN RULE
+ * ---------------------------------------------------------------------------
+ * `'short'`, `'long'`, or absent. Absent means "not a goal" — it is an
+ * account, and the bank's goals area does not list accounts.
+ *
+ * The rule it encodes is "a goal is a Pot with a purpose": the three Pots
+ * here carry it, the four savings accounts and the current account do not.
+ * A Cash ISA is where money sits, not something you are saving *for*.
+ *
+ * It lives on the account for the same reason `countsTowardDeposit` does —
+ * so /goals reads one field rather than re-deriving the classification from
+ * names or categories at render time, and so a pot added here appears in
+ * both places with one figure. The participant who saw "Holiday pot £420" on
+ * frame 03 sees £420 on /goals because it is literally the same `balance`.
+ *
+ * NOTHING ON /goals ADDS A FIGURE THAT IS NOT ALREADY HERE. No targets, no
+ * progress percentages, no projections — every one of those would be a
+ * number this prototype invented, and /goals presents no computed result. If
+ * a goal with a target is ever needed, add it as a field here, not in the
+ * screen.
  */
 
 export const MOCK_ACCOUNTS = [
@@ -61,6 +83,7 @@ export const MOCK_ACCOUNTS = [
   {
     id: 'house-pot',
     countsTowardDeposit: true,
+    goalHorizon: 'long',
     name: 'House pot',
     category: 'Pot',
     balance: 3150,
@@ -99,6 +122,7 @@ export const MOCK_ACCOUNTS = [
     id: 'emergency-fund',
     // A Pot by type, but held for emergencies — see the header note.
     countsTowardDeposit: false,
+    goalHorizon: 'short',
     name: 'Emergency fund',
     category: 'Pot',
     balance: 5600,
@@ -120,8 +144,11 @@ export const MOCK_ACCOUNTS = [
   },
   {
     id: 'holiday-pot',
-    // A Pot by type, but a short-term goal, not a house deposit.
+    // A Pot by type, but a short-term goal, not a house deposit. The reason
+    // it is excluded from the deposit is the same reason it is a goal in its
+    // own right on /goals.
     countsTowardDeposit: false,
+    goalHorizon: 'short',
     name: 'Holiday pot',
     category: 'Pot',
     balance: 420,
@@ -131,6 +158,32 @@ export const MOCK_ACCOUNTS = [
 ];
 
 export const GROUP_ORDER = ['unassigned', 'deposit', 'emergency', 'excluded'];
+
+/** The two sections /goals draws, in the order it draws them. */
+export const GOAL_HORIZONS = ['short', 'long'];
+
+/**
+ * The bank's goals area, grouped by horizon: `{ short: [...], long: [...] }`.
+ *
+ * Takes the same `effectiveAccounts()` list every other screen works from,
+ * so a 03b move or a select-all is reflected here without /goals knowing
+ * either control exists. Order within a section follows MOCK_ACCOUNTS, which
+ * is the order frame 03 lists them in — so a participant reading down the
+ * two screens meets the same pots in the same sequence.
+ *
+ * `excludeFromTotal` is irrelevant here and deliberately not consulted: it
+ * governs whether an account contributes to frame 03's totals, and /goals
+ * shows each pot's own balance rather than any total.
+ */
+export function goalsByHorizon(accounts) {
+  const sections = { short: [], long: [] };
+  for (const account of accounts) {
+    if (account.goalHorizon && sections[account.goalHorizon]) {
+      sections[account.goalHorizon].push(account);
+    }
+  }
+  return sections;
+}
 
 /**
  * Mock monthly position for frame 05/05b (money-in, essential-spending —

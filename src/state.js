@@ -78,6 +78,20 @@ const COLLAPSIBLE_DEFAULTS = {
   mipAskedOpen: false,
   mipBenefitsOpen: false,
   mipAwareOpen: false,
+  // The "How we worked this out" card (components/ui.js's
+  // howThisWorksCardHTML) on frames 06, 12, 13, 20 and 21. One key each, for
+  // the same reason 05 and 06 have separate breakdown keys: opening the card
+  // on the results screen must not pre-open it on the tracker or the LTV
+  // explainer, or the second screen stops measuring anything.
+  //
+  // Frame 06 now holds TWO collapsibles — its breakdown above and this card —
+  // so its toggle handler routes on `data-disclosure-id` rather than binding
+  // the first match.
+  summaryHowWeWorkedOpen: false,
+  resultHowWeWorkedOpen: false,
+  ltvHowWeWorkedOpen: false,
+  mipLikelyHowWeWorkedOpen: false,
+  mipNotYetHowWeWorkedOpen: false,
 };
 
 function defaultState() {

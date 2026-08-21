@@ -105,9 +105,8 @@ export function render(container, ctx) {
     <div class="sheet-overlay">
       <div class="sheet-scrim" data-action="dismiss"></div>
       <div class="bottom-sheet sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-heading">
-        ${sheetHeaderHTML({ closeLabel: content.shared.appBar.closeLabel })}
+        ${sheetHeaderHTML({ heading: c.heading, closeLabel: content.shared.appBar.closeLabel })}
         <div class="bottom-sheet__content">
-          <h2 class="screen-title" id="sheet-heading">${c.heading}</h2>
           <p class="body-text-lg">${c.intro}</p>
 
           <h3 class="section-heading">${c.readHeading}</h3>

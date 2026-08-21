@@ -34,11 +34,11 @@ import {
   infoLinkHTML,
   howThisWorksCardHTML,
   emptyStateCardHTML,
+  rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent, formatMonthsDuration } from '../format.js';
 import { balanceAtMonth, monthsToReachAmount, checkpointAmount, monthsToTarget } from '../model/model.js';
 import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS } from '../model/rates.js';
-import { chevronRight } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
 
@@ -121,10 +121,6 @@ export function render(container, ctx) {
       `}
 
       <p class="legal-text">${reg.estimateDisclosure}</p>
-      <button type="button" class="list-row" data-action="open-provenance-key">
-        <span class="list-row__label">${c.provenanceKeyLabel}</span>
-        ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
-      </button>
 
       ${unreachable ? '' : `
         <h3 class="section-heading">${c.chartHeading}</h3>
@@ -175,6 +171,8 @@ export function render(container, ctx) {
       ${infoBannerHTML(c.assumptionsBannerText)}
 
       ${howThisWorksCardHTML({
+        id: 'result-how-we-worked',
+        open: state.resultHowWeWorkedOpen,
         title: c.howWeWorkedTitle,
         intro: c.howWeWorkedIntro,
         rows: [
@@ -195,17 +193,24 @@ export function render(container, ctx) {
     window.location.hash = '#/calculator/review';
   });
 
+  // The card is a disclosure now (D12). rerenderInPlace, not a bare render:
+  // it restores the scroller's offset and refocuses the very button that was
+  // pressed (found by its data-action + data-disclosure-id), so the card
+  // opens under the participant's thumb rather than throwing the screen back
+  // to the top and dropping focus to <body>.
+  container.querySelectorAll('[data-action="toggle-disclosure"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const next = setState({ resultHowWeWorkedOpen: !state.resultHowWeWorkedOpen });
+      rerenderInPlace(container, render, { ...ctx, state: next });
+    });
+  });
+
   container.querySelector('[data-action="open-assumptions-deposit"]').addEventListener('click', () => {
     setState({ returnFrame: '/calculator/result' });
     window.location.hash = '#/assumptions/deposit';
   });
 
   container.querySelector('[data-action="open-assumptions-saving"]').addEventListener('click', () => {
-    setState({ returnFrame: '/calculator/result' });
-    window.location.hash = '#/assumptions/saving';
-  });
-
-  container.querySelector('[data-action="open-provenance-key"]').addEventListener('click', () => {
     setState({ returnFrame: '/calculator/result' });
     window.location.hash = '#/assumptions/saving';
   });

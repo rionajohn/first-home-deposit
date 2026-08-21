@@ -29,6 +29,7 @@ import {
   riskWarningHTML,
   howThisWorksCardHTML,
   infoBannerHTML,
+  rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import {
@@ -174,6 +175,8 @@ export function render(container, ctx) {
       </div>
 
       ${howThisWorksCardHTML({
+        id: 'ltv-how-we-worked',
+        open: state.ltvHowWeWorkedOpen,
         title: c.howWeWorkedTitle,
         intro: c.howWeWorkedIntro,
         rows: [
@@ -193,6 +196,18 @@ export function render(container, ctx) {
 
   bindAppBarBack(container, () => {
     window.location.hash = `#${returnFrame}`;
+  });
+
+  // The card is a disclosure now (D12). rerenderInPlace, not a bare render:
+  // it restores the scroller's offset and refocuses the very button that was
+  // pressed (found by its data-action + data-disclosure-id), so the card
+  // opens under the participant's thumb rather than throwing the screen back
+  // to the top and dropping focus to <body>.
+  container.querySelectorAll('[data-action="toggle-disclosure"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const next = setState({ ltvHowWeWorkedOpen: !state.ltvHowWeWorkedOpen });
+      rerenderInPlace(container, render, { ...ctx, state: next });
+    });
   });
 
   container.querySelector('[data-action="done"]').addEventListener('click', () => {

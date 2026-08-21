@@ -9,7 +9,7 @@
  */
 import { formatAccountBalance } from '../format.js';
 import { MOCK_ACCOUNTS, accountFigures } from '../model/accounts.js';
-import { actionBarDockHTML } from '../components/ui.js';
+import { sheetHeaderHTML, actionBarDockHTML } from '../components/ui.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -44,9 +44,8 @@ export function render(container, ctx) {
     <div class="sheet-overlay">
       <div class="sheet-scrim" data-action="dismiss"></div>
       <div class="bottom-sheet sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-heading">
-        <div class="bottom-sheet__drag-handle"><div class="bottom-sheet__drag-handle-bar"></div></div>
+        ${sheetHeaderHTML({ heading: c.heading })}
         <div class="bottom-sheet__content">
-          <h2 class="screen-title" id="sheet-heading">${c.heading}</h2>
           <div class="account-summary-card">
             <p class="account-summary-card__name">${account.name}</p>
             <p class="account-summary-card__balance">${formatAccountBalance(account.balance)}</p>

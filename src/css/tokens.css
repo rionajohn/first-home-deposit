@@ -173,6 +173,12 @@
   --ease-standard: cubic-bezier(0.42, 0, 0.58, 1); /* easeInEaseOut */
   --ease-out: cubic-bezier(0, 0, 0.58, 1);          /* easeOut */
   --ease-in: cubic-bezier(0.42, 0, 1, 1);           /* easeIn */
+  /* The settle a sheet makes when a drag is released short of the dismiss
+     threshold (src/sheet-drag.js). Fast off the mark and long in the tail,
+     which is what reads as "spring"; deliberately NOT an overshooting curve,
+     because a sheet that overshot past its resting position would lift off
+     the bottom edge of the phone screen and show scrim underneath it. */
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);    /* settle back, no overshoot */
 
   /* --- Color: light mode (default) ---
      label-tertiary, warning, border-strong, action-secondary-border and the

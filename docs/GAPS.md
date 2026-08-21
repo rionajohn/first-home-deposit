@@ -579,3 +579,409 @@ rule's 2px `margin-bottom` doubling with the row's 2px flex `gap`. Reproducing t
 geometry (56px bar, no inset padding) shows the same ~0.93px overflow, so it predates this work and
 is not caused by it. Fixing it would move frame 01's drawn tab bar by 2px against its reference
 PNG, which is not a change to make unasked.
+
+---
+
+**G41. The end of a screen read as a blurred or blank region — two causes, one of them G39 again.**
+Since the action-bar reveal landed (D17), several screens appeared to stop short: the last element
+dissolved into a flat band above the tab bar instead of the screen ending cleanly.
+
+**Cause 1 — the scroller's reserve for the bar never applied on a full screen.** D17 overlaps the
+bar onto the end of the scroller with a negative margin, and reserves the same height as padding
+*inside* the scroller so the last real content clears the bar. The margin applied; the padding did
+not. `.screen-content` sets the `padding` SHORTHAND further down `components.css`, at equal
+specificity, which reset the longhand to `var(--space-lg)`; the margin survived because a shorthand
+only resets its own longhands. Measured: computed `padding-bottom` **16px** where the rule asks for
+**153px**, and at the end of the scroll the last element sat **121px below the top of the bar** —
+fully behind it — on every overflowing full screen. This is precisely G39's failure, one selector
+away, on the file G39 was fixing; the sheet half was fixed then and the full-screen half was not.
+
+*Fix.* `.screen > .screen-content`, which beats the shorthand on specificity rather than on source
+order. The child combinator is exact: `.screen-content` is always a direct child of `.screen`
+(`src/action-bar.js` resolves it as `:scope > .screen-content`).
+
+**Cause 2 — the scroll affordance masked 193px of the screen.** The fade spanned the dock's full
+height plus 56px above it, painting solid `--color-bg` across the bar's own area. On a two-button
+screen that is 193px, **26% of the phone screen**, flat, at every scroll position while the bar was
+hidden — with real content underneath it. A card's top edge would scroll into view and dissolve into
+the slab. D17's reason for the slab was that a gradient above the dock would fade content out and
+then let it reappear legibly under an invisible bar; that is true of a gradient above the dock and
+false of one anchored to `bottom: 0`, because the dock's bottom edge is the scroller's bottom edge
+and there is nowhere below it to reappear.
+
+*Fix.* 56px, `bottom: 0`, a plain two-stop gradient. Content behind the hidden bar stays legible
+until it reaches the bottom edge instead of dissolving 137px early.
+
+*Status: resolved.* Measured across all 33 screens at 390px and 1440px — **406 assertions, 0
+failures**:
+
+- the scroller reserves the bar's height plus the normal clearance and nothing more, on every screen
+  that has a bar;
+- at the end of the scroll the last element clears the bar by **16px** on full screens and **24px**
+  on sheets, at both breakpoints — never behind it;
+- the affordance is shown exactly on the screens where content is genuinely below the readable
+  region, and nowhere else; it is gone at the end of every scroll;
+- no screen overflows on the clearance alone — that is, no screen shows the affordance for reserved
+  space rather than for content.
+
+**Two things measured and deliberately left alone.**
+
+*The gap above a pinned bar on a screen whose content fits.* On 05, 05b, 17 and `/mip/adviser` there
+is background between the last element and the action bar: 194px, 194px, 117px and 361px at 390px;
+109px, 109px, 32px and 276px at 1440px. This is a pinned bar on a short screen, it matches the
+reference frames, and it predates D17 — the bar was always visible before and the gap was the same.
+Closing it would mean un-pinning the bar so it floated up under the content, and mechanically the
+tab bar would float with it, since both are flex children of the same column. Not changed.
+
+*The last 137px of a scroll, before the bar arrives.* Between the last element passing the bottom of
+the scroller and the scroll reaching its stop, there is background below the last element and no bar
+yet — up to the bar's own height. The old 193px slab hid this by masking the whole zone at all
+times, which is the cure being worse than the disease. Rendered and inspected at 80px from the end:
+the last element ends and ~64px of background sits below it, which reads as the ordinary bottom of a
+page rather than a defect. Revealing the bar earlier — as soon as the reserve enters view — would
+close it, but the bar would then appear on top of the last element and cover it, so it trades a
+transient gap for a covered paragraph. Left as is; raise it if participants read it as the screen
+having ended.
+
+---
+
+**G42. The close control on 29-32 sat on top of the heading, in a circle nothing else in the app
+wears.** The reference PNGs for all four "Assumptions and sources" sheets draw a filled grey circle
+at the top right of the card, above the heading. Two problems with what was built from that:
+
+1. *The circle is inconsistent with the feature's own close and back controls.* Every other one —
+   `.app-bar__cell--action` on 15 screens, `.form-step-header__cell--action` on the six calculator
+   steps — is a plain 24px `title3` glyph in a transparent 48px box. The sheet's was a 16px
+   `footnote` glyph on a filled `--color-bg` disc, so the one control that appears on the sheets a
+   participant reaches *from* those screens looked like a different control.
+2. *It overlapped the title.* The button was `position: absolute; top: 50%` against a header whose
+   own height was only the drag bar plus 12px of padding, so a 48px button centred on that band
+   hung down into the first line of the heading below it.
+
+*Status: resolved — the circle is gone and the heading moved into the header row beside the glyph;
+see `DECISIONS.md` D19. The resulting layout deviates from the reference PNGs for these four frames
+(no circular background, heading pinned above the scroller rather than scrolling with it), so
+frames 29, 30, 31 and 32 are **exempt from the screenshot-comparison pass for the sheet header**. A second pass on the same header added the head clearance the complaint was really about: the title row's top padding was `--space-lg`, and because the close control's 48px target hangs 9px above the heading's first line, that put the target 7px under the grabber. It is `--space-2xl` now - heading 24px below the grabber, target 15px clear of it. The same header was extended to frames 03b and 10c, whose headings had the identical 12px-below-the-grabber problem inside the scroller, and 13b took the matching 24px as scroller padding. 03b and 10c take the header's structure only: `closeLabel` is optional and they pass none, because neither reference PNG draws a close control and both already carry a labelled way out.
+Everything below the header still matches.*
+
+---
+
+**G43. A divider through frame 32's caption — one line missing from a shared component, and the
+sheet scroller was the half of the pair that never got it.** The caption "You'd reconfirm this
+permission periodically" had `.open-banking-row`'s own border-bottom running through it.
+
+*Cause.* `components.css` gives the full-screen scroller `.screen-content > * { flex: 0 0 auto; }`,
+with a long note explaining why: a flex column's items default to `flex-shrink: 1`, so when the
+content is taller than the box the items are compressed BELOW their content height instead of the
+box scrolling. A plain text block survives that (its automatic minimum size protects it); a row that
+sets its own `min-height` does not, because an explicit min-height REPLACES the automatic minimum.
+`.bottom-sheet__content` is the other scrolling flex column in this app and never got the matching
+rule. Measured on frame 32, at 390px:
+
+| | box height | height its content needs | border-to-caption clearance |
+|---|---|---|---|
+| Default text, before | 48px | 91px | **-6.5px** (through the caption) |
+| Default text, after | 91px | 91px | +15.0px |
+| Large text, before | 48px | 121px | **-21.3px** |
+| Large text, after | 121px | 121px | +15.2px |
+
+The rows were the only things that could shrink — everything else in these sheets is text, protected
+by its automatic minimum — so one or two children absorbed the whole of the overflow rather than it
+being spread thin across the screen. That is why the damage looked local, and why it more than
+tripled at Large text.
+
+*Second instance, same cause.* 13b's `.flag-row` ("Something doesn't look right") was squeezed from
+the 49.3px it needs to 48px at Large text — 1.2px, not yet a visible collision, one text-size step
+away from being one. Both are direct children of `.bottom-sheet__content`; the rows inside
+`.assumptions-list` on 29-32 were never squeezed, because the list itself has no `min-height` and so
+could not shrink, which protected its children transitively.
+
+*Status: resolved — `.bottom-sheet > .bottom-sheet__content > * { flex: 0 0 auto; }` in
+`screens.css`, deliberately at two classes of specificity so it cannot lose to a later single-class
+rule, which is the G41 failure mode. Verified by measuring the RESOLVED `flex-shrink` (0) and the
+rendered geometry, not by the rule's presence. `scripts/overlap.test.mjs` now asserts both
+conditions on all 32 frames at both text sizes, and was checked against the unfixed stylesheet: it
+fails on exactly these three cases (32 default, 32 large, 13b large) and passes everywhere else.*
+
+---
+
+**G44. Frame 12's threshold labels paint over the bars they sit among. OPEN — needs a design
+decision.** Found by the same audit, different mechanism, not fixed.
+
+`.growth-chart__threshold-label` is absolutely positioned at `left: 48px` with
+`transform: translateY(50%)` and an opaque `--color-bg` background, so it sits centred ON its
+threshold line and knocks a gap in it. Masking the line is clearly deliberate and it works: the
+label text stays legible. What is not deliberate is that the same opaque plate also covers whatever
+bars are behind it. Measured at 390px with a £280,000 property at £500 a month:
+
+| Text size | Label | Bars it paints over |
+|---|---|---|
+| Default | "10% - £28,000" | 6 bars, **2 of them erased completely** |
+| Default | "5% - £14,000" | 4 bars, 20-26% of each |
+| Large | "10% - £28,000" | 8 bars, 2 erased completely |
+| Large | "5% - £14,000" | 4 bars, 23-30% of each |
+
+The first four bars read as three stacked blocks rather than one bar. The reference PNG does not
+show this because its own figures (a £190,000 property at £200-£310 a month) leave the left of the
+plot area empty — so this is not a deviation from the reference, it is the same layout meeting
+larger figures, and it is reachable with ordinary participant input.
+
+*Why it is not fixed here.* Every available fix is a design choice the spec does not make: move the
+label above its line (which is where the reference draws it, but it can then sit over a bar with no
+plate at all), drop the plate and let the line run through the text, right-align the labels into
+whatever space is free, or reserve a left gutter outside the plot area. `CLAUDE.md`: where the spec
+is silent, record it and ask rather than guess. *Status: open — needs a decision on where a
+threshold label goes when the bars reach it.*
+
+---
+
+**G45. Three phrasings of one idea, two of them on the same screen going to the same sheet - and
+one that went nowhere at all.** The flow carried "How did we work this out?" (an underlined
+`.info-link`), "How we worked these out" (a `.list-row` with a chevron) and "See how we worked this
+out" (the nav row inside `howThisWorksCardHTML`). All four assumptions sheets share the heading
+"How we worked this out", so a participant could not tell from a screen whether two of these led to
+the same place. Audited across all 17 controls on 13 screens:
+
+| Screen | Controls | Sheets they opened |
+|---|---|---|
+| 06 `/position/summary` | 2 | **29, 29** - same sheet, two controls |
+| 12 `/calculator/result` | 3 | 30, **29, 29** - two of the three same sheet |
+| 13 `/learn/ltv` | 2 | 30, 29 - different sheets, near-identical wording |
+| 15/16 `/tracker` | 2 | 30, 29 - different sheets, near-identical wording |
+| 04, 08, 10, 10b, 11, 20, 21 | 1 each | unambiguous, left alone |
+| 05, 05b | 2 | 29, 32 - different sheets, wording already distinguishes them |
+
+*Also found, and separately.* **Frame 21's card nav row had never been bound.** It rendered
+`data-action="open-assumptions-borrowing"` from the day the screen was built and no listener was
+ever attached, so "See how we worked this out" on 21 did nothing at all - frame 20 binds the
+identical row. The borrowing sheet was still reachable from 21, but only through the action bar's
+"See what changes this" secondary. A single-match `querySelector` is not what hid it; nothing
+queried for it. This is the kind of defect a rendered-DOM check catches and reading the file does
+not.
+
+*Status: resolved - see `DECISIONS.md` D20 for what was merged, what was reworded and why the
+card's nav row is the control that survives a merge. Verified in a browser at 390px: all 15
+surviving controls reach the sheet they name, all four sheets render standalone, and the DUAA row
+of `SPEC.md`'s anchor map still holds for every screen it lists.*
+
+---
+
+**G46. Frame 09's comparison card marked none of its three rows as the chosen one.** The chip row
+above it shows the selected deposit percentage as a filled pill, and the card below lists three
+neighbouring percentages with their deposit amounts and Loan-to-Values - but nothing in the card
+said which of the three the rest of the screen was built from. The participant had to carry the
+percentage from the pill and re-find it in the sublabels.
+
+It matters more than it looks, because the card is the screen's whole comparison: the deposit
+target, the loan amount and the LTV that frames 10 to 13 all inherit come from exactly one of those
+rows, and which one was only recoverable by reading back up.
+
+*Fixed with the treatment that already existed rather than a new one.* `.rate-band-row--highlighted`
+marks the rate band matching the participant's own Loan-to-Value on frames 15/16 - a 2px
+`--color-label` box at `--radius-sm` - which is the same job on a different screen.
+`.option-comparison-card__row--selected` uses the same values.
+
+*And not by the box alone.* The row also carries `aria-current="true"` and a visually-hidden
+"Selected. This is the figure the rest of this screen uses." A box outline is a shape rather than a
+colour, so it is not a 1.4.1 failure on its own terms, but it is no use to a screen-reader
+participant, and `aria-current` on a `<div>` with no role is announced inconsistently. The text is
+what actually carries it. `.visually-hidden` was added to `components.css` for this - the codebase
+had the technique inline on `.checkbox-row__input` but no reusable form of it.
+
+*Verified in a browser at 390px, all five percentages plus Large text:* exactly one row outlined,
+always the one the chip shows; 2px `rgb(23, 23, 28)` at 8px radius; changing the chip moves the
+outline with the scroller offset unchanged (178 -> 178) and focus still on the pressed chip; the
+divider above the outlined row suppressed; row heights 79/82/78, so the marked row differs from its
+neighbours by at most 4px.
+
+---
+
+**G47. Frame 01's tab bar was rendered by frame 01 and bound by nobody.** `home.js` drew its own
+copy of `bottomNavHTML`, and `router.js`'s `mountBottomNav` - which is what attaches the tab click
+listeners - returns early the moment it finds a `.bottom-nav` already in the DOM. That guard exists
+so the `MutationObserver` does not re-append the bar on every in-place re-render, and it did its job;
+it also meant frame 01's tabs had no listeners at all.
+
+This was harmless for as long as Home was the only tab that resolved, because tapping Home while on
+frame 01 is a no-op either way, and every other screen got its bar from the router. It stopped being
+harmless the moment Goals became live (`DECISIONS.md` D11, as amended): frame 01 then drew an
+enabled, focusable Goals button that did nothing, on the first screen a participant sees and on no
+other screen in the app.
+
+*Why the earlier verification missed it.* The D21 pass asserted `/tracker -> tap Goals -> #/goals`
+and checked the tab's rendered state on `/home`. Both passed. The rendered state on frame 01 was
+correct — `disabled=false`, `data-action="nav-tab"` — because that comes from the component; what
+was missing was the listener, which comes from the router, and no check clicked the tab on the one
+screen that renders its own bar. A state assertion and a behaviour assertion are not the same test.
+
+*Status: resolved — `home.js` no longer renders the bar, so `mountBottomNav` is the only thing that
+renders it and the only thing that binds it. Verified by clicking the Goals tab from frame 01:
+`#/home -> #/goals`, with Goals then lit and Home not.*
+
+---
+
+**G48. `/goals` reads account balances before consent has been given, and the calculator route out of
+it bounced through three guards.**
+
+Traced from a genuinely fresh session (nothing seeded, all 20 `build-spec.md` section 6 figures
+`null`, `consentGiven: null`, `mode: null`, `journeyStarted: false`): tap Goals on frame 01, then
+"Want to calculate the deposit for your house?".
+
+| | What happens |
+|---|---|
+| `/goals` renders | Emergency fund GBP 5,600, Holiday pot GBP 420, House pot GBP 3,150 — real balances, with no consent given |
+| CTA sets state | `goal: 'house'`, `returnFrame: '/goals'` — both written before any guard runs |
+| Hash chain | `/goals` -> `/goal-check` -> `/position/summary` -> `/position` -> `/consent` |
+| Guard 1 (frame 08) | `saved-toward-deposit` is null -> `/position/summary` |
+| Guard 2 (frame 06) | `left-over` is null -> `/position` |
+| Guard 3 (frame 05) | `money-in` is null -> `/consent` |
+| Participant lands on | Frame 03, "First, where do you keep your savings?" |
+| Back from there | `/journey` — frame 02, which they have never seen, with `journeyStarted` still `false` |
+
+*The calculator is never reached and never shows a wrong figure.* The three guards were written for
+deep links and reloads and they hold for this route too, which is the good news. Four open questions
+sit on top of that, all of them design rather than defect:
+
+1. **`/goals` itself is the actual bypass.** It reads `effectiveAccounts()` straight from
+   `MOCK_ACCOUNTS` and never consults `consentGiven`. Frame 03's whole premise is asking permission
+   to use account information; `/goals` uses it first. In the prototype's fiction these are the
+   bank's own pots, so it may be entirely intended — but it is worth deciding on purpose.
+2. **A tap that appears to do nothing has changed state.** `goal` and `returnFrame` are set before
+   the redirect. `returnFrame: '/goals'` is then wrong for the flow the participant is actually in:
+   frame 03's "Agree and continue" goes to `/position`, not back to `/goals`.
+3. **The redirect is silent.** Four hash changes in one tap, none of them animated (Drift D-7), and
+   nothing on the consent screen explains why a request to calculate a deposit produced a question
+   about where savings are kept.
+4. **Back from `/consent` goes forward.** `/journey` is frame 02, a screen this participant has not
+   seen, reached by pressing back.
+
+*Status: resolved 21 August 2026 — the `/journey` option, plus the state and back-navigation
+problems alongside it. See `DECISIONS.md` D22.*
+
+| Item | Outcome |
+|---|---|
+| 1. Pre-consent balances on `/goals` | **Left as they are, deliberately.** `/goals` is the bank's own goals area and the bank already holds those balances. Frame 03 asks permission to analyse income and outgoings and to assign accounts to a deposit — a new processing purpose, not permission to see money the bank can already see. Recorded as a decision rather than left implicit, precisely because it looks like a bypass and is not. |
+| 2. State written before the guards ran | **Fixed.** Nothing is written until the destination is settled. To frame 08: `goal` and `returnFrame`, because frame 08 renders. To frame 02: `journeyStarted` only — no `returnFrame` (it would sit in state for the rest of the journey and offer to return them to Goals from a sheet several screens later) and no `goal` (frame 06 asks that question, and D21 routes its "no" back to `/goals`). |
+| 3. The silent four-hop redirect | **Fixed.** The card branches on `journeyStarted && saved-toward-deposit !== null` and sends a cold arrival to frame 02 instead. Three hops, all of them the participant's own taps. |
+| 4. Back from `/consent` went forward | **Fixed by 3.** `/home -> /goals -> /journey -> /consent -> back -> /journey`: `/journey` is visited at hop 3 and returned to at hop 5. |
+
+*The both-flags test is the part worth keeping in mind.* Branching on `journeyStarted` alone would
+have left the original defect reachable: it is set by frame 01's entry card and by nothing else, so a
+participant who tapped that card, backed out, and came round through Goals would carry
+`journeyStarted: true` with every figure still null — and the guard chain would fire exactly as
+before, writing `returnFrame` for a flow they were not in. `saved-toward-deposit` is what frame 08's
+own guard tests, so testing it here is what guarantees the card never hands off to a screen that will
+redirect. A branch deciding a destination should ask the same question the destination's guard asks.
+Asserted directly: entry card tapped, then `/goals`, then the card → `#/journey`, `returnFrame` still
+`null`.
+
+---
+
+**G49. The tab bar had two treatments and neither of them was designed.** `.bottom-nav__tab` set no
+`color` at all. An enabled tab therefore inherited the document's full-strength `--color-label`,
+and a disabled one was greyed by the **user agent's** own `:disabled` styling — so the visual
+difference between "enabled" and "disabled" was a browser default the design system had never
+chosen, and the only two states the bar could express were "dark" and "grey".
+
+The consequence on `/home`: Goals is enabled but is not the current route, and it drew exactly as
+dark as Home. Two tabs at full strength, one of them with an indicator. It read as selected.
+
+A second, quieter problem sat beside it: `TAB_FOR_ROUTE` fell back to `'home'` for any unlisted
+route, so Home was lit on all 18 journey screens. That claimed the participant was on the bank's
+home screen while they were inside a mortgage calculator, and left the bar with no way to show the
+one case where they genuinely were on Home.
+
+*Resolved — three states, each declaring its own colour:*
+
+| | Rest appearance | Press | ARIA | Focusable |
+|---|---|---|---|---|
+| Active | indicator, bold label, filled icon, `--color-label` (17.86:1) | — | `aria-current="page"` | yes |
+| Enabled, not active | `--color-label-tertiary` (5.21:1), weight 400, outline icon | darkens to `--color-label` | none | yes |
+| Disabled | identical to the row above | none | `disabled` + `aria-disabled="true"` | no |
+
+Enabled and disabled are identical at rest **on purpose** — being tappable is carried by the press
+response, not by a rest-state difference, because a rest-state difference is what made an available
+tab read as the current one.
+
+*The three disabled tabs also stopped being `aria-hidden="true"`.* They were absent from the
+accessibility tree entirely, so a screen-reader participant could not tell there were five tabs, let
+alone which were which — which defeats the point of having ARIA carry the states that the visual
+treatment deliberately does not. `tabindex="-1"` went with it: redundant beside `disabled`.
+
+*Verified in a browser at 390px:* `/home` — Home active with `icon--house-fill`, Goals and the three
+disabled tabs all at `rgb(108, 108, 115)` weight 400 with no indicator; `/goals` — the two swap, and
+Home's icon returns to `icon--house`; nine journey routes with zero active tabs, zero
+`aria-current`, zero indicators and zero filled icons; exactly one `aria-current="page"` on each of
+the two routes that have one; focus order reaching `["home","goals"]` only.
+
+---
+
+**G50. Step 2 of the deposit calculator cannot render in general mode. OPEN - needs a design
+decision, deliberately not papered over.**
+
+Found by walking `/goals` -> "Work out my deposit" -> 09a -> 09 -> Continue from a genuinely fresh
+session with no consent given (`DECISIONS.md` D21, as amended). It is **not** caused by that route:
+`build-spec.md` section 1's own frame 04 row - "Continue with general figures" -> 09, `mode =
+general` - reaches the identical dead end, verified by walking that path too.
+
+| Step | What renders | Verdict |
+|---|---|---|
+| **09a** | Empty currency field, hint "How much is a property likely to cost?", no comparison card, empty-state copy in its place, no chip selected, Continue **disabled** | **Works.** The documented empty variant, exactly as `build-spec.md` section 2 describes it. |
+| **09** | Enter GBP 280,000: chip 10% selected, comparison card renders GBP 14,000 / GBP 28,000 / GBP 42,000 at 5/10/15%, 10% outlined, Continue enabled | **Works.** Everything on this step derives from `property-value` x `deposit-pct` and nothing else - neither of which needs an account. |
+| **10** | Nothing. Continue commits `deposit-target` 28,000, `loan-amount` 252,000, `ltv` 0.9 correctly, then `calculator-saving.js` line 68 returns to `/calculator/property`. Tapping Continue again does the same. | **BREAKS. An unbreakable loop.** |
+| **11, 12** | Unreachable | - |
+
+*The guard, verbatim:*
+
+```js
+if (state['left-over'].value === null || state['deposit-target'].value === null) {
+  window.location.hash = '#/calculator/property';
+  return;
+}
+```
+
+*Why it is a design gap and not a missing line of code.* `left-over` is `money-in` -
+`essential-spending` (`build-spec.md` section 4), both read from account activity. In general mode
+the bank has read nothing, so `left-over` does not exist and cannot be derived. And frame 10 does
+not merely display it - the whole step is **scaled** to it:
+
+```js
+const fillLeft  = (monthlyLow.value  / leftOver) * 100;
+const fillRight = (monthlyHigh.value / leftOver) * 100;
+```
+
+The monthly-saving slider's track runs from GBP 0 to "what's left each month once your essentials
+are covered". Without `left-over` there is no ceiling to draw, no range to place a handle in, and
+the screen's own caption ("{max} is what's left each month once your essentials are covered") has no
+value to fill. Committing a number here would be inventing a figure - `CLAUDE.md`'s first IMPORTANT
+rule - and it would be a figure about the participant's income, which is precisely the thing they
+declined to share.
+
+*What is NOT missing.* `generalMonthlyLow` / `generalMonthlyHigh` already exist as frame 04's own
+general-mode saving range, sourced and captioned ("Published UK average, not worked out from your
+accounts"). They are a monthly AMOUNT range, which is what `monthly-low` / `monthly-high` are - so
+the input frame 10 asks for has a general-mode source. What has no general-mode source is the
+CEILING the slider measures that amount against.
+
+*The options, none of which this pass takes.*
+
+1. **A general-mode variant of frame 10** whose slider is bounded by something other than
+   `left-over` - the published range's own maximum, say - with its own caption saying so. Closest to
+   how frame 04 already solves the same problem one screen earlier.
+2. **Skip step 2 in general mode**, carrying `generalMonthlyLow`/`generalMonthlyHigh` straight into
+   step 3 as the saving range, with a change link back to frame 04's slider.
+3. **Ask for the monthly amount without a ceiling** - a plain currency input rather than a slider,
+   since the constraint the slider expresses is the part that needs the account data.
+4. **Gate the calculator on consent**, and have the `/goals` card and frame 04 both route somewhere
+   that says so.
+
+`build-spec.md` section 2 has no row for frame 10 in general mode, which is why this is filed the
+same way as its own eleven "No frame drawn" rows: a state the build reaches that no wireframe
+covers. *Status: open - needs either a frame or a written rule before sessions.*
+
+*One further finding from the same walk, smaller and separate.* **Back from 09a on this route lands
+on the consent screen.** Frame 09's form-header back is hardcoded to `#/goal-check`, which guards on
+`saved-toward-deposit` and bounces through 06 and 05 to 03: `#/goals -> #/calculator/property ->
+#/position/summary -> #/consent`, three hops from one back tap. This is G48's pattern on a different
+control, and it survives because frame 09's back ignores `returnFrame` - which this route does now
+set to `/goals`. Not fixed here; it is the same decision as the above.
