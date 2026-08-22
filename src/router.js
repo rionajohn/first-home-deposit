@@ -1,7 +1,7 @@
 /**
  * Hash-based router — works on static hosting with no server config.
  * Routes are the build-spec.md section 3 screen inventory, exactly as
- * written there (query strings like ?mode=estimate select a state variant
+ * written there (query strings like ?solve=amount select a state variant
  * of a route, not a separate route — build-spec.md section 3's own note:
  * "Where two frames share a route they are variants of one screen, not two
  * screens.").

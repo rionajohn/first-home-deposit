@@ -1269,6 +1269,74 @@ drift.
 
 ---
 
+## D33. The savings-location question is confirmed gone, and the spec now says so
+
+**Date.** 22 August 2026.
+
+**Decision.** Frame 03's question about whether the participant's savings are held with this bank,
+its two options, and every screen and state reachable only through them were deleted under D28.
+This entry is the verification that nothing survived in code, plus the part D28 deliberately did
+not do: `build-spec.md` still documented the question, the branch and the frames as live, and now
+does not.
+
+**What the question was, and what was reachable only through it.** Recorded here because D28's
+change log lists the deletions without naming the branch as a branch:
+
+| Removed | Where it was |
+|---|---|
+| The question and its two options, "Yes, they're with you" / "No, they're elsewhere" | Frame 03 |
+| 04 Consent declined, and the general saving range it carried | `/consent/declined` |
+| 05b What we can see - estimate mode | `/position?mode=estimate` |
+| Frame 10's general-mode variant, which never rendered | `GAPS.md` G50 |
+| `mode`, `savingsWithUs`, `consentGiven`, `consentStatementChecked` | `state.js` |
+| `GENERAL_SAVINGS_RANGE`, `generalAnnualRange()` | `model/` |
+| `src/regulatory.js` and `shared.regulatoryAwaitingCheck` | whole file, one key |
+| Frame 33's "Data" control, whose three options were the modes | `/settings` |
+
+**What depended on the answer, and what each value now is.** This is the part worth being able to
+find again, because every one of these is a figure a participant sees:
+
+| Figure | What the answer changed | What it is now |
+|---|---|---|
+| `money-in`, `essential-spending` | Provenance `read` where the accounts were with the bank, `estimated` where they were not - frame 05 against 05b | Always `read`, seeded at session start from `MOCK_POSITION` |
+| `left-over` | Derived from those two, or never derived at all on the declined path, where it stayed null | Always `derived`. £380, from £2,240 less £1,860 |
+| `monthly-low` / `monthly-high`, the frame 10 slider ceiling | `left-over` in personalised mode; `GENERAL_SAVINGS_RANGE.max` in general mode, because `left-over` was null (D24) | Always `left-over`. `calculator-saving.js` reads `state['left-over'].value` and has no fallback |
+| The annual saving range on frame 04 | `generalAnnualRange()` - monthly x 12, no interest | Gone with the frame. The calculator's interest-bearing projection is the only one left |
+| The guidance-not-advice line | `regulatory.js` selected a second, uncleared line when nothing had been read (D27) | Gone. The FCA-checked line applies on every screen that carries one |
+
+No figure changed value. Each default above is what the consent path already produced, so the
+numbers in a session are the numbers D28's surviving path produced before this was written down.
+
+**The spec change.** `build-spec.md` sections 1, 2 and 7 lose the rows for the question, its two
+options, the two "Agree and continue" destinations, "Not now", all six frame 04 transitions, the
+three `savingsWithUs` variants, both frame 04 state rows, the 05b variant row, frame 10's
+general-mode row and frame 33's Mode control. The combined "05 / 05b" rows become "05". Section 1's
+frame 03 continue row now names what it actually commits.
+
+Section 3 keeps frames 04 and 05b with their route cleared and a status of "Removed - DECISIONS.md
+D28", rather than deleting them. Section 3 is the Figma-to-route mapping and the file's header
+makes frame names the system of record; those frames are still drawn in Figma, and a moderator
+comparing the prototype against the wireframes needs to see that the frame was dropped deliberately
+rather than missed. Section 3 already used a status of "Remove" for frame 07 on the same reasoning.
+This is a status in the file's own column, not a flag hiding live behaviour - sections 1, 2 and 7
+describe what the prototype does, and their rows are gone.
+
+**Not changed, deliberately.** `GAPS.md` is an audit log of what was found and when, not a live
+spec. Its G1-G11 enumeration quotes `build-spec.md` section 2's "No frame drawn" rows as they stood
+and now predates the removal of two of them; G18 quotes a frame 04 transition. Editing either would
+falsify a dated record. The count is stale by design, not by oversight.
+
+**One thing left for someone to decide.** `DECISIONS.md` carries two entries numbered D32 - the
+chevron corrections and the provenance captions - both already committed, and code comments cite
+"D32" for the second. Renumbering touches files with uncommitted work in them, so this entry takes
+D33 and leaves the collision visible rather than resolving it mid-flight.
+
+**Reversal.** The code is already the reversal point: nothing was deleted here. Restoring the
+question means reversing D28, which its own entry covers. Restoring the spec rows means reverting
+this commit's `build-spec.md` change alone.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -1311,4 +1379,5 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (close X) | D30 recorded: the app bar's leading cell splits into `app-bar-back` and `app-bar-close`, so the X leaves the journey via a new `exitFlow()` while the chevron keeps `goBack()`. New `journeyEntryPoint` state records `/home` or `/goals` on entry, because `returnFrame` names whichever screen opened the current sheet and cannot answer this. Frame 10c's "Leave" follows it; its X and "Keep going" do not. The sheet carve-out holds structurally - sheets dismiss through a different `data-action`. `replace()` does not unwind the flow, only the exited entry: back after an exit lands on the step before it. Amends D29. |
 | 22 August 2026 (rates fixed) | D31 recorded: every rate becomes explanatory. The "Change" links on the savings interest rate and tax rate rows are removed from frames 10/10b and 11, and frames 15/16's rates-card heading stops being a button; all six values keep their provenance captions. Frame 13 and 13b stay - they are comprehension content and change no rate - but the heading's route to frame 13 moves to an `infoLink` below the card, labelled "What a bigger deposit changes" (D25's own CTA wording) and rendered only in the checkpoint-reached and goal-met variants, where the below-checkpoint CTA that otherwise reaches frame 13 is absent. `savings-rate` (a monthly amount, not a rate) and deposit-percentage selection are unchanged. |
 | 22 August 2026 (chevron corrections) | D32 recorded: frames 13, 33 and 22 take the back chevron instead of the close X, none of them being a flow boundary; frame 22's "Done" moves to `goBack()` with it, dropping a `returnFrame` push that left the confirmation on the stack. `exitFlow` stops overwriting one entry and goes back by the difference between `history.length` now and at flow entry, measured at 4 and 9 steps on the two entry routes, falling back to D30's `replace` when the delta is missing or not positive. Amends D30. `GAPS.md` G57 and G58 opened. |
+| 22 August 2026 (bank-branch removal verified) | D33 recorded: the savings-location question and its branch confirmed absent from the code, and `build-spec.md` sections 1, 2 and 7 stripped of the rows that still documented them - the question, its two options, all six frame 04 transitions, the 05b variant, frame 10's general-mode row and frame 33's Mode control. Section 3 keeps frames 04 and 05b at status "Removed - DECISIONS.md D28", the frame inventory being the Figma mapping. Records what the answer used to change (frame 05 provenance, frame 10's slider ceiling, frame 04's annual range, D27's second guidance line) and what each is now. No figure changed value. `GAPS.md` left intact as a dated log. Completes D28. |
 | 22 August 2026 (provenance captions) | D32 recorded: every figure now states its source. `figureRowHTML` gains an optional caption in trailing mode - it was the one figure-bearing component without one, which is how frame 08's savings interest rate was shown with no source. Three captions were wrong rather than missing: the savings interest rate was credited to the participant's instant saver on frames 10/10b/11/32 when it is `RATES.bankRate` anchored to the Bank of England Bank Rate (D3), and the wrong claim had reached a code comment in `accounts.js`; essential spending was described three different ways, with frame 32 alone claiming a 6-month averaging window nothing performs; and frame 12 used one caption key for two different derivations. `bankRateCaptionTemplate`, `essentialSpendingCaption` and `leftOverCaption` move to `shared`, and the bank-rate caption resolves `{source}` from `RATES.source` so it cannot name a source the model did not use. Six new captions name two values each, a shape no existing caption had; frames 15/16's rate-band caption additionally names which figures it covers, because the row carries a rate from a different source. Frame 21's "at your current rate" - the one caption the `savings-rate` misnomer had corrupted - adopts frames 15/16's wording. |

@@ -72,7 +72,7 @@ const STORAGE_KEY = 'yfh-state';
  * Add a new disclosure? Add its key here and it inherits both rules.
  */
 const COLLAPSIBLE_DEFAULTS = {
-  // Frames 05 / 05b (What we can see) — build-spec.md section 1's "Toggle
+  // Frame 05 (What we can see) — build-spec.md section 1's "Toggle
   // the breakdown" row: breakdownOpen only, no figure changes.
   breakdownOpen: false,
   // Frame 06 (What we found) — same accordion pattern, its own key so

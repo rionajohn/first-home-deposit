@@ -13,35 +13,25 @@ One row per transition, including back paths and dismissals. "In file" means the
 | 02 Journey overview | "Show me what's possible" | 03 Consent and linked accounts | none | In file |
 | 02 Journey overview | "Not right now" | 01 Home | journeyStarted = false | In file |
 | 02 Journey overview | App bar back | 01 Home | none | Assumed |
-| 03 Consent and linked accounts | "Yes, they're with you" | 03 (in place) | mode = personalised | In file |
-| 03 Consent and linked accounts | "No, they're elsewhere" | 03 (in place) | mode = estimate; account list switches to estimate copy | In file |
 | 03 Consent and linked accounts | "Select all accounts" | 03 (in place) | Linked account row state = all-selected | In file |
 | 03 Consent and linked accounts | Tap a linked account row | 03b Move this account | selectedAccountId = row id; returnFrame = 03 | Assumed |
-| 03 Consent and linked accounts | "Agree and continue" (mode = personalised) | 05 What we can see | consentGiven = true; reads money-in, essential-spending, saved-toward-deposit, emergency-fund | In file |
-| 03 Consent and linked accounts | "Agree and continue" (mode = estimate) | 05b What we can see - estimate mode | consentGiven = true; unseen balances flagged prefilled-estimated | In file |
-| 03 Consent and linked accounts | "Not now" | 04 Consent declined | consentGiven = false; mode = general | In file |
+| 03 Consent and linked accounts | "Continue" | 05 What we can see | saved-toward-deposit, emergency-fund and unassigned recalculated from the account selection | Amended - DECISIONS.md D28 |
 | 03 Consent and linked accounts | App bar back | 02 Journey overview | none | Assumed |
 | 03b Move this account | Confirm move | 03 Consent and linked accounts | Account moved to the deposit set; saved-toward-deposit recalculated | Assumed |
 | 03b Move this account | "cancel" or scrim tap | 03 Consent and linked accounts | none | In file |
-| 04 Consent declined | Drag either slider handle | 04 (in place) | generalMonthlyLow, generalMonthlyHigh; annual range recalculated | In file |
-| 04 Consent declined | Type into the estimated range field | 04 (in place) | As above, entered rather than dragged; Figure state = entered | In file (annotation) |
-| 04 Consent declined | assumptions-link | 29 How we worked out your saving amount | returnFrame = 04 | In file |
-| 04 Consent declined | "Continue with general figures" | 09 Deposit calculator - property and deposit | mode = general; property-value seeded from area average only | Assumed |
-| 04 Consent declined | "I want to make it personalised" | 03 Consent and linked accounts | none - consent re-offered | In file |
-| 04 Consent declined | App bar back | 03 Consent and linked accounts | none | Assumed |
-| 05 / 05b What we can see | Tap the headline figure and type | 05 / 05b (in place) | left-over overridden; provenance/left-over = entered | In file (annotation) |
-| 05 / 05b What we can see | Toggle the breakdown | 05 / 05b (in place) | breakdownOpen only - no figure changes | In file (annotation) |
-| 05 / 05b What we can see | Provenance caption link | 32 Where these figures come from | returnFrame = 05 / 05b | Assumed |
-| 05 / 05b What we can see | Action bar continue | 06 What we found | left-over committed to the model | In file |
-| 05 / 05b What we can see | App bar back | 03 Consent and linked accounts | none | Assumed |
+| 05 What we can see | Tap the headline figure and type | 05 (in place) | left-over overridden; provenance/left-over = entered | In file (annotation) |
+| 05 What we can see | Toggle the breakdown | 05 (in place) | breakdownOpen only - no figure changes | In file (annotation) |
+| 05 What we can see | Provenance caption link | 32 Where these figures come from | returnFrame = 05 | Assumed |
+| 05 What we can see | Action bar continue | 06 What we found | left-over committed to the model | In file |
+| 05 What we can see | App bar back | 03 Consent and linked accounts | none | Assumed |
 | 06 What we found | "What we used to check this" | 32 Where these figures come from | returnFrame = 06 | In file |
 | 06 What we found | "Is a house still your goal right now?" - yes | 08 Ready for the calculator | goal = house | In file |
 | 06 What we found | "Is a house still your goal right now?" - no | /goals (bank goals area) | goal = other; journey ends | In file (branch), destination added - DECISIONS.md D21 |
-| /goals Bank goals area | "Work out my deposit" | 09a if no property-value held, otherwise 09 | goal = house; returnFrame = /goals; mode = general when consentGiven is not true | Added - DECISIONS.md D21, amended |
+| /goals Bank goals area | "Work out my deposit" | 09a if no property-value held, otherwise 09 | goal = house; returnFrame = /goals | Added - DECISIONS.md D21, amended |
 | /goals Bank goals area | App bar back | 01 Home | none | Added - DECISIONS.md D21 |
 | Any screen with the tab bar | Goals tab | /goals Bank goals area | none (mid-calculator routes through 10c first) | Added - DECISIONS.md D21 |
 | 06 What we found | Action bar continue | 08 Ready for the calculator | none | In file |
-| 06 What we found | App bar back | 05 / 05b What we can see | none | Assumed |
+| 06 What we found | App bar back | 05 What we can see | none | Assumed |
 | 08 Ready for the calculator | Checkpoint button ("Work out my deposit") | 09a if no values held, otherwise 09 | calculatorEntered = true | In file (annotation) |
 | 08 Ready for the calculator | App bar back | 06 What we found | none | Assumed |
 | 09a Before a value is entered | Enter a property value | 09 Deposit calculator - property and deposit | property-value | In file |
@@ -97,7 +87,7 @@ One row per transition, including back paths and dismissals. "In file" means the
 | 29 / 30 / 31 sheets | Close or scrim tap | returnFrame | none | Assumed |
 | 32 Where these figures come from | "Connect another bank through open banking" | Out of prototype scope - stub screen | none | In file |
 | 32 Where these figures come from | Close | returnFrame | none | Assumed |
-| 33 Prototype settings | Any toggle | Re-renders the current frame | theme, textSize, mode, stage, resultOutcome set globally | In file |
+| 33 Prototype settings | Any toggle | Re-renders the current frame | theme, textSize, stage, resultOutcome set globally | In file |
 
 ## 2. State and branching
 
@@ -107,18 +97,13 @@ Variant names follow the component properties already in the library (`prefilled
 |---|---|---|---|---|
 | 01 Home | default | Always | balance (mock account data) |  |
 | 02 Journey overview | default | Always | none |  |
-| 03 Consent and linked accounts | none-selected | savingsWithUs = null; continue disabled | none |  |
-| 03 Consent and linked accounts | personalised | savingsWithUs = true | Linked account rows, variant = assigned / unassigned |  |
-| 03 Consent and linked accounts | estimate | savingsWithUs = false | Estimate mode banner shown; FSCS note still applies to held accounts |  |
+| 03 Consent and linked accounts | assigned / unassigned | Account group membership | Account rows, variant = assigned / unassigned |  |
 | 03 Consent and linked accounts | all-selected / some-selected | Selection count vs account count | Checkbox state = checked / indeterminate |  |
 | 03b Move this account | default | selectedAccountId set | Account name, balance |  |
-| 04 Consent declined | default range | mode = general | generalMonthlyLow, generalMonthlyHigh; annual = monthly x 12, no interest |  |
-| 04 Consent declined | at bound | Handle at slider minimum or maximum | Slider mode = range | No frame drawn |
-| 05 What we can see | prefilled-inferred | mode = personalised; every input read from an account | money-in, essential-spending, left-over; provenance = read |  |
-| 05b What we can see | prefilled-estimated | mode = estimate; one or more inputs not visible to the bank | Same fields, provenance = estimated on the affected rows |  |
-| 05 / 05b What we can see | entered | User overrides the headline figure | left-over; provenance/left-over = entered |  |
-| 05 / 05b What we can see | breakdown open / closed | breakdownOpen toggle; opens by default | Proportion rows sourced from money-in and essential-spending |  |
-| 05 / 05b What we can see | error | left-over <= 0, or entered value exceeds money-in | Figure state = error | No frame drawn |
+| 05 What we can see | prefilled-inferred | Every input read from an account | money-in, essential-spending, left-over; provenance = read |  |
+| 05 What we can see | entered | User overrides the headline figure | left-over; provenance/left-over = entered |  |
+| 05 What we can see | breakdown open / closed | breakdownOpen toggle; opens by default | Proportion rows sourced from money-in and essential-spending |  |
+| 05 What we can see | error | left-over <= 0, or entered value exceeds money-in | Figure state = error | No frame drawn |
 | 06 What we found | emergency fund covered | emergency-fund >= 3 x monthly essential-spending | emergency-fund, essential-spending |  |
 | 06 What we found | emergency fund short | emergency-fund < 3 x monthly essential-spending | As above, with a different message | No frame drawn |
 | 06 What we found | deposit accounts assigned | At least one account assigned to the deposit set | saved-toward-deposit, unassigned |  |
@@ -131,7 +116,6 @@ Variant names follow the component properties already in the library (`prefilled
 | 10 How you'll save | solveFor = date | User picks a monthly amount | savings-rate given; months-to-target solved with 4.1% AER, monthly compounding |  |
 | 10b Date stepper variant | solveFor = amount | User picks a target date | months-to-target given; savings-rate solved |  |
 | 10 / 10b How you'll save | error | savings-rate > left-over, or target date in the past | Slider or stepper state = error | No frame drawn |
-| 10 How you'll save | general mode | mode = general; left-over never read, so the slider has no ceiling to scale to | Reached from frame 04's "Continue with general figures" and from /goals; the screen does not render and returns to 09 | No frame drawn - see `GAPS.md` G50 |
 | 11 Check your figures | read-only rows | No figure edited | All six rows, provenance = read or derived |  |
 | 11 Check your figures | edited rows | Any figure overridden upstream | Affected row provenance = entered |  |
 | 12 Your deposit range | within the chart window | months-to-target <= 60 | Growth chart plotted to 5 years, thresholds at 5, 10, 15% |  |
@@ -161,11 +145,11 @@ Shared vocabulary between the Figma file and the code. The frame name is the sys
 |---|---|---|---|---|
 | 01 Home - Your first home entry point | 01 Entry and consent | /home | Bank home with the feature entry point | Reviewed |
 | 02 Journey overview | 01 Entry and consent | /journey | What the feature does and the guidance framing | Reviewed |
-| 03 Consent and linked accounts | 01 Entry and consent | /consent | Savings location question, account selection, permission | Reviewed |
+| 03 Consent and linked accounts | 01 Entry and consent | /consent | Account selection and what each account is for | Amended - DECISIONS.md D28 |
 | 03b Move this account | 01 Entry and consent | /consent/move-account | Bottom sheet to reassign an account to the deposit set | Reviewed |
-| 04 Consent declined | 01 Entry and consent | /consent/declined | General-figures route when permission is withheld | Reviewed |
+| 04 Consent declined | 01 Entry and consent | - | General-figures route when permission is withheld; out of scope | Removed - DECISIONS.md D28 |
 | 05 What we can see | 02 Personalised savings | /position | Monthly position read from accounts | Reviewed |
-| 05b What we can see - estimate mode | 02 Personalised savings | /position?mode=estimate | Same screen where some inputs are estimated | Reviewed |
+| 05b What we can see - estimate mode | 02 Personalised savings | - | Same screen where some inputs are estimated; out of scope | Removed - DECISIONS.md D28 |
 | 06 What we found | 02 Personalised savings | /position/summary | Emergency fund and deposit position; goal confirmation | Reviewed |
 | 07 Generic savings goal | 02 Personalised savings | - | Non-house goals; out of scope | Remove |
 | (no frame) Bank goals area | - | /goals | The bank's own goals area: short- and long-term pots, and one card into the deposit calculator. Where frame 06's "save for something else" branch lands. NOT frame 07 - no goal-setting flow | Added - DECISIONS.md D21 |
@@ -235,7 +219,6 @@ Each figure carries a provenance value: `read` (from an account), `derived` (cal
 |---|---|
 | Theme | Greyscale, Brand |
 | Text size | Default, Large |
-| Mode | Personalised, Estimate, General |
 | Stage | Setting up, Saving, Ready to check |
 | Result | Likely, Not yet |
 

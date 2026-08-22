@@ -460,7 +460,7 @@ export function infoLinkHTML({ label, action }) {
 /**
  * Warning banner (DECISIONS.md D7 fallback component): the same shape as
  * infoBannerHTML but in the warning colour, for the "No frame drawn" error
- * variants (e.g. frame 05/05b's left-over error state).
+ * variants (e.g. frame 05's left-over error state).
  */
 export function warningBannerHTML(text) {
   return `

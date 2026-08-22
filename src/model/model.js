@@ -117,11 +117,11 @@ export function gap(state) {
 
 /**
  * left-over = money-in - essential-spending, unless the participant has
- * typed a direct override (05/05b "entered" variant) — pass it as the
+ * typed a direct override (05 "entered" variant) — pass it as the
  * optional second argument.
  *
  * build-spec.md section 2 marks two conditions as the "error" variant of
- * frame 05/05b, with no wireframe drawn for either:
+ * frame 05, with no wireframe drawn for either:
  *   - the result is at or below zero
  *   - an entered override exceeds money-in (you can't have more left over
  *     than what came in)
