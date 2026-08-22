@@ -38,6 +38,12 @@ do not introduce a state management library.
 - British English throughout. No em dashes, use hyphens.
 
 ## Working rules
+- Check git status before starting. If the tree is not clean, stop and report
+  what is there rather than editing over it - once two changes interleave in
+  one file they cannot be committed separately.
+- End every session with a commit. Leave nothing staged, uncommitted or
+  half-applied for the next session to inherit. If it cannot be committed,
+  stop and say why rather than leaving it in the tree.
 - Do not change behaviour outside the scope stated in the prompt.
 - Preserve existing dark mode support in anything you touch.
 - Update docs/DECISIONS.md with a dated entry for any design decision you make.
