@@ -407,10 +407,27 @@ export function proportionRowsHTML(parts) {
  */
 export function figureRowHTML({ label, value, caption, trailing }) {
   if (trailing !== undefined) {
+    // The caption is optional here on purpose: a row whose trailing side is
+    // not a figure (frame 19's "Credit check / A soft search only") has no
+    // source to state, and must not be forced to carry an empty line. When
+    // one IS passed the label and value move into an inner row so the
+    // caption can sit beneath both — an uncaptioned row keeps the flat
+    // markup, and its appearance, exactly as it was.
+    if (!caption) {
+      return `
+        <div class="figure-row figure-row--inline">
+          <p class="figure-row__label">${label}</p>
+          <p class="figure-row__trailing">${trailing}</p>
+        </div>
+      `;
+    }
     return `
-      <div class="figure-row figure-row--inline">
-        <p class="figure-row__label">${label}</p>
-        <p class="figure-row__trailing">${trailing}</p>
+      <div class="figure-row figure-row--inline figure-row--inline-captioned">
+        <div class="figure-row__inline-main">
+          <p class="figure-row__label">${label}</p>
+          <p class="figure-row__trailing">${trailing}</p>
+        </div>
+        <div class="figure-row__caption-row"><p class="figure-row__caption">${caption}</p></div>
       </div>
     `;
   }

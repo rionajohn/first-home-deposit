@@ -89,6 +89,27 @@ const content = {
     mipAgreementNotOffer:
       'An agreement in principle is not a mortgage offer. It is usually valid for 90 days and is subject to further checks.',
 
+    // PROVENANCE CAPTIONS SHARED ACROSS SCREENS. Each of these describes one
+    // figure that appears on several screens. They are shared rather than
+    // written per screen because that is exactly the pair that drifts: all
+    // three below were previously duplicated, and two of the three had drifted
+    // into saying different things about the same value. See DECISIONS.md D32.
+
+    // The savings interest rate on frames 08, 10/10b, 11 and 32. It is NOT
+    // read from any account - there is no AER anywhere in model/accounts.js.
+    // It is RATES.bankRate, a dated constant anchored to the Bank of England
+    // Bank Rate (DECISIONS.md D3), which is what frames 29 and 30 have always
+    // said. `{source}` resolves from RATES.source rather than being typed
+    // again here, so the caption cannot name a different source than the one
+    // the model actually used.
+    bankRateCaptionTemplate: 'Based on the {source}. AER means Annual Equivalent Rate.',
+
+    // essential-spending on frames 05, 06 and 32.
+    essentialSpendingCaption: 'Worked out from your direct debits, standing orders and card payments',
+
+    // left-over on frames 05 and 06, in its derived (not entered) state.
+    leftOverCaption: 'Worked out from your salary and your regular spending',
+
     // Bank tab bar. Drawn on frame 01 only in the reference set; DECISIONS.md
     // D11 keeps it on every full-screen journey screen too, so the labels
     // moved here from '/home' rather than being duplicated per screen. The
@@ -227,7 +248,6 @@ const content = {
     moneyInLabel: 'Money in',
     moneyInCaption: 'Read from your salary payments over the last 12 months',
     essentialSpendingLabel: 'Essential spending',
-    essentialSpendingCaption: 'Worked out from your direct debits, standing orders and card payments',
     missedLabel: 'What we might have missed',
     missedValue: 'Anything paid from your main account with the other bank',
     provenanceKeyLabel: 'How we worked these out',
@@ -250,6 +270,8 @@ const content = {
     emergencyShortBody:
       "You've got {amount} set aside so far. That's less than three months of your essential spending, but it's not counted toward a deposit either way, so it won't hold up what's below.",
     heldInLabel: 'Held in',
+    heldInCaption: 'Read from your accounts',
+    accountBalanceCaption: 'Read from this account',
     depositOnWayHeadline: 'House deposit: on your way',
     depositOnWayBody:
       "You've told us which accounts are for a deposit. Between them, that's {amount} – quietly building while you got on with things.",
@@ -273,9 +295,7 @@ const content = {
     moneyInLabel: 'Money in',
     moneyInCaption: 'Read from your salary payments over the last 12 months',
     essentialSpendingLabel: 'Essential spending',
-    essentialSpendingCaption: 'Worked out from your direct debits, standing orders and card payments',
     leftOverEachMonthLabel: 'Left over each month',
-    leftOverEachMonthCaption: 'Worked out from your salary and your regular spending',
     calculatorNote:
       "How much you put aside each month is entirely your call. You'll set that in the deposit calculator, where you can see what each amount would mean.",
     howWeWorkedTitle: 'How we worked this out',
@@ -390,9 +410,8 @@ const content = {
     savedTowardDepositLabel: 'Saved toward a deposit',
     savedTowardDepositCaption: 'Read from the accounts you assigned to your deposit',
     leftOverEachMonthLabel: 'Left over each month',
-    leftOverEachMonthCaption: 'Worked out from your salary and your regular spending',
     savingsInterestLabel: 'Savings interest',
-    savingsInterestSuffix: 'AER (Annual Equivalent Rate)',
+    savingsInterestSuffix: 'AER',
     assumptionsLinkLabel: 'How did we work this out?',
     handoffHeading: 'The calculator asks you two things',
     propertyRowLabel: "The sort of property you're after",
@@ -467,7 +486,6 @@ const content = {
     filledInHeading: 'Already filled in from your accounts',
     savingsInterestLabel: 'Savings interest rate',
     savingsInterestSuffix: 'AER',
-    savingsInterestCaption: 'Read from your instant saver. AER means Annual Equivalent Rate.',
     taxRateLabel: 'Tax rate',
     taxRateValue: 'Basic rate',
     taxRateCaption: 'Worked out from your salary',
@@ -501,7 +519,6 @@ const content = {
     monthlySavingLabel: 'Monthly saving',
     monthlySavingCaption: 'The range you set',
     savingsInterestLabel: 'Savings interest rate',
-    savingsInterestCaption: 'Read from your instant saver. AER means Annual Equivalent Rate.',
     taxRateLabel: 'Tax rate',
     taxRateValue: 'Basic rate',
     taxRateCaption: 'Worked out from your salary',
@@ -518,6 +535,7 @@ const content = {
     headlineTemplate: 'A deposit on a {property} home could be {low} to {high}',
     rangeCaptionTemplate: 'Depending on whether you put down {lowPct} or {highPct}',
     goalTrackLabelTemplate: 'Your goal - {target}',
+    rangeProvenanceCaption: 'Worked out from the property value you set',
     provenanceCaption: "Worked out from what you've set aside and what you're putting away",
     assumptionsLinkLabel: 'How we worked out the deposit range',
     timingWithinTemplate: '{pct} - within {months}',
@@ -640,6 +658,7 @@ const content = {
     rateCautionText:
       "These are typical market ranges, not rates we're offering you. The rate any lender offers depends on their checks and your circumstances.",
     rateBandDepositCaptionTemplate: '{pct} deposit',
+    rateBandProvenanceCaption: 'Deposit amounts worked out from the property value you set',
     // Deliberately the same wording as belowCheckpointCta below: one
     // destination, one label, whichever side of the checkpoint you are on.
     // Says what frame 13 explains rather than naming it.
@@ -714,6 +733,7 @@ const content = {
     salaryLabel: 'Annual salary before tax',
     salaryCaption: 'From your salary payments',
     incomeLabel: 'Monthly income after tax',
+    incomeCaption: 'From your salary payments over the last 12 months',
     outgoingsLabel: 'Regular outgoings',
     outgoingsCaption: 'From your direct debits and standing orders',
     creditLabel: 'Existing credit commitments',
@@ -769,6 +789,8 @@ const content = {
     propertyUpToLabelTemplate: "With your {deposit} deposit, that's a property up to",
     ltvLabel: 'Loan-to-Value',
     ltvValueTemplate: 'around {ltv}',
+    propertyUpToCaption: 'Worked out from the most you could borrow and what you have saved so far',
+    ltvCaption: 'Worked out from the most you could borrow and the most you could pay for a property',
     basedOnLabel: 'Based on',
     basedOnValue: 'Salary, deposit and commitments',
     nextStepsTitle: 'What you could do next',
@@ -791,14 +813,17 @@ const content = {
     resultBody:
       "Based on what we can see today, the amount you'd need to borrow is above what a lender would typically offer. That changes as you keep saving.",
     gapCaption: 'The estimated gap at your current property target',
+    gapProvenanceCaption: 'Worked out from your deposit goal and what you have saved so far',
     needBorrowLabel: "What you'd need to borrow",
     lenderOfferLabel: 'What a lender would typically offer',
     lenderOfferValueTemplate: 'around {amount}',
+    needBorrowCaption: 'Worked out from the property value you set and what you have saved so far',
+    lenderOfferCaption: 'Worked out from the property value you set and your deposit goal',
     basedOnLabel: 'Based on',
     basedOnValue: 'salary, deposit and commitments',
     nextStepsTitle: 'What you could do next',
     step1TitleTemplate: 'Save around {amount} more toward your deposit',
-    step1CaptionTemplate: 'Around {months} at your current rate',
+    step1CaptionTemplate: "Around {months} at what you're putting aside each month",
     step2TitleTemplate: 'Look at a property target closer to {amount}',
     step2Caption: 'Would close the gap now',
     step3Title: 'Talk to someone about it',
@@ -904,10 +929,8 @@ const content = {
     moneyInLabel: 'Monthly income after tax',
     moneyInCaption: 'Read from your salary payments over the last 12 months',
     essentialSpendingLabel: 'Essential monthly outgoings',
-    essentialSpendingCaption: 'Direct debits and standing orders, averaged over the last 6 months',
     savingsInterestLabel: 'Savings interest rate',
     savingsInterestSuffix: 'AER',
-    savingsInterestCaption: 'The rate on your Instant saver',
     accountBreakdownTemplate: '{breakdown}, all assigned by you on the accounts screen',
     noAccountsAssignedCaption: "You haven't assigned any accounts toward a deposit yet",
     cantSeeHeading: "What we can't see",

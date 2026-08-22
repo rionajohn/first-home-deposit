@@ -88,7 +88,7 @@ export function render(container, ctx) {
     dataSourceRowHTML({
       label: c.essentialSpendingLabel,
       value: essentialSpendingValue === null ? '—' : formatCurrency(essentialSpendingValue),
-      caption: c.essentialSpendingCaption,
+      caption: content.shared.essentialSpendingCaption,
     }),
     dataSourceRowHTML({
       label: summaryContent.savedTowardDepositLabel,
@@ -98,7 +98,7 @@ export function render(container, ctx) {
     dataSourceRowHTML({
       label: c.savingsInterestLabel,
       value: `${formatPercent(RATES.bankRate)} ${c.savingsInterestSuffix}`,
-      caption: c.savingsInterestCaption,
+      caption: fill(content.shared.bankRateCaptionTemplate, { source: RATES.source }),
     }),
   ];
 

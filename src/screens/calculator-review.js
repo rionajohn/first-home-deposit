@@ -24,6 +24,10 @@ import { chevronRight } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
+function fill(template, values) {
+  return Object.entries(values).reduce((s, [k, v]) => s.replace(`{${k}}`, v), template);
+}
+
 export function render(container, ctx) {
   const { state, setState, content } = ctx;
   const c = content['/calculator/review'];
@@ -76,7 +80,7 @@ export function render(container, ctx) {
         ${reviewRowHTML({
           label: c.savingsInterestLabel,
           value: `${formatPercent(RATES.bankRate)} AER`,
-          caption: c.savingsInterestCaption,
+          caption: fill(content.shared.bankRateCaptionTemplate, { source: RATES.source }),
         })}
         ${reviewRowHTML({
           label: c.taxRateLabel,

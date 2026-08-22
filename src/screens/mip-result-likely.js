@@ -72,8 +72,8 @@ export function render(container, ctx) {
       })}
       <p class="legal-text">${reg.estimateDisclosure}</p>
 
-      ${figureRowHTML({ label: fill(c.propertyUpToLabelTemplate, { deposit: formatCurrency(savedTowardDeposit) }), trailing: formatCurrency(maxPropertyValue) })}
-      ${figureRowHTML({ label: c.ltvLabel, trailing: ltvResult.error ? '—' : fill(c.ltvValueTemplate, { ltv: formatPercent(ltvResult.value, 0) }) })}
+      ${figureRowHTML({ label: fill(c.propertyUpToLabelTemplate, { deposit: formatCurrency(savedTowardDeposit) }), trailing: formatCurrency(maxPropertyValue), caption: c.propertyUpToCaption })}
+      ${figureRowHTML({ label: c.ltvLabel, trailing: ltvResult.error ? '—' : fill(c.ltvValueTemplate, { ltv: formatPercent(ltvResult.value, 0) }), caption: c.ltvCaption })}
       ${figureRowHTML({ label: c.basedOnLabel, trailing: c.basedOnValue })}
 
       ${riskWarningHTML(reg.mcob3aRepossessionWarning)}

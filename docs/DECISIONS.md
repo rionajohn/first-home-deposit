@@ -1189,6 +1189,86 @@ branch from `exitFlow` to return to D30's `replace`.
 
 ---
 
+## D32. Every figure states its source, and shared figures share one caption
+
+**Date.** 22 August 2026.
+
+**Decision.** Every figure shown to a participant carries a provenance caption naming where the
+value came from: read from an account, entered by the participant, worked out from named values,
+or a dated constant in `rates.js`. `figureRowHTML`'s trailing mode gained an optional caption to
+make this possible; it was the one figure-bearing component with no caption line, which is how
+frame 08's savings interest rate came to be shown with no source at all.
+
+**Three captions were not missing but wrong**, which is worse: a caption naming the wrong source is
+a false statement about a participant's own figure, and it is believed.
+
+- *The savings interest rate is not read from any account.* Frames 10, 10b, 11 and 32 said "Read
+  from your instant saver" or "The rate on your Instant saver". There is no AER anywhere in
+  `model/accounts.js`. The value is `RATES.bankRate`, a dated constant anchored to the Bank of
+  England Bank Rate (D3) - which is what frames 29 and 30 have always said. The app stated two
+  incompatible origins for one figure. The Bank Rate anchor is the deliberate decision, so the code
+  was right and the captions were the error. All four now resolve `{source}` from `RATES.source`
+  rather than naming a source in prose, so a caption cannot name a source the model did not use.
+  The claim had also propagated into a code comment in `accounts.js`, which cited frame 10's caption
+  as evidence; left alone it would have re-seeded this, so it is corrected too.
+- *Essential spending was described three ways.* Frames 05 and 06 said "direct debits, standing
+  orders and card payments"; frame 32 said "Direct debits and standing orders, averaged over the
+  last 6 months" - a different set of sources and an averaging window. Frame 32 is the screen a
+  participant opens to settle exactly that question. One shared key now, carrying the frames 05/06
+  wording: it is what two of the three already said, it agrees with the how-this-works row, and it
+  drops an averaging claim that nothing in the code performs.
+- *Frame 12 used one caption key for two different derivations.* The same string sat under the
+  deposit range (property value x 5% and 15%) and under the timing figures (what you have set aside
+  and what you are putting away). It was true of the second and false of the first.
+
+**Shared rather than per-screen.** `bankRateCaptionTemplate`, `essentialSpendingCaption` and
+`leftOverCaption` are in `shared`. All three were previously duplicated per screen and two had
+already drifted. A sourcing statement written twice is the pair that drifts, and this pass exists
+because it did.
+
+**Wording chosen rather than followed.** Existing captions use "Read from" for a value taken from an
+account and "Worked out from" for a derived one, and every existing derived caption names a single
+source. Six figures needed captions naming TWO values, which no existing caption did:
+
+| Figure | Caption |
+| --- | --- |
+| 20 property up to | Worked out from the most you could borrow and what you have saved so far |
+| 20 Loan-to-Value | Worked out from the most you could borrow and the most you could pay for a property |
+| 21 what you would need to borrow | Worked out from the property value you set and what you have saved so far |
+| 21 what a lender would offer | Worked out from the property value you set and your deposit goal |
+| 21 the gap | Worked out from your deposit goal and what you have saved so far |
+| 12 deposit range | Worked out from the property value you set |
+
+Each names the values, never where they sit on screen. "The top of the range above" and "beside it"
+break the moment layout or text size changes, and mean nothing read aloud.
+
+One caption departs further and is recorded as a deliberate exception. Frames 15 and 16's rate-band
+rows carry two figures from different sources on one line - a deposit amount derived from the
+property value, and a rate band from `rates.js`. A bare "Worked out from the property value you set"
+would appear to claim the rate as well, so it reads **"Deposit amounts worked out from the property
+value you set"**. It is the only caption that names which figures it covers, and it does so because
+the row would otherwise mis-state the source of the figure beside it.
+
+**`savings-rate` is a monthly amount, not a rate** (`build-spec.md` section 4), and the name had
+caused exactly one wrong caption: frame 21's "Around {months} at your current rate", where `months`
+is solved from the monthly amount being put aside. It now uses frames 15/16's wording for the same
+figure, "at what you're putting aside each month". No other caption mistook it for a rate. The
+variable is not renamed here - `build-spec.md` is the system of record for its name.
+
+**What still carries no caption, deliberately.** Frame 19's "About 10 minutes" and "Usually 90 days"
+are policy statements, not figures. Frames 20 and 21's borrowing ranges are sourced by their own
+"Based on / salary, deposit and commitments" row plus the estimate disclosure, so a caption would
+repeat what the next row says. Frames 15/16's rates range figure is captioned "Typical market rates
+at {ltv} Loan-to-Value" and sits above two further lines about what those rates are and are not.
+The assumptions sheets state their sources as sentences. Frame 13's comparison table is governed by
+one caption naming the term and basis.
+
+**Reversal.** The component change is additive - a row that passes no caption renders exactly the
+markup it did before. Reverting the copy means restoring the per-screen keys, which restores the
+drift.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -1231,3 +1311,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (close X) | D30 recorded: the app bar's leading cell splits into `app-bar-back` and `app-bar-close`, so the X leaves the journey via a new `exitFlow()` while the chevron keeps `goBack()`. New `journeyEntryPoint` state records `/home` or `/goals` on entry, because `returnFrame` names whichever screen opened the current sheet and cannot answer this. Frame 10c's "Leave" follows it; its X and "Keep going" do not. The sheet carve-out holds structurally - sheets dismiss through a different `data-action`. `replace()` does not unwind the flow, only the exited entry: back after an exit lands on the step before it. Amends D29. |
 | 22 August 2026 (rates fixed) | D31 recorded: every rate becomes explanatory. The "Change" links on the savings interest rate and tax rate rows are removed from frames 10/10b and 11, and frames 15/16's rates-card heading stops being a button; all six values keep their provenance captions. Frame 13 and 13b stay - they are comprehension content and change no rate - but the heading's route to frame 13 moves to an `infoLink` below the card, labelled "What a bigger deposit changes" (D25's own CTA wording) and rendered only in the checkpoint-reached and goal-met variants, where the below-checkpoint CTA that otherwise reaches frame 13 is absent. `savings-rate` (a monthly amount, not a rate) and deposit-percentage selection are unchanged. |
 | 22 August 2026 (chevron corrections) | D32 recorded: frames 13, 33 and 22 take the back chevron instead of the close X, none of them being a flow boundary; frame 22's "Done" moves to `goBack()` with it, dropping a `returnFrame` push that left the confirmation on the stack. `exitFlow` stops overwriting one entry and goes back by the difference between `history.length` now and at flow entry, measured at 4 and 9 steps on the two entry routes, falling back to D30's `replace` when the delta is missing or not positive. Amends D30. `GAPS.md` G57 and G58 opened. |
+| 22 August 2026 (provenance captions) | D32 recorded: every figure now states its source. `figureRowHTML` gains an optional caption in trailing mode - it was the one figure-bearing component without one, which is how frame 08's savings interest rate was shown with no source. Three captions were wrong rather than missing: the savings interest rate was credited to the participant's instant saver on frames 10/10b/11/32 when it is `RATES.bankRate` anchored to the Bank of England Bank Rate (D3), and the wrong claim had reached a code comment in `accounts.js`; essential spending was described three different ways, with frame 32 alone claiming a 6-month averaging window nothing performs; and frame 12 used one caption key for two different derivations. `bankRateCaptionTemplate`, `essentialSpendingCaption` and `leftOverCaption` move to `shared`, and the bank-rate caption resolves `{source}` from `RATES.source` so it cannot name a source the model did not use. Six new captions name two values each, a shape no existing caption had; frames 15/16's rate-band caption additionally names which figures it covers, because the row carries a rate from a different source. Frame 21's "at your current rate" - the one caption the `savings-rate` misnomer had corrupted - adopts frames 15/16's wording. |

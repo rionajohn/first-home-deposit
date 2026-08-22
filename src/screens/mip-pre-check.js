@@ -63,7 +63,7 @@ export function render(container, ctx) {
   const incomeValue = state['money-in'].value;
   const incomeRow = incomeValue === null
     ? checklistRowHTML({ glyph: '!', label: c.incomeLabel, value: c.incompleteValue, caption: c.incompleteCaption })
-    : checklistRowHTML({ state: 'checked', label: c.incomeLabel, value: formatCurrency(incomeValue) });
+    : checklistRowHTML({ state: 'checked', label: c.incomeLabel, value: formatCurrency(incomeValue), caption: c.incomeCaption });
 
   const outgoingsValue = state['essential-spending'].value;
   const outgoingsRow = outgoingsValue === null

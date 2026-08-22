@@ -1324,6 +1324,24 @@
   min-width: 0;
 }
 
+/* The inline row WITH a provenance caption: label and value keep their own
+   side-by-side row, and the caption sits under both. Only rows that pass a
+   caption get this — an uncaptioned inline row keeps the flat flex layout
+   above and is untouched. */
+.figure-row--inline-captioned {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-xs);
+}
+
+.figure-row__inline-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  width: 100%;
+}
+
 .figure-row__content {
   flex: 1 1 0;
   min-width: 0;

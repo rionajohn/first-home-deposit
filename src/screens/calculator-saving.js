@@ -195,7 +195,7 @@ export function render(container, ctx) {
         ${reviewRowHTML({
           label: c.savingsInterestLabel,
           value: `${formatPercent(RATES.bankRate)} ${c.savingsInterestSuffix}`,
-          caption: c.savingsInterestCaption,
+          caption: fill(content.shared.bankRateCaptionTemplate, { source: RATES.source }),
         })}
         ${reviewRowHTML({
           label: c.taxRateLabel,

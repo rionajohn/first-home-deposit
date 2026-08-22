@@ -13,6 +13,10 @@ import { RATES } from '../model/rates.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
+function fill(template, values) {
+  return Object.entries(values).reduce((s, [k, v]) => s.replace(`{${k}}`, v), template);
+}
+
 export function render(container, ctx) {
   const { state, setState, content } = ctx;
   const c = content['/goal-check'];
@@ -31,8 +35,8 @@ export function render(container, ctx) {
         <p class="accounts-card__header-title">${c.alreadyKnowHeading}</p>
         <div class="accounts-card__spacer-lg"></div>
         ${figureRowHTML({ label: c.savedTowardDepositLabel, value: formatCurrency(savedTowardDeposit), caption: c.savedTowardDepositCaption })}
-        ${figureRowHTML({ label: c.leftOverEachMonthLabel, value: formatCurrency(leftOverValue), caption: c.leftOverEachMonthCaption })}
-        ${figureRowHTML({ label: c.savingsInterestLabel, trailing: `${formatPercent(RATES.bankRate)} ${c.savingsInterestSuffix}` })}
+        ${figureRowHTML({ label: c.leftOverEachMonthLabel, value: formatCurrency(leftOverValue), caption: content.shared.leftOverCaption })}
+        ${figureRowHTML({ label: c.savingsInterestLabel, trailing: `${formatPercent(RATES.bankRate)} ${c.savingsInterestSuffix}`, caption: fill(content.shared.bankRateCaptionTemplate, { source: RATES.source }) })}
       </div>
 
       ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions' })}

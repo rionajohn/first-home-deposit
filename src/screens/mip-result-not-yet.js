@@ -65,10 +65,11 @@ export function render(container, ctx) {
       ${resultPanelHTML({ icon: arrowUp, headline: c.resultHeadline, body: c.resultBody })}
 
       ${figureDisplayHTML({ value: gapResult.error ? '—' : formatCurrency(gapResult.value), caption: c.gapCaption })}
+      <p class="provenance-caption provenance-caption--center">${c.gapProvenanceCaption}</p>
       <p class="legal-text">${reg.estimateDisclosure}</p>
 
-      ${figureRowHTML({ label: c.needBorrowLabel, trailing: neededResult.error ? '—' : formatCurrency(neededResult.value) })}
-      ${figureRowHTML({ label: c.lenderOfferLabel, trailing: rangeResult.error ? '—' : fill(c.lenderOfferValueTemplate, { amount: formatCurrency(rangeResult.value.high) }) })}
+      ${figureRowHTML({ label: c.needBorrowLabel, trailing: neededResult.error ? '—' : formatCurrency(neededResult.value), caption: c.needBorrowCaption })}
+      ${figureRowHTML({ label: c.lenderOfferLabel, trailing: rangeResult.error ? '—' : fill(c.lenderOfferValueTemplate, { amount: formatCurrency(rangeResult.value.high) }), caption: c.lenderOfferCaption })}
       ${figureRowHTML({ label: c.basedOnLabel, trailing: c.basedOnValue })}
 
       ${riskWarningHTML(reg.mcob3aRepossessionWarning)}

@@ -85,7 +85,7 @@ export function render(container, ctx) {
         markerPct: ((depositTargetValue - rangeLowAmount) / (rangeHighAmount - rangeLowAmount)) * 100,
         trackLabel: fill(c.goalTrackLabelTemplate, { target: formatCurrency(depositTargetValue) }),
       })}
-      <p class="provenance-caption">${c.provenanceCaption}</p>
+      <p class="provenance-caption">${c.rangeProvenanceCaption}</p>
       ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions-deposit' })}
 
       ${unreachable ? emptyStateCardHTML({ title: c.unreachableHeadline, body: c.unreachableBody, ctaLabel: c.unreachableCta, ctaAction: 'set-amount' }) : `

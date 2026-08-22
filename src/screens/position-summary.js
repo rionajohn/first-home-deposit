@@ -95,7 +95,7 @@ export function render(container, ctx) {
     headline: emergencyCovered ? c.emergencyCoveredHeadline : c.emergencyShortHeadline,
     body: fill(emergencyCovered ? c.emergencyCoveredBody : c.emergencyShortBody, { amount: formatCurrency(emergencyFund) }),
     contentHtml: emergencyAccounts.length
-      ? figureRowHTML({ label: c.heldInLabel, trailing: emergencyAccounts.map((a) => a.name).join(', ') })
+      ? figureRowHTML({ label: c.heldInLabel, trailing: emergencyAccounts.map((a) => a.name).join(', '), caption: c.heldInCaption })
       : '',
   });
 
@@ -120,8 +120,9 @@ export function render(container, ctx) {
           </div>
         </div>
         ${figureDisplayHTML({ value: formatCurrency(savedTowardDeposit), caption: c.savedTowardDepositLabel })}
+        <p class="provenance-caption provenance-caption--center">${c.savedTowardDepositCaption}</p>
         <div class="status-card__account-list">
-          ${depositAccounts.map((a) => figureRowHTML({ label: a.name, trailing: formatCurrency(a.balance) })).join('')}
+          ${depositAccounts.map((a) => figureRowHTML({ label: a.name, trailing: formatCurrency(a.balance), caption: c.accountBalanceCaption })).join('')}
         </div>
         <p class="account-row__caption">${fill(c.lisaCaption, { cap: formatCurrency(LISA_CAP_PROPERTY_VALUE) })}</p>
         ${sortCount > 0 ? `
@@ -156,8 +157,8 @@ export function render(container, ctx) {
       },
     ])}
     ${figureRowHTML({ label: c.moneyInLabel, value: formatCurrency(moneyIn), caption: c.moneyInCaption })}
-    ${figureRowHTML({ label: c.essentialSpendingLabel, value: formatCurrency(-essentialSpending), caption: c.essentialSpendingCaption })}
-    ${figureRowHTML({ label: c.leftOverEachMonthLabel, value: formatCurrency(leftOverValue), caption: c.leftOverEachMonthCaption })}
+    ${figureRowHTML({ label: c.essentialSpendingLabel, value: formatCurrency(-essentialSpending), caption: content.shared.essentialSpendingCaption })}
+    ${figureRowHTML({ label: c.leftOverEachMonthLabel, value: formatCurrency(leftOverValue), caption: content.shared.leftOverCaption })}
     ${figureRowHTML({ label: c.savedTowardDepositLabel, value: formatCurrency(savedTowardDeposit), caption: c.savedTowardDepositCaption })}
   `;
 

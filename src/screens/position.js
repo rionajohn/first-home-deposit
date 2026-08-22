@@ -71,7 +71,7 @@ export function render(container, ctx) {
       },
     ])}
     ${figureRowHTML({ label: c.moneyInLabel, value: formatCurrency(moneyIn), caption: c.moneyInCaption })}
-    ${figureRowHTML({ label: c.essentialSpendingLabel, value: formatCurrency(essentialSpending), caption: c.essentialSpendingCaption })}
+    ${figureRowHTML({ label: c.essentialSpendingLabel, value: formatCurrency(essentialSpending), caption: content.shared.essentialSpendingCaption })}
     <button type="button" class="list-row" data-action="open-provenance-key">
       <span class="list-row__label">${c.provenanceKeyLabel}</span>
       ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
@@ -90,7 +90,7 @@ export function render(container, ctx) {
       <h2 class="screen-title screen-title--center">${c.headline}</h2>
       <p class="entry-card__body">${c.body}</p>
       ${figureInputHTML({ id: 'left-over', value: displayValue, caption: c.figureCaption, ariaLabel: c.figureAriaLabel })}
-      ${storedLeftOver.provenance === 'entered' ? `<p class="provenance-caption provenance-caption--center">${c.enteredCaption}</p>` : ''}
+      <p class="provenance-caption provenance-caption--center">${storedLeftOver.provenance === 'entered' ? c.enteredCaption : content.shared.leftOverCaption}</p>
       ${errorText ? warningBannerHTML(errorText) : ''}
       ${disclosureHTML({ id: 'breakdown', title: disclosureTitle, open: state.breakdownOpen, contentHtml: disclosureContent })}
       <button type="button" class="list-row" data-action="open-sources">

@@ -197,10 +197,16 @@ export const MOCK_POSITION = {
   moneyIn: 2240,
   essentialSpending: 1860,
   // Frame 10's "how you'll save" range slider (monthly-low/monthly-high):
-  // read from the instant saver's own deposit history, the same source the
-  // frame 10 review row credits ("Read from your instant saver") for the
-  // savings interest rate row. Values match the range build-spec.md/Figma
-  // draws (£200 to £310) so the built screen matches the reference.
+  // read from the instant saver's own deposit history. Values match the
+  // range build-spec.md/Figma draws (£200 to £310) so the built screen
+  // matches the reference.
+  //
+  // This used to cite frame 10's savings-interest-rate caption ("Read from
+  // your instant saver") as naming the same source. It did not: there is no
+  // AER anywhere in this file, and that rate is RATES.bankRate, a dated
+  // constant anchored to the Bank of England Bank Rate. The caption was
+  // wrong and is now shared.bankRateCaptionTemplate. These two figures ARE
+  // read from the saver; the rate is not. See DECISIONS.md D32.
   recentMonthlySavingLow: 200,
   recentMonthlySavingHigh: 310,
   // Frame 15/16's "This month" card: both captioned "Read from..." (a

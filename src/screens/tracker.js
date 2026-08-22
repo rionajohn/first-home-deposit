@@ -184,6 +184,7 @@ export function render(container, ctx) {
           })}
           ${i < columns.length - 1 ? '<hr class="divider" />' : ''}
         `).join('')}
+        <p class="provenance-caption">${c.rateBandProvenanceCaption}</p>
       </div>
 
       ${unlocked ? infoLinkHTML({ label: c.ltvInfoLinkLabel, action: 'open-ltv-info' }) : ''}
