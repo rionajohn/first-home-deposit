@@ -119,6 +119,7 @@ const content = {
       ariaLabel: 'Primary',
       homeTabHint: 'Back to Home',
       goalsTabHint: 'Your goals',
+      insightsTabHint: 'Your deposit tracker',
       home: 'Home',
       payments: 'Payments',
       goals: 'Goals',
@@ -651,7 +652,12 @@ const content = {
     mipLockedBodyTemplate: 'Unlocks at {checkpoint}. {gap} to go.',
     mipUnlockedBody: "Unlocked. Whenever you're ready.",
     unlocksAtTemplate: 'Unlocks at {checkpoint}',
-    readyToCheckLabel: 'Ready to check',
+    // The supporting line for the Mortgage in Principle entry: what the
+    // participant gets, and the two things it is not. "Ready to check" said
+    // only that the door was open, which left the action bar's label as the
+    // sole account of what is behind it.
+    readyToCheckLabel:
+      'An indication of what a lender might lend you. Not a decision, and not an application.',
     ratesCardHeading: 'What rates are like at this Loan-to-Value',
     ratesCaptionTemplate: 'Typical market rates at {ltv} Loan-to-Value',
     ratesDisclosureText: 'Subject to further checks and your individual circumstances. Not an offer.',
@@ -679,7 +685,11 @@ const content = {
     // secondary. See DECISIONS.md D25.
     belowCheckpointCta: 'What a bigger deposit changes',
     belowCheckpointSecondaryCta: 'Adjust my goal',
-    checkpointReachedCta: 'Check my Mortgage in Principle',
+    // Says what the participant gets, not that they will be issued one.
+    // "Check my Mortgage in Principle" claimed the possessive: it reads as
+    // though the prototype produces a decision in principle addressed to
+    // them, which it does not and must not imply.
+    checkpointReachedCta: 'Check what a lender might lend you',
     lockedRowAriaSuffix: 'locked',
   },
 
@@ -764,7 +774,14 @@ const content = {
       'A full application involves a hard credit check that does affect your credit file',
       'The figure changes if your circumstances change',
     ],
-    primaryCta: 'Start the check',
+    // THE HANDOFF, STATED. This screen is the boundary: nothing after it is
+    // run here. The line sits directly above the action bar so the
+    // participant reads what the button does before they reach it, and it is
+    // .body-text rather than .legal-text because it is the substance of the
+    // step, not a footnote to it.
+    handoffNote:
+      'This opens our Mortgage in Principle tool. The next screen you see here is the result that comes back.',
+    primaryCta: 'Open the Mortgage in Principle tool',
     secondaryCta: 'Not right now',
     // build-spec.md section 2's "incomplete" variant (DECISIONS.md D7
     // fallback — no wireframe drawn): shown in place of a held figure's
@@ -775,8 +792,12 @@ const content = {
 
   '/mip/running': {
     appBarTitle: 'Mortgage in Principle',
-    title: 'Checking your details',
-    body: 'This is a soft credit search and will not affect your credit score.',
+    // NOT "Checking your details", which said this screen was doing the
+    // checking. The tool frame 19 handed off to is doing it; this screen is
+    // the wait for what it sends back. Same soft-search fact, attributed to
+    // the thing that actually performs it.
+    title: 'Waiting for your result',
+    body: 'The Mortgage in Principle tool is running a soft credit search. It will not affect your credit score.',
     caption: 'This usually takes a few seconds',
   },
 

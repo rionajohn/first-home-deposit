@@ -127,13 +127,26 @@ export function render(container, ctx) {
       body: fill(c.goalSetBodyTemplate, { target: formatCurrency(depositTargetValue), pct: formatPercent(depositPct, 0), property: formatCurrency(propertyValue) }),
       state: milestoneStates[2],
     },
+    // NEITHER STATE OF THIS ROW IS A CONTROL. The milestone tracker reports
+    // where the participant has got to; the way into the Mortgage in
+    // Principle flow is the action bar's primary below, on the unlocked
+    // variants only. reference/frames/16 draws exactly this split, and one
+    // entry per flow per screen is the reason to keep it.
+    //
+    // The locked row used to carry `action: 'locked-row-noop'`, which made
+    // `milestoneTrackerHTML` render it as a <button> — `cursor: pointer`
+    // (components.css `button.milestone-row`), keyboard-focusable, and doing
+    // nothing when pressed. build-spec.md section 1's "Tap the locked row ->
+    // 15 (in place) ... explanatory only" is satisfied better by a row that
+    // does not offer the tap at all, and a focusable control with no action
+    // is a dead end for a keyboard or screen-reader participant rather than
+    // an accessibility gain. Both states are plain rows now.
     unlocked
       ? { title: c.mipTitle, body: c.mipUnlockedBody, state: milestoneStates[3] }
       : {
         title: c.mipTitle,
         body: fill(c.mipLockedBodyTemplate, { checkpoint: formatCurrency(checkpointAmountValue), gap: formatCurrency(gap.value) }),
         state: milestoneStates[3],
-        action: 'locked-row-noop',
       },
   ];
 
@@ -252,20 +265,28 @@ export function render(container, ctx) {
     window.location.hash = '#/assumptions/saving';
   });
 
-  const lockedRow = container.querySelector('[data-action="locked-row-noop"]');
-  if (lockedRow) {
-    lockedRow.addEventListener('click', (e) => {
-      // build-spec.md section 1: "Tap the locked row -> 15 (in place) ->
-      // Milestone tracker state = locked, explanatory only" - no navigation,
-      // no state change. The row exists as a button (not a div) purely so
-      // it's keyboard-reachable, per this build's touch-target rule.
-      e.preventDefault();
-    });
-  }
+  // No handler for the locked milestone row any more: it is not a button.
+  // See the milestone array above.
 
   if (unlocked) {
     container.querySelector('[data-action="check-mip"]').addEventListener('click', () => {
-      setState({ mipUnlocked: true });
+      // THE ONE WAY INTO THE MORTGAGE IN PRINCIPLE FLOW. Nothing else in the
+      // app routes to /mip: not the tab bar, not /goals, not frame 01. The
+      // milestone row above reports the state, this opens it.
+      //
+      // `journeyEntryPoint` is set to /tracker here so the close X on 17, 18,
+      // 19b, 20 and 21 comes back here rather than to frame 01. Those five
+      // screens exit through `exitFlow()` (DECISIONS.md D30/D32), which goes
+      // back by `history.length` minus the length recorded at entry — so the
+      // pair has to be written on the same click, exactly as home.js and
+      // goals.js write it when the journey itself is entered. Without it a
+      // participant who reached the tracker from the Insights tab would have
+      // a null entry point and be dropped on /home by the fallback.
+      setState({
+        mipUnlocked: true,
+        journeyEntryPoint: '/tracker',
+        flowEntryHistoryLength: window.history.length,
+      });
       window.location.hash = '#/mip';
     });
   } else {

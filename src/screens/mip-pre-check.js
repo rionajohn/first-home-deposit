@@ -16,6 +16,20 @@
  * COLLAPSIBLE_DEFAULTS in state.js and DECISIONS.md D12 — the reference PNG
  * draws them open, this build deliberately does not),
  * the same toggle pattern position.js's breakdown disclosure uses.
+ *
+ * THIS SCREEN IS THE BOUNDARY OF THE PROTOTYPE, AND SAYS SO. No check runs
+ * in this build. The primary action opens the bank's existing Mortgage in
+ * Principle tool, and the screen after it (19b) is the wait for the result
+ * that tool sends back, not a check being performed here. `handoffNote`
+ * states that above the action bar, and the button says what it opens rather
+ * than "Start the check", which claimed the work happened on this side of
+ * the handoff.
+ *
+ * `checkRunAt` and `softSearchRecorded` are still set on that tap, unchanged:
+ * build-spec.md section 1's "Run the check -> checkRunAt set; soft search
+ * recorded" row records that the participant reached the handoff, which is
+ * the fact 19b and the result screens read. Renaming the button does not
+ * change what happened.
  */
 import {
   appBarHTML,
@@ -104,6 +118,8 @@ export function render(container, ctx) {
       ${disclosureHTML({ id: 'asked', title: c.askedHeading, open: state.mipAskedOpen, contentHtml: askedRowsHTML(c.askedRows) })}
       ${disclosureHTML({ id: 'benefits', title: c.benefitsHeading, open: state.mipBenefitsOpen, contentHtml: plainRowsHTML(c.benefitsRows) })}
       ${disclosureHTML({ id: 'aware', title: c.awareHeading, open: state.mipAwareOpen, contentHtml: plainRowsHTML(c.awareRows) })}
+
+      <p class="body-text">${c.handoffNote}</p>
 
       ${riskWarningHTML(reg.mcob3aRepossessionWarning)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>

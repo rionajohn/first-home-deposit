@@ -15,4 +15,4 @@
  * replaces this fallback text if the two ever disagree (e.g. a tab open
  * from before a newer sw.js deployed).
  */
-export const CACHE_VERSION_FALLBACK = 'v17';
+export const CACHE_VERSION_FALLBACK = 'v18';

@@ -262,12 +262,17 @@ const CALCULATOR_STEP_ROUTES = new Set([
  * Which tab bar entry is lit on which route — and on most routes, none is.
  *
  * A tab is active when the current route IS that tab's destination, which is
- * true on exactly two screens. Everything else in the app is the "Your first
- * home" journey, which is not one of the bank's five tabs: it is a feature
- * reached FROM Home, not Home itself. Lighting Home on all 18 of those
+ * true on exactly three screens. Everything else in the app is the "Your
+ * first home" journey, which is not one of the bank's five tabs: it is a
+ * feature reached FROM Home, not Home itself. Lighting Home on all of those
  * screens claimed the participant was on the bank's home screen while they
  * were mid-way through a mortgage calculator, and left the bar with no way to
  * show the one case where they really were on Home.
+ *
+ * /tracker lights Insights because /tracker IS the Insights destination
+ * (NAVIGABLE_TABS in components/ui.js). The Mortgage in Principle screens
+ * beyond it light nothing, the same as every other journey screen: they are
+ * reached FROM Insights, they are not Insights.
  *
  * Any route not listed gets `null`, which `bottomNavHTML` renders as "no tab
  * active".
@@ -275,6 +280,7 @@ const CALCULATOR_STEP_ROUTES = new Set([
 const TAB_FOR_ROUTE = new Map([
   ['/home', 'home'],
   ['/goals', 'goals'],
+  ['/tracker', 'insights'],
 ]);
 
 /**

@@ -88,13 +88,19 @@ export function appBarHTML({ title, left = null, appBarLabels }) {
  * own — see D11 for why it is a deliberate deviation from the wireframes and
  * exempt from the screenshot-comparison pass.
  *
- * TWO TABS RESOLVE: Home, and — since /goals exists — Goals. The other three
- * are exactly as inert here as they already are on frame 01: they are the
- * surrounding bank app, out of prototype scope, so they are rendered
- * `disabled` and hidden from assistive technology rather than left as
- * tappable dead ends. Tapping the tab you are already on is a no-op
- * re-navigation to the route already showing, which is the standard tab-bar
- * behaviour for the active tab.
+ * THREE TABS RESOLVE: Home, Goals, and — since the deposit tracker is the
+ * bank's own view of how this goal is going — Insights, which lands on
+ * /tracker. Payments and Profile stay exactly as inert here as they already
+ * are on frame 01: they are the surrounding bank app, out of prototype
+ * scope, so they are rendered `disabled` and hidden from assistive
+ * technology rather than left as tappable dead ends. Tapping the tab you are
+ * already on is a no-op re-navigation to the route already showing, which is
+ * the standard tab-bar behaviour for the active tab.
+ *
+ * INSIGHTS IS THE ONLY WAY INTO THE TRACKER FROM THE BAR, and the tracker is
+ * the only way into the Mortgage in Principle flow (tracker.js's action bar).
+ * The bar itself carries no route to /mip and must not gain one: one entry
+ * into that flow is the whole point of keeping it on the tracker.
  *
  * `active` names which tab is lit. It is a parameter rather than a constant
  * because the bar is genuinely a bank tab bar now: /goals is the bank's own
@@ -110,7 +116,7 @@ export function appBarHTML({ title, left = null, appBarLabels }) {
  * router.js mounts this on every non-excluded route and wires the live tabs;
  * no screen module needs to render or bind it.
  */
-export const NAVIGABLE_TABS = { home: '/home', goals: '/goals' };
+export const NAVIGABLE_TABS = { home: '/home', goals: '/goals', insights: '/tracker' };
 
 /**
  * THREE STATES, NOT TWO.
@@ -153,8 +159,17 @@ export function bottomNavHTML(labels, { active = null } = {}) {
   const tab = (id, label) => {
     const isLive = Object.prototype.hasOwnProperty.call(NAVIGABLE_TABS, id);
     const isActive = isLive && id === active;
-    const hint = id === 'home' ? labels.homeTabHint : labels.goalsTabHint;
-    const glyph = (isActive ? TAB_ICONS_ACTIVE[id] : TAB_ICONS[id]);
+    // One hint per live tab, looked up by id rather than chosen by a ternary.
+    // The ternary this replaces returned the Goals hint for every tab that
+    // was not Home, which was correct only while Goals was the sole other
+    // live tab — Insights would have announced itself as "Your goals".
+    const hint = labels[`${id}TabHint`];
+    // Fall back to the outline drawing rather than throwing if a live tab
+    // has no filled twin. Making Insights live without adding `diamondFill`
+    // made this `undefined(...)`, which took the whole tab bar down on the
+    // one route the tab is lit. The fallback loses a cue; it does not lose
+    // the bar.
+    const glyph = (isActive ? TAB_ICONS_ACTIVE[id] : null) || TAB_ICONS[id];
     return `
       <button
         type="button"

@@ -13,7 +13,10 @@
  *             icon, no indicator. It says it is tappable by answering a
  *             finger (`:active` / `:hover` in components.css), not by looking
  *             different at rest.
- *   disabled  Payments, Insights, Profile - the surrounding bank app.
+ *   disabled  Payments and Profile - the surrounding bank app. Insights was
+ *             one of these until it was pointed at /tracker; it is now the
+ *             third live tab, and the only route into the deposit tracker
+ *             from the bar.
  *
  * The defect this was written for: nothing set `color` on `.bottom-nav__tab`,
  * so an ENABLED tab inherited the document's full-strength label colour while
@@ -103,9 +106,23 @@ const PROBE = () => {
 const AT_REST = ({ tabColor, labelColor, labelWeight, iconColor, iconFilled, hasIndicator, activeClass, ariaCurrent }) =>
   ({ tabColor, labelColor, labelWeight, iconColor, iconFilled, hasIndicator, activeClass, ariaCurrent });
 
-async function navAt(route) {
+/** A session far enough along that /tracker renders instead of bouncing to
+ *  the calculator. Same sessionStorage seeding overlap.test.mjs uses. */
+const f = (v, p = 'read') => ({ value: v, provenance: p });
+const TRACKER_SEED = {
+  'money-in': f(2600), 'essential-spending': f(1450), 'left-over': f(1150, 'derived'),
+  'saved-toward-deposit': f(22000), 'checkpoint-amount': f(21000, 'derived'),
+  'property-value': f(280000, 'entered'), 'deposit-pct': f(0.1, 'entered'),
+  'deposit-target': f(28000, 'derived'), 'savings-rate': f(500, 'entered'),
+  'months-to-target': f(14, 'derived'), calculatorEntered: true, goal: 'house',
+};
+
+async function navAt(route, seed = null) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
   try {
+    if (seed) {
+      await ctx.addInitScript((v) => { try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {} }, seed);
+    }
     const page = await ctx.newPage();
     await page.goto(`${base}/#${route}`);
     await page.waitForSelector('.bottom-nav__tab');
@@ -165,9 +182,16 @@ test('/goals - enabled Home is drawn exactly like disabled Payments', async () =
 
 /* --- The other half: the active tab really is distinguished ---------------
    A bar where nothing is lit would pass every test above. */
-for (const [route, lit, litIcon] of [['/home', 'home', 'icon--house-fill'], ['/goals', 'goals', 'icon--target-fill']]) {
+for (const [route, lit, litIcon, seed] of [
+  ['/home', 'home', 'icon--house-fill', null],
+  ['/goals', 'goals', 'icon--target-fill', null],
+  // Insights resolves to /tracker. It needs a seeded session, because
+  // /tracker guards on checkpoint-amount and deposit-target and replaces
+  // itself with the calculator when either is null.
+  ['/tracker', 'insights', 'icon--diamond-fill', TRACKER_SEED],
+]) {
   test(`${route} - ${lit} carries all four active cues and no other tab does`, async () => {
-    const nav = await navAt(route);
+    const nav = await navAt(route, seed);
     const active = nav[lit];
 
     assert.strictEqual(active.hasIndicator, true, 'no indicator rule');
@@ -209,7 +233,7 @@ test('Goals differs between /home and /goals in the four active cues and nothing
 });
 
 /* --- A route inside the journey lights nothing (D11: TAB_FOR_ROUTE) ------- */
-test('/journey - no tab is lit, and Home and Goals rest like the disabled three', async () => {
+test('/journey - no tab is lit, and the three live tabs rest like the disabled two', async () => {
   const nav = await navAt('/journey');
   for (const id of ['home', 'payments', 'goals', 'insights', 'profile']) {
     assert.strictEqual(nav[id].hasIndicator, false, `${id} draws an indicator mid-journey`);
@@ -217,4 +241,16 @@ test('/journey - no tab is lit, and Home and Goals rest like the disabled three'
   }
   assert.deepStrictEqual(AT_REST(nav.home), AT_REST(nav.payments));
   assert.deepStrictEqual(AT_REST(nav.goals), AT_REST(nav.payments));
+  assert.deepStrictEqual(AT_REST(nav.insights), AT_REST(nav.payments));
+});
+
+/* --- Insights is live, and the two that are not stay that way -------------
+   Requirement: enable Insights, do not enable the other disabled tabs. */
+test('Insights is tappable everywhere; Payments and Profile never are', async () => {
+  for (const [route, seed] of [['/home', null], ['/goals', null], ['/journey', null], ['/tracker', TRACKER_SEED]]) {
+    const nav = await navAt(route, seed);
+    assert.strictEqual(nav.insights.disabled, false, `Insights is inert on ${route}`);
+    assert.strictEqual(nav.payments.disabled, true, `Payments became tappable on ${route}`);
+    assert.strictEqual(nav.profile.disabled, true, `Profile became tappable on ${route}`);
+  }
 });

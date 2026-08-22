@@ -1339,6 +1339,131 @@ this commit's `build-spec.md` change alone.
 
 ---
 
+## D35. The Mortgage in Principle flow becomes reachable: Insights lights the tracker, and the tracker is its only door
+
+**Date.** 22 August 2026.
+
+**Decision.** The Insights tab resolves to `/tracker`, the tracker's action bar is confirmed as the
+single entry into the Mortgage in Principle flow, and that flow now exits back to the tracker rather
+than out to frame 01. Two copy corrections come with it: the entry no longer claims the prototype
+issues a decision in principle, and frames 19 and 19b no longer claim a check runs inside this
+build.
+
+**What was already there, and was not rebuilt.** All six screens (17, 18, 19, 19b, 20, 21) existed,
+were registered in `router.js` and were already wired to each other, including both result branches
+and both sides of the explainer. The flow was unreachable for one reason only: nothing navigated to
+`/tracker`, and `/tracker` was the only screen that navigated to `/mip`. This entry adds the missing
+link into the tracker, not the flow behind it.
+
+**Insights is the third live tab.** `NAVIGABLE_TABS` gains `insights: '/tracker'` and
+`TAB_FOR_ROUTE` gains `['/tracker', 'insights']`, so the tab resolves and lights on its own
+destination the way Home and Goals already do. Payments and Profile stay `disabled`. Three things
+had to move with it:
+
+| Change | Why |
+|---|---|
+| `diamondFill` added to `icons.js`, registered in `TAB_ICONS_ACTIVE` | The map held filled twins for Home and Goals only. `bottomNavHTML` looked up `TAB_ICONS_ACTIVE[id]` for an active tab and called the result, so making Insights live without a filled diamond made that `undefined(...)` and threw the whole tab bar on the one route the tab is lit. |
+| `bottomNavHTML`'s glyph lookup falls back to the outline drawing | Same defect, made unreachable rather than merely fixed. A live tab with no filled twin now loses a cue instead of taking the bar down. |
+| The tab hint stops being a ternary | `id === 'home' ? homeTabHint : goalsTabHint` returned "Your goals" for every tab that was not Home. Correct while Goals was the only other live tab; Insights would have announced itself as Goals. Now a lookup by tab id, with `insightsTabHint` added to `shared.bottomNav`. |
+
+`/tracker` guards on `checkpoint-amount` and `deposit-target`, so a participant who taps Insights
+before setting a goal is replaced through `/calculator/result` -> `/calculator/review` ->
+`/calculator/saving` -> `/calculator/property`. Four `replace` hops, one history entry, one back tap
+(D29). Left as it is: the guards are correct, and gating the tab would reintroduce the conditional
+navigation PN removed.
+
+**One door into the flow, and it is the action bar.** The instruction for this pass described the
+Mortgage in Principle milestone row as a live link and cited `tracker.js:220-224`. Neither held:
+those lines are the `actionBarHTML` call, and the milestone row was a plain `<div>` in the unlocked
+state. `reference/frames/16` draws exactly that split, and it is the right one - the milestone
+tracker reports progress, the action bar acts. Confirmed rather than changed, on the author's
+decision once the discrepancy was put to them.
+
+What did change is the locked row. It carried `action: 'locked-row-noop'`, which made
+`milestoneTrackerHTML` render it as a `<button>` with `cursor: pointer`, keyboard focus and no
+behaviour. `build-spec.md` section 1's "Tap the locked row -> 15 (in place) ... explanatory only" is
+served better by a row that does not offer the tap, and a focusable control that does nothing is a
+dead end rather than an accessibility gain. Both states are plain rows now. The MIP button is
+absent, not disabled, below the checkpoint: the locked action bar carries D25's "What a bigger
+deposit changes" and "Adjust my goal" instead.
+
+**Exiting returns to the tracker.** The close X on 17, 18, 19b, 20 and 21 goes through `exitFlow()`,
+which reads `journeyEntryPoint` - written only by frame 01 and the goals card, so a participant who
+reached the tracker through the Insights tab had `null` there and would have been dropped on
+`/home`. The tracker's entry handler now writes `journeyEntryPoint: '/tracker'` and
+`flowEntryHistoryLength` on the same click, exactly as `home.js` and `goals.js` write the pair when
+the journey itself is entered. D30's mechanism is reused unchanged; what widens is the set of values
+`journeyEntryPoint` can hold, from two screens to three. Walked in a browser: all five X-bearing
+screens land on `/tracker`, and back still steps one screen per tap.
+
+**Copy: the entry stops claiming a decision in principle.**
+
+| Key | Was | Is |
+|---|---|---|
+| `/tracker` `checkpointReachedCta` | "Check my Mortgage in Principle" | "Check what a lender might lend you" |
+| `/tracker` `readyToCheckLabel` | "Ready to check" | "An indication of what a lender might lend you. Not a decision, and not an application." |
+
+The possessive in the old label was the problem: it read as though the prototype produces a decision
+in principle addressed to the participant. The caption was doing no work beyond repeating that the
+door was open, which the milestone row above it already says, so it becomes the supporting line the
+label needs - what the participant gets, and the two things it is not. Deviation from
+`reference/frames/16`'s button wording, recorded here.
+
+**Copy: frame 19 is the boundary of the prototype and now says so.** No check runs in this build.
+The handoff opens the bank's existing Mortgage in Principle tool, and 19b is the wait for what comes
+back from it.
+
+| Key | Was | Is |
+|---|---|---|
+| `/mip/pre-check` `primaryCta` | "Start the check" | "Open the Mortgage in Principle tool" |
+| `/mip/pre-check` `handoffNote` | (new) | "This opens our Mortgage in Principle tool. The next screen you see here is the result that comes back." |
+| `/mip/running` `title` | "Checking your details" | "Waiting for your result" |
+| `/mip/running` `body` | "This is a soft credit search and will not affect your credit score." | "The Mortgage in Principle tool is running a soft credit search. It will not affect your credit score." |
+
+`handoffNote` renders as `.body-text` directly below the three disclosures and above the two
+regulatory lines: it is the substance of the step, not a footnote to it, and Rule 4 of the copy
+check would have caught it at `.legal-text`. The soft-search fact is kept in both places, attributed
+to the thing that performs it. `checkRunAt` and `softSearchRecorded` are still set on that tap,
+unchanged - `build-spec.md` section 1's "Run the check -> checkRunAt set; soft search recorded"
+records that the participant reached the handoff, which is what 19b and the result screens read.
+Deviation from the frame 19 and 19b wireframe copy, recorded here.
+
+**What was asked for and deliberately not built.**
+
+- **A knowledge check on frame 17.** The instruction described one and asked that it route
+  correctly. There is no knowledge check in the code, in `build-spec.md` (whose frame 17 rows are
+  the learn-more link to 18 and a primary continue to 19, and nothing else) or in Figma node
+  `104:196`. Building one meant inventing a question, two options and their copy, which CLAUDE.md
+  forbids without asking. Put to the author, who confirmed it came from a stale summary and should
+  not be built. The routing outcome it was meant to produce already works: the learn-more link
+  reaches the explainer, the primary skips it, and both converge on frame 19.
+- **A tracker entry on the goals page.** Out of scope for this pass (P11c). Confirmed absent:
+  `/goals` has the deposit calculator entry and nothing else.
+- **A direct MIP entry on the goals page.** Confirmed absent and must stay absent. No screen outside
+  the tracker carries a `#/mip` link, and the tab bar carries none.
+
+**On the figures the flow reads.** `mip-pre-check.js` reads `money-in`, `essential-spending` and
+`saved-toward-deposit`. All three are seeded in `defaultState()` at session start from
+`MOCK_POSITION` and `accountFigures()` (D28), before any screen renders, so none can be null on any
+route into the flow - including a direct arrival from the goals page, were one added. Nothing had to
+be defaulted and nothing had to stop.
+
+**Tests.** `scripts/bottom-nav.test.mjs` gains optional `sessionStorage` seeding, a `/tracker` case
+in the active-cue loop (the case that would have caught the missing `diamondFill`), Insights in the
+mid-journey at-rest comparison, and an assertion that Payments and Profile stay inert on every
+route. 8 tests, all passing. `overlap.test.mjs` 62 passing across both text sizes, which covers the
+new paragraph on frame 19 and the longer caption on 15/16. `sheet-drag.test.mjs` 15 passing. Model
+suites 43 passing.
+
+**Reversal.** Remove `insights` from `NAVIGABLE_TABS` and `['/tracker', 'insights']` from
+`TAB_FOR_ROUTE`, and the tab is inert again. Remove `journeyEntryPoint: '/tracker'` from the
+tracker's entry handler, and the X reverts to leaving the journey. Restore
+`action: 'locked-row-noop'` and its handler, and the locked row is a button again. The four copy
+keys revert independently of all of that. `diamondFill` and the glyph fallback should stay in either
+case: one is a drawing, the other is a guard against the same defect recurring.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -1383,4 +1508,5 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (chevron corrections) | D32 recorded: frames 13, 33 and 22 take the back chevron instead of the close X, none of them being a flow boundary; frame 22's "Done" moves to `goBack()` with it, dropping a `returnFrame` push that left the confirmation on the stack. `exitFlow` stops overwriting one entry and goes back by the difference between `history.length` now and at flow entry, measured at 4 and 9 steps on the two entry routes, falling back to D30's `replace` when the delta is missing or not positive. Amends D30. `GAPS.md` G57 and G58 opened. |
 | 22 August 2026 (bank-branch removal verified) | D33 recorded: the savings-location question and its branch confirmed absent from the code, and `build-spec.md` sections 1, 2 and 7 stripped of the rows that still documented them - the question, its two options, all six frame 04 transitions, the 05b variant, frame 10's general-mode row and frame 33's Mode control. Section 3 keeps frames 04 and 05b at status "Removed - DECISIONS.md D28", the frame inventory being the Figma mapping. Records what the answer used to change (frame 05 provenance, frame 10's slider ceiling, frame 04's annual range, D27's second guidance line) and what each is now. No figure changed value. `GAPS.md` left intact as a dated log. Completes D28. |
 | 22 August 2026 (provenance captions) | D34 recorded: every figure now states its source. `figureRowHTML` gains an optional caption in trailing mode - it was the one figure-bearing component without one, which is how frame 08's savings interest rate was shown with no source. Three captions were wrong rather than missing: the savings interest rate was credited to the participant's instant saver on frames 10/10b/11/32 when it is `RATES.bankRate` anchored to the Bank of England Bank Rate (D3), and the wrong claim had reached a code comment in `accounts.js`; essential spending was described three different ways, with frame 32 alone claiming a 6-month averaging window nothing performs; and frame 12 used one caption key for two different derivations. `bankRateCaptionTemplate`, `essentialSpendingCaption` and `leftOverCaption` move to `shared`, and the bank-rate caption resolves `{source}` from `RATES.source` so it cannot name a source the model did not use. Six new captions name two values each, a shape no existing caption had; frames 15/16's rate-band caption additionally names which figures it covers, because the row carries a rate from a different source. Frame 21's "at your current rate" - the one caption the `savings-rate` misnomer had corrupted - adopts frames 15/16's wording. |
+| 22 August 2026 (MiP reachable) | D35 recorded: the Insights tab resolves to `/tracker` (Payments and Profile stay disabled), which makes the six-screen Mortgage in Principle flow reachable - it was already built and already wired, and nothing navigated to the tracker. `diamondFill` added, because `TAB_ICONS_ACTIVE` held twins for two tabs and lighting a third called `undefined`; the glyph lookup now falls back to the outline, and the tab hint stops being a Home-or-Goals ternary. The tracker's action bar is confirmed as the single entry (`reference/frames/16` draws it; the instruction's "milestone row is a live link" did not hold), and the locked milestone row drops its no-op `<button>`. `journeyEntryPoint` gains `/tracker`, so the X on 17, 18, 19b, 20 and 21 exits to the tracker rather than frame 01. Four copy keys change: the entry stops claiming the prototype issues a decision in principle, and frames 19 and 19b stop implying a check runs here. No knowledge check built on frame 17 - it exists in no spec, wireframe or frame, and the author confirmed it came from a stale summary. |
 | 22 August 2026 (D32 collision resolved) | The provenance-captions entry, recorded second under a number the chevron entry already held, becomes **D34**; the chevron entry keeps D32. Four citations meant the provenance entry and were updated - its own heading, its change-log row, `content.js`'s shared-caption comment and `accounts.js`'s bank-rate comment. Nine meant the chevron entry and were left alone: `GAPS.md` G57 (twice) and G58, `router.js`, `state.js`, `learn-ltv.js`, `mip-adviser.js`, `settings.js`, and its own change-log row. D33's paragraph recording the collision as open is corrected. Sequence is now D1-D34, no duplicate and no gap; D34 sits before D33 in the file, and D20 before D13, neither being renumbered or moved. `CLAUDE.md` gains a working rule to take the next number from the last entry. |

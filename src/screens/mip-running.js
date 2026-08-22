@@ -2,8 +2,15 @@
  * Frame 19b — Running your check. Figma node 208:455. Reference:
  * reference/frames/19b Running your check.png.
  *
- * Processing state (build-spec.md section 2): between the "Start the
- * check" tap on frame 19 and the result. build-spec.md section 1 wires only
+ * WHAT THIS SCREEN IS WAITING FOR. Not a check running here — frame 19 hands
+ * off to the bank's existing Mortgage in Principle tool, and this is the wait
+ * for the result that comes back from it. The copy says so ("Waiting for your
+ * result", and the soft search attributed to the tool rather than to this
+ * screen); the timer below is the wait, not the check. No affordability or
+ * eligibility model exists in this build and none is being run here.
+ *
+ * Processing state (build-spec.md section 2): between the handoff
+ * tap on frame 19 and the result. build-spec.md section 1 wires only
  * where this screen goes once it completes ("Processing completes, criteria
  * met -> 20", "...not met -> 21"); the destination is decided by frame 33's
  * own resultOutcome scenario toggle (build-spec.md section 7) — no

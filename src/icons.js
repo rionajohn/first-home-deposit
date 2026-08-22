@@ -424,9 +424,13 @@ export function diamond(o) {
  * bullseye would become an unrecognisable disc. Filling only the inner circle
  * keeps the ring and reads as "on".
  *
- * Only Home and Goals are here. Payments, Insights and Profile are disabled
- * and can never be the active tab, so a filled variant for them would be a
- * drawing nothing renders (DESIGN.md rule 6).
+ * Home, Goals and Insights are here — the three tabs that can be active.
+ * Insights joined them when it was pointed at /tracker; without a filled
+ * twin, `bottomNavHTML` looked up `TAB_ICONS_ACTIVE.insights`, found
+ * `undefined` and called it, so the tab bar threw on the one route the tab
+ * is lit. Payments and Profile are still disabled and can never be active,
+ * so a filled variant for either would be a drawing nothing renders
+ * (DESIGN.md rule 6).
  */
 export function houseFill(o) {
   return icon('house-fill', '<path class="icon__fill" d="M12 3.6L20.4 12H17.28V20.4H6.72V12H3.6Z"/>', o);
@@ -438,6 +442,13 @@ export function targetFill(o) {
     '<circle cx="12" cy="12" r="9"/><circle class="icon__fill" cx="12" cy="12" r="5"/>',
     o
   );
+}
+
+// A single path, so the filled twin is the same geometry carrying
+// `icon__fill` — the `houseFill` case, not the `targetFill` one, which had to
+// fill only its inner circle to keep the ring.
+export function diamondFill(o) {
+  return icon('diamond-fill', '<path class="icon__fill" d="M12 3.2L20.8 12L12 20.8L3.2 12Z"/>', o);
 }
 
 export const TAB_ICONS = {
@@ -452,4 +463,5 @@ export const TAB_ICONS = {
 export const TAB_ICONS_ACTIVE = {
   home: houseFill,
   goals: targetFill,
+  insights: diamondFill,
 };

@@ -147,10 +147,13 @@ function defaultState() {
     solveFor: null, // 'date' | 'amount'
     returnFrame: null,
 
-    // WHERE THE PARTICIPANT ENTERED THE JOURNEY, and the only thing the app-bar
-    // close X reads. '/home' or '/goals' - the two screens the journey is
-    // entered from - or null for a session that has not entered it yet (a typed
-    // URL, a facilitator opening frame 33), which the X falls back to /home on.
+    // WHERE THE PARTICIPANT ENTERED THE FLOW THEY ARE IN, and the only thing
+    // the app-bar close X reads. '/home' or '/goals' for the journey itself,
+    // and '/tracker' once they open the Mortgage in Principle flow from the
+    // tracker - that flow's five X-bearing screens exit back to the tracker,
+    // not out to frame 01, so the tracker is genuinely their entry point. Null
+    // for a session that has not entered anything yet (a typed URL, a
+    // facilitator opening frame 33), which the X falls back to /home on.
     //
     // NOT `returnFrame`, which answers a different question. `returnFrame` is a
     // single scratch slot recording which screen opened the sheet you are
