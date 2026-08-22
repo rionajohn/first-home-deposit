@@ -174,7 +174,7 @@ export function render(container, ctx) {
           ${playCircle({ size: 'large', className: 'explainer-row__icon' })}
           <div class="explainer-row__content">
             <p class="explainer-row__title">${c.explainerVideoTitle}</p>
-            <p class="explainer-row__duration">${c.explainerVideoDuration}${state.ltvVideoSeen ? ` · ${c.explainerWatchedLabel}` : ''}</p>
+            <p class="explainer-row__duration">${c.explainerVideoDuration}${state.ltvVideoSeen ? ` · ${c.explainerOpenedLabel}` : ''}</p>
           </div>
           ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
         </button>

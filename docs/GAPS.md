@@ -53,6 +53,18 @@ entirely from frame 13's "Want more on this?" card. The video row (linking to th
 stays. Recorded as an intentional deviation from the reference PNG — exempt from the
 screenshot-comparison pass.*
 
+*Corrected 22 August 2026: **the row was never removed and is live.** The status above records an
+intention the build did not carry out. `git log -S"open-diagram" -- src/screens/learn-ltv.js`
+returns only the commit that ADDED the row (`eb666a2`); nothing removed it. Frame 13 carries both
+explainer rows, and **both open frame 13b** — the reference PNG for frame 13 is annotated "Both open
+frame 13b", which is why the build wired it that way. The row is therefore not a dead end: its
+destination exists and is built. What is missing is the diagram inside 13b, which is a `[Visual aid]`
+placeholder in the Figma export as well as in the code, so there is nothing to port. Full inventory:
+`docs/investigations/2026-08-frame-13b.md`. **There is no frame 13 deviation from the reference PNG
+on this count, and so no screenshot-comparison exemption for it** — see the correction on the
+exemption list further down this file. G17a is reclassified: not resolved-by-removal, but resolved
+by the row having a real destination all along.*
+
 ---
 
 **G17b. MIP results' "Talk to someone about it" row — dead end, kept and built.** Frames 20 and 21
@@ -230,6 +242,12 @@ think-aloud means the facilitator intervening. Recorded as an intentional deviat
 reference PNGs - **exempt from the screenshot-comparison pass** on every screen it appears on,
 alongside the frame 13 (G17a, diagram row removed), frame 32 (G25, FSCS note removed) and frame 05b
 (G28, DUAA flag row added) exemptions.*
+
+*Corrected 22 August 2026: **the frame 13 exemption in that list should not be there.** It was
+granted for a deviation that does not exist - the diagram row was never removed (see the correction
+under G17a), so frame 13 matches its reference PNG on this count and has nothing to be exempt from.
+The exemption list for this pass is frame 32 (G25) and frame 05b (G28), plus this bar itself. Frame
+13 is diffed normally.*
 
 Excluded, and therefore diffed normally: the seven sheets (03b, 10c, 13b, 29, 30, 31, 32), 19b while
 the check is running, and 33. One qualification: on the calculator's step flow (09, 09a, 09b, 10,

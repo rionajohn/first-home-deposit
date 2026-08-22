@@ -605,7 +605,15 @@ const content = {
     explainerHeading: 'Want more on this?',
     explainerVideoTitle: 'Watch: what Loan-to-Value means',
     explainerVideoDuration: '1 min 20',
-    explainerWatchedLabel: 'Watched',
+    // NOT "Watched". The explainer's media block is a placeholder with no
+    // playback, and `ltvVideoSeen` is set by dismissing frame 13b however it
+    // was entered - including by the diagram row beneath this one. "Watched"
+    // stated something about the participant that had not happened, on a row
+    // they might never have used. "Opened" is what the flag actually records,
+    // and says nothing about what was opened, which is what keeps it true
+    // either way. See DECISIONS.md D37. Do not change when the flag is set -
+    // only what it is called.
+    explainerOpenedLabel: 'Opened',
     explainerDiagramTitle: 'See it as a diagram',
     explainerDiagramDurationTemplate: 'The same {property} home at 95%, 90% and 85%',
     howWeWorkedTitle: 'How we worked this out',

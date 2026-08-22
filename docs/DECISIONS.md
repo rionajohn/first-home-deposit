@@ -135,6 +135,26 @@ Contributions are paid at the start of each month, per `build-spec.md` section 4
 
 **To reverse.** Re-add the diagram row to `content.js`'s frame-13 copy and give it a route once a frame 14 design exists.
 
+**Correction, 22 August 2026: the diagram row was never removed, and is live.** The paragraph above
+describes an intention that the build did not carry out. `git log -S"open-diagram" --
+src/screens/learn-ltv.js` returns exactly one commit, `eb666a2` ("Build Figma page 04 Understanding
+and tracking"), which **added** the row; nothing has ever taken it out. Frame 13's "Want more on
+this?" card carries both explainer rows today, and **both of them open frame 13b**:
+
+```js
+['open-video', 'open-diagram'].forEach((action) => { ... window.location.hash = '#/learn/ltv/video'; });
+```
+
+The reason the build diverged is recorded in `learn-ltv.js`'s own header and is a better one than
+this decision's: the reference PNG for frame 13 is annotated "Both open frame 13b", so the row is
+not the dead end D8 took it for. It has a destination, and that destination is built. What is not
+built is the diagram inside it, which is a placeholder in the Figma export as well as in the code -
+see `docs/investigations/2026-08-frame-13b.md`.
+
+The rest of D8 stands: 14 and 22-28 are still not built, and the "Talk to someone about it"
+treatment in D10 is unaffected. Only the claim about the diagram row is wrong. "To reverse" above is
+moot for the same reason - there is nothing to re-add.
+
 ---
 
 ## D9. Currency display rounds to the nearest £1
@@ -1563,6 +1583,61 @@ as part of a bar sweep - see the top of this entry.
 
 ---
 
+## D37. The explainer row says "Opened", not "Watched", because no video plays
+
+**Date.** 22 August 2026.
+
+**Decision.** Frame 13's explainer row marker changes from "Watched" to "Opened". `content.js`'s
+`explainerWatchedLabel` is renamed `explainerOpenedLabel`, because the key name carried the same
+false claim as the string. Nothing else changes: `ltvVideoSeen` is still set at the same moment, by
+the same three dismissal routes, and the row's treatment is unchanged - the marker is still the same
+` · <label>` suffix on `.explainer-row__duration`, so no component was touched.
+
+**The defect.** Frame 13b's media block is a placeholder with no playback (there is no media
+pipeline in this build). Dismissing 13b sets `ltvVideoSeen`, and frame 13's video row then rendered
+"1 min 20 · Watched". The app was stating something about the participant that had not happened, and
+could not have happened.
+
+It was wrong twice over. `ltvVideoSeen` is set by dismissing the sheet **however it was entered**,
+and both explainer rows open it - so a participant who tapped "See it as a diagram", never touched
+the video row, and saw no video, came back to a video row claiming they had watched it. "Opened" is
+true on both paths, which is why the shortest of the three drafts was also the most accurate: it
+says nothing about *what* was opened, and so cannot be wrong about which row got them there.
+
+**The three drafts.** "Opened" (chosen), "Explainer opened", "You've opened this". All three drop
+the playback claim and keep the signal that is actually useful - that the participant has been here
+before. "Opened" won on fitting after "1 min 20 · " at 320px and at the large text size, and on
+matching the one-word register the row already had.
+
+**Why keep a marker at all.** Whether a participant returns to an explainer is a research signal
+worth having on screen, and removing the marker would have thrown it away to fix a wording problem.
+The instruction was explicit that the flag's timing must not change, only its label, and that is what
+happened.
+
+**The sweep, and what it found.** Every journey flag in `state.js` was checked for whether a screen
+reads it to display a claim: `goalSaved`, `journeyStarted`, `calculatorEntered`, `journeyPaused`,
+`softSearchRecorded`, `checkRunAt`, `accountSelectionEdited`, `ltvVideoSeen`. **Only `ltvVideoSeen`
+drives a displayed marker.** The other seven are never read by any screen module for display, so
+there is no second instance of this defect. A rendered-text sweep across 23 routes for
+watched/played/completed/finished/viewed/read found nothing else.
+
+Three things were looked at and deliberately left alone, recorded here so the next sweep does not
+have to rediscover them:
+
+| Left alone | Why it is not this defect |
+|---|---|
+| Frame 13's row title, "Watch: what Loan-to-Value means" | It describes what the row offers, not something the participant has done. It is a promise the prototype does not keep, which is a placeholder question, not a false-claim one |
+| `/mip/adviser`'s "Request sent" | The participant did take the action it reports. Whether the prototype really sends anything is a fidelity question about the app, not a claim about the participant |
+| Frames 15/16's "Accounts sorted - You told us what each one's for." | **Unsure, and reported rather than changed.** This milestone renders `done` unconditionally, so a participant who never opened frame 03 and never assigned an account still reads that they told us. It is the same family, but it is not flag-gated, it is the reference PNG's own copy, and D28's premise is that accounts are connected and assigned from session start. Changing it means changing frames 15/16, which this pass was scoped out of |
+
+**Verified.** Frame 13's card screenshotted before and after opening 13b, at 390px in light and
+dark: "1 min 20" before, "1 min 20 · Opened" after, in both themes. Confirmed the diagram row
+produces the same marker. 128 tests passing (model, overlap, bottom-nav, sheet-drag).
+
+**Reversal.** Rename the key back and restore the string. Nothing else moved.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -1607,6 +1682,7 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (chevron corrections) | D32 recorded: frames 13, 33 and 22 take the back chevron instead of the close X, none of them being a flow boundary; frame 22's "Done" moves to `goBack()` with it, dropping a `returnFrame` push that left the confirmation on the stack. `exitFlow` stops overwriting one entry and goes back by the difference between `history.length` now and at flow entry, measured at 4 and 9 steps on the two entry routes, falling back to D30's `replace` when the delta is missing or not positive. Amends D30. `GAPS.md` G57 and G58 opened. |
 | 22 August 2026 (bank-branch removal verified) | D33 recorded: the savings-location question and its branch confirmed absent from the code, and `build-spec.md` sections 1, 2 and 7 stripped of the rows that still documented them - the question, its two options, all six frame 04 transitions, the 05b variant, frame 10's general-mode row and frame 33's Mode control. Section 3 keeps frames 04 and 05b at status "Removed - DECISIONS.md D28", the frame inventory being the Figma mapping. Records what the answer used to change (frame 05 provenance, frame 10's slider ceiling, frame 04's annual range, D27's second guidance line) and what each is now. No figure changed value. `GAPS.md` left intact as a dated log. Completes D28. |
 | 22 August 2026 (provenance captions) | D34 recorded: every figure now states its source. `figureRowHTML` gains an optional caption in trailing mode - it was the one figure-bearing component without one, which is how frame 08's savings interest rate was shown with no source. Three captions were wrong rather than missing: the savings interest rate was credited to the participant's instant saver on frames 10/10b/11/32 when it is `RATES.bankRate` anchored to the Bank of England Bank Rate (D3), and the wrong claim had reached a code comment in `accounts.js`; essential spending was described three different ways, with frame 32 alone claiming a 6-month averaging window nothing performs; and frame 12 used one caption key for two different derivations. `bankRateCaptionTemplate`, `essentialSpendingCaption` and `leftOverCaption` move to `shared`, and the bank-rate caption resolves `{source}` from `RATES.source` so it cannot name a source the model did not use. Six new captions name two values each, a shape no existing caption had; frames 15/16's rate-band caption additionally names which figures it covers, because the row carries a rate from a different source. Frame 21's "at your current rate" - the one caption the `savings-rate` misnomer had corrupted - adopts frames 15/16's wording. |
+| 22 August 2026 (false "Watched") | D37 recorded: frame 13's explainer marker changes from "Watched" to "Opened", and `explainerWatchedLabel` is renamed `explainerOpenedLabel`. Frame 13b's media block has no playback, and `ltvVideoSeen` is set by dismissing the sheet however it was entered - so the row claimed a video had been watched, sometimes by a participant who had asked for the diagram and never touched the video row. When the flag is set is unchanged; only its label. Swept all eight journey flags: `ltvVideoSeen` is the only one a screen reads to display a claim, and a text sweep of 23 routes found no other false-action marker. Three near-misses left alone and listed in the entry, including frames 15/16's unconditional "You told us what each one's for", which is reported as unsure rather than changed. **D8 and G17a corrected in the same commit**: both said frame 13's "See it as a diagram" row had been removed; `git log -S` shows it was only ever added, both rows open 13b per the reference PNG's own annotation, and the frame 13 entry in G29's screenshot-exemption list cited a deviation that does not exist. Original reasoning left intact, corrections appended and dated. |
 | 22 August 2026 (frame 18 timeline) | D36 recorded: frame 18's `[Visual aid]` placeholder is replaced by the process timeline it specified - four labelled nodes joined by a hairline, Mortgage in Principle marked as where the participant is, the three ahead of them reading as ahead rather than done. **It is a process sequence, not a progress indicator, and is exempt from DESIGN.md's bar exclusions on that basis** - vertical, discrete nodes rather than a filled track, measuring nothing, with no completed state at all. Vertical because four horizontal labels do not fit 62px columns at 320px. New `circleDot` icon and `processTimelineHTML` component; no new colour, spacing or width token. Not interactive: no button, link, tabindex or pointer cursor, proved by walking the tab order. An `<ol>` with `aria-current="step"` and a visible "You are here", so sequence and position are not carried by the drawing alone. Frame 13b's separate `[Visual aid]` and the `.media-placeholder` video block are untouched. |
 | 22 August 2026 (MiP reachable) | D35 recorded: the Insights tab resolves to `/tracker` (Payments and Profile stay disabled), which makes the six-screen Mortgage in Principle flow reachable - it was already built and already wired, and nothing navigated to the tracker. `diamondFill` added, because `TAB_ICONS_ACTIVE` held twins for two tabs and lighting a third called `undefined`; the glyph lookup now falls back to the outline, and the tab hint stops being a Home-or-Goals ternary. The tracker's action bar is confirmed as the single entry (`reference/frames/16` draws it; the instruction's "milestone row is a live link" did not hold), and the locked milestone row drops its no-op `<button>`. `journeyEntryPoint` gains `/tracker`, so the X on 17, 18, 19b, 20 and 21 exits to the tracker rather than frame 01. Four copy keys change: the entry stops claiming the prototype issues a decision in principle, and frames 19 and 19b stop implying a check runs here. No knowledge check built on frame 17 - it exists in no spec, wireframe or frame, and the author confirmed it came from a stale summary. |
 | 22 August 2026 (D32 collision resolved) | The provenance-captions entry, recorded second under a number the chevron entry already held, becomes **D34**; the chevron entry keeps D32. Four citations meant the provenance entry and were updated - its own heading, its change-log row, `content.js`'s shared-caption comment and `accounts.js`'s bank-rate comment. Nine meant the chevron entry and were left alone: `GAPS.md` G57 (twice) and G58, `router.js`, `state.js`, `learn-ltv.js`, `mip-adviser.js`, `settings.js`, and its own change-log row. D33's paragraph recording the collision as open is corrected. Sequence is now D1-D34, no duplicate and no gap; D34 sits before D33 in the file, and D20 before D13, neither being renumbered or moved. `CLAUDE.md` gains a working rule to take the next number from the last entry. |

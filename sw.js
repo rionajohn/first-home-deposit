@@ -29,7 +29,7 @@
  * src/cache-version.js's CACHE_VERSION_FALLBACK in step with the version
  * below; see that file's own comment for why the two are separate.
  */
-const CACHE_VERSION = 'v19';
+const CACHE_VERSION = 'v20';
 const CACHE_NAME = `yfh-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
