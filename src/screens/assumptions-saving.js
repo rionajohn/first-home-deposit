@@ -22,7 +22,6 @@ import { sheetHeaderHTML, figureRowHTML, actionBarDockHTML } from '../components
 import { formatCurrency, formatPercent, formatFullDate } from '../format.js';
 import { depositTarget } from '../model/model.js';
 import { RATES } from '../model/rates.js';
-import { guidanceNotAdviceLine } from '../regulatory.js';
 import { goBack } from '../router.js';
 
 export const anchors = ['guidanceNotAdvice'];
@@ -34,6 +33,7 @@ function fill(template, values) {
 export function render(container, ctx) {
   const { state, content } = ctx;
   const c = content['/assumptions/saving'];
+  const reg = content.shared.regulatory;
 
   const returnHash = `#${state.returnFrame || '/home'}`;
 
@@ -70,7 +70,7 @@ export function render(container, ctx) {
           </div>
 
           <p class="legal-text">${fill(c.metadataTemplate, { date: formatFullDate(RATES.asAt) })}</p>
-          <p class="legal-text">${guidanceNotAdviceLine(state, content)}</p>
+          <p class="legal-text">${reg.guidanceNotAdvice}</p>
         </div>
         ${actionBarDockHTML(`
           <button type="button" class="button button--primary" data-action="dismiss">${c.primaryCta}</button>

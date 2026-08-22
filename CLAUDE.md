@@ -13,6 +13,35 @@ Three names are in play and they are NOT interchangeable. Keep them distinct:
 The display name lives in `src/config.js` alone; `index.html`, `content.js` and the screens read it
 from there. See `docs/README.md` for how to rename any of the three.
 
+### STANDING CONSTRAINTS for this repo. These apply to every change.
+
+This is a mid-fidelity research prototype used as an instrument in moderated
+think-aloud usability testing. Fidelity of interaction matters more than
+production code quality. Do not add libraries, do not refactor architecture,
+do not introduce a state management library.
+
+## Design rules
+- No Source badges. Use provenance captions instead.
+- No linear progress bars.
+- No segmented bars for proportions.
+- Icons must be real vectors, never emoji or images of icons.
+- All text must fit via auto layout. Nothing truncates or overflows.
+- A row is either editable or explanatory, never both.
+- Any correction applies everywhere the same pattern appears, not just the
+  screen named in the prompt.
+
+## Content rules:
+- All figures stay anchored to the Bank of England Bank Rate as already set in
+  the codebase. Do not invent or change financial figures.
+- Copy must stay within FCA guidance-versus-advice boundaries. Do not
+  introduce language that recommends a course of action to the user.
+- British English throughout. No em dashes, use hyphens.
+
+## Working rules
+- Do not change behaviour outside the scope stated in the prompt.
+- Preserve existing dark mode support in anything you touch.
+- Update docs/DECISIONS.md with a dated entry for any design decision you make.
+
 ## Commands
 - Serve: `python -m http.server 8080` on Windows (ES modules need a server, not file://)
 - Test the model: `node --test src/model/*.test.js` (the bare directory form fails on Node 24)

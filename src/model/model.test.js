@@ -11,7 +11,6 @@ import {
   monthsToTarget,
   monthlyAmountFromDate,
   gap,
-  generalAnnualRange,
 } from './model.js';
 
 // Helpers for building state entries — every key is the exact build-spec.md
@@ -286,23 +285,5 @@ describe('provenance propagation — build-spec.md section 6', () => {
     assert.equal(loanAmount(state).provenance, 'entered');
     assert.equal(ltv(state).provenance, 'entered');
     assert.equal(checkpointAmount(state).provenance, 'entered');
-  });
-});
-
-describe('general mode — build-spec.md section 2, frame 04 "default range"', () => {
-  test('annual is monthly x 12, no interest — matches the 150/288 -> 1,800/3,456 worked example', () => {
-    const result = generalAnnualRange(read(150), read(288));
-    assert.equal(result.error, null);
-    assert.equal(result.value.low, 1800);
-    assert.equal(result.value.high, 3456);
-  });
-
-  test('provenance is estimated when neither monthly figure was entered', () => {
-    assert.equal(generalAnnualRange(read(150), read(288)).provenance, 'estimated');
-  });
-
-  test('provenance is entered if either monthly figure was typed or dragged (DECISIONS.md D5)', () => {
-    assert.equal(generalAnnualRange(entered(200), read(288)).provenance, 'entered');
-    assert.equal(generalAnnualRange(read(150), entered(300)).provenance, 'entered');
   });
 });

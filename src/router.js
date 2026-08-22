@@ -22,7 +22,6 @@ export const ROUTES = [
   '/journey',
   '/consent',
   '/consent/move-account',
-  '/consent/declined',
   '/position',
   '/position/summary',
   '/goals',

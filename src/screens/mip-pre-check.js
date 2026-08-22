@@ -4,13 +4,12 @@
  *
  * Two variants (build-spec.md section 2):
  *   - complete (the frame as drawn): all five held figures available
- *   - incomplete: any held figure missing, e.g. no salary credit detected —
- *     no wireframe drawn (DECISIONS.md D7 fallback). Triggered here by
- *     mode === 'general': in general mode no account was ever connected, so
- *     none of the account-derived figures below (salary, income, outgoings,
- *     deposit saved) were actually read. Existing credit commitments comes
- *     from a separate provenance (a credit reference read, not this bank's
- *     own account activity) and isn't affected.
+ *   - incomplete: any held figure missing - no wireframe drawn
+ *     (DECISIONS.md D7 fallback). Each of income, outgoings and deposit
+ *     saved falls back to its own '!' row when the figure it reads is null.
+ *     Salary has no null state of its own: MOCK_MIP_DATA always holds one.
+ *     The general-mode trigger that used to put salary into the incomplete
+ *     row went with general mode (DECISIONS.md D28).
  *
  * The three "What you'll..." sections are Content / Disclosure accordions,
  * closed on load (state.mipAskedOpen / mipBenefitsOpen / mipAwareOpen, see
@@ -59,11 +58,7 @@ export function render(container, ctx) {
     return;
   }
 
-  const isGeneral = state.mode === 'general';
-
-  const salaryRow = isGeneral
-    ? checklistRowHTML({ glyph: '!', label: c.salaryLabel, value: c.incompleteValue, caption: c.incompleteCaption })
-    : checklistRowHTML({ state: 'checked', label: c.salaryLabel, value: formatCurrency(MOCK_MIP_DATA.annualSalaryBeforeTax), caption: c.salaryCaption });
+  const salaryRow = checklistRowHTML({ state: 'checked', label: c.salaryLabel, value: formatCurrency(MOCK_MIP_DATA.annualSalaryBeforeTax), caption: c.salaryCaption });
 
   const incomeValue = state['money-in'].value;
   const incomeRow = incomeValue === null

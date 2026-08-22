@@ -2,13 +2,16 @@
  * Frame 33 — Prototype settings. Figma node 266:2775 (page "07 Prototype
  * controls"). Reference: reference/frames/33 Prototype settings.png.
  *
- * build-spec.md section 7's five scenario controls, each backed directly by
- * a state.js field of the same name: theme, textSize, mode ("Data"), stage
- * ("Journey stage"), resultOutcome ("Mortgage in Principle outcome"). This
+ * build-spec.md section 7's scenario controls, each backed directly by a
+ * state.js field of the same name: theme, textSize, stage ("Journey stage")
+ * and resultOutcome ("Mortgage in Principle outcome"). Section 7's fifth,
+ * "Data", is gone: its three options were personalised, estimate and
+ * general, and the last two went with the account-linking choice
+ * (DECISIONS.md D28), leaving a control with one option that changed
+ * nothing. This
  * screen is a live mirror of that state, not a form with its own defaults —
  * whichever option is highlighted is whatever the app's actual current
- * state already holds (e.g. `state.mode` is only set once a participant's
- * route has actually set it; nothing here forces a fallback selection).
+ * state already holds; nothing here forces a fallback selection.
  *
  * build-spec.md section 1's only navigation row for this frame: "Any toggle
  * -> Re-renders the current frame -> theme, textSize, mode, stage,
@@ -92,9 +95,13 @@ export function render(container, ctx) {
 
       <div class="card card--muted settings-card">
         <p class="settings-card__header">${c.participantHeader}</p>
-        ${controlHTML({ label: c.dataLabel, options: c.dataOptions, selected: state.mode, action: 'set-mode' })}
         ${controlHTML({ label: c.journeyLabel, options: c.journeyOptions, selected: state.stage, action: 'set-stage' })}
         ${controlHTML({ label: c.outcomeLabel, options: c.outcomeOptions, selected: state.resultOutcome, action: 'set-outcome' })}
+      </div>
+
+      <div class="card card--muted settings-card">
+        <p class="settings-card__header">${c.dataSourceHeader}</p>
+        <p class="settings-control__label">${content.shared.dataSource}</p>
       </div>
 
       <div class="card card--muted settings-card">
@@ -124,7 +131,6 @@ export function render(container, ctx) {
 
   bindGroup('set-theme', 'theme');
   bindGroup('set-text-size', 'textSize');
-  bindGroup('set-mode', 'mode');
   bindGroup('set-stage', 'stage');
   bindGroup('set-outcome', 'resultOutcome');
 

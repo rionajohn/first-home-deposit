@@ -39,7 +39,6 @@ import {
 import { formatCurrency, formatPercent, formatMonthsDuration } from '../format.js';
 import { balanceAtMonth, monthsToReachAmount, checkpointAmount, monthsToTarget } from '../model/model.js';
 import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS } from '../model/rates.js';
-import { guidanceNotAdviceLine } from '../regulatory.js';
 
 export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
 
@@ -59,22 +58,12 @@ export function render(container, ctx) {
   }
 
   const propertyValue = state['property-value'].value;
-  // Null with no accounts linked: the chart and the timing rows then project
-  // from a zero starting balance, matching monthsToTarget().
-  const savedTowardDeposit = state['saved-toward-deposit'].value ?? 0;
+  const savedTowardDeposit = state['saved-toward-deposit'].value;
   const monthlyLow = state['monthly-low'].value;
   const monthlyHigh = state['monthly-high'].value;
   const depositTargetValue = state['deposit-target'].value;
   const essentialSpending = state['essential-spending'].value;
   const leftOverValue = state['left-over'].value;
-
-  // A session that never linked an account reaches this screen with
-  // essential-spending, left-over and saved-toward-deposit all unset
-  // (GAPS.md G50, DECISIONS.md D24). The projection itself is fine — it
-  // starts from a zero balance, which is what the model already assumes in
-  // general mode — but the How-this-works card must not repeat frame 06's
-  // "what we read from your accounts" rows, because nothing was read.
-  const fromAccounts = leftOverValue !== null;
 
   const [lowPctValue, midPctValue, highPctValue] = CHART_DEPOSIT_PCTS;
   const rangeLowAmount = propertyValue * lowPctValue;
@@ -96,7 +85,7 @@ export function render(container, ctx) {
         markerPct: ((depositTargetValue - rangeLowAmount) / (rangeHighAmount - rangeLowAmount)) * 100,
         trackLabel: fill(c.goalTrackLabelTemplate, { target: formatCurrency(depositTargetValue) }),
       })}
-      <p class="provenance-caption">${fromAccounts ? c.provenanceCaption : c.provenanceCaptionGeneral}</p>
+      <p class="provenance-caption">${c.provenanceCaption}</p>
       ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions-deposit' })}
 
       ${unreachable ? emptyStateCardHTML({ title: c.unreachableHeadline, body: c.unreachableBody, ctaLabel: c.unreachableCta, ctaAction: 'set-amount' }) : `
@@ -128,7 +117,7 @@ export function render(container, ctx) {
             return `<p>${fill(c.timingRangeTemplate, { pct: pctLabel, low: soonText, high: laterText })}</p>`;
           }).join('')}
         </div>
-        <p class="provenance-caption">${fromAccounts ? c.provenanceCaption : c.provenanceCaptionGeneral}</p>
+        <p class="provenance-caption">${c.provenanceCaption}</p>
       `}
 
       <p class="legal-text">${reg.estimateDisclosure}</p>
@@ -185,24 +174,18 @@ export function render(container, ctx) {
         id: 'result-how-we-worked',
         open: state.resultHowWeWorkedOpen,
         title: c.howWeWorkedTitle,
-        intro: fromAccounts ? c.howWeWorkedIntro : c.howWeWorkedIntroGeneral,
-        rows: fromAccounts
-          ? [
-            summaryContent.whatWeRead,
-            { ...summaryContent.whatWeWorkedOut, value: fill(summaryContent.whatWeWorkedOut.value, { essential: formatCurrency(essentialSpending), leftOver: formatCurrency(leftOverValue) }) },
-            summaryContent.whatWeAssumed,
-          ]
-          : [
-            summaryContent.whatWeReadGeneral,
-            summaryContent.whatWeWorkedOutGeneral,
-            summaryContent.whatWeAssumedGeneral,
-          ],
+        intro: c.howWeWorkedIntro,
+        rows: [
+          summaryContent.whatWeRead,
+          { ...summaryContent.whatWeWorkedOut, value: fill(summaryContent.whatWeWorkedOut.value, { essential: formatCurrency(essentialSpending), leftOver: formatCurrency(leftOverValue) }) },
+          summaryContent.whatWeAssumed,
+        ],
         navLabel: c.seeHowWeWorkedLabel,
         navAction: 'open-assumptions-saving',
       })}
 
       ${flagRowHTML(c.flagLabel)}
-      <p class="legal-text">${guidanceNotAdviceLine(state, content)}</p>
+      <p class="legal-text">${reg.guidanceNotAdvice}</p>
     </main>
   `;
 

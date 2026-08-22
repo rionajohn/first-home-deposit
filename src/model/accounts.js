@@ -186,16 +186,12 @@ export function goalsByHorizon(accounts) {
 }
 
 /**
- * Mock monthly position for frame 05/05b (money-in, essential-spending —
+ * Mock monthly position for frame 05 (money-in, essential-spending —
  * build-spec.md section 6). Read from the same mock salary credit shown on
  * frame 01's transaction list (+£2,240.00), so the figure is consistent
  * across screens rather than a second, unrelated number. Provenance is
- * 'read' in both personalised and estimate mode: build-spec.md's own
- * "unseen balances flagged prefilled-estimated" (section 1, "Agree and
- * continue (mode = estimate)" row) scopes the estimate to account
- * *balances* held elsewhere — money-in/essential-spending come from this
- * bank's own current-account activity, which is visible regardless of where
- * the participant's savings are held.
+ * 'read': this is the participant's main bank and its own current-account
+ * activity, seeded into the store at session start (src/state.js).
  */
 export const MOCK_POSITION = {
   moneyIn: 2240,
@@ -357,13 +353,12 @@ export function toggleAccountPatch(account, assignments, included, target) {
  * account state — `saved-toward-deposit`, `emergency-fund` and `unassigned`.
  *
  * Called on every change that can move a figure: selecting or deselecting
- * accounts on frame 03, and confirming a move on frame 03b. Not only on
- * "Agree and continue", so the figures in state always match what the screen
- * is showing.
+ * accounts on frame 03, and confirming a move on frame 03b, as well as once
+ * at session start (src/state.js), so the figures in state always match what
+ * the screen is showing.
  *
- * Provenance (DECISIONS.md D5). Untouched, these are read straight from
- * account data: 'read' in personalised mode, 'estimated' where the bank
- * cannot see the balances. Once a participant has changed which accounts
+ * Provenance (DECISIONS.md D5). Untouched, these are 'read' - read straight
+ * from account data. Once a participant has changed which accounts
  * count — by the select-all row or by a 03b move — the figures contain the
  * participant's own input, so they carry 'entered', and D5's propagation rule
  * carries that on to everything derived from them downstream. All three move
@@ -375,11 +370,7 @@ export function toggleAccountPatch(account, assignments, included, target) {
 export function accountFigures(state) {
   const accounts = effectiveAccounts(state.accountAssignments, state.accountIncluded);
   const totals = groupTotals(accounts);
-  const provenance = state.accountSelectionEdited
-    ? 'entered'
-    : state.savingsWithUs === false
-      ? 'estimated'
-      : 'read';
+  const provenance = state.accountSelectionEdited ? 'entered' : 'read';
   return {
     'saved-toward-deposit': { value: totals.deposit, provenance },
     'emergency-fund': { value: totals.emergency, provenance },

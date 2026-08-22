@@ -195,23 +195,16 @@ describe('toggleAccountPatch — a single account checkbox (DECISIONS.md D16)', 
 describe('accountFigures — provenance propagation (DECISIONS.md D5)', () => {
   const base = { accountAssignments: {}, accountIncluded: {}, accountSelectionEdited: false };
 
-  test('untouched, in personalised mode, the figures are read from account data', () => {
-    const figures = accountFigures({ ...base, savingsWithUs: true });
+  test('untouched, the figures are read from account data', () => {
+    const figures = accountFigures(base);
     assert.deepEqual(figures['saved-toward-deposit'], { value: 8950, provenance: 'read' });
     assert.deepEqual(figures['emergency-fund'], { value: 5600, provenance: 'read' });
     assert.deepEqual(figures.unassigned, { value: 2400, provenance: 'read' });
   });
 
-  test('untouched, in estimate mode, they are estimated', () => {
-    const figures = accountFigures({ ...base, savingsWithUs: false });
-    assert.equal(figures['saved-toward-deposit'].provenance, 'estimated');
-    assert.equal(figures['emergency-fund'].provenance, 'estimated');
-  });
-
   test('once the participant has changed which accounts count, all three carry entered', () => {
     const figures = accountFigures({
       ...base,
-      savingsWithUs: true,
       accountIncluded: { 'house-pot': false },
       accountSelectionEdited: true,
     });
@@ -224,7 +217,6 @@ describe('accountFigures — provenance propagation (DECISIONS.md D5)', () => {
   test('a 03b move recalculates the same way, entered included', () => {
     const figures = accountFigures({
       ...base,
-      savingsWithUs: true,
       accountAssignments: { 'stocks-isa': 'deposit' },
       accountSelectionEdited: true,
     });

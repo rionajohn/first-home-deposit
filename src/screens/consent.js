@@ -1,25 +1,27 @@
 /**
- * Frame 03 — Consent and linked accounts. Figma node 10:45. Reference:
+ * Frame 03 - Your accounts. Figma node 10:45. Reference:
  * reference/frames/03 Consent and linked accounts.png.
  *
+ * THIS SCREEN NO LONGER ASKS A QUESTION. The app assumes the participant's
+ * accounts are connected, because this is their main bank, so what is left
+ * here is the part that was always real user input: which accounts count
+ * toward a deposit, and what each one is for. Gone with the account-linking
+ * choice are the savings-with-us question and its estimate branch, the
+ * consent statement, "Not now" and the declined path behind it. See
+ * DECISIONS.md D28.
+ *
  * Variants built (build-spec.md section 2):
- *   - none-selected: savingsWithUs === null, continue disabled
- *   - personalised: savingsWithUs === true
- *   - estimate: savingsWithUs === false (estimate-mode banner — no
- *     reference PNG for this state; built per DECISIONS.md D7 from the
- *     existing info-banner pattern)
  *   - all-selected / some-selected: the "Select all accounts" checkbox,
  *     reflecting the deposit group's included count
  *   - assigned / unassigned: account-row + group-header styling
  *
- * This screen also seeds three of the section 6 state figures
- * (saved-toward-deposit, emergency-fund, unassigned) from the mock account
- * data in src/model/accounts.js when "Agree and continue" is pressed — see
- * DECISIONS.md D5 on provenance: these are 'read', not hardcoded, because
- * every downstream screen (checkpoint-amount, the tracker, MIP) depends on
- * them.
+ * The three account figures (saved-toward-deposit, emergency-fund,
+ * unassigned) are seeded at session start now (src/state.js), not here.
+ * This screen recalculates them on every selection change and on Continue,
+ * through the same accountFigures helper, so what it commits is always what
+ * is on screen - see DECISIONS.md D5 on provenance.
  */
-import { appBarHTML, bindAppBarBack, actionBarHTML, infoBannerHTML, rerenderInPlace } from '../components/ui.js';
+import { appBarHTML, bindAppBarBack, actionBarHTML, infoBannerHTML } from '../components/ui.js';
 import { formatCurrency, formatAccountBalance } from '../format.js';
 import {
   effectiveAccounts,
@@ -30,7 +32,6 @@ import {
   toggleAccountPatch,
   accountFigures,
   GROUP_ORDER,
-  MOCK_POSITION,
 } from '../model/accounts.js';
 import { checkmark, chevronRight, minus } from '../icons.js';
 
@@ -44,9 +45,7 @@ export const anchors = ['guidanceNotAdvice'];
  * HTML attribute: `indeterminate` is a DOM property only, set in JavaScript
  * after render (see below). Assistive technology reads it from the native
  * control, announcing "partially checked", which `aria-checked="mixed"` on a
- * button can only approximate. Both checkbox rows on this screen use the one
- * implementation rather than the select-all row getting a second, parallel
- * one.
+ * button can only approximate.
  *
  * The input is visually hidden but NOT `display: none` — it stays in the
  * accessibility tree and stays focusable, and its focus ring is drawn on the
@@ -281,28 +280,6 @@ export function render(container, ctx) {
       <h2 class="screen-title">${c.headline}</h2>
       <p class="entry-card__body">${c.subhead}</p>
 
-      <div class="card savings-question-card">
-        <p class="savings-question-card__question">${c.savingsQuestion}</p>
-        <div class="choice-row">
-          <button type="button" class="button button--choice" aria-pressed="${state.savingsWithUs === true}" data-action="savings-with-us" data-value="true">${c.yesLabel}</button>
-          <button type="button" class="button button--choice" aria-pressed="${state.savingsWithUs === false}" data-action="savings-with-us" data-value="false">${c.noLabel}</button>
-        </div>
-        <p class="account-row__caption">${c.savingsHint}</p>
-      </div>
-
-      <hr class="divider" />
-
-      <h3 class="section-heading">${c.usingWhatWeCanSeeHeading}</h3>
-
-      ${checkboxRow({
-        checked: state.consentStatementChecked,
-        title: c.consentStatementTitle,
-        body: c.consentStatementBody,
-        action: 'toggle-consent-statement',
-      })}
-
-      ${state.savingsWithUs === false ? infoBannerHTML(c.estimateModeBanner) : ''}
-
       <div class="card accounts-card">
         <p class="accounts-card__header-title">${c.accountsCardHeader}</p>
         <div class="accounts-card__spacer-sm"></div>
@@ -323,37 +300,17 @@ export function render(container, ctx) {
 
       <p class="legal-text">${c.fscsNote}</p>
 
-      ${infoBannerHTML(c.withdrawBanner)}
+      ${infoBannerHTML(content.shared.dataSource)}
 
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
     </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,
-      primaryAction: 'agree-continue',
-      primaryDisabled: state.savingsWithUs === null,
-      secondaryLabel: c.secondaryCta,
-      secondaryAction: 'not-now',
+      primaryAction: 'continue',
     })}
   `;
 
   bindAppBarBack(container);
-
-  // These two DO change the rest of the screen — the estimate-mode banner
-  // appears and disappears, the primary action enables — so they re-render
-  // the whole screen. `rerenderInPlace` keeps the scroll position and the
-  // focused control across it (DECISIONS.md D16).
-  container.querySelectorAll('[data-action="savings-with-us"]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const value = btn.dataset.value === 'true';
-      const next = setState({ savingsWithUs: value });
-      rerenderInPlace(container, render, { ...ctx, state: next });
-    });
-  });
-
-  container.querySelector('[data-action="toggle-consent-statement"]').addEventListener('change', () => {
-    const next = setState({ consentStatementChecked: !state.consentStatementChecked });
-    rerenderInPlace(container, render, { ...ctx, state: next });
-  });
 
   // The mixed state, set as the DOM property because there is no attribute
   // for it. Rendered markup can only carry `checked`; this is what makes the
@@ -415,28 +372,13 @@ export function render(container, ctx) {
     window.location.hash = '#/consent/move-account';
   });
 
-  container.querySelector('[data-action="agree-continue"]').addEventListener('click', () => {
-    if (live.savingsWithUs === null) return;
-    const mode = live.savingsWithUs ? 'personalised' : 'estimate';
-    setState({
-      mode,
-      consentGiven: true,
-      // Same helper the selection handler and 03b use, so the figures
-      // committed here are the ones already on screen, with the provenance
-      // the participant's own edits have earned them (DECISIONS.md D5).
-      // Reads `live` rather than the render-time state, because selection
-      // changes since this render updated the store without re-rendering.
-      ...accountFigures(live),
-      // Read from this bank's own current-account activity regardless of
-      // mode — see accounts.js's MOCK_POSITION comment.
-      'money-in': { value: MOCK_POSITION.moneyIn, provenance: 'read' },
-      'essential-spending': { value: MOCK_POSITION.essentialSpending, provenance: 'read' },
-    });
-    window.location.hash = mode === 'personalised' ? '#/position' : '#/position?mode=estimate';
-  });
-
-  container.querySelector('[data-action="not-now"]').addEventListener('click', () => {
-    setState({ consentGiven: false, mode: 'general' });
-    window.location.hash = '#/consent/declined';
+  container.querySelector('[data-action="continue"]').addEventListener('click', () => {
+    // Same helper the selection handler and 03b use, so the figures committed
+    // here are the ones already on screen, with the provenance the
+    // participant's own edits have earned them (DECISIONS.md D5). Reads
+    // `live` rather than the render-time state, because selection changes
+    // since this render updated the store without re-rendering.
+    setState(accountFigures(live));
+    window.location.hash = '#/position';
   });
 }

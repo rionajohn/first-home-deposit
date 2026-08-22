@@ -902,6 +902,68 @@ the checked one, asserted from the rendered DOM rather than from the source. `ov
 unconditionally, or revert the eleven one-line render-site changes and delete `src/regulatory.js`
 and the `regulatoryAwaitingCheck` object. Nothing else reads either.
 
+---
+
+## D28. The account-linking choice is removed, and the app assumes connected accounts
+
+**Date.** 22 August 2026.
+
+**Decision.** There is no longer a decision to make about whether this bank may look at the
+participant's accounts. It is their main bank, the accounts are connected, and the figures that
+follow from that are seeded into the store when the session starts (`src/state.js`). Everything
+that existed only to serve the alternative is deleted rather than routed around.
+
+**What went.**
+
+| Removed | What it was |
+|---|---|
+| Frame 04 and its route | `/consent/declined`, the general-figures screen reached by "Not now" |
+| The choice on frame 03 | The consent statement checkbox, "Not now", and the "Are your main savings with us?" question with its yes/no row |
+| Estimate mode | Frame 05b, the estimate banner on 03 and 05, the `'estimated'` provenance branch in `accountFigures`, and the `savingsWithUs` flag that selected it |
+| General mode | `mode` in its entirety, the general-mode tracker variant (D26), the general captions on frames 10, 11, 12 and 13, and the incomplete-salary trigger on frame 19 |
+| The second guidance line | `shared.regulatoryAwaitingCheck` and `src/regulatory.js` (D27, reversed) |
+| Constants and model | `GENERAL_SAVINGS_RANGE`, `generalAnnualRange()`, `generalMonthlyLow`/`High` |
+| State | `mode`, `consentGiven`, `consentStatementChecked`, `savingsWithUs` |
+| Frame 33's "Data" control | Its three options were personalised, estimate and general; two are gone and a one-option control changes nothing |
+
+**What stayed, and why.** Frame 03 keeps the accounts card, the select-all row and frame 03b.
+Assigning an account to a deposit, an emergency fund or neither is real participant input, and the
+provenance captions across the app depend on it: `accountFigures` still flips `saved-toward-deposit`
+from `read` to `entered` the moment a participant changes what counts (D5). What frame 03 lost is
+the framing, not the function - it is now "Your accounts", asking what each one is for.
+`shared.regulatory.estimateDisclosure` also stayed: despite the name it is not the estimate-mode
+line, and frames 12, 20 and 21 carry it unconditionally about a figure being an estimate rather
+than an offer.
+
+**Seeding moved, which is what made the deletion possible.** `money-in` and `essential-spending`
+were seeded by frame 03's "Agree and continue" and `left-over` by frame 05's Continue, so every
+screen ahead of those two could be reached with nulls - which is the whole reason general mode
+existed (`GAPS.md` G50, G51). All of them are now seeded in `defaultState()`, from the same
+`MOCK_POSITION`, `accountFigures()` and `leftOver()` the screens already used. Nothing computes a
+figure in `state.js`; it calls the model. Three redirect guards that could no longer fire went with
+it (`/position` on `money-in`, `/position/summary` on `left-over`, `/goal-check` on
+`saved-toward-deposit`), as did `savingCeiling`'s published-range fallback on frame 10, which now
+resolves to `left-over` unconditionally. Frame 05's Continue commits nothing that was not already
+committed; it still writes an entered override, and typing over the figure still sets `entered`.
+
+**Deviation from `build-spec.md`, recorded not applied.** Frames 03, 04 and 05b are in section 3's
+inventory and section 2's variant table, section 7 lists five scenario controls, and Figma frame
+names are the system of record (`CLAUDE.md`). `build-spec.md` is deliberately NOT edited: it
+records what was designed, and this records what was built and why they differ. The reference PNGs
+for 04 and 05b stay in `reference/frames/` for the same reason. Frames 03, 04, 05b and the
+general-mode tracker are exempt from the screenshot-comparison pass.
+
+**Closes** `GAPS.md` G51, G52, G53, G54 and G55, all by removal rather than by fix. **Reverses**
+D26 and D27 and amends D24 (the ceiling stays, its fallback goes). G56's general-mode repro is
+gone; the chart defect it describes is not, and it stays open.
+
+**Reversal.** Restoring the choice means restoring frame 04, the branch on frame 03 and a null
+state for the seeded figures - at which point every general-mode variant deleted here has to come
+back with it. That is the point of doing it as a deletion: the two paths cost more than the second
+path was worth in a study about where figures come from.
+
+---
+
 ## D29. The browser's history is the navigation stack
 
 **Date.** 22 August 2026.
@@ -977,8 +1039,6 @@ that pushes is wrong under either model.
 
 ---
 
----
-
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -1016,4 +1076,5 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (below-checkpoint tracker) | D25 recorded: frame 15's action bar gains a forward primary, "What a bigger deposit changes" -> frame 13 with `returnFrame` set, and keeps "Adjust my goal" as the secondary. The locked Mortgage-in-Principle milestone row stays inert. Neither the MiP route nor any milestone state changes. |
 | 22 August 2026 (general-mode tracker) | D26 recorded, closing `GAPS.md` G51: frames 15/16 gain a fourth variant for a session with no linked accounts. There is no truthful basis for a progress figure - zero is a claim about the participant, `MOCK_POSITION` is account data, and no constant measures what anyone has saved - so the balance and the progress bar are dropped rather than filled. The headline becomes the goal they set, milestones 1 and 2 sit at `locked`, none is `done`, and the "This month" card becomes "Your plan" carrying the monthly range and what it implies. Frame 16 has no general-mode counterpart. All three consent-path variants render byte-identical; `overlap.test.mjs` gains a `15-general` frame. |
 | 22 August 2026 (guidance line) | D27 recorded: a second guidance-not-advice line for sessions where no account activity was read, selected by `src/regulatory.js` on `left-over === null && money-in === null`, applied to frames 04, 09, 10, 11, 12, 13, 13b, 15, 29, 30 and 32. The FCA-checked line is untouched and every consent-path screen renders byte-identically. `GAPS.md` G52 closed; G53 (the new line awaits a copy check), G54 (frames 29 and 32 still claim account sourcing in their own copy) and G55 (the pre-consent frames) opened. |
+| 22 August 2026 (account-linking removed) | D28 recorded: the account-linking choice, estimate mode and general mode are deleted, and the read figures are seeded at session start instead of at frames 03 and 05. Frame 03 becomes "Your accounts" and keeps the account-assignment input; frames 04 and 05b, `mode`, `savingsWithUs`, `consentGiven`, `consentStatementChecked`, `GENERAL_SAVINGS_RANGE`, `generalAnnualRange()`, `src/regulatory.js` and `shared.regulatoryAwaitingCheck` all go. Reverses D26 and D27, amends D24. Closes `GAPS.md` G51-G55 by removal. Deviation from `build-spec.md` sections 2, 3 and 7 recorded here rather than applied there. |
 | 22 August 2026 (history as the back stack) | D29 recorded: `goBack()` (`history.back()`) becomes the single implementation of back, called by the app-bar leading cell, the calculator form-step header and all seven sheets' dismiss control, none of which names a destination any more. Eleven state guards, `/reset` and frame 19b's two timer transitions convert to `location.replace()` so a guard overwrites its entry instead of adding one - the frame 09 cascade under `GAPS.md` G50 now moves one screen per tap. `seedHistoryRoot()` puts `/home` behind a cold arrival on a deep route, tested on `history.state` rather than `history.length`. Amends D21 (back from `/goals` retraces the participant's step) and D18 (unchanged in behaviour: the drag inherits `goBack()` through the dismiss control it already clicks). `returnFrame` stays, unused by any back control. |

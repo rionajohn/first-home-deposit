@@ -31,7 +31,6 @@ import { formatCurrency, formatPercent } from '../format.js';
 import { RATES } from '../model/rates.js';
 import { effectiveAccounts } from '../model/accounts.js';
 import { arrowRight } from '../icons.js';
-import { guidanceNotAdviceLine } from '../regulatory.js';
 import { goBack } from '../router.js';
 
 export const anchors = ['guidanceNotAdvice'];
@@ -65,6 +64,7 @@ function openBankingRowHTML({ title, caption }) {
 export function render(container, ctx) {
   const { state, content } = ctx;
   const c = content['/assumptions/sources'];
+  const reg = content.shared.regulatory;
   const summaryContent = content['/position/summary'];
 
   const returnHash = `#${state.returnFrame || '/home'}`;
@@ -125,7 +125,7 @@ export function render(container, ctx) {
           <h3 class="section-heading">${c.wrongHeading}</h3>
           <p class="body-text">${c.wrongBody}</p>
 
-          <p class="legal-text">${guidanceNotAdviceLine(state, content)}</p>
+          <p class="legal-text">${reg.guidanceNotAdvice}</p>
         </div>
         ${actionBarDockHTML(`
           <button type="button" class="button button--primary" data-action="dismiss">${c.primaryCta}</button>

@@ -75,37 +75,12 @@
 /* /consent — frame 03                                           */
 /* ============================================================ */
 
-.savings-question-card {
-  padding: var(--space-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-.savings-question-card__question {
-  margin: 0;
-  font-size: calc(20px * var(--text-scale));
-  line-height: calc(26px * var(--text-scale));
-  font-weight: 600;
-  color: var(--color-label);
-}
-
 .accounts-card__header-title {
   margin: 0;
   font-size: calc(17px * var(--text-scale));
   line-height: calc(24px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
-}
-
-.choice-row {
-  display: flex;
-  gap: var(--space-sm);
-  width: 100%;
-}
-
-.consent-statement {
-  padding: 0;
 }
 
 .accounts-card {
@@ -668,24 +643,8 @@
 }
 
 /* ============================================================ */
-/* /consent/declined — frame 04                                  */
+/* Value slider and range figure — frame 10, ui.js rangeFigureHTML */
 /* ============================================================ */
-
-/* Only these specific elements are centred in the Figma source (screen-title
-   19:281, entry-card__body 19:282/19:301, section-heading 19:300, legal-text
-   19:329/19:332) — everything else (info banner, provenance captions,
-   assumptions card, the "How did we work this out?" link) stays left, so
-   this can't be a blanket text-align:center on the whole content column. */
-.declined-content {
-  align-items: center;
-}
-
-.declined-content > .screen-title,
-.declined-content > .entry-card__body,
-.declined-content > .section-heading,
-.declined-content > .legal-text {
-  text-align: center;
-}
 
 .value-slider {
   display: flex;
@@ -842,13 +801,6 @@
   color: var(--color-label-tertiary);
 }
 
-.value-slider__bound-note {
-  margin: 0;
-  font-size: var(--text-footnote-size);
-  line-height: var(--text-footnote-line);
-  color: var(--color-label-tertiary);
-}
-
 .range-figure {
   display: flex;
   flex-direction: column;
@@ -887,79 +839,8 @@
   text-align: center;
 }
 
-.assumptions-card {
-  width: 100%;
-  text-align: left;
-}
-
-.assumptions-card__header {
-  padding: var(--space-lg) var(--space-lg) var(--space-md);
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-
-.assumptions-card__title {
-  margin: 0;
-  font-size: calc(17px * var(--text-scale));
-  line-height: calc(24px * var(--text-scale));
-  font-weight: 600;
-  color: var(--color-label);
-}
-
-.assumptions-card__row {
-  display: flex;
-  gap: var(--space-md);
-  padding: var(--space-md) var(--space-lg);
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-
-.assumptions-card__row:last-child {
-  border-bottom: none;
-}
-
-/* Was a <p> holding a literal "•"; it is the bullet icon from icons.js
-   now. margin-top puts the dot on the first line's optical centre — a text
-   bullet sat on the baseline, which drifted as soon as a row wrapped. */
-.assumptions-card__bullet {
-  margin-top: 6px;
-  color: var(--color-label-secondary);
-}
-
-.assumptions-card__text {
-  margin: 0;
-  flex: 1 1 0;
-  min-width: 0;
-  font-size: var(--text-subheadline-size);
-  line-height: var(--text-subheadline-line);
-  color: var(--color-label);
-}
-
-.assumptions-link {
-  appearance: none;
-  background: none;
-  border: none;
-  padding: 0;
-  min-height: var(--touch-target-min);
-  width: 100%;
-  font-family: inherit;
-  font-size: var(--text-subheadline-size);
-  line-height: var(--text-subheadline-line);
-  font-weight: 500;
-  color: var(--color-label);
-  text-decoration: underline;
-  text-align: left;
-  cursor: pointer;
-}
-
-.source-caption {
-  margin: 0;
-  font-size: var(--text-footnote-size);
-  line-height: var(--text-footnote-line);
-  color: var(--color-label-tertiary);
-  text-align: left;
-}
-
 /* ============================================================ */
-/* /position — frames 05, 05b                                    */
+/* /position — frame 05                                          */
 /* ============================================================ */
 /* No screen-specific rules beyond shared components — kept here as a
    marker so a later addition to this screen has an obvious home. */

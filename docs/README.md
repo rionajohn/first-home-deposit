@@ -91,9 +91,8 @@ cannot import a module, so it is the one place the name is necessarily written t
 - **`docs/build-spec.md`.** Figma frame names are the system of record. Renaming the feature there
   would break the spec-to-code mapping.
 - **Prose in `src/content.js`.** The words "your first home" appear inside sentences (the `/home`
-  entry card, the `/journey` headline, the `/consent/declined` app-bar title). Those are English,
-  not the product name, and substituting a variable would break the sentence. Rewrite by hand if
-  the name ever changes.
+  entry card, the `/journey` headline). Those are English, not the product name, and substituting
+  a variable would break the sentence. Rewrite by hand if the name ever changes.
 - **`CACHE_VERSION` in `sw.js`.** See below.
 
 ---

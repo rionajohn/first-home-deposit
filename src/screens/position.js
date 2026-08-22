@@ -1,18 +1,16 @@
 /**
- * Frame 05 / 05b — What we can see (personalised / estimate mode). Figma
- * nodes 31:160 / 31:249. Reference: reference/frames/05 What we can see.png,
- * 05b What we can see - estimate mode.png.
+ * Frame 05 - What we can see. Figma node 31:160. Reference:
+ * reference/frames/05 What we can see.png.
  *
- * One route ('/position') for both — build-spec.md section 3's own rule:
- * "Where two frames share a route they are variants of one screen, not two
- * screens." Which variant renders is read from state.mode, set at /consent.
+ * Frame 05b (estimate mode) is gone: the savings-elsewhere case was removed
+ * with the account-linking choice, so there is one variant of this screen's
+ * sourcing, not two. See DECISIONS.md D28.
  *
  * Variants built (build-spec.md section 2):
- *   - prefilled-inferred (05): mode = personalised
- *   - prefilled-estimated (05b): mode = estimate
- *   - entered: typing over the headline figure — left-over/provenance = entered
+ *   - prefilled-inferred (05): the seeded read figures (src/state.js)
+ *   - entered: typing over the headline figure - left-over/provenance = entered
  *   - breakdown open / closed: state.breakdownOpen, no figure changes
- *   - error: left-over <= 0, or an entered value exceeds money-in — no
+ *   - error: left-over <= 0, or an entered value exceeds money-in - no
  *     wireframe drawn (DECISIONS.md D7); built as a warning banner under the
  *     figure, continue disabled, using the existing warning-banner pattern
  *     rather than inventing new visual design.
@@ -21,7 +19,6 @@ import {
   appBarHTML,
   bindAppBarBack,
   actionBarHTML,
-  infoBannerHTML,
   flagRowHTML,
   disclosureHTML,
   proportionRowsHTML,
@@ -34,7 +31,7 @@ import { formatCurrency } from '../format.js';
 import { leftOver } from '../model/model.js';
 import { chevronRight } from '../icons.js';
 
-export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
+export const anchors = ['guidanceNotAdvice'];
 
 function percentOf(part, whole) {
   if (!whole) return 0;
@@ -45,14 +42,6 @@ export function render(container, ctx) {
   const { state, setState, content } = ctx;
   const c = content['/position'];
   const reg = content.shared.regulatory;
-  const isEstimate = state.mode === 'estimate';
-
-  if (state['money-in'].value === null) {
-    // Deep-linked or reloaded before consent seeded a monthly position —
-    // nothing sensible to show.
-    window.location.hash = '#/consent';
-    return;
-  }
 
   const storedLeftOver = state['left-over'];
   const override = storedLeftOver.provenance === 'entered' ? storedLeftOver : null;
@@ -64,7 +53,7 @@ export function render(container, ctx) {
   const essentialsPct = percentOf(essentialSpending, moneyIn);
   const leftOverPct = percentOf(displayValue, moneyIn);
 
-  const disclosureTitle = `${isEstimate ? c.disclosureTitlePrefixEstimate : c.disclosureTitlePrefix} ${formatCurrency(displayValue)}`;
+  const disclosureTitle = `${c.disclosureTitlePrefix} ${formatCurrency(displayValue)}`;
 
   const disclosureContent = `
     ${proportionRowsHTML([
@@ -83,7 +72,6 @@ export function render(container, ctx) {
     ])}
     ${figureRowHTML({ label: c.moneyInLabel, value: formatCurrency(moneyIn), caption: c.moneyInCaption })}
     ${figureRowHTML({ label: c.essentialSpendingLabel, value: formatCurrency(essentialSpending), caption: c.essentialSpendingCaption })}
-    ${isEstimate ? figureRowHTML({ label: c.missedLabel, trailing: c.missedValue }) : ''}
     <button type="button" class="list-row" data-action="open-provenance-key">
       <span class="list-row__label">${c.provenanceKeyLabel}</span>
       ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
@@ -99,7 +87,6 @@ export function render(container, ctx) {
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
     <main class="screen-content" role="main">
-      ${isEstimate ? infoBannerHTML(c.estimateModeBanner) : ''}
       <h2 class="screen-title screen-title--center">${c.headline}</h2>
       <p class="entry-card__body">${c.body}</p>
       ${figureInputHTML({ id: 'left-over', value: displayValue, caption: c.figureCaption, ariaLabel: c.figureAriaLabel })}
@@ -110,7 +97,6 @@ export function render(container, ctx) {
         <span class="list-row__label">${c.whereFiguresLabel}</span>
         ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
       </button>
-      ${isEstimate ? `<p class="legal-text">${reg.estimateDisclosure}</p>` : ''}
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
     </main>

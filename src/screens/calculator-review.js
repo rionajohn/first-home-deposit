@@ -21,13 +21,13 @@ import { formatCurrency, formatPercent } from '../format.js';
 import { monthsToTarget, onTrackFor, checkpointAmount } from '../model/model.js';
 import { RATES } from '../model/rates.js';
 import { chevronRight } from '../icons.js';
-import { guidanceNotAdviceLine } from '../regulatory.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
 export function render(container, ctx) {
   const { state, setState, content } = ctx;
   const c = content['/calculator/review'];
+  const reg = content.shared.regulatory;
 
   if (state['savings-rate'].value === null || state['deposit-target'].value === null) {
     window.location.replace('#/calculator/saving');
@@ -39,15 +39,6 @@ export function render(container, ctx) {
   const savedTowardDeposit = state['saved-toward-deposit'];
   const monthlyLow = state['monthly-low'];
   const monthlyHigh = state['monthly-high'];
-
-  // A session that never linked an account has no saved-toward-deposit and no
-  // left-over, and the two read-only system rows below were never read from
-  // anything of the participant's either. Each says so rather than claiming a
-  // source it hasn't got (GAPS.md G50, DECISIONS.md D24). The em dash is this
-  // build's existing glyph for a figure that genuinely isn't known — see
-  // assumptions-sources.js, which already null-guards the same three figures.
-  const fromAccounts = state['left-over'].value !== null;
-  const savedKnown = savedTowardDeposit.value !== null;
 
   container.innerHTML = `
     ${formStepHeaderHTML({ title: c.appBarTitle, step: c.stepLabel, appBarLabels: content.shared.appBar })}
@@ -70,12 +61,9 @@ export function render(container, ctx) {
         })}
         ${reviewRowHTML({
           label: c.savedSoFarLabel,
-          value: savedKnown ? formatCurrency(savedTowardDeposit.value) : '—',
-          caption: savedKnown ? c.savedSoFarCaption : c.savedSoFarCaptionGeneral,
-          // No Change link when there is nothing behind it: the screen it
-          // opens (frame 06) guards on left-over and would bounce this
-          // session three hops back to consent.
-          changeLabel: savedKnown ? c.changeLabel : null,
+          value: formatCurrency(savedTowardDeposit.value),
+          caption: c.savedSoFarCaption,
+          changeLabel: c.changeLabel,
           changeAction: 'change-saved',
         })}
         ${reviewRowHTML({
@@ -88,14 +76,14 @@ export function render(container, ctx) {
         ${reviewRowHTML({
           label: c.savingsInterestLabel,
           value: `${formatPercent(RATES.bankRate)} AER`,
-          caption: fromAccounts ? c.savingsInterestCaption : c.savingsInterestCaptionGeneral,
+          caption: c.savingsInterestCaption,
           changeLabel: c.changeLabel,
           changeAction: 'change-rate',
         })}
         ${reviewRowHTML({
           label: c.taxRateLabel,
           value: c.taxRateValue,
-          caption: fromAccounts ? c.taxRateCaption : c.taxRateCaptionGeneral,
+          caption: c.taxRateCaption,
           changeLabel: c.changeLabel,
           changeAction: 'change-rate',
         })}
@@ -107,7 +95,7 @@ export function render(container, ctx) {
 
       ${infoBannerHTML(c.noteBannerText)}
       ${flagRowHTML(c.flagLabel)}
-      <p class="legal-text">${guidanceNotAdviceLine(state, content)}</p>
+      <p class="legal-text">${reg.guidanceNotAdvice}</p>
     </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,

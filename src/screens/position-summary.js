@@ -60,14 +60,9 @@ export function render(container, ctx) {
   const c = content['/position/summary'];
   const reg = content.shared.regulatory;
 
-  if (initialState['left-over'].value === null) {
-    window.location.hash = '#/position';
-    return;
-  }
-
   const accounts = effectiveAccounts(initialState.accountAssignments, initialState.accountIncluded);
   const totals = groupTotals(accounts);
-  const provenance = initialState.mode === 'estimate' ? 'estimated' : 'read';
+  const provenance = 'read';
   let state = initialState;
   if (
     state['saved-toward-deposit'].value !== totals.deposit ||

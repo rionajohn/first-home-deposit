@@ -218,20 +218,18 @@ export function monthsToTarget(state) {
 
   if (target.error) return fail(target.error, provenance);
   if (savingsRate.value === 0) return fail('unreachable', provenance);
-  // left-over is money-in less essential-spending, so it exists only once
-  // account activity has been read. A session that never linked an account
-  // has no such ceiling to breach — comparing against a null one would read
-  // as 0 and reject every positive savings-rate (GAPS.md G50).
+  // Guarded rather than compared bare: a null ceiling would read as 0 and
+  // reject every positive savings-rate. left-over is seeded at session start
+  // (src/state.js) so it is always present in the built app, but this stays
+  // a pure function of whatever state it is handed.
   if (leftOverFigure && leftOverFigure.value !== null && savingsRate.value > leftOverFigure.value) {
     return fail('exceeds-left-over', provenance);
   }
 
   const r = monthlyRate();
-  // A session with no linked accounts has no saved-toward-deposit, so it
-  // projects from a zero starting balance — the same assumption frame 04's
-  // generalAnnualRange already makes ("general mode has no
-  // saved-toward-deposit starting balance to compound"). Written out rather
-  // than left to null's arithmetic coercion.
+  // A zero starting balance is a legitimate input (every account
+  // deselected), so it is written out rather than left to null's arithmetic
+  // coercion.
   const p0 = savedTowardDeposit.value ?? 0;
   const pmt = savingsRate.value;
   const goal = target.value;
@@ -244,23 +242,6 @@ export function monthsToTarget(state) {
     return { value: months, provenance, error: 'beyond-window' };
   }
   return ok(months, provenance);
-}
-
-// --- General mode (frame 04) -----------------------------------------------
-
-/**
- * annual = monthly x 12, no interest (build-spec.md section 2, frame 04
- * "default range" row) — deliberately simpler than the compounding model
- * used everywhere else, since general mode has no saved-toward-deposit
- * starting balance to compound. Provenance propagates from the monthly
- * figures: 'entered' if either was typed/dragged by the participant,
- * otherwise 'estimated' (a published average, not read from an account).
- */
-export function generalAnnualRange(monthlyLow, monthlyHigh) {
-  const provenance = monthlyLow.provenance === 'entered' || monthlyHigh.provenance === 'entered'
-    ? 'entered'
-    : 'estimated';
-  return ok({ low: monthlyLow.value * 12, high: monthlyHigh.value * 12 }, provenance);
 }
 
 // --- Frame 12 growth chart / timing rows ------------------------------------

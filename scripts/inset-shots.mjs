@@ -53,9 +53,9 @@ const FULL = {
   'on-track-for': f(14, 'derived'), 'checkpoint-amount': f(21000, 'derived'),
   'borrow-low': f(168000, 'estimated'), 'borrow-high': f(189000, 'estimated'),
   'max-property': f(210000, 'estimated'),
-  savingsWithUs: true, consentStatementChecked: true, calculatorEntered: true,
+  calculatorEntered: true,
   goal: 'house', checkRunAt: '2026-08-20T10:00:00.000Z', softSearchRecorded: true,
-  mode: 'personalised', stage: 'saving', resultOutcome: 'likely', solveFor: 'date',
+  stage: 'saving', resultOutcome: 'likely', solveFor: 'date',
   returnFrame: '/tracker', selectedAccountId: 'house-pot',
 };
 

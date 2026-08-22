@@ -30,27 +30,11 @@ export const BORROW_RANGE_CENTRAL = 'loan-amount';
 export const LISA_CAP_PROPERTY_VALUE = 450000;
 
 /**
- * Frame 04 (Consent declined / general mode): the default monthly saving
- * range shown before a participant drags or types their own figures, and
- * the slider bounds. Published UK average, not read from any account —
- * provenance 'estimated' (build-spec.md section 2's "04 Consent declined /
- * default range" row: "annual = monthly x 12, no interest").
- */
-export const GENERAL_SAVINGS_RANGE = {
-  low: 150,
-  high: 288,
-  min: 0,
-  max: 600,
-  source: 'NatWest Savings Index 2026',
-};
-
-/**
  * Frame 08 seeds the deposit calculator's starting property value from an
  * "area average" (build-spec.md section 2: "08 Ready for the calculator —
  * default — property-value (area average)") — no source is named anywhere
  * in build-spec.md/DECISIONS.md for this figure, so it's held here as a
- * dated, sourced constant rather than inlined into frame 09/09a/09b, the
- * same treatment GENERAL_SAVINGS_RANGE gets.
+ * dated, sourced constant rather than inlined into frame 09/09a/09b.
  */
 export const AREA_AVERAGE_PROPERTY_VALUE = {
   value: 190000,
@@ -98,7 +82,7 @@ export const CHECKPOINT_FRACTION = 0.75;
  * this build's own extrapolation, not transcribed from any reference PNG.
  * Not a live rate feed (build-spec.md's out-of-scope list) — a dated,
  * sourced illustrative constant, the same treatment as
- * GENERAL_SAVINGS_RANGE and AREA_AVERAGE_PROPERTY_VALUE above.
+ * AREA_AVERAGE_PROPERTY_VALUE above.
  */
 export const LTV_RATE_BANDS_BY_DEPOSIT_PCT = {
   0.05: { low: 0.051, high: 0.056 },

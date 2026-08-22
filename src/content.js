@@ -25,9 +25,7 @@
  * words "your first home" appear inside a sentence — the /home entry card
  * and the /journey headline — they are English prose, not the name, and stay
  * literal: substituting a variable there would break the sentence the moment
- * the name changed. (This list named /consent/declined's app-bar title as a
- * third place until 21 August 2026, when that title stopped asserting a goal
- * the participant had just declined to state — see the note on it below.)
+ * the name changed.
  *
  * shared.regulatory is FIXED WORDING (SPEC.md, GAPS.md G24/G26/G28):
  * transcribed verbatim from the reference PNGs. Screens reference these
@@ -54,38 +52,35 @@ const content = {
       adviserScope: 'Our advisers only advise on our own mortgages.',
       mcob3aRepossessionWarning:
         "A mortgage is secured against your home. If you couldn't keep up the repayments, your home would be at risk.",
+      // NOT the estimate-mode line. Frame 05b carried it conditionally and
+      // frame 04 carried it always, and both of those are gone, but frames
+      // 12, 20 and 21 carry it unconditionally and always have - it is about
+      // a figure being an estimate rather than an offer, not about where
+      // savings are held. Kept, and kept at four keys, per SPEC.md.
       estimateDisclosure:
         'This is an estimate based on the information we hold today. It is not an offer and your actual figures may be different.',
     },
 
-    // ---------------------------------------------------------------------
-    // NOT FCA COPY CHECKED. AWAITING REVIEW.
-    // ---------------------------------------------------------------------
-    // Everything in `shared.regulatory` above is checked, fixed wording,
-    // transcribed verbatim from the reference PNGs. Nothing in
-    // `regulatoryAwaitingCheck` is. It is held in a separate object, and not
-    // as a fifth `regulatory` key, precisely so the two can never be
-    // confused: the shape SPEC.md fixes for `regulatory` stays four keys,
-    // and a line that has not been through copy check cannot be picked up by
-    // mistake as though it had.
+    // WHERE THE FIGURES COME FROM, AND WHO CAN CHANGE THAT. Rendered on
+    // frame 03, where the accounts and their balances are on screen, and on
+    // frame 33, so the answer is in the same place a participant would go
+    // looking for it. Shared rather than written twice: two copies of a
+    // sourcing statement is exactly the pair that drifts.
     //
-    // `guidanceNotAdviceNoAccounts` is the general-mode counterpart of
-    // `regulatory.guidanceNotAdvice`, added because that line's sourcing
-    // claim ("based on your account activity") is false wherever no account
-    // activity was read - frame 04 since the build, and frames 09-13, 15, 29,
-    // 30 and 32 since general mode began reaching them (GAPS.md G52,
-    // DECISIONS.md D27). The guidance-not-advice sentence is carried over
-    // word for word; only the sourcing half differs, and it names only what
-    // general mode actually has: the dated published constants in
-    // model/rates.js and the figures the participant typed in themselves.
+    // It replaced `'/consent'.withdrawBanner` ("You can withdraw this
+    // permission at any time in Settings"), which was written to sit under a
+    // consent statement and lost its antecedent when that statement was
+    // deleted (DECISIONS.md D28) - "this permission" named a box the
+    // participant had just ticked, and there is no box now.
     //
-    // Selected by src/regulatory.js, never read directly by a screen.
-    // Before this prototype is used with participants, this line needs the
-    // same copy check the four above have had. See GAPS.md G53.
-    regulatoryAwaitingCheck: {
-      guidanceNotAdviceNoAccounts:
-        'This is guidance based on published figures and what you entered yourself, not on your accounts. It is not financial advice and does not take account of everything about your situation.',
-    },
+    // It is NOT a regulatory line and is deliberately not in
+    // `shared.regulatory`: it makes no claim about advice, suitability or
+    // protection. It says where the numbers came from and where the setting
+    // is. Settings is not reachable in this prototype (GAPS.md G23), which
+    // is the point of naming it rather than linking it.
+    dataSource:
+      'These figures come from your accounts, and you can change that permission in Settings.',
+
     // Repeated verbatim on frames 18, 19, 20 and 21 (Figma's own "Regulatory
     // / Risk warning" component, "not a mortgage offer" variant) — not one
     // of the four fixed regulatory.* keys above (SPEC.md fixes that object's
@@ -167,17 +162,17 @@ const content = {
   },
 
   '/consent': {
-    appBarTitle: 'Using your accounts',
-    headline: 'First, where do you keep your savings?',
-    subhead: 'This changes how accurate we can be.',
-    savingsQuestion: 'Are your main savings with us?',
-    yesLabel: "Yes, they're with you",
-    noLabel: "No, they're elsewhere",
-    savingsHint: "If they're elsewhere, we can still help - we'll estimate and label anything we're not sure about.",
-    usingWhatWeCanSeeHeading: 'Using what we can see',
-    consentStatementTitle: 'Use my account information to work out what I could save and borrow.',
-    consentStatementBody:
-      'This covers your income and salary payments, your regular outgoings and direct debits, and the balances of the accounts you choose below. We use it only to work out your figures.',
+    // THE SCREEN NAMES WHAT IT IS FOR, NOT A DECISION.
+    //
+    // It used to be "Using your accounts", above the question "First, where
+    // do you keep your savings?" - a title and a headline that both existed
+    // to frame a choice about whether and how the bank could look. There is
+    // no choice here now (DECISIONS.md D28), so the title names the thing on
+    // the screen and the headline asks for the one input that is still real:
+    // what each account is for.
+    appBarTitle: 'Your accounts',
+    headline: 'What is each account for?',
+    subhead: 'We add up the accounts you count here to work out what you have saved so far.',
     accountsCardHeader: 'Your accounts',
     accountsCardIntro: "We've had a guess at what each of these is for. Tap any account to change it - only you know.",
     selectAllLabel: 'Select all accounts',
@@ -201,13 +196,9 @@ const content = {
       emergencyFundCaption: 'About three months of your essential spending.',
       currentAccountCaption: 'Your everyday spending, not savings. Not included in the total above.',
     },
-    estimateModeBanner:
-      "Because your main savings are elsewhere, we'll estimate what we can't see and label it clearly.",
     fscsNote:
       'Savings held with us are protected by the Financial Services Compensation Scheme up to £120,000 per person, per authorised firm.',
-    withdrawBanner: 'You can withdraw this permission at any time in Settings.',
-    primaryCta: 'Agree and continue',
-    secondaryCta: 'Not now',
+    primaryCta: 'Continue',
   },
 
   '/consent/move-account': {
@@ -221,65 +212,13 @@ const content = {
     cancel: 'Cancel',
   },
 
-  '/consent/declined': {
-    // THE TITLE DESCRIBES THE SCREEN, NOT THE PARTICIPANT'S INTENT.
-    //
-    // It read "Saving towards your first home", which named a goal the
-    // participant has not stated — on the one screen that exists BECAUSE they
-    // just declined and gave nothing. This is the branch reached by tapping
-    // "Not now" on frame 03; asserting a goal at that exact moment is the
-    // app telling them what they want immediately after they said no.
-    //
-    // The live wording is the deliberate twin of `/consent`'s own
-    // "Using your accounts". These two screens are the two branches of one
-    // decision, so their titles now differ by exactly the thing the decision
-    // changed: whose figures are being used.
-    appBarTitle: 'Using general figures',
-
-    // Alternative, kept live in the file so a swap is a one-line move.
-    //
-    // Plainer, and shorter than any other app-bar title in the app — which
-    // may be the point on a screen whose whole message is "less than usual":
-    // appBarTitle: 'General figures',
-
-    headline: 'A general picture, for now',
-    body:
-      "You can keep your account information private and still use this. We'll work from general figures, and you can switch to your own whenever you want.",
-    monthlyHeading: 'What saving regularly could build up to',
-    monthlySubhead: 'Move either end to try different amounts.',
-    sliderCaption: 'Put aside each month',
-    sliderAtBoundNote: "You've reached the edge of the suggested range.",
-    rangeToLabel: 'to',
-    lowerAmountLabel: 'lower amount',
-    upperAmountLabel: 'upper amount',
-    monthlyProvenanceEstimated: 'Published UK average, not worked out from your accounts',
-    monthlyProvenanceEntered: 'Amount you set',
-    annualCaption: 'After a year of putting that aside',
-    annualProvenanceDerived: 'Worked out from the amount above',
-    annualProvenanceEntered: 'Worked out from the amount you set',
-    assumptionsCardHeader: "What we've assumed",
-    assumptionsRows: [
-      'You put the same amount aside each month',
-      'You keep going for at least a year, which is usual for a goal like this',
-      'No interest is included, so the real figure would be a little higher',
-    ],
-    switchBanner: "Turn on account access whenever you want, and we'll build this from your own money instead.",
-    assumptionsLink: 'How did we work this out?',
-    sourceCaption: 'Range based on typical monthly saving amounts in the UK, from the NatWest Savings Index 2026.',
-    flagLabel: "Something doesn't look right",
-    primaryCta: 'Continue with general figures',
-    secondaryCta: 'I want to make it personalised',
-  },
-
   '/position': {
     appBarTitle: 'What we can see',
     headline: "Here's what we worked out",
     body: 'This all comes from your accounts. Change anything that looks wrong.',
-    estimateModeBanner: 'Your main account is with another bank, so some of these are estimates',
     figureCaption: 'Left over each month',
     figureAriaLabel: 'Left over each month, editable',
     disclosureTitlePrefix: 'How we got to',
-    disclosureTitlePrefixEstimate: 'How we estimated',
     proportions: {
       essentialsLabel: 'Essentials',
       leftOverLabel: 'Left over',
@@ -355,24 +294,6 @@ const content = {
       label: 'What we assumed',
       value: 'That last year is typical of this year',
       caption: "If your income or outgoings have changed, tell us and we'll redo it",
-    },
-    // The same three rows for a session that never linked an account, so
-    // frame 12 can carry the card in general mode without claiming to have
-    // read anything. See DECISIONS.md D24.
-    whatWeReadGeneral: {
-      label: 'What we read',
-      value: 'Nothing from your accounts',
-      caption: "You haven't linked any, so these figures use published averages",
-    },
-    whatWeWorkedOutGeneral: {
-      label: 'What we worked out',
-      value: 'Only what follows from the figures you set',
-      caption: 'The property value, the deposit percentage and the monthly range you chose',
-    },
-    whatWeAssumedGeneral: {
-      label: 'What we assumed',
-      value: 'That you start from nothing and keep saving at that rate',
-      caption: "Link your accounts and we'll use what you've already saved instead",
     },
     seeHowWeWorkedLabel: 'See how we worked this out',
     flagLabel: "Something doesn't look right",
@@ -540,30 +461,21 @@ const content = {
     sliderLowerAmountLabel: 'lower amount',
     sliderUpperAmountLabel: 'upper amount',
     sliderRangeCaptionTemplate: "{max} is what's left each month once your essentials are covered. {suggested} is what you've been putting aside lately.",
-    // General mode (no accounts linked): the slider has no left-over ceiling
-    // to run to, so it runs to the top of the published range instead and
-    // says so. See DECISIONS.md D24 and GAPS.md G50.
-    sliderRangeCaptionGeneralTemplate:
-      "The slider runs to {max}, the top of the published range. {suggested} is the upper end of the range you set earlier. You haven't linked any accounts, so neither figure is worked out from your own spending.",
     dateStepperHint: "We'll work out what you'd need to put aside each month",
     dateStepperMonthAriaLabel: 'target month',
     dateStepperYearAriaLabel: 'target year',
     filledInHeading: 'Already filled in from your accounts',
-    filledInHeadingGeneral: 'Already filled in from published figures',
     savingsInterestLabel: 'Savings interest rate',
     savingsInterestSuffix: 'AER',
     savingsInterestCaption: 'Read from your instant saver. AER means Annual Equivalent Rate.',
-    savingsInterestCaptionGeneral: 'A published rate, not read from an account you hold. AER means Annual Equivalent Rate.',
     taxRateLabel: 'Tax rate',
     taxRateValue: 'Basic rate',
     taxRateCaption: 'Worked out from your salary',
-    taxRateCaptionGeneral: "Assumed basic rate. You haven't shared your salary, so it isn't worked out from it.",
     changeLabel: 'Change',
     provenanceKeyLabel: 'How we worked these out',
     interestBannerText: 'Interest is included in the estimate. Rates can change.',
     flagLabel: "Something doesn't look right",
     errorExceedsLeftOver: "That's more than what's left over each month. Choose a smaller range.",
-    errorExceedsPublishedRange: "That's more than the top of the published range. Choose a smaller range.",
     errorPastDate: 'Pick a date in the future.',
     primaryCta: 'Continue',
     secondaryCta: 'Save and exit',
@@ -585,19 +497,13 @@ const content = {
     depositPctLabel: 'Deposit %age',
     savedSoFarLabel: 'Saved so far',
     savedSoFarCaption: 'Read from the accounts you assigned to your deposit',
-    // General mode (no accounts linked). The row loses its Change link too:
-    // there is nothing behind it to edit without linking accounts, and a row
-    // is either editable or explanatory, never both.
-    savedSoFarCaptionGeneral: "You haven't linked any accounts, so there's nothing to count here yet.",
     monthlySavingLabel: 'Monthly saving',
     monthlySavingCaption: 'The range you set',
     savingsInterestLabel: 'Savings interest rate',
     savingsInterestCaption: 'Read from your instant saver. AER means Annual Equivalent Rate.',
-    savingsInterestCaptionGeneral: 'A published rate, not read from an account you hold. AER means Annual Equivalent Rate.',
     taxRateLabel: 'Tax rate',
     taxRateValue: 'Basic rate',
     taxRateCaption: 'Worked out from your salary',
-    taxRateCaptionGeneral: "Assumed basic rate. You haven't shared your salary, so it isn't worked out from it.",
     changeLabel: 'Change',
     provenanceKeyLabel: 'How we worked these out',
     noteBannerText: "Changing anything here won't change your savings goal until you choose to update it.",
@@ -612,9 +518,6 @@ const content = {
     rangeCaptionTemplate: 'Depending on whether you put down {lowPct} or {highPct}',
     goalTrackLabelTemplate: 'Your goal - {target}',
     provenanceCaption: "Worked out from what you've set aside and what you're putting away",
-    // General mode: there is no "set aside" to work from, so the projection
-    // starts from nothing and says so (DECISIONS.md D24).
-    provenanceCaptionGeneral: "Worked out from what you're putting away, starting from nothing",
     assumptionsLinkLabel: 'How we worked out the deposit range',
     timingWithinTemplate: '{pct} - within {months}',
     timingRangeTemplate: '{pct} - {low} to {high}',
@@ -648,9 +551,6 @@ const content = {
     assumptionsBannerText: "These figures assume your saving stays the same and rates don't change.",
     howWeWorkedTitle: 'How we worked this out',
     howWeWorkedIntro: "We worked this out from what's already in your accounts, so you didn't have to fill anything in.",
-    // General mode: nothing was read, so the card says where the figures did
-    // come from instead (DECISIONS.md D24).
-    howWeWorkedIntroGeneral: 'We worked this out from the figures you set and published averages, because you have not linked any accounts.',
     seeHowWeWorkedLabel: 'How we worked out your monthly saving',
     flagLabel: "Something doesn't look right",
     primaryCta: 'See what this means for borrowing',
@@ -690,9 +590,6 @@ const content = {
     explainerDiagramDurationTemplate: 'The same {property} home at 95%, 90% and 85%',
     howWeWorkedTitle: 'How we worked this out',
     howWeWorkedIntro: "We worked this out from what's already in your accounts, so you didn't have to fill anything in.",
-    // General mode: nothing was read, so the card says where the figures did
-    // come from instead (DECISIONS.md D24).
-    howWeWorkedIntroGeneral: 'We worked this out from the figures you set and published averages, because you have not linked any accounts.',
     seeHowWeWorkedLabel: 'How we worked out your monthly saving',
     flagLabel: "Something doesn't look right",
     primaryCta: 'Got it',
@@ -720,36 +617,13 @@ const content = {
     goalCaptionTemplate: 'of your {target} deposit goal',
     checkpointProgressLabel: 'Checkpoint',
 
-    // GENERAL MODE (GAPS.md G51, resolved in DECISIONS.md D26). With no
-    // accounts linked there is no saved-toward-deposit and no truthful
-    // substitute for one, so this variant shows no balance and no progress
-    // bar. The headline figure is the goal the participant set, and every
-    // other figure on the screen is either something they entered or an
-    // existing dated constant, captioned with where it came from.
-    generalFigureLabel: 'The deposit goal you set',
-    generalFigureProvenanceTemplate: 'Worked out from the {pct} deposit you chose on a {property} home',
-    generalBody:
-      "You haven't linked any accounts, so we can't see what you've already saved. This page tracks the plan you set rather than a balance.",
-    accountsLinkedBodyGeneral: 'Not linked. Linking them is what lets us count what you already have toward this goal.',
-    accountsSortedBodyGeneral: "Nothing to sort yet. This is where you'd say what each account is for.",
-    // Deliberately does NOT repeat the checkpoint figure: the provenance
-    // caption directly below the tracker already carries it, and the row's
-    // job here is to say why the milestone cannot be tracked.
-    mipLockedBodyGeneral: "We'd need linked accounts to tell you when you reach the checkpoint.",
-    unlocksAtGeneralTemplate: 'Unlocks at {checkpoint}, {pct} of the goal you set',
-    planHeading: 'Your plan',
-    planMonthlyLabel: 'Putting aside each month',
-    planMonthlyCaptionEntered: 'The range you set',
-    planMonthlyCaptionEstimatedTemplate: 'The published range you kept. Source: {source}',
-    onTrackCaptionGeneral:
-      "Worked out from that range, starting from nothing, because we can't see what you've already saved",
     belowCheckpointBodyTemplate: "You're {gap} away from the point where checking a Mortgage in Principle starts to be useful.",
     checkpointReachedBodyTemplate:
       "You've passed the {pct} checkpoint. You can now check whether a Mortgage in Principle is likely to be approved.",
     goalMetBody:
       "You've saved your full deposit goal. You can check whether a Mortgage in Principle is likely to be approved whenever you're ready.",
     accountsLinkedTitle: 'Accounts linked',
-    accountsLinkedBody: "Done in a couple of taps, no form to fill in. That's how we know your real numbers.",
+    accountsLinkedBody: 'Connected already, so we work from your real figures rather than a form you fill in.',
     accountsSortedTitle: 'Accounts sorted',
     accountsSortedBodyTemplate: "You told us what each one's for. {amount} counted toward your deposit.",
     goalSetTitle: 'Deposit goal set',
@@ -1060,12 +934,6 @@ const content = {
       { value: 'large', label: 'Large' },
     ],
     participantHeader: 'What the participant sees',
-    dataLabel: 'Data',
-    dataOptions: [
-      { value: 'personalised', label: 'Personalised' },
-      { value: 'estimate', label: 'Estimate' },
-      { value: 'general', label: 'General' },
-    ],
     journeyLabel: 'Journey stage',
     journeyOptions: [
       { value: 'setting-up', label: 'Setting up' },
@@ -1077,6 +945,7 @@ const content = {
       { value: 'likely', label: 'Likely' },
       { value: 'not-yet', label: 'Not yet' },
     ],
+    dataSourceHeader: 'Your data',
     resetHeader: 'Reset',
     resetRowLabel: 'Clear all progress and start again',
     buildCaptionTemplate: 'Build {version}. Figures are illustrative throughout.',

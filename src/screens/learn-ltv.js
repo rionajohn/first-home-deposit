@@ -41,7 +41,6 @@ import {
 } from '../model/model.js';
 import { CHART_DEPOSIT_PCTS, MORTGAGE_TERM_YEARS } from '../model/rates.js';
 import { chartBarCircle, chevronRight, playCircle } from '../icons.js';
-import { guidanceNotAdviceLine } from '../regulatory.js';
 
 export const anchors = ['guidanceNotAdvice', 'mcob3aRepossessionWarning'];
 
@@ -67,13 +66,9 @@ export function render(container, ctx) {
   const loan = loanAmount(state);
   const essentialSpending = state['essential-spending'].value;
   const leftOverValue = state['left-over'].value;
-  // This screen carries frame 06's How-this-works card verbatim, and it is
-  // now reachable from a session that never linked an account (frame 12's
-  // "What is Loan-to-Value?" link in general mode, and frame 15's forward
-  // action). Same general-mode row set as frame 12 uses — see DECISIONS.md
-  // D24. Nothing else on this screen reads account data: the whole table is
-  // property-value x deposit-pct.
-  const fromAccounts = leftOverValue !== null;
+  // This screen carries frame 06's How-this-works card verbatim. Nothing
+  // else on it reads account data: the whole table is property-value x
+  // deposit-pct.
 
   const columns = CHART_DEPOSIT_PCTS.map((pct) => {
     const depositAmt = propertyValue * pct;
@@ -186,24 +181,18 @@ export function render(container, ctx) {
         id: 'ltv-how-we-worked',
         open: state.ltvHowWeWorkedOpen,
         title: c.howWeWorkedTitle,
-        intro: fromAccounts ? c.howWeWorkedIntro : c.howWeWorkedIntroGeneral,
-        rows: fromAccounts
-          ? [
-            summaryContent.whatWeRead,
-            { ...summaryContent.whatWeWorkedOut, value: fill(summaryContent.whatWeWorkedOut.value, { essential: formatCurrency(essentialSpending), leftOver: formatCurrency(leftOverValue) }) },
-            summaryContent.whatWeAssumed,
-          ]
-          : [
-            summaryContent.whatWeReadGeneral,
-            summaryContent.whatWeWorkedOutGeneral,
-            summaryContent.whatWeAssumedGeneral,
-          ],
+        intro: c.howWeWorkedIntro,
+        rows: [
+          summaryContent.whatWeRead,
+          { ...summaryContent.whatWeWorkedOut, value: fill(summaryContent.whatWeWorkedOut.value, { essential: formatCurrency(essentialSpending), leftOver: formatCurrency(leftOverValue) }) },
+          summaryContent.whatWeAssumed,
+        ],
         navLabel: c.seeHowWeWorkedLabel,
         navAction: 'open-assumptions-saving',
       })}
 
       ${flagRowHTML(c.flagLabel)}
-      <p class="legal-text">${guidanceNotAdviceLine(state, content)}</p>
+      <p class="legal-text">${reg.guidanceNotAdvice}</p>
     </main>
     ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'done' })}
   `;

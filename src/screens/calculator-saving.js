@@ -18,26 +18,14 @@
  * savings-rate is solved from the chosen date, and monthly-low/monthly-high
  * are DERIVED from it at 0.9x/1.1x (rangeFromCentral).
  *
- * GENERAL MODE (GAPS.md G50, resolved in DECISIONS.md D24)
- * `left-over` is money-in less essential-spending, both read from account
- * activity, so a session that never linked an account does not have one and
- * cannot derive one. It stays null: writing a number into it would be
- * inventing a figure about the participant's income, which is precisely the
- * thing they declined to share.
- *
- * What this screen actually needs is not `left-over` itself but a CEILING for
- * the monthly-saving slider, and general mode already has a sourced one:
- * GENERAL_SAVINGS_RANGE.max, the top of the published range frame 04's own
- * slider runs to one screen earlier. So `savingCeiling` below resolves to
- * `left-over` when accounts were read and to that published maximum when they
- * were not, with its own caption naming the source either way. The seed
- * follows the same rule: generalMonthlyLow/High (what the participant set on
- * frame 04) rather than MOCK_POSITION's account-read figures.
- *
- * The condition tested is `left-over` being null rather than
- * `mode === 'general'`, because the calculator can also be entered from
- * `/goals` with no consent decision recorded at all (mode still null) —
- * G50's second route to the same state.
+ * THE SLIDER'S CEILING (GAPS.md G50, DECISIONS.md D24, amended by D28)
+ * `savingCeiling` is what the monthly-saving slider measures against, and it
+ * is `left-over` - what is left each month once essentials are covered. That
+ * used to need a fallback, because a session that had not linked an account
+ * had no `left-over` and this screen looped back to step 1. Accounts are now
+ * connected from session start (src/state.js), so `left-over` is always
+ * present and the fallback is gone with the path that needed it. The name
+ * stays: it is what the figure DOES here, and the caption reads from it.
  */
 import {
   formStepHeaderHTML,
@@ -53,10 +41,9 @@ import {
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { monthlyAmountFromDate, rangeFromCentral } from '../model/model.js';
-import { RATES, GENERAL_SAVINGS_RANGE } from '../model/rates.js';
+import { RATES } from '../model/rates.js';
 import { MOCK_POSITION } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
-import { guidanceNotAdviceLine } from '../regulatory.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -85,6 +72,7 @@ const READ_ONLY_FIGURE_ROUTE = '/assumptions/sources';
 export function render(container, ctx) {
   const { state, setState, content } = ctx;
   const c = content['/calculator/saving'];
+  const reg = content.shared.regulatory;
 
   // deposit-target is what step 1 commits and what every figure on this
   // screen is measured against, so its absence still means "you haven't
@@ -96,9 +84,7 @@ export function render(container, ctx) {
   }
 
   const solveFor = state.solveFor ?? 'date';
-  const leftOver = state['left-over'].value;
-  const fromAccounts = leftOver !== null;
-  const savingCeiling = fromAccounts ? leftOver : GENERAL_SAVINGS_RANGE.max;
+  const savingCeiling = state['left-over'].value;
 
   if (state.targetMonth === null) {
     // Kept a multiple of 12 so this render's own fallback below (which reads
@@ -112,12 +98,10 @@ export function render(container, ctx) {
   const targetMonth = state.targetMonth ?? new Date().getMonth() + 1;
   const targetYear = state.targetYear ?? new Date().getFullYear() + 3;
 
-  // The seed comes from whichever monthly range this session actually has:
-  // what the accounts show it has been putting aside, or — with no accounts
-  // linked — the range the participant set for itself on frame 04.
-  const seedLow = fromAccounts ? MOCK_POSITION.recentMonthlySavingLow : state.generalMonthlyLow.value ?? GENERAL_SAVINGS_RANGE.low;
-  const seedHigh = fromAccounts ? MOCK_POSITION.recentMonthlySavingHigh : state.generalMonthlyHigh.value ?? GENERAL_SAVINGS_RANGE.high;
-  const seedProvenance = fromAccounts ? 'read' : (state.generalMonthlyLow.provenance ?? 'estimated');
+  // The seed is what the accounts show this session has been putting aside.
+  const seedLow = MOCK_POSITION.recentMonthlySavingLow;
+  const seedHigh = MOCK_POSITION.recentMonthlySavingHigh;
+  const seedProvenance = 'read';
 
   let monthlyLow = state['monthly-low'];
   let monthlyHigh = state['monthly-high'];
@@ -131,7 +115,7 @@ export function render(container, ctx) {
 
   if (solveFor === 'date') {
     if (monthlyHigh.value > savingCeiling) {
-      errorText = fromAccounts ? c.errorExceedsLeftOver : c.errorExceedsPublishedRange;
+      errorText = c.errorExceedsLeftOver;
     }
   } else {
     const months = monthsFromNow(targetMonth, targetYear);
@@ -185,7 +169,7 @@ export function render(container, ctx) {
           </div>
         </div>
         <p class="provenance-caption">${fill(
-          fromAccounts ? c.sliderRangeCaptionTemplate : c.sliderRangeCaptionGeneralTemplate,
+          c.sliderRangeCaptionTemplate,
           { max: formatCurrency(savingCeiling), suggested: formatCurrency(seedHigh) },
         )}</p>
         ${errorText ? warningBannerHTML(errorText) : ''}
@@ -205,18 +189,18 @@ export function render(container, ctx) {
       `}
 
       <div class="card filled-in-details-card">
-        <p class="filled-in-details-card__title">${fromAccounts ? c.filledInHeading : c.filledInHeadingGeneral}</p>
+        <p class="filled-in-details-card__title">${c.filledInHeading}</p>
         ${reviewRowHTML({
           label: c.savingsInterestLabel,
           value: `${formatPercent(RATES.bankRate)} ${c.savingsInterestSuffix}`,
-          caption: fromAccounts ? c.savingsInterestCaption : c.savingsInterestCaptionGeneral,
+          caption: c.savingsInterestCaption,
           changeLabel: c.changeLabel,
           changeAction: 'change-savings-interest',
         })}
         ${reviewRowHTML({
           label: c.taxRateLabel,
           value: c.taxRateValue,
-          caption: fromAccounts ? c.taxRateCaption : c.taxRateCaptionGeneral,
+          caption: c.taxRateCaption,
           changeLabel: c.changeLabel,
           changeAction: 'change-tax-rate',
         })}
@@ -228,7 +212,7 @@ export function render(container, ctx) {
 
       ${infoBannerHTML(c.interestBannerText)}
       ${flagRowHTML(c.flagLabel)}
-      <p class="legal-text">${guidanceNotAdviceLine(state, content)}</p>
+      <p class="legal-text">${reg.guidanceNotAdvice}</p>
     </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,
@@ -342,7 +326,7 @@ export function render(container, ctx) {
       // The midpoint inherits the provenance of the pair it is the midpoint
       // of, rather than being stamped 'entered' unconditionally: a
       // participant who accepted the seeded range without touching a handle
-      // has not entered anything. Same shape as generalAnnualRange().
+      // has not entered anything.
       const rateProvenance = monthlyLow.provenance === 'entered' || monthlyHigh.provenance === 'entered'
         ? 'entered'
         : monthlyLow.provenance;

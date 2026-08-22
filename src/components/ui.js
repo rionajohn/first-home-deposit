@@ -413,7 +413,7 @@ export function figureRowHTML({ label, value, caption, trailing }) {
 
 /**
  * Comprehension / Assumptions link — an inline info-icon + underlined link,
- * distinct from consent-declined.js's full-width `.assumptions-link` (which
+ * distinct from the full-width underlined link pattern (which
  * has no icon and is its own primary-looking control on frame 04). Reused
  * by frames 06 and 08 for "How did we work this out?" style links.
  */

@@ -169,28 +169,14 @@ export function render(container, ctx) {
   // D22's rule — write state only once the destination is settled — is
   // satisfied unconditionally rather than by testing two flags.
   //
-  // `mode: 'general'` WHEN CONSENT HAS NOT BEEN GIVEN, and this is not a new
-  // state. `build-spec.md` section 1 already defines exactly this situation:
-  // frame 04's "Continue with general figures" row sets `mode = general` and
-  // enters the calculator with nothing read from an account. A participant
-  // arriving from /goals without consent is in the same position — the bank
-  // has read nothing — so they enter the calculator the same way, marked the
-  // same way. `consent.js`'s "Not now" sets the identical pair.
-  //
-  // Nothing in frames 09 to 12 reads `mode`; only frame 19 and frame 33 do.
-  // It is set here because it is TRUE, and because frame 19 later asks it —
-  // not because the calculator needs it.
+  // NOTHING ABOUT THE SESSION'S SOURCING IS SET HERE ANY MORE. This used to
+  // mark a cold arrival as general mode, because a participant who reached
+  // the calculator this way had never passed the consent screen and the bank
+  // had read nothing. Accounts are now connected from session start
+  // (src/state.js), so a cold arrival has the same read figures as anyone
+  // else and there is nothing to mark. See DECISIONS.md D28.
   container.querySelector('[data-action="open-deposit-calculator"]').addEventListener('click', () => {
-    const patch = { goal: 'house', returnFrame: '/goals' };
-
-    // Consent is `null` for a participant who has never been asked, and
-    // `false` for one who declined; neither has given it, and general mode is
-    // the answer to both. Testing for `!== true` rather than `=== false`
-    // keeps the never-asked case from falling through to the personalised
-    // path it has no data for.
-    if (state.consentGiven !== true) patch.mode = 'general';
-
-    ctx.setState(patch);
+    ctx.setState({ goal: 'house', returnFrame: '/goals' });
     window.location.hash = '#/calculator/property';
   });
 }

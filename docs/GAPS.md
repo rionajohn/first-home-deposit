@@ -993,7 +993,7 @@ set to `/goals`. Not fixed here; it is the same decision as the above.
 ---
 
 **G51. Frames 15/16 (the deposit tracker) have no general-mode variant, and frame 12 now hands off
-to them. RESOLVED 22 August 2026 - see `DECISIONS.md` D26.**
+to them. CLOSED BY REMOVAL 22 August 2026 - see `DECISIONS.md` D28.**
 
 Found while resolving G50. Now that the calculator runs end to end without consent, frame 12's "Save
 my goal" reaches `/tracker` in a session that never linked an account, and three things on that
@@ -1046,10 +1046,19 @@ offered. D25's action bar needed no change.
 byte-identical PNGs to before; `scripts/overlap.test.mjs` gains a `15-general` frame and passes at
 both text sizes.
 
+*CLOSED BY REMOVAL, 22 August 2026.* Not by a better fourth variant - by deleting the one that
+needed it. The account-linking choice is gone and the app assumes connected accounts, so
+`saved-toward-deposit` is seeded at session start and can no longer be null when the tracker
+renders. The fourth variant, its twelve content keys and the `15-general` overlap frame are all
+deleted; frames 15 and 16 are back to the three variants `build-spec.md` section 2 draws. See
+`DECISIONS.md` D28. What this gap actually recorded - that no truthful progress figure exists when
+nothing has been read - is not contradicted by the removal; the state it described is simply
+unreachable now.
+
 ---
 
 **G52. `shared.regulatory.guidanceNotAdvice` says "based on your account activity" on screens that
-read no account activity. RESOLVED 22 August 2026 - see `DECISIONS.md` D27.**
+read no account activity. CLOSED BY REMOVAL 22 August 2026 - see `DECISIONS.md` D28.**
 
 The line is `This is guidance based on your account activity. It is not financial advice and does
 not take account of everything about your situation.` It is carried by every figure-presenting
@@ -1085,7 +1094,8 @@ Two things this did not fix are now open as G53 and G54.
 
 ---
 
-**G53. The general-mode guidance line has not had an FCA copy check. OPEN.**
+**G53. The general-mode guidance line has not had an FCA copy check. CLOSED BY REMOVAL
+22 August 2026 - see `DECISIONS.md` D28.**
 
 `guidanceNotAdviceNoAccounts` (G52 above) is new wording written in this repo. The four lines in
 `shared.regulatory` were transcribed verbatim from the reference PNGs and are checked; this one has
@@ -1098,13 +1108,20 @@ Two candidate wordings were drafted alongside it and rejected (`DECISIONS.md` D2
 three). If a reviewer objects to the "not on your accounts" clause, candidate A is the same line
 without it and needs no other change.
 
-*Status: open - needs a copy check before the prototype is run with participants. Not a code
-change.*
+*Status: CLOSED BY REMOVAL, 22 August 2026.* The line it was about,
+`shared.regulatoryAwaitingCheck.guidanceNotAdviceNoAccounts`, is deleted, and so is the
+`regulatoryAwaitingCheck` object that held it - it had exactly the one key. Nothing unchecked is
+left in `content.js`, and `shared.regulatory` is back to being the whole of the app's regulatory
+copy, all four keys of it transcribed from the reference PNGs. The two candidate wordings this gap
+mentions are recorded in `DECISIONS.md` D27 and were never shipped. See `DECISIONS.md` D28.
+
+*Closed by removal, not by a copy check: no reviewer time was spent on this line and none now needs
+to be.*
 
 ---
 
 **G54. General mode still asserts account sourcing outside the guidance line, on frames 29 and 32.
-OPEN.**
+CLOSED BY REMOVAL 22 August 2026 - see `DECISIONS.md` D28.**
 
 G52 was about one shared line. Walking general mode with that line fixed and reading every string
 containing the word "account" turns up two sheets whose own body copy makes the same claim, and one
@@ -1127,12 +1144,18 @@ same `src/regulatory.js`-style test, and for the balances caption a variant that
 and no figure. Left out of the G52 pass deliberately: that pass was scoped to the shared regulatory
 line, and these are five screen-owned strings on two frames.
 
-*Status: open - needs a copy pass over frames 29 and 32 in general mode. The balances caption
-should be treated as the urgent one.*
+*Status: CLOSED BY REMOVAL, 22 August 2026.* All five strings in the table above are the
+consent-path wording, which was always accurate; what made them false was general mode reaching
+those two sheets, and general mode is gone. Every session now has read the twelve months of
+activity that frame 29's intro and metadata line describe, and frame 32's "read directly from your
+accounts" heading is true of everything under it. The balances caption this gap called the urgent
+one - four named accounts and their balances - is now only ever shown to a session whose accounts
+those are. No copy was changed to close this. See `DECISIONS.md` D28.
 
 ---
 
-**G55. Frames 02, 03 and 03b claim account activity before any has been read. OPEN.**
+**G55. Frames 02, 03 and 03b claim account activity before any has been read. CLOSED BY REMOVAL
+22 August 2026 - see `DECISIONS.md` D28.**
 
 The guidance line on the journey overview, the consent screen and the move-account sheet says the
 guidance is based on your account activity, and on all three it is displayed before the participant
@@ -1148,7 +1171,16 @@ describing what the feature will do rather than what this screen shows.
 Resolving it means deciding what these three screens are claiming, then either extending
 `src/regulatory.js`'s test to them or writing a third line for the not-yet-decided state.
 
-*Status: open - needs a decision on what the pre-consent screens are claiming.*
+*Status: CLOSED BY REMOVAL, 22 August 2026.* Two of the three screens no longer exist as this gap
+describes them, and the third is no longer pre-consent, because there is no consent step to be
+before. Frame 03 is now "Your accounts" and asks what each account is for; frame 03b is unchanged
+and reached from it; and frame 02, the journey overview, carries the guidance line at a point where
+the account activity it names has already been read - the figures are seeded when the session
+starts (`src/state.js`), not when a participant agrees to something. Verified in the built result:
+walked `/home` to `/journey` from a fresh session and confirmed `money-in`, `essential-spending`,
+`left-over` and `saved-toward-deposit` are all populated with provenance `read`/`derived` before
+frame 02 renders. The honest answer on all three is now "already read", so no third line and no
+extension of the deleted `src/regulatory.js` test is needed. See `DECISIONS.md` D28.
 
 ---
 
@@ -1168,3 +1200,10 @@ The general-mode frames were not added to `scripts/overlap.test.mjs` permanently
 would commit a suite that fails on this. Add them in the same pass that fixes it.
 
 *Status: open - pre-existing chart defect, reproduces before the G52 pass.*
+
+*22 August 2026: the general-mode REPRO is gone, the defect is not.* General mode was deleted
+(`DECISIONS.md` D28), so the seeds this was found with no longer describe a reachable state. That
+removes the reason the general-mode frames were kept out of `scripts/overlap.test.mjs`, but it does
+not establish that frame 12's chart is sound - the label positioning that produced the collision
+was never diagnosed, and G44's question about the same chart's opaque label plates is still open.
+Re-find it against reachable figures before assuming it went with the mode.

@@ -40,17 +40,16 @@ src/
                                  - mcob3aRepossessionWarning
                                  - estimateDisclosure
                                Wording that screens reference but cannot reword or inline-duplicate,
-                               transcribed verbatim from the reference PNGs. Plus a SEPARATE
-                               `shared.regulatoryAwaitingCheck` block holding wording written in
-                               this repo and not yet copy checked - currently one key,
-                               `guidanceNotAdviceNoAccounts` (DECISIONS.md D27, GAPS.md G53). Also includes the
-                               `/mip/adviser` stub copy and the FSCS figure (£120,000 per person per
-                               authorised firm).
-  regulatory.js              — picks which guidance-not-advice line a screen carries: the checked
-                               `shared.regulatory.guidanceNotAdvice` where account activity was
-                               read, and `shared.regulatoryAwaitingCheck.guidanceNotAdviceNoAccounts`
-                               where none was. One test, `left-over === null && money-in === null`.
-                               See DECISIONS.md D27
+                               transcribed verbatim from the reference PNGs. `regulatoryAwaitingCheck`
+                               is GONE, and with it the only unchecked wording in the file
+                               (DECISIONS.md D28): every session has read account activity now, so
+                               `guidanceNotAdvice` holds on every screen that carries it and the
+                               second line it was written against has nothing to describe. Also
+                               includes `shared.dataSource` (where the figures come from and where
+                               the permission is changed, frames 03 and 33), the `/mip/adviser` stub
+                               copy and the FSCS figure (£120,000 per person per authorised firm).
+                               regulatory.js is DELETED (DECISIONS.md D28) - screens read
+                               `shared.regulatory.guidanceNotAdvice` directly again
   state.js                   — central store: every Section 6 state variable + provenance tag, frame
                                33 scenario toggles, returnFrame stack, reset()
   router.js                  — route table, push/pop + sheet transition orchestration,
@@ -86,12 +85,15 @@ docs/
   `content.shared.regulatory.{guidanceNotAdvice, adviserScope, mcob3aRepossessionWarning,
   estimateDisclosure}`. Screens read from this object; nothing renders a hardcoded string. Wording
   written in this repo rather than transcribed from the reference PNGs is held apart from those four
-  fixed keys, in `content.shared.regulatoryAwaitingCheck`, until it has been copy checked; screens
-  never read it directly, `src/regulatory.js` selects it (DECISIONS.md D27).
+  fixed keys until it has been copy checked. There is none today: the one such key,
+  `regulatoryAwaitingCheck.guidanceNotAdviceNoAccounts`, and the `src/regulatory.js` that selected
+  it were both deleted with the account-linking choice (DECISIONS.md D28, GAPS.md G53). The rule
+  stands for the next line written in this repo.
 - **`state.js`** exports a single mutable store holding the 20 Section 6 state variables (each
   paired with a `provenance` of `read` / `derived` / `estimated` / `entered`, propagating so that
   anything derived from an entered value is itself flagged as containing entered input), the frame
-  33 scenario toggles (`theme`, `textSize`, `mode`, `stage`, `resultOutcome`), a `returnFrame` value
+  33 scenario toggles (`theme`, `textSize`, `stage`, `resultOutcome` - `mode` deleted, DECISIONS.md
+  D28), a `returnFrame` value
   set before navigating into any sheet/explainer and read on close, and a `reset()` function wired to
   frame 33's "Clear all progress and start again" action.
 - **`model.js`** exports pure functions taking state and returning derived figures: `depositTarget`,
@@ -115,6 +117,12 @@ docs/
 
 Every screen in the flow was checked directly against its reference PNG for these anchors — no row
 below is inferred or hedged.
+
+**Frames 04 and 05b no longer exist** (DECISIONS.md D28: the account-linking choice, estimate mode
+and general mode were removed on 22 August 2026). Their rows below are left as written, as the
+record of what was checked at the time. Read them as history, not as a list of screens to verify:
+04's route is gone from `src/router.js` and 05b is no longer a variant of `/position`. Every other
+row is live and unchanged - the anchors on the surviving screens were not touched by that removal.
 
 | Anchor | Screens | Note |
 |---|---|---|
@@ -243,8 +251,9 @@ screen module's declared `anchors` list against `anchors.js`, and confirming the
 `content.shared.regulatory` wording for each declared key appears in the rendered DOM.
 
 **3. Scripted human walkthrough:**
-- Happy path: personalised mode → likely-to-be-considered outcome, start to finish.
-- Estimate mode (05b) and general mode (04) branches.
+- Happy path: start to finish, to the likely-to-be-considered outcome. There is only one path now
+  (DECISIONS.md D28); the estimate-mode (05b) and general-mode (04) branches this step used to
+  require are deleted, and so is the frame 33 Data control that forced them.
 - Not-yet outcome (21) branch.
 - Every one of the 11 no-frame-drawn fallback states, forced via frame 33 toggles / crafted input.
 - Breakpoint check at both sides of 768px, and explicitly at 1366×768 — confirm the framed view

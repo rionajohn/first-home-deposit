@@ -370,23 +370,6 @@
   cursor: not-allowed;
 }
 
-.button--choice {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.button--choice[aria-pressed="true"] {
-  background: var(--color-accent-neutral);
-  border-color: var(--color-accent-neutral);
-  color: var(--color-label-inverse);
-}
-
-.button--choice[aria-pressed="false"] {
-  background: var(--color-action-secondary-bg);
-  border: 1px solid var(--color-border-strong);
-  color: var(--color-label);
-}
-
 /* ==========================================================================
    Action bar — reveal on reach (DECISIONS.md D17)
    ==========================================================================
@@ -1143,8 +1126,8 @@
    into one of these (`<main class="screen-content">`), so the edge inset is
    set once, here, and no screen carries a margin of its own - verified by
    sweeping the stylesheets for per-screen padding overrides: there are none,
-   and the two `.screen-content` modifiers that exist (`--centered`,
-   `.declined-content`) set alignment only.
+   and the one `.screen-content` modifier that exists (`--centered`) sets
+   alignment only.
 
    Inset from --screen-inset-* (tokens.css), not the 8pt spacing scale, so
    "how far in from the edge does the app start" can be tuned without moving

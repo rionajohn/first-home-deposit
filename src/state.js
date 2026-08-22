@@ -7,8 +7,12 @@
  *
  * Every section 6 entry is shaped { value, provenance } — see
  * src/model/model.js for how these are read and combined. Nothing in this
- * file computes a figure; it only holds the current value of each one.
+ * file computes a figure; it only holds the current value of each one - the
+ * seeded ones below included, whose values come from src/model/.
  */
+
+import { MOCK_POSITION, accountFigures } from './model/accounts.js';
+import { leftOver } from './model/model.js';
 
 const SECTION_6_KEYS = [
   'saved-toward-deposit',
@@ -94,6 +98,40 @@ const COLLAPSIBLE_DEFAULTS = {
   mipNotYetHowWeWorkedOpen: false,
 };
 
+/**
+ * The figures that are already there when the session starts.
+ *
+ * THIS APP ASSUMES THE PARTICIPANT'S ACCOUNTS ARE CONNECTED. It is their main
+ * bank, so the account activity has already been read by the time any screen
+ * renders: there is no linking step to complete and no state in which the
+ * bank has read nothing. These four were previously seeded by frame 03's
+ * "Agree and continue" (money-in, essential-spending and the three account
+ * totals) and frame 05's Continue (left-over), which left every screen ahead
+ * of those two able to be reached with nulls - the whole reason the deleted
+ * general mode existed.
+ *
+ * Values come from src/model/, never computed here: MOCK_POSITION is the
+ * mock current-account activity, accountFigures sums the mock accounts by
+ * group, and leftOver applies build-spec.md section 4's own rule to the
+ * first two.
+ *
+ * Provenance follows DECISIONS.md D5 exactly as it did before: read for what
+ * was read, derived for what follows from it. A participant's own edit
+ * overwrites both value and provenance in the ordinary way.
+ */
+function seededFigures() {
+  const read = {
+    'money-in': { value: MOCK_POSITION.moneyIn, provenance: 'read' },
+    'essential-spending': { value: MOCK_POSITION.essentialSpending, provenance: 'read' },
+  };
+  const derived = leftOver(read);
+  return {
+    ...read,
+    'left-over': { value: derived.value, provenance: derived.provenance },
+    ...accountFigures({ accountAssignments: {}, accountIncluded: {}, accountSelectionEdited: false }),
+  };
+}
+
 function defaultState() {
   const figures = {};
   for (const key of SECTION_6_KEYS) {
@@ -102,11 +140,10 @@ function defaultState() {
 
   return {
     ...figures,
+    ...seededFigures(),
 
     // Navigation / journey flags (build-spec.md section 1 and 2)
     journeyStarted: false,
-    mode: null, // 'personalised' | 'estimate' | 'general'
-    consentGiven: null,
     solveFor: null, // 'date' | 'amount'
     returnFrame: null,
     goalSaved: false,
@@ -126,23 +163,16 @@ function defaultState() {
 
     ...COLLAPSIBLE_DEFAULTS,
 
-    // Frame 03 (Consent and linked accounts)
-    savingsWithUs: null, // null | true | false — build-spec.md section 2's "none-selected" variant
+    // Frame 03 (Your accounts)
     accountAssignments: {}, // accountId -> group, set by 03b moves (src/model/accounts.js)
     accountIncluded: {}, // accountId -> boolean, set by the "Select all accounts" row
     // Has the participant changed which accounts are counted — by the
     // "Select all accounts" row or by a 03b move? Drives the provenance of
     // saved-toward-deposit / emergency-fund / unassigned (DECISIONS.md D5):
-    // read or estimated while untouched, entered once it is true. See
-    // accountFigures() in src/model/accounts.js.
+    // read while untouched, entered once it is true. See accountFigures() in
+    // src/model/accounts.js.
     accountSelectionEdited: false,
-    consentStatementChecked: true,
     selectedAccountId: null, // set before opening 03b
-
-    // Frame 04 (Consent declined / general mode) — build-spec.md section 1's
-    // "Drag either slider handle" / "Type into the estimated range field" rows.
-    generalMonthlyLow: { value: null, provenance: null },
-    generalMonthlyHigh: { value: null, provenance: null },
 
     // Frame 10b (Date stepper variant) — the target date isn't a build-spec.md
     // section 6 figure in its own right (only the months-to-target/savings-rate

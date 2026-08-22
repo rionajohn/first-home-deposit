@@ -18,11 +18,6 @@ export function render(container, ctx) {
   const c = content['/goal-check'];
   const reg = content.shared.regulatory;
 
-  if (state['saved-toward-deposit'].value === null) {
-    window.location.hash = '#/position/summary';
-    return;
-  }
-
   const savedTowardDeposit = state['saved-toward-deposit'].value;
   const leftOverValue = state['left-over'].value;
 
