@@ -63,11 +63,13 @@ function monthsFromNow(targetMonth, targetYear) {
 }
 
 // Neither "Savings interest rate" nor "Tax rate" has an owning editable
-// screen elsewhere in this build (build-spec.md section 1's generic rule —
-// "the frame that owns that figure" — names 09/05 for the other rows, but
-// is silent on these two read-only system figures). Routed to frame 32
-// ("Where these figures come from") rather than left inert.
-const READ_ONLY_FIGURE_ROUTE = '/assumptions/sources';
+// screen elsewhere in this build, and neither is adjustable: both are fixed
+// system figures. They used to carry a "Change" link routed to frame 32
+// ("Where these figures come from") rather than be left inert. That link is
+// gone — a row is either editable or explanatory, never both, and a
+// "Change" affordance on a rate says it can be changed. Frame 32 is still
+// reachable from frame 05's provenance link, and each row keeps the caption
+// saying where its figure came from.
 
 export function render(container, ctx) {
   const { state, setState, content } = ctx;
@@ -194,15 +196,11 @@ export function render(container, ctx) {
           label: c.savingsInterestLabel,
           value: `${formatPercent(RATES.bankRate)} ${c.savingsInterestSuffix}`,
           caption: c.savingsInterestCaption,
-          changeLabel: c.changeLabel,
-          changeAction: 'change-savings-interest',
         })}
         ${reviewRowHTML({
           label: c.taxRateLabel,
           value: c.taxRateValue,
           caption: c.taxRateCaption,
-          changeLabel: c.changeLabel,
-          changeAction: 'change-tax-rate',
         })}
         <button type="button" class="list-row" data-action="open-provenance-key">
           <span class="list-row__label">${c.provenanceKeyLabel}</span>
@@ -301,13 +299,6 @@ export function render(container, ctx) {
       rerenderInPlace(container, render, { ...ctx, state: next });
     });
   }
-
-  ['change-savings-interest', 'change-tax-rate'].forEach((action) => {
-    container.querySelector(`[data-action="${action}"]`).addEventListener('click', () => {
-      setState({ returnFrame: '/calculator/saving' });
-      window.location.hash = `#${READ_ONLY_FIGURE_ROUTE}`;
-    });
-  });
 
   container.querySelector('[data-action="open-provenance-key"]').addEventListener('click', () => {
     setState({ returnFrame: '/calculator/saving' });

@@ -77,15 +77,11 @@ export function render(container, ctx) {
           label: c.savingsInterestLabel,
           value: `${formatPercent(RATES.bankRate)} AER`,
           caption: c.savingsInterestCaption,
-          changeLabel: c.changeLabel,
-          changeAction: 'change-rate',
         })}
         ${reviewRowHTML({
           label: c.taxRateLabel,
           value: c.taxRateValue,
           caption: c.taxRateCaption,
-          changeLabel: c.changeLabel,
-          changeAction: 'change-rate',
         })}
         <button type="button" class="list-row" data-action="open-provenance-key">
           <span class="list-row__label">${c.provenanceKeyLabel}</span>
@@ -127,13 +123,10 @@ export function render(container, ctx) {
     setState({ returnFrame: '/calculator/review' });
     window.location.hash = '#/calculator/saving';
   });
-  container.querySelectorAll('[data-action="change-rate"]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      setState({ returnFrame: '/calculator/review' });
-      window.location.hash = '#/assumptions/sources';
-    });
-  });
-
+  // The savings interest rate and the tax rate carry no "Change" link: neither
+  // is adjustable, and a row is either editable or explanatory, never both.
+  // Their provenance captions still say where each figure came from, and the
+  // "How we worked these out" row below still reaches frame 32.
   container.querySelector('[data-action="open-provenance-key"]').addEventListener('click', () => {
     setState({ returnFrame: '/calculator/review' });
     window.location.hash = '#/assumptions/saving';

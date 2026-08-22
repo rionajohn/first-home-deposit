@@ -1470,15 +1470,13 @@
   gap: var(--space-md);
 }
 
+/* Explanatory, not interactive. The button reset this carried (min-height,
+   cursor, background, border, font-family) went with the <button> — the rate
+   figures below it are read-only, so their heading must not look tappable. */
 .rates-card__heading {
   margin: 0;
   width: 100%;
   padding: var(--space-sm) 0;
-  min-height: var(--touch-target-min);
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
   font-size: var(--text-subheadline-size);
   line-height: var(--text-subheadline-line);
   font-weight: 500;

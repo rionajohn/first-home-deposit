@@ -165,7 +165,7 @@ export function render(container, ctx) {
         : fill(c.unlocksAtTemplate, { checkpoint: formatCurrency(checkpointAmountValue) })}</p>
 
       <div class="card rates-card">
-        <button type="button" class="rates-card__heading" data-action="open-ltv">${c.ratesCardHeading}</button>
+        <p class="rates-card__heading">${c.ratesCardHeading}</p>
         ${rangeFigureHTML({
           lowText: formatPercent(band.low, 1),
           highText: formatPercent(band.high, 1),
@@ -186,6 +186,7 @@ export function render(container, ctx) {
         `).join('')}
       </div>
 
+      ${unlocked ? infoLinkHTML({ label: c.ltvInfoLinkLabel, action: 'open-ltv-info' }) : ''}
       ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions-deposit' })}
 
       ${riskWarningHTML(c.rateCautionText)}
@@ -222,10 +223,23 @@ export function render(container, ctx) {
 
   bindAppBarLeading(container);
 
-  container.querySelector('[data-action="open-ltv"]').addEventListener('click', () => {
-    setState({ returnFrame: '/tracker' });
-    window.location.hash = '#/learn/ltv';
-  });
+  // Frame 13 is comprehension content, so it stays reachable from here — but
+  // through a link of its own, not through the rates card's heading. A heading
+  // that is also a button says the rate figures under it are tappable, which
+  // is the one thing they must not say now that no rate on this screen is
+  // adjustable.
+  //
+  // Only in the unlocked variants. Below the checkpoint the primary CTA
+  // ("What a bigger deposit changes", D25) already opens frame 13 under this
+  // very label, and two controls carrying identical wording on one screen is
+  // what goal-check.js's "one link to frame 29, not two" already ruled out.
+  const ltvInfoBtn = container.querySelector('[data-action="open-ltv-info"]');
+  if (ltvInfoBtn) {
+    ltvInfoBtn.addEventListener('click', () => {
+      setState({ returnFrame: '/tracker' });
+      window.location.hash = '#/learn/ltv';
+    });
+  }
 
   container.querySelector('[data-action="open-assumptions-deposit"]').addEventListener('click', () => {
     setState({ returnFrame: '/tracker' });

@@ -471,7 +471,8 @@ const content = {
     taxRateLabel: 'Tax rate',
     taxRateValue: 'Basic rate',
     taxRateCaption: 'Worked out from your salary',
-    changeLabel: 'Change',
+    // No changeLabel: the only two rows on this screen that had one were the
+    // savings interest rate and the tax rate, and neither is adjustable.
     provenanceKeyLabel: 'How we worked these out',
     interestBannerText: 'Interest is included in the estimate. Rates can change.',
     flagLabel: "Something doesn't look right",
@@ -639,6 +640,10 @@ const content = {
     rateCautionText:
       "These are typical market ranges, not rates we're offering you. The rate any lender offers depends on their checks and your circumstances.",
     rateBandDepositCaptionTemplate: '{pct} deposit',
+    // Deliberately the same wording as belowCheckpointCta below: one
+    // destination, one label, whichever side of the checkpoint you are on.
+    // Says what frame 13 explains rather than naming it.
+    ltvInfoLinkLabel: 'What a bigger deposit changes',
     assumptionsLinkLabel: 'How we worked out these rate figures',
     thisMonthHeading: 'This month',
     savedLabel: 'Saved',
