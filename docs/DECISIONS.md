@@ -1098,6 +1098,45 @@ want a glyph decision rather than a handler change.
 
 ---
 
+## D31. Rates are explanatory everywhere; frame 13 keeps a link of its own
+
+**Date.** 22 August 2026.
+
+**Decision.** No rate in this build is adjustable, and no row carrying one presents an affordance
+that says otherwise. Four "Change" links are removed - the savings interest rate and the tax rate
+on frames 10/10b and 11 - and frames 15/16's rates-card heading stops being a `<button>`. All six
+values stay on screen with their provenance captions unchanged.
+
+**Why.** The four links never edited anything: neither figure has an owning editable screen, so
+both routed to frame 32 to explain where the figure came from. A "Change" link that explains
+rather than changes is the row-is-either-editable-or-explanatory rule broken in the direction that
+misleads - it invites a participant to try, and a think-aloud study will surface that as confusion
+about what the prototype will let them do. The rates-card heading is the same fault in a different
+shape: a heading that is also a button says the rate figures beneath it are tappable.
+
+**What was NOT removed, and why.** Frame 13 (Loan-to-Value) and frame 13b stay. They are
+comprehension content, they change no rate, and their comparison table is fixed. Removing the
+rates-card heading alone would have made frame 13 unreachable from frames 15/16 at and above the
+checkpoint: below the checkpoint D25's primary CTA reaches it, but at checkpoint-reached and
+goal-met that CTA becomes "Check my Mortgage in Principle" and the heading was the only route
+left. So the heading's job moves to an `infoLink` below the card, the same component, position and
+treatment as the "How we worked out these rate figures" link already sitting there.
+
+It carries the wording D25's CTA already uses - "What a bigger deposit changes" - because it opens
+the same screen, and because it says what frame 13 explains rather than naming it. The link is
+rendered only in the two unlocked variants: below the checkpoint the CTA already carries that exact
+label, and two controls with identical wording on one screen is what `goal-check.js`'s "one link to
+frame 29, not two" already ruled out.
+
+`savings-rate` is not a rate and was not touched: build-spec.md section 4 defines it as the monthly
+amount put aside, and frame 10's slider and 10b's date stepper stay adjustable. Deposit percentage
+selection stays adjustable. Frame 11's other four rows keep their "Change" links.
+
+**Reversal.** Restore `changeLabel`/`changeAction` on the four rows and turn the heading back into
+a button. The `infoLink` would then be the duplicate, and goes.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -1138,3 +1177,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (account-linking removed) | D28 recorded: the account-linking choice, estimate mode and general mode are deleted, and the read figures are seeded at session start instead of at frames 03 and 05. Frame 03 becomes "Your accounts" and keeps the account-assignment input; frames 04 and 05b, `mode`, `savingsWithUs`, `consentGiven`, `consentStatementChecked`, `GENERAL_SAVINGS_RANGE`, `generalAnnualRange()`, `src/regulatory.js` and `shared.regulatoryAwaitingCheck` all go. Reverses D26 and D27, amends D24. Closes `GAPS.md` G51-G55 by removal. Deviation from `build-spec.md` sections 2, 3 and 7 recorded here rather than applied there. |
 | 22 August 2026 (history as the back stack) | D29 recorded: `goBack()` (`history.back()`) becomes the single implementation of back, called by the app-bar leading cell, the calculator form-step header and all seven sheets' dismiss control, none of which names a destination any more. Eleven state guards, `/reset` and frame 19b's two timer transitions convert to `location.replace()` so a guard overwrites its entry instead of adding one - the frame 09 cascade under `GAPS.md` G50 now moves one screen per tap. `seedHistoryRoot()` puts `/home` behind a cold arrival on a deep route, tested on `history.state` rather than `history.length`. Amends D21 (back from `/goals` retraces the participant's step) and D18 (unchanged in behaviour: the drag inherits `goBack()` through the dismiss control it already clicks). `returnFrame` stays, unused by any back control. |
 | 22 August 2026 (close X) | D30 recorded: the app bar's leading cell splits into `app-bar-back` and `app-bar-close`, so the X leaves the journey via a new `exitFlow()` while the chevron keeps `goBack()`. New `journeyEntryPoint` state records `/home` or `/goals` on entry, because `returnFrame` names whichever screen opened the current sheet and cannot answer this. Frame 10c's "Leave" follows it; its X and "Keep going" do not. The sheet carve-out holds structurally - sheets dismiss through a different `data-action`. `replace()` does not unwind the flow, only the exited entry: back after an exit lands on the step before it. Amends D29. |
+| 22 August 2026 (rates fixed) | D31 recorded: every rate becomes explanatory. The "Change" links on the savings interest rate and tax rate rows are removed from frames 10/10b and 11, and frames 15/16's rates-card heading stops being a button; all six values keep their provenance captions. Frame 13 and 13b stay - they are comprehension content and change no rate - but the heading's route to frame 13 moves to an `infoLink` below the card, labelled "What a bigger deposit changes" (D25's own CTA wording) and rendered only in the checkpoint-reached and goal-met variants, where the below-checkpoint CTA that otherwise reaches frame 13 is absent. `savings-rate` (a monthly amount, not a rate) and deposit-percentage selection are unchanged. |
