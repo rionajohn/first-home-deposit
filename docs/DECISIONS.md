@@ -1464,6 +1464,105 @@ case: one is a drawing, the other is a guard against the same defect recurring.
 
 ---
 
+## D36. Frame 18's timeline is built, and it is a process sequence - NOT a progress indicator
+
+**Date.** 22 August 2026.
+
+**READ THIS BEFORE REMOVING IT.** `DESIGN.md` excludes linear progress bars and segmented bars for
+proportions. The process timeline on `/mip/about` is neither, and a design-rule sweep that reads
+"four connected steps" as "a bar" and deletes it would be removing the thing the frame was always
+specified to carry. The distinction is structural, not cosmetic, and it is written down here, in
+`components.css` above `.process-timeline`, in `ui.js` above `processTimelineHTML`, and in
+`mip-about.js`'s header - four places, because removal by misidentification is the most likely thing
+to happen to this component.
+
+| A progress indicator | This |
+|---|---|
+| Horizontal, like every bar in this app | Vertical |
+| A track with a filled portion | Discrete nodes joined by a hairline connector |
+| Divided into parts, or filled to a fraction | Neither. Nothing is divided and nothing is filled |
+| Measures something - a value, a percentage, a position between two ends | Measures nothing. Four named stages of buying a house, the same four for every participant |
+| Has a completed state | Has none. A step is `current` or `ahead`, and nothing is ever ticked off |
+
+**What it replaced.** The Figma frame drew a placeholder reading `[Visual aid]` with the diagram
+specified beneath it: "Timeline: Mortgage in Principle, then offer on a property, then full mortgage
+application, then formal offer - showing where in the process this sits". The coded screen carried
+that placeholder verbatim, in `visualAidLabel` and `visualAidCaption`. Both keys are gone and the
+markup with them.
+
+The `[Visual aid]` string still exists once in `content.js`, under `/learn/ltv/video` - frame 13b's
+own placeholder for the Loan-to-Value diagram, a different screen and a separate piece of work. The
+`.visual-aid-placeholder` CSS stays for the same reason.
+
+**The `.media-placeholder` above the timeline is untouched and stays a placeholder.** It is not a
+gap waiting to be filled: this prototype has no video and should not appear to have one.
+
+**Vertical, not horizontal, and why.** At 320px the content column is 280px after the screen inset
+and 248px inside the card. Four horizontal columns would be 62px each; "Full mortgage application"
+does not set in 62px at footnote size without truncating or dropping below the type scale, and the
+instruction's own preference was to stack rather than shrink the type. Stacking is also what makes
+the shape unmistakable from a bar, so the constraint and the semantics pointed the same way.
+
+**The four labels.**
+
+| # | Label | State |
+|---|---|---|
+| 1 | Mortgage in Principle | `current`, filled node, visible "You are here" |
+| 2 | Offer on a property | `ahead` |
+| 3 | Full mortgage application | `ahead` |
+| 4 | Formal mortgage offer | `ahead` |
+
+Three are the specification's own wording. The fourth is not: the specification says "formal offer",
+but "offer" already means the buyer's offer at step 2 and the lender's offer at step 4 is a
+different thing. "Mortgage offer" is wording this screen already carries, in
+`shared.mipAgreementNotOffer` ("An agreement in principle is not a mortgage offer"), so naming it
+introduces no term the screen has not already used.
+
+**Steps ahead do not read as completed.** Every label is the same colour. Only the font weight and
+the node glyph change between states. This is deliberate: if the current step were darker than the
+ones ahead of it, a four-step list with the first one dark would read as "filled up to here", which
+is precisely the progress reading the component must not have. Position is carried by the filled
+node, the bolder label and the "You are here" note, none of which implies completion.
+
+**The glyphs are real vectors.** `circle` (an existing icon, the empty ring already used on frame
+19) for a step ahead, and a new `circleDot` for the current one - a ring with a solid centre,
+constructed the way `targetFill` is, because two sibling circles cannot share a `fill-rule` and
+filling both would give a blob. Deliberately not a checkmark and not a star: reaching this screen
+completes nothing, and `starCircleFill` means "milestone done" on frames 15 and 16. No emoji, no
+image, no typed character.
+
+**Not interactive, and proved so.** Every element is a `<p>`, `<li>` or `<div>`. No button, no link,
+no `tabindex`, no `data-action`, no pointer cursor. Verified by walking the screen's whole tab order
+25 times in a browser and confirming focus never enters the component.
+
+**Accessible.** An `<ol>`, so a screen reader announces four numbered items in order rather than
+four unrelated lines; `aria-labelledby` names the list from its own heading; the current step
+carries `aria-current="step"` **and** a visible "You are here", so the participant's position
+survives both a reader that ignores `aria-current` and a participant who cannot see which node is
+filled.
+
+**No new tokens.** Colour, spacing, radius and type all come from the existing scales. The connector
+is 1px, the same hairline weight as `.divider` and `.milestone-row__divider`, so it introduces no
+new width either. The node is centred on the label's first line with
+`calc((var(--text-subheadline-line) - var(--icon-size-body) * var(--text-scale)) / 2)` - two
+existing tokens, no magic number - so the dot and its word stay on one optical line at both text
+sizes.
+
+**Verified.** Screenshots at 320, 390 and 1280 in light and dark. No label clips, ellipsises,
+escapes its box or overlaps another label, the node column or the connector, across three widths x
+two text sizes x two themes. `overlap.test.mjs` 62 passing, which covers frame 18 at both text
+sizes; `bottom-nav.test.mjs` 8, `sheet-drag.test.mjs` 15, model suites 43. 128 in total.
+
+`CACHE_VERSION` v18 -> v19: `icons.js`, `ui.js`, `content.js`, `components.css` and `mip-about.js`
+are all cache-first shell assets.
+
+**Reversal.** Delete the `.process-timeline` block from `components.css`, `processTimelineHTML` from
+`ui.js`, `circleDot` from `icons.js`, and put `visualAidLabel` / `visualAidCaption` and the
+`.visual-aid-placeholder` markup back on frame 18. Nothing else depends on any of it. Do not do this
+as part of a bar sweep - see the top of this entry.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -1508,5 +1607,6 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (chevron corrections) | D32 recorded: frames 13, 33 and 22 take the back chevron instead of the close X, none of them being a flow boundary; frame 22's "Done" moves to `goBack()` with it, dropping a `returnFrame` push that left the confirmation on the stack. `exitFlow` stops overwriting one entry and goes back by the difference between `history.length` now and at flow entry, measured at 4 and 9 steps on the two entry routes, falling back to D30's `replace` when the delta is missing or not positive. Amends D30. `GAPS.md` G57 and G58 opened. |
 | 22 August 2026 (bank-branch removal verified) | D33 recorded: the savings-location question and its branch confirmed absent from the code, and `build-spec.md` sections 1, 2 and 7 stripped of the rows that still documented them - the question, its two options, all six frame 04 transitions, the 05b variant, frame 10's general-mode row and frame 33's Mode control. Section 3 keeps frames 04 and 05b at status "Removed - DECISIONS.md D28", the frame inventory being the Figma mapping. Records what the answer used to change (frame 05 provenance, frame 10's slider ceiling, frame 04's annual range, D27's second guidance line) and what each is now. No figure changed value. `GAPS.md` left intact as a dated log. Completes D28. |
 | 22 August 2026 (provenance captions) | D34 recorded: every figure now states its source. `figureRowHTML` gains an optional caption in trailing mode - it was the one figure-bearing component without one, which is how frame 08's savings interest rate was shown with no source. Three captions were wrong rather than missing: the savings interest rate was credited to the participant's instant saver on frames 10/10b/11/32 when it is `RATES.bankRate` anchored to the Bank of England Bank Rate (D3), and the wrong claim had reached a code comment in `accounts.js`; essential spending was described three different ways, with frame 32 alone claiming a 6-month averaging window nothing performs; and frame 12 used one caption key for two different derivations. `bankRateCaptionTemplate`, `essentialSpendingCaption` and `leftOverCaption` move to `shared`, and the bank-rate caption resolves `{source}` from `RATES.source` so it cannot name a source the model did not use. Six new captions name two values each, a shape no existing caption had; frames 15/16's rate-band caption additionally names which figures it covers, because the row carries a rate from a different source. Frame 21's "at your current rate" - the one caption the `savings-rate` misnomer had corrupted - adopts frames 15/16's wording. |
+| 22 August 2026 (frame 18 timeline) | D36 recorded: frame 18's `[Visual aid]` placeholder is replaced by the process timeline it specified - four labelled nodes joined by a hairline, Mortgage in Principle marked as where the participant is, the three ahead of them reading as ahead rather than done. **It is a process sequence, not a progress indicator, and is exempt from DESIGN.md's bar exclusions on that basis** - vertical, discrete nodes rather than a filled track, measuring nothing, with no completed state at all. Vertical because four horizontal labels do not fit 62px columns at 320px. New `circleDot` icon and `processTimelineHTML` component; no new colour, spacing or width token. Not interactive: no button, link, tabindex or pointer cursor, proved by walking the tab order. An `<ol>` with `aria-current="step"` and a visible "You are here", so sequence and position are not carried by the drawing alone. Frame 13b's separate `[Visual aid]` and the `.media-placeholder` video block are untouched. |
 | 22 August 2026 (MiP reachable) | D35 recorded: the Insights tab resolves to `/tracker` (Payments and Profile stay disabled), which makes the six-screen Mortgage in Principle flow reachable - it was already built and already wired, and nothing navigated to the tracker. `diamondFill` added, because `TAB_ICONS_ACTIVE` held twins for two tabs and lighting a third called `undefined`; the glyph lookup now falls back to the outline, and the tab hint stops being a Home-or-Goals ternary. The tracker's action bar is confirmed as the single entry (`reference/frames/16` draws it; the instruction's "milestone row is a live link" did not hold), and the locked milestone row drops its no-op `<button>`. `journeyEntryPoint` gains `/tracker`, so the X on 17, 18, 19b, 20 and 21 exits to the tracker rather than frame 01. Four copy keys change: the entry stops claiming the prototype issues a decision in principle, and frames 19 and 19b stop implying a check runs here. No knowledge check built on frame 17 - it exists in no spec, wireframe or frame, and the author confirmed it came from a stale summary. |
 | 22 August 2026 (D32 collision resolved) | The provenance-captions entry, recorded second under a number the chevron entry already held, becomes **D34**; the chevron entry keeps D32. Four citations meant the provenance entry and were updated - its own heading, its change-log row, `content.js`'s shared-caption comment and `accounts.js`'s bank-rate comment. Nine meant the chevron entry and were left alone: `GAPS.md` G57 (twice) and G58, `router.js`, `state.js`, `learn-ltv.js`, `mip-adviser.js`, `settings.js`, and its own change-log row. D33's paragraph recording the collision as open is corrected. Sequence is now D1-D34, no duplicate and no gap; D34 sits before D33 in the file, and D20 before D13, neither being renumbered or moved. `CLAUDE.md` gains a working rule to take the next number from the last entry. |

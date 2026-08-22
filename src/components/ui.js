@@ -19,6 +19,7 @@ import {
   checkmarkCircle,
   chevronRight,
   circle,
+  circleDot,
   chevronDown,
   chevronUp,
   exclamationTriangle,
@@ -847,6 +848,77 @@ export function milestoneTrackerHTML(milestones) {
           </div>
         ${m.action ? '</button>' : '</div>'}
       `).join('')}
+    </div>
+  `;
+}
+
+/**
+ * Process timeline (frame 18): where the step the participant is reading
+ * about sits in a longer sequence.
+ *
+ * THIS IS A PROCESS SEQUENCE, NOT A PROGRESS INDICATOR, and the distinction
+ * is the reason it is built the way it is. DESIGN.md excludes linear progress
+ * bars and segmented bars for proportions; this is neither, and a later
+ * design-rule sweep should not remove it on sight. See DECISIONS.md D36. The
+ * differences are structural, not cosmetic:
+ *
+ *   - It is VERTICAL. Every bar in this app is horizontal.
+ *   - It is discrete NODES joined by a thin connector, not a track with a
+ *     filled portion. Nothing here is divided into parts and nothing is
+ *     filled to a proportion.
+ *   - It measures nothing. There is no fraction, no percentage and no
+ *     value behind it — it is four named stages of buying a house, which
+ *     are the same four for every participant.
+ *   - It has NO COMPLETED STATE. A step is either the one the participant
+ *     is reading about (`current`) or one still ahead of them (`ahead`).
+ *     Nothing is ever ticked off, because reaching this screen does not
+ *     complete anything.
+ *
+ * VERTICAL RATHER THAN HORIZONTAL, because of the labels. At 320px the
+ * content column is 280px after the screen inset and 248px inside a card;
+ * four horizontal columns would be 62px each, and "Full mortgage
+ * application" does not set in 62px at footnote size without either
+ * truncating or dropping below the type scale. Stacking was the instruction's
+ * own preference over shrinking the type, and it is also what makes the
+ * shape unmistakable from a bar.
+ *
+ * NOT INTERACTIVE. Every element is a <p>, <li> or <div> — no button, no
+ * link, no tabindex, no data-action. There is nothing to bind and no screen
+ * module should bind anything to it.
+ *
+ * THE SEQUENCE IS IN THE MARKUP, not only in the drawing. It is an <ol>, so
+ * a screen reader announces "list, 4 items" and numbers each one; the
+ * current step carries `aria-current="step"` AND a visible "You are here"
+ * note, so the participant's position survives both a reader that ignores
+ * aria-current and a participant who cannot see the filled node.
+ *
+ * `steps` is an array of { label, note } in order. `currentIndex` is which
+ * one the participant is at.
+ */
+export function processTimelineHTML({ heading, headingId, steps, currentIndex }) {
+  const items = steps.map((step, i) => {
+    const isCurrent = i === currentIndex;
+    const glyph = isCurrent ? circleDot : circle;
+    return `
+      <li class="process-timeline__step process-timeline__step--${isCurrent ? 'current' : 'ahead'}"${isCurrent ? ' aria-current="step"' : ''}>
+        <div class="process-timeline__marker">
+          ${glyph({ size: 'body', className: 'process-timeline__node' })}
+          ${i < steps.length - 1 ? '<div class="process-timeline__connector"></div>' : ''}
+        </div>
+        <div class="process-timeline__content">
+          <p class="process-timeline__label">${step.label}</p>
+          ${step.note ? `<p class="process-timeline__note">${step.note}</p>` : ''}
+        </div>
+      </li>
+    `;
+  }).join('');
+
+  return `
+    <div class="process-timeline">
+      <p class="process-timeline__heading" id="${headingId}">${heading}</p>
+      <ol class="process-timeline__list" aria-labelledby="${headingId}">
+        ${items}
+      </ol>
     </div>
   `;
 }

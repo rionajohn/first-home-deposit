@@ -204,9 +204,32 @@ export function checkmarkCircle(o) {
   );
 }
 
-/** Empty ring. An item not yet satisfied (frame 19), and the profile tab. */
+/** Empty ring. An item not yet satisfied (frame 19), and the profile tab.
+ *  Also a step still ahead on frame 18's process timeline. */
 export function circle(o) {
   return icon('circle', '<circle cx="12" cy="12" r="9"/>', o);
+}
+
+/**
+ * Ring with a solid centre. "You are at this point in a sequence" — frame
+ * 18's process timeline marks the Mortgage in Principle step with it.
+ *
+ * The inner disc carries `.icon__fill` and the ring does not, the same
+ * construction `targetFill` uses: two sibling circles cannot share a
+ * `fill-rule`, so filling both would give a solid blob rather than a dot
+ * inside a ring. Named for what it draws rather than reusing `targetFill`,
+ * which is the Goals tab's active glyph and means something else.
+ *
+ * Deliberately NOT a checkmark or a star: a step the participant has
+ * reached is not a step they have completed, and this timeline has no
+ * completed state at all (DECISIONS.md D36).
+ */
+export function circleDot(o) {
+  return icon(
+    'circle-dot',
+    '<circle cx="12" cy="12" r="9"/><circle class="icon__fill" cx="12" cy="12" r="4"/>',
+    o
+  );
 }
 
 /**

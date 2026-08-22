@@ -2173,6 +2173,123 @@ button.milestone-row {
   color: var(--color-label-secondary);
 }
 
+/* --- Process timeline (frame 18) ------------------------------------------
+   A PROCESS SEQUENCE, NOT A PROGRESS INDICATOR. DESIGN.md excludes linear
+   progress bars and segmented bars; this is neither and must not be swept up
+   as one. It is vertical where every bar in this app is horizontal, it is
+   discrete nodes joined by a hairline rather than a track with a filled
+   portion, it measures nothing, and it has no completed state — see
+   DECISIONS.md D36 and the note above processTimelineHTML in ui.js.
+
+   Nothing in here is interactive: no button, no link, no focus style, no
+   pointer cursor. That is deliberate and is asserted in the screenshot walk.
+
+   NO NEW TOKENS. Colour, spacing, radius and type all come from the existing
+   scales; the connector is 1px, the same hairline weight as .divider and
+   .milestone-row__divider, so it does not introduce a width either. */
+.process-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  box-sizing: border-box;
+}
+
+.process-timeline__heading {
+  margin: 0;
+  font-size: calc(17px * var(--text-scale));
+  line-height: calc(24px * var(--text-scale));
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.process-timeline__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.process-timeline__step {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-md);
+  width: 100%;
+}
+
+/* The node column. `align-self: stretch` on the step plus `flex: 1` on the
+   connector is what makes the line span whatever height the label wraps to,
+   so a two-line label at large text does not leave a gap in the sequence. */
+.process-timeline__marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+/* Centre the node on the label's first line rather than its box top, so the
+   dot and the word it belongs to sit on the same optical line at both text
+   sizes. Both terms are existing tokens. */
+.process-timeline__node {
+  margin-top: calc((var(--text-subheadline-line) - var(--icon-size-body) * var(--text-scale)) / 2);
+}
+
+.process-timeline__connector {
+  flex: 1 1 auto;
+  width: 1px;
+  min-height: var(--space-md);
+  margin-top: var(--space-xs);
+  margin-bottom: var(--space-xs);
+  background: var(--color-border-strong);
+}
+
+.process-timeline__content {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-bottom: var(--space-lg);
+}
+
+.process-timeline__step:last-child .process-timeline__content {
+  padding-bottom: 0;
+}
+
+/* Every label is the same colour. Only the WEIGHT and the node glyph change
+   between states — if the current step were darker than the ones ahead of
+   it, a four-step list with the first one dark would read as "filled up to
+   here", which is the progress reading this component must not have. */
+.process-timeline__label {
+  margin: 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label);
+}
+
+.process-timeline__step--current .process-timeline__label {
+  font-weight: 600;
+}
+
+.process-timeline__step--current .process-timeline__node {
+  color: var(--color-label);
+}
+
+.process-timeline__step--ahead .process-timeline__node {
+  color: var(--color-label-secondary);
+}
+
+.process-timeline__note {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  color: var(--color-label-secondary);
+}
+
 /* --- Stat row (frames 15, 16's "This month" card) --- */
 .stat-row {
   display: flex;

@@ -723,9 +723,24 @@ const content = {
     shortVersionHeading: 'The short version',
     shortVersionBody:
       'A Mortgage in Principle is an indication of how much a lender might be willing to lend you, based on your income and outgoings. It is not a commitment from the lender or from you.',
-    visualAidLabel: '[Visual aid]',
-    visualAidCaption:
-      'Timeline: Mortgage in Principle, then offer on a property, then full mortgage application, then formal offer - showing where in the process this sits',
+    // The process timeline that replaced this screen's "[Visual aid]"
+    // placeholder. Four stages of buying a house, in order, with the step
+    // this screen is about marked as where the participant stands. It is a
+    // sequence, not a measure: nothing here is completed, and no step is ever
+    // ticked off. See DECISIONS.md D36.
+    //
+    // "Formal mortgage offer" rather than the specification's bare "formal
+    // offer": "offer" already means the buyer's offer at step 2, and the
+    // lender's offer at step 4 is a different thing. "Mortgage offer" is
+    // wording the screen already carries, in shared.mipAgreementNotOffer.
+    timelineHeading: 'Where this sits in the process',
+    timelineSteps: [
+      'Mortgage in Principle',
+      'Offer on a property',
+      'Full mortgage application',
+      'Formal mortgage offer',
+    ],
+    timelineCurrentNote: 'You are here',
     whatItIsNotHeading: 'What it is not',
     notRows: [
       { title: 'Not an application', caption: 'It does not start a mortgage application or commit you to one' },
