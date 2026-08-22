@@ -40,6 +40,15 @@ export function render(container, ctx) {
   const monthlyLow = state['monthly-low'];
   const monthlyHigh = state['monthly-high'];
 
+  // A session that never linked an account has no saved-toward-deposit and no
+  // left-over, and the two read-only system rows below were never read from
+  // anything of the participant's either. Each says so rather than claiming a
+  // source it hasn't got (GAPS.md G50, DECISIONS.md D24). The em dash is this
+  // build's existing glyph for a figure that genuinely isn't known — see
+  // assumptions-sources.js, which already null-guards the same three figures.
+  const fromAccounts = state['left-over'].value !== null;
+  const savedKnown = savedTowardDeposit.value !== null;
+
   container.innerHTML = `
     ${formStepHeaderHTML({ title: c.appBarTitle, step: c.stepLabel, appBarLabels: content.shared.appBar })}
     <main class="screen-content" role="main">
@@ -61,9 +70,12 @@ export function render(container, ctx) {
         })}
         ${reviewRowHTML({
           label: c.savedSoFarLabel,
-          value: formatCurrency(savedTowardDeposit.value),
-          caption: c.savedSoFarCaption,
-          changeLabel: c.changeLabel,
+          value: savedKnown ? formatCurrency(savedTowardDeposit.value) : '—',
+          caption: savedKnown ? c.savedSoFarCaption : c.savedSoFarCaptionGeneral,
+          // No Change link when there is nothing behind it: the screen it
+          // opens (frame 06) guards on left-over and would bounce this
+          // session three hops back to consent.
+          changeLabel: savedKnown ? c.changeLabel : null,
           changeAction: 'change-saved',
         })}
         ${reviewRowHTML({
@@ -76,14 +88,14 @@ export function render(container, ctx) {
         ${reviewRowHTML({
           label: c.savingsInterestLabel,
           value: `${formatPercent(RATES.bankRate)} AER`,
-          caption: c.savingsInterestCaption,
+          caption: fromAccounts ? c.savingsInterestCaption : c.savingsInterestCaptionGeneral,
           changeLabel: c.changeLabel,
           changeAction: 'change-rate',
         })}
         ${reviewRowHTML({
           label: c.taxRateLabel,
           value: c.taxRateValue,
-          caption: c.taxRateCaption,
+          caption: fromAccounts ? c.taxRateCaption : c.taxRateCaptionGeneral,
           changeLabel: c.changeLabel,
           changeAction: 'change-rate',
         })}
@@ -116,10 +128,14 @@ export function render(container, ctx) {
       window.location.hash = '#/calculator/property';
     });
   });
-  container.querySelector('[data-action="change-saved"]').addEventListener('click', () => {
-    setState({ returnFrame: '/calculator/review' });
-    window.location.hash = '#/position/summary';
-  });
+  // Absent when saved-toward-deposit isn't known — see the row above.
+  const changeSavedBtn = container.querySelector('[data-action="change-saved"]');
+  if (changeSavedBtn) {
+    changeSavedBtn.addEventListener('click', () => {
+      setState({ returnFrame: '/calculator/review' });
+      window.location.hash = '#/position/summary';
+    });
+  }
   container.querySelector('[data-action="change-saving"]').addEventListener('click', () => {
     setState({ returnFrame: '/calculator/review' });
     window.location.hash = '#/calculator/saving';

@@ -183,7 +183,9 @@ export function render(container, ctx) {
     </main>
     ${actionBarHTML({
       primaryLabel: unlocked ? c.checkpointReachedCta : c.belowCheckpointCta,
-      primaryAction: unlocked ? 'check-mip' : 'adjust-goal',
+      primaryAction: unlocked ? 'check-mip' : 'learn-ltv',
+      secondaryLabel: unlocked ? undefined : c.belowCheckpointSecondaryCta,
+      secondaryAction: 'adjust-goal',
     })}
   `;
 
@@ -223,6 +225,20 @@ export function render(container, ctx) {
       window.location.hash = '#/mip';
     });
   } else {
+    // The below-checkpoint variant's forward action (DECISIONS.md D25).
+    // Frame 13 is the only onward destination that is honest from here: the
+    // Mortgage in Principle route genuinely is not open yet, and frame 11 —
+    // the old primary — is a step backwards into the calculator. Frame 13
+    // explains what a bigger deposit does to the rate bands the card above
+    // is already showing, and returns here rather than continuing anywhere,
+    // so nothing on screen implies progress that has not happened. It is
+    // guidance, not a recommendation to save more.
+    container.querySelector('[data-action="learn-ltv"]').addEventListener('click', () => {
+      setState({ returnFrame: '/tracker' });
+      window.location.hash = '#/learn/ltv';
+    });
+    // Kept, demoted: adjusting the goal is a real thing to want to do here,
+    // it just isn't the way forward.
     container.querySelector('[data-action="adjust-goal"]').addEventListener('click', () => {
       window.location.hash = '#/calculator/review';
     });

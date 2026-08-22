@@ -218,12 +218,21 @@ export function monthsToTarget(state) {
 
   if (target.error) return fail(target.error, provenance);
   if (savingsRate.value === 0) return fail('unreachable', provenance);
-  if (leftOverFigure && savingsRate.value > leftOverFigure.value) {
+  // left-over is money-in less essential-spending, so it exists only once
+  // account activity has been read. A session that never linked an account
+  // has no such ceiling to breach — comparing against a null one would read
+  // as 0 and reject every positive savings-rate (GAPS.md G50).
+  if (leftOverFigure && leftOverFigure.value !== null && savingsRate.value > leftOverFigure.value) {
     return fail('exceeds-left-over', provenance);
   }
 
   const r = monthlyRate();
-  const p0 = savedTowardDeposit.value;
+  // A session with no linked accounts has no saved-toward-deposit, so it
+  // projects from a zero starting balance — the same assumption frame 04's
+  // generalAnnualRange already makes ("general mode has no
+  // saved-toward-deposit starting balance to compound"). Written out rather
+  // than left to null's arithmetic coercion.
+  const p0 = savedTowardDeposit.value ?? 0;
   const pmt = savingsRate.value;
   const goal = target.value;
 
@@ -406,7 +415,9 @@ export function monthlyAmountFromDate(state, months) {
   if (months < 0) return fail('in-the-past', provenance);
 
   const r = monthlyRate();
-  const p0 = savedTowardDeposit.value;
+  // Same zero-starting-balance assumption as monthsToTarget above, so this
+  // stays that function's exact algebraic inverse in general mode too.
+  const p0 = savedTowardDeposit.value ?? 0;
   const goal = target.value;
   const growth = Math.pow(1 + r, months);
 

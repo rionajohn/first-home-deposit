@@ -703,6 +703,52 @@ Left alone deliberately: the 44px empty spacer cell opposite an action cell, whi
 
 ---
 
+## D24. In general mode the slider gets a ceiling, and `left-over` stays empty
+
+**Decision.** `left-over` is **not** resolved for a participant who did not come through consent. It stays `null`, with `null` provenance, for the whole of that session. What frame 10 gains instead is a separately named local figure, `savingCeiling`, which is `left-over` when account activity was read and `GENERAL_SAVINGS_RANGE.max` (600) when it was not - the top of the published range frame 04's own slider already runs to, one screen earlier. Frame 10's guard drops `left-over` and keeps `deposit-target`. Closes `GAPS.md` G50.
+
+**Why `left-over` itself cannot be filled in.** `build-spec.md` section 4 defines it as `money-in - essential-spending`, and both are read from twelve months of account activity. In general mode the bank has read nothing, so there is no derivation available and no partial one either. Writing a number into it would be inventing a figure - `CLAUDE.md`'s first IMPORTANT rule - and specifically inventing a figure about the participant's *income*, which is the exact thing they declined to share one screen earlier. It would also propagate: `left-over` is displayed and captioned as read-from-your-accounts on frames 05, 06, 12, 13, 20, 21 and 32, and every one of those captions would become false.
+
+**Why the ceiling is a different question from `left-over`.** Frame 10 does not display `left-over`. It uses it as the maximum of a two-handle slider, as the divisor for the fill percentage, and as the `{max}` in one caption. The screen needs an upper bound for "what could you put aside each month"; it does not need to know the participant's disposable income. Those happen to be the same number once accounts are linked, and are not the same question when they are not.
+
+**Why the published maximum, and not one of the other three options G50 listed.**
+
+| Option | Why not |
+|---|---|
+| Skip step 2 in general mode, carrying frame 04's range straight to step 3 | Removes the step where a participant sets a figure, and would leave "Step 3 of 3" following "Step 1 of 3". The range on frame 04 answers a different question ("what could you save"), not "what will you put toward this deposit". |
+| A plain currency input with no ceiling | Discards the constraint the slider exists to express, and makes general mode's step 2 a structurally different screen from the consent path's - two layouts for one route. |
+| Gate the calculator on consent | Closes the general path rather than fixing it, and contradicts `build-spec.md` section 1's own frame 04 row, which routes "Continue with general figures" to frame 09. |
+
+`GENERAL_SAVINGS_RANGE` is already a dated, sourced constant in `model/rates.js` (NatWest Savings Index 2026), already the bound of frame 04's slider, and already captioned there as a published average. Reusing its maximum introduces no new figure and no new source.
+
+**Two figures ride along with it, both already held.** The slider's seed is `generalMonthlyLow`/`generalMonthlyHigh` - the range the participant themselves set on frame 04 - rather than `MOCK_POSITION.recentMonthlySaving*`, which is account-read data this session never had. Their provenance (`estimated`, or `entered` once a handle is dragged) carries into `monthly-low`/`monthly-high` unchanged.
+
+**The condition tested is `left-over === null`, not `mode === 'general'`.** The calculator is reachable from `/goals` with no consent decision recorded at all, in which case `mode` is still `null`. `left-over` being empty is the thing that actually matters, and the thing that used to bounce.
+
+**Two model corrections this exposed.** `monthsToTarget()` compared `savings-rate` against `left-over` without checking it existed, so a `null` ceiling read as `0` and rejected every positive saving rate as `exceeds-left-over`. And it read `saved-toward-deposit` as the starting balance with no fallback; general mode now projects explicitly from `0`, which is the assumption `generalAnnualRange()` already documents for frame 04. `monthlyAmountFromDate()` takes the same fallback so it stays that function's exact inverse.
+
+**Copy that would otherwise have lied.** Making these screens reachable exposed captions asserting a source general mode has not got. Each gains a general variant keyed off the same test: frame 10's slider caption, its "Already filled in from your accounts" card heading and that card's two rows; frame 11's "Saved so far" row (an em dash and an explanation, and no Change link - the screen behind it guards on `left-over` and would bounce three hops back to consent) and its own two read-only rows; frame 12's two provenance captions; and the How-this-works card on frames 12 and 13, whose "What we read: your salary and your regular payments" rows are replaced by a set that says nothing was read. `savings-rate`'s provenance also stops being stamped `entered` unconditionally and now inherits from the pair it is the midpoint of, which corrects the consent path too.
+
+**To reverse.** Restore the `left-over` half of frame 10's guard and delete `savingCeiling`. The general variants of the copy become unreachable but harmless.
+
+---
+
+## D25. The below-checkpoint tracker's forward action is guidance, and the locked row stays inert
+
+**Decision.** Frame 15's action bar becomes two controls. The primary, "What a bigger deposit changes", opens frame 13 (Loan-to-Value) with `returnFrame` set to `/tracker`. "Adjust my goal" is kept and demoted to the secondary. The locked "Mortgage in Principle" milestone row is left exactly as it was: a `<button>` that preventDefaults, keyboard-reachable and explanatory only, per `build-spec.md` section 1's "Tap the locked row -> 15 (in place) -> explanatory only".
+
+**The problem.** Below the checkpoint the screen's only action routed to `/calculator/review` - backwards, into step 3 of a calculator the participant had already finished. Every forward-looking control on the screen was either locked or absent, so the state had no onward move at all.
+
+**Why frame 13 and not something else.** It has to be honest about where the participant actually is. The Mortgage in Principle route is genuinely not open - that is what the checkpoint means - so neither `/mip` nor frame 18 (whose own CTA continues into `/mip/pre-check`) can be offered. Frame 13 explains what a bigger deposit does to the rate bands the card immediately above it is already showing, which is the one thing on this screen that a participant below the checkpoint can act on understanding. It returns here rather than continuing anywhere, so nothing implies progress that has not happened, and no milestone changes state.
+
+**Why it is guidance and not advice.** The label names what changes, not what to do. "Save more" or "Increase your goal" would recommend a course of action; "What a bigger deposit changes" describes a relationship and leaves the choice with the participant, which is the line `guidanceNotAdvice` already draws at the foot of the screen.
+
+**Why the row stayed inert.** Making it live would have to lead somewhere, and everywhere it could lead is either the MiP route or a restatement of the caption it already carries. The forward path belongs in the action bar, where a screen's actions live.
+
+**To reverse.** Set `primaryAction` back to `adjust-goal` for the not-unlocked branch and drop the secondary.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -736,3 +782,5 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 21 August 2026 (Goals -> calculator) | D22 recorded: the /goals deposit card routes to frame 02 for a cold arrival and frame 08 only when `journeyStarted` AND `saved-toward-deposit` are both set, so it never hands off to a screen that will redirect; `goal` and `returnFrame` are written only once the destination is settled; and the pre-consent balances on /goals stay, because the bank already holds them and frame 03 asks for a different processing purpose. Closes `GAPS.md` G48. |
 | 22 August 2026 (screen inset) | D23 recorded: the app's distance from the edge of the phone screen becomes two tokens, `--screen-inset-x: 20px` and `--screen-inset-y: 24px`, read by both scrolling content areas (`.screen-content`, `.bottom-sheet__content`) and by the action bar's buttons; content moves from 16px to 20px horizontally and 24px vertically, sheets from 24px to 20px horizontally so one edge has one inset. Header and tab-bar surfaces, their rules and the sheet scrim stay full-bleed; a header's controls move onto the content margin, restoring the alignment the Figma frames draw. No breakpoint at 768px - the framed view is a 393px mock of the phone, not a fluid column. |
 | 21 August 2026 (Goals -> 09a) | D21 amended: the /goals card routes to frame 09/09a for everyone, setting `mode = 'general'` when `consentGiven !== true`, exactly as `build-spec.md`'s frame 04 row does. Replaces D22's /journey-for-cold-arrivals split, whose routing half is now superseded. Walked 09a to 12 in that state: 09a and 09 work, **frame 10 does not render** - it guards on `left-over` and loops back to 09 - and `build-spec.md`'s own frame 04 general path does the same. Recorded as `GAPS.md` G50, open. |
+| 22 August 2026 (general-mode calculator) | D24 recorded, closing `GAPS.md` G50: `left-over` stays null for a session that never linked an account, and frame 10's slider takes its ceiling from `GENERAL_SAVINGS_RANGE.max` instead, seeded from the range the participant set on frame 04. Frame 10's guard drops `left-over` and keeps `deposit-target`. Two model fixes (`monthsToTarget`'s null-ceiling comparison and its starting balance) and general-mode caption variants across frames 10, 11, 12 and 13. Walked 04 -> 09a -> 09 -> 10 -> 11 -> 12 at 375px; the consent path's own 10/11/12 render pixel-identical to before. |
+| 22 August 2026 (below-checkpoint tracker) | D25 recorded: frame 15's action bar gains a forward primary, "What a bigger deposit changes" -> frame 13 with `returnFrame` set, and keeps "Adjust my goal" as the secondary. The locked Mortgage-in-Principle milestone row stays inert. Neither the MiP route nor any milestone state changes. |

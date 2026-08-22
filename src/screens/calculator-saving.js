@@ -17,6 +17,27 @@
  * relationship runs the other way, matching DECISIONS.md D2 exactly:
  * savings-rate is solved from the chosen date, and monthly-low/monthly-high
  * are DERIVED from it at 0.9x/1.1x (rangeFromCentral).
+ *
+ * GENERAL MODE (GAPS.md G50, resolved in DECISIONS.md D24)
+ * `left-over` is money-in less essential-spending, both read from account
+ * activity, so a session that never linked an account does not have one and
+ * cannot derive one. It stays null: writing a number into it would be
+ * inventing a figure about the participant's income, which is precisely the
+ * thing they declined to share.
+ *
+ * What this screen actually needs is not `left-over` itself but a CEILING for
+ * the monthly-saving slider, and general mode already has a sourced one:
+ * GENERAL_SAVINGS_RANGE.max, the top of the published range frame 04's own
+ * slider runs to one screen earlier. So `savingCeiling` below resolves to
+ * `left-over` when accounts were read and to that published maximum when they
+ * were not, with its own caption naming the source either way. The seed
+ * follows the same rule: generalMonthlyLow/High (what the participant set on
+ * frame 04) rather than MOCK_POSITION's account-read figures.
+ *
+ * The condition tested is `left-over` being null rather than
+ * `mode === 'general'`, because the calculator can also be entered from
+ * `/goals` with no consent decision recorded at all (mode still null) —
+ * G50's second route to the same state.
  */
 import {
   formStepHeaderHTML,
@@ -32,7 +53,7 @@ import {
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { monthlyAmountFromDate, rangeFromCentral } from '../model/model.js';
-import { RATES } from '../model/rates.js';
+import { RATES, GENERAL_SAVINGS_RANGE } from '../model/rates.js';
 import { MOCK_POSITION } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
 
@@ -65,13 +86,19 @@ export function render(container, ctx) {
   const c = content['/calculator/saving'];
   const reg = content.shared.regulatory;
 
-  if (state['left-over'].value === null || state['deposit-target'].value === null) {
+  // deposit-target is what step 1 commits and what every figure on this
+  // screen is measured against, so its absence still means "you haven't
+  // finished step 1". left-over's absence does not: see the general-mode
+  // note in this file's header.
+  if (state['deposit-target'].value === null) {
     window.location.hash = '#/calculator/property';
     return;
   }
 
   const solveFor = state.solveFor ?? 'date';
   const leftOver = state['left-over'].value;
+  const fromAccounts = leftOver !== null;
+  const savingCeiling = fromAccounts ? leftOver : GENERAL_SAVINGS_RANGE.max;
 
   if (state.targetMonth === null) {
     // Kept a multiple of 12 so this render's own fallback below (which reads
@@ -85,19 +112,26 @@ export function render(container, ctx) {
   const targetMonth = state.targetMonth ?? new Date().getMonth() + 1;
   const targetYear = state.targetYear ?? new Date().getFullYear() + 3;
 
+  // The seed comes from whichever monthly range this session actually has:
+  // what the accounts show it has been putting aside, or — with no accounts
+  // linked — the range the participant set for itself on frame 04.
+  const seedLow = fromAccounts ? MOCK_POSITION.recentMonthlySavingLow : state.generalMonthlyLow.value ?? GENERAL_SAVINGS_RANGE.low;
+  const seedHigh = fromAccounts ? MOCK_POSITION.recentMonthlySavingHigh : state.generalMonthlyHigh.value ?? GENERAL_SAVINGS_RANGE.high;
+  const seedProvenance = fromAccounts ? 'read' : (state.generalMonthlyLow.provenance ?? 'estimated');
+
   let monthlyLow = state['monthly-low'];
   let monthlyHigh = state['monthly-high'];
   if (monthlyLow.value === null || monthlyHigh.value === null) {
-    monthlyLow = { value: Math.min(MOCK_POSITION.recentMonthlySavingLow, leftOver), provenance: 'read' };
-    monthlyHigh = { value: Math.min(MOCK_POSITION.recentMonthlySavingHigh, leftOver), provenance: 'read' };
+    monthlyLow = { value: Math.min(seedLow, savingCeiling), provenance: seedProvenance };
+    monthlyHigh = { value: Math.min(seedHigh, savingCeiling), provenance: seedProvenance };
   }
 
   let errorText = null;
   let previewAmount = null;
 
   if (solveFor === 'date') {
-    if (monthlyHigh.value > leftOver) {
-      errorText = c.errorExceedsLeftOver;
+    if (monthlyHigh.value > savingCeiling) {
+      errorText = fromAccounts ? c.errorExceedsLeftOver : c.errorExceedsPublishedRange;
     }
   } else {
     const months = monthsFromNow(targetMonth, targetYear);
@@ -108,8 +142,8 @@ export function render(container, ctx) {
     }
   }
 
-  const fillLeft = (monthlyLow.value / leftOver) * 100;
-  const fillRight = (monthlyHigh.value / leftOver) * 100;
+  const fillLeft = (monthlyLow.value / savingCeiling) * 100;
+  const fillRight = (monthlyHigh.value / savingCeiling) * 100;
 
   container.innerHTML = `
     ${formStepHeaderHTML({ title: c.appBarTitle, step: c.stepLabel, appBarLabels: content.shared.appBar })}
@@ -130,27 +164,30 @@ export function render(container, ctx) {
           <div class="value-slider__readout">
             <span class="value-slider__figure-wrap">
               <span class="value-slider__currency" aria-hidden="true">£</span>
-              <input class="value-slider__figure" type="number" inputmode="numeric" min="0" max="${leftOver}" value="${Math.round(monthlyLow.value)}" data-role="figure-low" aria-label="${c.sliderCaption}, ${c.sliderLowerAmountLabel}" />
+              <input class="value-slider__figure" type="number" inputmode="numeric" min="0" max="${savingCeiling}" value="${Math.round(monthlyLow.value)}" data-role="figure-low" aria-label="${c.sliderCaption}, ${c.sliderLowerAmountLabel}" />
             </span>
             <p class="value-slider__to">to</p>
             <span class="value-slider__figure-wrap">
               <span class="value-slider__currency" aria-hidden="true">£</span>
-              <input class="value-slider__figure" type="number" inputmode="numeric" min="0" max="${leftOver}" value="${Math.round(monthlyHigh.value)}" data-role="figure-high" aria-label="${c.sliderCaption}, ${c.sliderUpperAmountLabel}" />
+              <input class="value-slider__figure" type="number" inputmode="numeric" min="0" max="${savingCeiling}" value="${Math.round(monthlyHigh.value)}" data-role="figure-high" aria-label="${c.sliderCaption}, ${c.sliderUpperAmountLabel}" />
             </span>
           </div>
           <p class="value-slider__caption">${c.sliderCaption}</p>
           <div class="value-slider__track">
             <div class="value-slider__track-bg"></div>
             <div class="value-slider__track-fill" style="left:${fillLeft}%;width:${fillRight - fillLeft}%;"></div>
-            <input class="value-slider__range" type="range" min="0" max="${leftOver}" step="1" value="${monthlyLow.value}" data-role="range-low" aria-label="${c.sliderCaption}, ${c.sliderLowerAmountLabel}" />
-            <input class="value-slider__range" type="range" min="0" max="${leftOver}" step="1" value="${monthlyHigh.value}" data-role="range-high" aria-label="${c.sliderCaption}, ${c.sliderUpperAmountLabel}" />
+            <input class="value-slider__range" type="range" min="0" max="${savingCeiling}" step="1" value="${monthlyLow.value}" data-role="range-low" aria-label="${c.sliderCaption}, ${c.sliderLowerAmountLabel}" />
+            <input class="value-slider__range" type="range" min="0" max="${savingCeiling}" step="1" value="${monthlyHigh.value}" data-role="range-high" aria-label="${c.sliderCaption}, ${c.sliderUpperAmountLabel}" />
           </div>
           <div class="value-slider__labels">
             <p class="value-slider__label">${formatCurrency(0)}</p>
-            <p class="value-slider__label">${formatCurrency(leftOver)}</p>
+            <p class="value-slider__label">${formatCurrency(savingCeiling)}</p>
           </div>
         </div>
-        <p class="provenance-caption">${fill(c.sliderRangeCaptionTemplate, { max: formatCurrency(leftOver), suggested: formatCurrency(MOCK_POSITION.recentMonthlySavingHigh) })}</p>
+        <p class="provenance-caption">${fill(
+          fromAccounts ? c.sliderRangeCaptionTemplate : c.sliderRangeCaptionGeneralTemplate,
+          { max: formatCurrency(savingCeiling), suggested: formatCurrency(seedHigh) },
+        )}</p>
         ${errorText ? warningBannerHTML(errorText) : ''}
       ` : `
         ${dateStepperHTML({
@@ -168,18 +205,18 @@ export function render(container, ctx) {
       `}
 
       <div class="card filled-in-details-card">
-        <p class="filled-in-details-card__title">${c.filledInHeading}</p>
+        <p class="filled-in-details-card__title">${fromAccounts ? c.filledInHeading : c.filledInHeadingGeneral}</p>
         ${reviewRowHTML({
           label: c.savingsInterestLabel,
           value: `${formatPercent(RATES.bankRate)} ${c.savingsInterestSuffix}`,
-          caption: c.savingsInterestCaption,
+          caption: fromAccounts ? c.savingsInterestCaption : c.savingsInterestCaptionGeneral,
           changeLabel: c.changeLabel,
           changeAction: 'change-savings-interest',
         })}
         ${reviewRowHTML({
           label: c.taxRateLabel,
           value: c.taxRateValue,
-          caption: c.taxRateCaption,
+          caption: fromAccounts ? c.taxRateCaption : c.taxRateCaptionGeneral,
           changeLabel: c.changeLabel,
           changeAction: 'change-tax-rate',
         })}
@@ -226,8 +263,8 @@ export function render(container, ctx) {
       rangeHigh.value = high;
       figureLow.value = Math.round(low);
       figureHigh.value = Math.round(high);
-      const left = (low / leftOver) * 100;
-      const right = (high / leftOver) * 100;
+      const left = (low / savingCeiling) * 100;
+      const right = (high / savingCeiling) * 100;
       fillEl.style.left = `${left}%`;
       fillEl.style.width = `${right - left}%`;
     }
@@ -236,7 +273,7 @@ export function render(container, ctx) {
       liveUpdate(clamp(Number(rangeLow.value), 0, Number(rangeHigh.value)), Number(rangeHigh.value));
     });
     rangeHigh.addEventListener('input', () => {
-      liveUpdate(Number(rangeLow.value), clamp(Number(rangeHigh.value), Number(rangeLow.value), leftOver));
+      liveUpdate(Number(rangeLow.value), clamp(Number(rangeHigh.value), Number(rangeLow.value), savingCeiling));
     });
 
     function commit(low, high) {
@@ -251,13 +288,13 @@ export function render(container, ctx) {
       commit(clamp(Number(rangeLow.value), 0, Number(rangeHigh.value)), Number(rangeHigh.value));
     });
     rangeHigh.addEventListener('change', () => {
-      commit(Number(rangeLow.value), clamp(Number(rangeHigh.value), Number(rangeLow.value), leftOver));
+      commit(Number(rangeLow.value), clamp(Number(rangeHigh.value), Number(rangeLow.value), savingCeiling));
     });
     figureLow.addEventListener('change', () => {
       commit(clamp(Number(figureLow.value) || 0, 0, Number(figureHigh.value)), Number(figureHigh.value));
     });
     figureHigh.addEventListener('change', () => {
-      commit(Number(figureLow.value), clamp(Number(figureHigh.value) || 0, Number(figureLow.value), leftOver));
+      commit(Number(figureLow.value), clamp(Number(figureHigh.value) || 0, Number(figureLow.value), savingCeiling));
     });
   } else {
     container.querySelector('[data-action="step-month-up"]').addEventListener('click', () => {
@@ -303,10 +340,17 @@ export function render(container, ctx) {
     if (errorText) return;
     if (solveFor === 'date') {
       const savingsRate = (monthlyLow.value + monthlyHigh.value) / 2;
+      // The midpoint inherits the provenance of the pair it is the midpoint
+      // of, rather than being stamped 'entered' unconditionally: a
+      // participant who accepted the seeded range without touching a handle
+      // has not entered anything. Same shape as generalAnnualRange().
+      const rateProvenance = monthlyLow.provenance === 'entered' || monthlyHigh.provenance === 'entered'
+        ? 'entered'
+        : monthlyLow.provenance;
       setState({
         'monthly-low': monthlyLow,
         'monthly-high': monthlyHigh,
-        'savings-rate': { value: savingsRate, provenance: 'entered' },
+        'savings-rate': { value: savingsRate, provenance: rateProvenance },
       });
     } else {
       const rate = previewAmount;

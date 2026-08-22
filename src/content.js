@@ -327,6 +327,24 @@ const content = {
       value: 'That last year is typical of this year',
       caption: "If your income or outgoings have changed, tell us and we'll redo it",
     },
+    // The same three rows for a session that never linked an account, so
+    // frame 12 can carry the card in general mode without claiming to have
+    // read anything. See DECISIONS.md D24.
+    whatWeReadGeneral: {
+      label: 'What we read',
+      value: 'Nothing from your accounts',
+      caption: "You haven't linked any, so these figures use published averages",
+    },
+    whatWeWorkedOutGeneral: {
+      label: 'What we worked out',
+      value: 'Only what follows from the figures you set',
+      caption: 'The property value, the deposit percentage and the monthly range you chose',
+    },
+    whatWeAssumedGeneral: {
+      label: 'What we assumed',
+      value: 'That you start from nothing and keep saving at that rate',
+      caption: "Link your accounts and we'll use what you've already saved instead",
+    },
     seeHowWeWorkedLabel: 'See how we worked this out',
     flagLabel: "Something doesn't look right",
     // "STILL" PRESUMED THE GOAL HAD ALREADY BEEN STATED.
@@ -493,21 +511,30 @@ const content = {
     sliderLowerAmountLabel: 'lower amount',
     sliderUpperAmountLabel: 'upper amount',
     sliderRangeCaptionTemplate: "{max} is what's left each month once your essentials are covered. {suggested} is what you've been putting aside lately.",
+    // General mode (no accounts linked): the slider has no left-over ceiling
+    // to run to, so it runs to the top of the published range instead and
+    // says so. See DECISIONS.md D24 and GAPS.md G50.
+    sliderRangeCaptionGeneralTemplate:
+      "The slider runs to {max}, the top of the published range. {suggested} is the upper end of the range you set earlier. You haven't linked any accounts, so neither figure is worked out from your own spending.",
     dateStepperHint: "We'll work out what you'd need to put aside each month",
     dateStepperMonthAriaLabel: 'target month',
     dateStepperYearAriaLabel: 'target year',
     filledInHeading: 'Already filled in from your accounts',
+    filledInHeadingGeneral: 'Already filled in from published figures',
     savingsInterestLabel: 'Savings interest rate',
     savingsInterestSuffix: 'AER',
     savingsInterestCaption: 'Read from your instant saver. AER means Annual Equivalent Rate.',
+    savingsInterestCaptionGeneral: 'A published rate, not read from an account you hold. AER means Annual Equivalent Rate.',
     taxRateLabel: 'Tax rate',
     taxRateValue: 'Basic rate',
     taxRateCaption: 'Worked out from your salary',
+    taxRateCaptionGeneral: "Assumed basic rate. You haven't shared your salary, so it isn't worked out from it.",
     changeLabel: 'Change',
     provenanceKeyLabel: 'How we worked these out',
     interestBannerText: 'Interest is included in the estimate. Rates can change.',
     flagLabel: "Something doesn't look right",
     errorExceedsLeftOver: "That's more than what's left over each month. Choose a smaller range.",
+    errorExceedsPublishedRange: "That's more than the top of the published range. Choose a smaller range.",
     errorPastDate: 'Pick a date in the future.',
     primaryCta: 'Continue',
     secondaryCta: 'Save and exit',
@@ -529,13 +556,19 @@ const content = {
     depositPctLabel: 'Deposit %age',
     savedSoFarLabel: 'Saved so far',
     savedSoFarCaption: 'Read from the accounts you assigned to your deposit',
+    // General mode (no accounts linked). The row loses its Change link too:
+    // there is nothing behind it to edit without linking accounts, and a row
+    // is either editable or explanatory, never both.
+    savedSoFarCaptionGeneral: "You haven't linked any accounts, so there's nothing to count here yet.",
     monthlySavingLabel: 'Monthly saving',
     monthlySavingCaption: 'The range you set',
     savingsInterestLabel: 'Savings interest rate',
     savingsInterestCaption: 'Read from your instant saver. AER means Annual Equivalent Rate.',
+    savingsInterestCaptionGeneral: 'A published rate, not read from an account you hold. AER means Annual Equivalent Rate.',
     taxRateLabel: 'Tax rate',
     taxRateValue: 'Basic rate',
     taxRateCaption: 'Worked out from your salary',
+    taxRateCaptionGeneral: "Assumed basic rate. You haven't shared your salary, so it isn't worked out from it.",
     changeLabel: 'Change',
     provenanceKeyLabel: 'How we worked these out',
     noteBannerText: "Changing anything here won't change your savings goal until you choose to update it.",
@@ -550,6 +583,9 @@ const content = {
     rangeCaptionTemplate: 'Depending on whether you put down {lowPct} or {highPct}',
     goalTrackLabelTemplate: 'Your goal - {target}',
     provenanceCaption: "Worked out from what you've set aside and what you're putting away",
+    // General mode: there is no "set aside" to work from, so the projection
+    // starts from nothing and says so (DECISIONS.md D24).
+    provenanceCaptionGeneral: "Worked out from what you're putting away, starting from nothing",
     assumptionsLinkLabel: 'How we worked out the deposit range',
     timingWithinTemplate: '{pct} - within {months}',
     timingRangeTemplate: '{pct} - {low} to {high}',
@@ -583,6 +619,9 @@ const content = {
     assumptionsBannerText: "These figures assume your saving stays the same and rates don't change.",
     howWeWorkedTitle: 'How we worked this out',
     howWeWorkedIntro: "We worked this out from what's already in your accounts, so you didn't have to fill anything in.",
+    // General mode: nothing was read, so the card says where the figures did
+    // come from instead (DECISIONS.md D24).
+    howWeWorkedIntroGeneral: 'We worked this out from the figures you set and published averages, because you have not linked any accounts.',
     seeHowWeWorkedLabel: 'How we worked out your monthly saving',
     flagLabel: "Something doesn't look right",
     primaryCta: 'See what this means for borrowing',
@@ -622,6 +661,9 @@ const content = {
     explainerDiagramDurationTemplate: 'The same {property} home at 95%, 90% and 85%',
     howWeWorkedTitle: 'How we worked this out',
     howWeWorkedIntro: "We worked this out from what's already in your accounts, so you didn't have to fill anything in.",
+    // General mode: nothing was read, so the card says where the figures did
+    // come from instead (DECISIONS.md D24).
+    howWeWorkedIntroGeneral: 'We worked this out from the figures you set and published averages, because you have not linked any accounts.',
     seeHowWeWorkedLabel: 'How we worked out your monthly saving',
     flagLabel: "Something doesn't look right",
     primaryCta: 'Got it',
@@ -680,7 +722,12 @@ const content = {
     onTrackCaption: "Worked out from what you're putting aside each month",
     provenanceKeyLabel: 'How we worked out your monthly saving',
     flagLabel: "Something doesn't look right",
-    belowCheckpointCta: 'Adjust my goal',
+    // Below the checkpoint the primary action is guidance, not the Mortgage
+    // in Principle route (which is genuinely not open yet) and not a step
+    // backwards into the calculator. "Adjust my goal" stays available as the
+    // secondary. See DECISIONS.md D25.
+    belowCheckpointCta: 'What a bigger deposit changes',
+    belowCheckpointSecondaryCta: 'Adjust my goal',
     checkpointReachedCta: 'Check my Mortgage in Principle',
     lockedRowAriaSuffix: 'locked',
   },

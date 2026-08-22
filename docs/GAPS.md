@@ -916,8 +916,8 @@ the two routes that have one; focus order reaching `["home","goals"]` only.
 
 ---
 
-**G50. Step 2 of the deposit calculator cannot render in general mode. OPEN - needs a design
-decision, deliberately not papered over.**
+**G50. Step 2 of the deposit calculator cannot render in general mode. RESOLVED 22 August 2026
+- see `DECISIONS.md` D24.**
 
 Found by walking `/goals` -> "Work out my deposit" -> 09a -> 09 -> Continue from a genuinely fresh
 session with no consent given (`DECISIONS.md` D21, as amended). It is **not** caused by that route:
@@ -977,7 +977,11 @@ CEILING the slider measures that amount against.
 
 `build-spec.md` section 2 has no row for frame 10 in general mode, which is why this is filed the
 same way as its own eleven "No frame drawn" rows: a state the build reaches that no wireframe
-covers. *Status: open - needs either a frame or a written rule before sessions.*
+covers. *Status: resolved 22 August 2026 by option 1, the written rule rather than a new frame - see
+`DECISIONS.md` D24. `left-over` stays null; frame 10 takes its slider ceiling from
+`GENERAL_SAVINGS_RANGE.max` and its seed from `generalMonthlyLow`/`generalMonthlyHigh`, and says so
+in its own caption. The guard now bounces on `deposit-target` alone. Walked 04 -> 09a -> 09 -> 10 ->
+11 -> 12 at 375px; the consent path's own 10/11/12 render pixel-identical to before.*
 
 *One further finding from the same walk, smaller and separate.* **Back from 09a on this route lands
 on the consent screen.** Frame 09's form-header back is hardcoded to `#/goal-check`, which guards on
@@ -985,3 +989,52 @@ on the consent screen.** Frame 09's form-header back is hardcoded to `#/goal-che
 #/position/summary -> #/consent`, three hops from one back tap. This is G48's pattern on a different
 control, and it survives because frame 09's back ignores `returnFrame` - which this route does now
 set to `/goals`. Not fixed here; it is the same decision as the above.
+
+---
+
+**G51. Frames 15/16 (the deposit tracker) have no general-mode variant, and frame 12 now hands off
+to them. OPEN - deliberately not guessed at.**
+
+Found while resolving G50. Now that the calculator runs end to end without consent, frame 12's "Save
+my goal" reaches `/tracker` in a session that never linked an account, and three things on that
+screen assert account data it has not got:
+
+| On frame 15/16 | In general mode |
+|---|---|
+| The headline figure, `saved-toward-deposit`, captioned "Read from the accounts you assigned to your deposit" | Null. Renders as £0 under a caption that names a source that does not exist. |
+| Milestones 1 and 2, "Accounts linked" and "Accounts sorted", both drawn `done` | Neither happened. The tracker would show two completed steps the participant never took. |
+| The "This month" card - `thisMonthSaved`, `thisMonthInterest`, both captioned "Read from your ..." | Read from `MOCK_POSITION`, which stands in for account activity. |
+
+Unlike G50 this is not one figure with a missing ceiling; it is the screen's whole premise. Frames
+15 and 16 are built around a milestone tracker whose first two milestones ARE the consent journey,
+and `build-spec.md` section 2 lists no general-mode row for either frame. Fixing it means either a
+general-mode variant of the tracker (what would milestones 1 and 2 say?) or routing frame 12's "Save
+my goal" somewhere else when there is nothing to track against. Both are design decisions, so
+neither is taken here.
+
+*What frame 12 itself does is correct in general mode* - its projection starts from a zero balance,
+which is what the model already assumes for a session with no accounts (`generalAnnualRange`), and
+its captions now say so. The gap is entirely on the far side of "Save my goal".
+
+*Status: open - needs a frame or a written rule before general-mode sessions go past frame 12.*
+
+---
+
+**G52. `shared.regulatory.guidanceNotAdvice` says "based on your account activity" on screens that
+read no account activity. OPEN - fixed wording, so not touched.**
+
+The line is `This is guidance based on your account activity. It is not financial advice and does
+not take account of everything about your situation.` It is carried by every figure-presenting
+screen, including frame 04 (consent declined), where it has always been inaccurate, and now
+including frames 10, 11 and 12 in general mode.
+
+`CLAUDE.md` makes `shared.regulatory` fixed wording: "Do not reword, shorten or remove them, or
+remove them from a screen that carries them." So the line stays exactly as it is and this is filed
+rather than fixed. It predates this pass - frame 04 has carried it since the build - but general
+mode now reaches four more screens that do, which makes it worth writing down.
+
+Resolving it is a `DECISIONS.md`-level wording change, not a routine copy edit: either a second
+fixed line for sessions with no linked accounts, or a rewording of this one that holds in both
+modes.
+
+*Status: open - needs a decision on the regulatory wording. Not a code change.*
