@@ -40,9 +40,17 @@ src/
                                  - mcob3aRepossessionWarning
                                  - estimateDisclosure
                                Wording that screens reference but cannot reword or inline-duplicate,
-                               transcribed verbatim from the reference PNGs. Also includes the
+                               transcribed verbatim from the reference PNGs. Plus a SEPARATE
+                               `shared.regulatoryAwaitingCheck` block holding wording written in
+                               this repo and not yet copy checked - currently one key,
+                               `guidanceNotAdviceNoAccounts` (DECISIONS.md D27, GAPS.md G53). Also includes the
                                `/mip/adviser` stub copy and the FSCS figure (£120,000 per person per
                                authorised firm).
+  regulatory.js              — picks which guidance-not-advice line a screen carries: the checked
+                               `shared.regulatory.guidanceNotAdvice` where account activity was
+                               read, and `shared.regulatoryAwaitingCheck.guidanceNotAdviceNoAccounts`
+                               where none was. One test, `left-over === null && money-in === null`.
+                               See DECISIONS.md D27
   state.js                   — central store: every Section 6 state variable + provenance tag, frame
                                33 scenario toggles, returnFrame stack, reset()
   router.js                  — route table, push/pop + sheet transition orchestration,
@@ -76,7 +84,10 @@ docs/
 
 - **`content.js`** exports one object keyed by screen id (`content['09'].headline`, etc.) plus
   `content.shared.regulatory.{guidanceNotAdvice, adviserScope, mcob3aRepossessionWarning,
-  estimateDisclosure}`. Screens read from this object; nothing renders a hardcoded string.
+  estimateDisclosure}`. Screens read from this object; nothing renders a hardcoded string. Wording
+  written in this repo rather than transcribed from the reference PNGs is held apart from those four
+  fixed keys, in `content.shared.regulatoryAwaitingCheck`, until it has been copy checked; screens
+  never read it directly, `src/regulatory.js` selects it (DECISIONS.md D27).
 - **`state.js`** exports a single mutable store holding the 20 Section 6 state variables (each
   paired with a `provenance` of `read` / `derived` / `estimated` / `entered`, propagating so that
   anything derived from an entered value is itself flagged as containing entered input), the frame
@@ -108,6 +119,7 @@ below is inferred or hedged.
 | Anchor | Screens | Note |
 |---|---|---|
 | Guidance-not-advice line (FCA PERG 4.6) | 02, 03, 03b, 04, 05, 06, 08, 09, 09a, 09b, 10, 10b, 11, 12, 13, 13b, 15, 16, 17, 18, 19, 20, 21, 29, 30, 31, 32, plus the new `/mip/adviser` | The flow's standard footer disclosure — not a narrow "result screen" line. Confirmed absent from 01, 05b (carries `estimateDisclosure` instead), 10c, 19b, 33 |
+| Guidance-not-advice line, general-mode variant | 04, 09, 09a, 09b, 10, 10b, 11, 12, 13, 13b, 15, 29, 30, 32 | Same anchor, sourcing clause only. Rendered in place of the line above wherever no account activity was read. NOT YET COPY CHECKED - DECISIONS.md D27, GAPS.md G53 |
 | Adviser-scope line (FCA PERG 4.6) | 20, 21, `/mip/adviser` only | Present on 20/21; deliberately absent from 06, 12, 15, 16 — a scope disclosure about a service only those two screens (and the stub) offer |
 | MCOB 3A repossession warning | 13, 15, 16, 19, 20, 21 | Every screen discussing mortgage borrowing, LTV, or a lending result |
 | DUAA 2025 automated-decision triad (pushback / plain wording / visible sources) | 04, 05, 05b, 06, 08, 09, 09b, 10, 10b, 11, 12, 13, 13b, 15, 16, 20, 21, 32 | The flag row ("something doesn't look right") plus "how we worked this out" links; 32 carries the fullest form via its "If something looks wrong" section. 05b's flag row is a content addition, not present in its reference PNG — see `GAPS.md` G28 |

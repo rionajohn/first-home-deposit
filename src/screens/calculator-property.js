@@ -39,6 +39,7 @@ import {
 import { formatCurrency, formatPercent } from '../format.js';
 import { depositTarget, loanAmount, ltv } from '../model/model.js';
 import { AREA_AVERAGE_PROPERTY_VALUE, DEPOSIT_PCT_OPTIONS, DEFAULT_DEPOSIT_PCT, LISA_CAP_PROPERTY_VALUE } from '../model/rates.js';
+import { guidanceNotAdviceLine } from '../regulatory.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -55,7 +56,6 @@ function neighbourPcts(selected) {
 export function render(container, ctx) {
   const { state, setState, content } = ctx;
   const c = content['/calculator/property'];
-  const reg = content.shared.regulatory;
 
   const propertyValue = state['property-value'];
   const depositPct = state['deposit-pct'].value ?? DEFAULT_DEPOSIT_PCT;
@@ -115,7 +115,7 @@ export function render(container, ctx) {
           ? ''
           : optionComparisonCardHTML({ headerText: c.comparisonHeaderText, rows: comparisonRows, infoLinkLabel: c.ltvInfoLinkLabel, infoLinkAction: 'open-ltv-info', selectedLabel: c.comparisonSelectedLabel })}
       ${flagRowHTML(c.flagLabel)}
-      <p class="legal-text">${reg.guidanceNotAdvice}</p>
+      <p class="legal-text">${guidanceNotAdviceLine(state, content)}</p>
     </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,

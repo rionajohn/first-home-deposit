@@ -67,6 +67,7 @@ import { gapToCheckpoint, onTrackFor, rateBandForDepositPct } from '../model/mod
 import { RATES, CHART_DEPOSIT_PCTS, CHECKPOINT_FRACTION, GENERAL_SAVINGS_RANGE } from '../model/rates.js';
 import { MOCK_POSITION } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
+import { guidanceNotAdviceLine } from '../regulatory.js';
 
 export const anchors = ['guidanceNotAdvice', 'mcob3aRepossessionWarning'];
 
@@ -288,7 +289,7 @@ export function render(container, ctx) {
       </div>
 
       ${flagRowHTML(c.flagLabel)}
-      <p class="legal-text">${reg.guidanceNotAdvice}</p>
+      <p class="legal-text">${guidanceNotAdviceLine(state, content)}</p>
     </main>
     ${actionBarHTML({
       primaryLabel: unlocked ? c.checkpointReachedCta : c.belowCheckpointCta,

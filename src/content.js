@@ -57,6 +57,35 @@ const content = {
       estimateDisclosure:
         'This is an estimate based on the information we hold today. It is not an offer and your actual figures may be different.',
     },
+
+    // ---------------------------------------------------------------------
+    // NOT FCA COPY CHECKED. AWAITING REVIEW.
+    // ---------------------------------------------------------------------
+    // Everything in `shared.regulatory` above is checked, fixed wording,
+    // transcribed verbatim from the reference PNGs. Nothing in
+    // `regulatoryAwaitingCheck` is. It is held in a separate object, and not
+    // as a fifth `regulatory` key, precisely so the two can never be
+    // confused: the shape SPEC.md fixes for `regulatory` stays four keys,
+    // and a line that has not been through copy check cannot be picked up by
+    // mistake as though it had.
+    //
+    // `guidanceNotAdviceNoAccounts` is the general-mode counterpart of
+    // `regulatory.guidanceNotAdvice`, added because that line's sourcing
+    // claim ("based on your account activity") is false wherever no account
+    // activity was read - frame 04 since the build, and frames 09-13, 15, 29,
+    // 30 and 32 since general mode began reaching them (GAPS.md G52,
+    // DECISIONS.md D27). The guidance-not-advice sentence is carried over
+    // word for word; only the sourcing half differs, and it names only what
+    // general mode actually has: the dated published constants in
+    // model/rates.js and the figures the participant typed in themselves.
+    //
+    // Selected by src/regulatory.js, never read directly by a screen.
+    // Before this prototype is used with participants, this line needs the
+    // same copy check the four above have had. See GAPS.md G53.
+    regulatoryAwaitingCheck: {
+      guidanceNotAdviceNoAccounts:
+        'This is guidance based on published figures and what you entered yourself, not on your accounts. It is not financial advice and does not take account of everything about your situation.',
+    },
     // Repeated verbatim on frames 18, 19, 20 and 21 (Figma's own "Regulatory
     // / Risk warning" component, "not a mortgage offer" variant) — not one
     // of the four fixed regulatory.* keys above (SPEC.md fixes that object's

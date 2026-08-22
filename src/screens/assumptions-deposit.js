@@ -31,6 +31,7 @@ import {
 } from '../components/ui.js';
 import { formatPercent, formatFullDate } from '../format.js';
 import { RATES } from '../model/rates.js';
+import { guidanceNotAdviceLine } from '../regulatory.js';
 
 export const anchors = ['guidanceNotAdvice', 'mcob3aRepossessionWarning'];
 
@@ -73,7 +74,7 @@ export function render(container, ctx) {
           ${riskWarningHTML(c.rateVariabilityWarning)}
 
           <p class="legal-text">${fill(c.metadataTemplate, { date: formatFullDate(RATES.asAt) })}</p>
-          <p class="legal-text">${reg.guidanceNotAdvice}</p>
+          <p class="legal-text">${guidanceNotAdviceLine(state, content)}</p>
         </div>
         ${actionBarDockHTML(`
           <button type="button" class="button button--primary" data-action="dismiss">${c.primaryCta}</button>

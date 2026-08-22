@@ -811,6 +811,99 @@ Walked 04 -> tracker at 375px, screenshotting each step. All three consent-path 
 
 ---
 
+## D27. A second guidance line for sessions where nothing was read, and the first one untouched
+
+**Decision.** `content.shared.regulatory.guidanceNotAdvice` is not edited, to the character. A
+second line is added as `content.shared.regulatoryAwaitingCheck.guidanceNotAdviceNoAccounts`, and
+`src/regulatory.js` picks between the two. Eleven screens select: 04, 09, 10, 11, 12, 13, 13b, 15,
+29, 30 and 32. Closes `GAPS.md` G52; opens G53, G54 and G55.
+
+**The problem.** The checked line says `This is guidance based on your account activity.` That is
+true wherever activity was read and false wherever none was. Frame 04 has carried it since the
+build, when the participant has just declined to share anything, and since D24 and D26 the general
+path reaches ten more screens that carry it.
+
+### The three wordings drafted
+
+Each keeps the second sentence word for word: `It is not financial advice and does not take account
+of everything about your situation.` That sentence is the one doing the regulatory work, and none
+of the three weakens it. What differs is the sourcing clause in front of it.
+
+| | Wording | Read |
+|---|---|---|
+| **A** | This is guidance based on published figures and what you entered yourself. | Minimal delta. Keeps the checked line's exact frame ("This is guidance based on X"), makes one positive claim, and denies nothing. |
+| **B** (used) | This is guidance based on published figures and what you entered yourself, not on your accounts. | A's claim plus an explicit denial of the one the checked line makes. |
+| **C** | We have not read your accounts, so this is guidance based on published figures and what you entered yourself. | Leads with the denial and derives the sourcing from it. |
+
+**B is the one in the build.** A participant reaching frame 04 has just declined to link accounts,
+and one reaching frame 09 from `/goals` never saw the question. Neither has been told what the
+figures on the screen are, and A leaves it to them to notice that "your account activity" has
+quietly stopped being claimed. B says it. That matters more here than a shorter line, because the
+thing under test is whether participants can tell where a figure came from - this line is part of
+the instrument, not decoration around it. C says the same thing but leads with an absence, which
+puts a negative first on eleven screens and reads as a warning rather than a provenance note.
+
+**"Published figures", not "published averages".** The general path draws on
+`GENERAL_SAVINGS_RANGE` (NatWest Savings Index 2026) and `AREA_AVERAGE_PROPERTY_VALUE` (UK House
+Price Index 2026), which are averages, and on `RATES.bankRate` and `LTV_RATE_BANDS_BY_DEPOSIT_PCT`,
+which are published rates and not averages of anything. "Published figures" covers both and
+overclaims neither. The other half of the sentence, "what you entered yourself", is
+`property-value`, `deposit-pct` and the monthly range - all typed or dragged by the participant.
+No third source is named, because there is no third source.
+
+**This line has not had a copy check, and is stored so that nobody can think it has.** The four
+lines in `shared.regulatory` were transcribed verbatim from the reference PNGs. This one was
+written here. It lives in a separate object, `shared.regulatoryAwaitingCheck`, under a comment
+block headed `NOT FCA COPY CHECKED. AWAITING REVIEW.`, which keeps `regulatory` at the four-key
+shape `SPEC.md` fixes for it and makes it impossible to pick the unchecked line up as though it
+were one of the checked four. Open as `GAPS.md` G53 until it is checked.
+
+### The test, and the half of it that is not D24's
+
+`left-over === null` is D24's test, the one `savingCeiling` uses, so the sourcing claim and the
+slider ceiling can never disagree about whether accounts were read. It is not `mode === 'general'`,
+because the calculator is reachable from `/goals` with no consent decision recorded and `mode`
+still null (G50).
+
+On its own it is wrong on two of the eleven screens. `left-over` is committed by frame 05's
+Continue, not by consent, so on the consent path it is still null while frame 05 is on screen - and
+frame 05's own rows open 29 ("How we worked out your saving amount") and 32 ("Where these figures
+come from") from there, before that commit. `left-over === null` alone would tell those two sheets
+that nothing had been read, on a path where `money-in` and `essential-spending` had just been read
+from twelve months of activity and are on the screen behind them. So the test is
+`left-over === null && money-in === null`: `money-in` is set from `MOCK_POSITION` at consent and
+stays null for the whole of general mode, which is what "nothing was read" actually means. On the
+other nine screens the second half is a no-op, because there the two are null and non-null
+together.
+
+**Where the line is not conditional.** Frames 02, 03 and 03b carry it before either path has read
+anything, and frame 05 carries it while `left-over` is still uncommitted. All four keep the checked
+line unconditionally: switching them would change what renders on the consent path, and what the
+line should say before the participant has decided is a copy question rather than a mechanical one.
+Open as G55. The Mortgage in Principle screens (17 to 21, and the adviser stub) also keep it
+unconditionally: general mode cannot reach them, because `mipUnlocked` is set only by the tracker's
+checkpoint-reached variant and D26 established that general mode never renders it.
+
+**What this pass did not fix.** Frames 29 and 32 make the same account-sourcing claim in their own
+body copy, and 32 shows four named account balances from a caption in `content.js` to a participant
+who declined to share any. That is five screen-owned strings on two frames rather than one shared
+regulatory line, and it is open as G54.
+
+### Verified
+
+38 screens shot at 390px, before and after, with animation and scroll behaviour pinned so the
+capture is deterministic (confirmed by two identical after-runs). All 54 consent-path shots are
+byte-identical to before, the frame-05-mid-flow state included; the 12 that differ are all general
+mode. Every one of the eleven screens renders the new line and every consent-path screen renders
+the checked one, asserted from the rendered DOM rather than from the source. `overlap.test.mjs` (68),
+`bottom-nav` (6), `sheet-drag` (15) and `src/model/*.test.js` (47) all pass unchanged.
+
+**To reverse.** Point `guidanceNotAdviceLine` at `content.shared.regulatory.guidanceNotAdvice`
+unconditionally, or revert the eleven one-line render-site changes and delete `src/regulatory.js`
+and the `regulatoryAwaitingCheck` object. Nothing else reads either.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -847,3 +940,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (general-mode calculator) | D24 recorded, closing `GAPS.md` G50: `left-over` stays null for a session that never linked an account, and frame 10's slider takes its ceiling from `GENERAL_SAVINGS_RANGE.max` instead, seeded from the range the participant set on frame 04. Frame 10's guard drops `left-over` and keeps `deposit-target`. Two model fixes (`monthsToTarget`'s null-ceiling comparison and its starting balance) and general-mode caption variants across frames 10, 11, 12 and 13. Walked 04 -> 09a -> 09 -> 10 -> 11 -> 12 at 375px; the consent path's own 10/11/12 render pixel-identical to before. |
 | 22 August 2026 (below-checkpoint tracker) | D25 recorded: frame 15's action bar gains a forward primary, "What a bigger deposit changes" -> frame 13 with `returnFrame` set, and keeps "Adjust my goal" as the secondary. The locked Mortgage-in-Principle milestone row stays inert. Neither the MiP route nor any milestone state changes. |
 | 22 August 2026 (general-mode tracker) | D26 recorded, closing `GAPS.md` G51: frames 15/16 gain a fourth variant for a session with no linked accounts. There is no truthful basis for a progress figure - zero is a claim about the participant, `MOCK_POSITION` is account data, and no constant measures what anyone has saved - so the balance and the progress bar are dropped rather than filled. The headline becomes the goal they set, milestones 1 and 2 sit at `locked`, none is `done`, and the "This month" card becomes "Your plan" carrying the monthly range and what it implies. Frame 16 has no general-mode counterpart. All three consent-path variants render byte-identical; `overlap.test.mjs` gains a `15-general` frame. |
+| 22 August 2026 (guidance line) | D27 recorded: a second guidance-not-advice line for sessions where no account activity was read, selected by `src/regulatory.js` on `left-over === null && money-in === null`, applied to frames 04, 09, 10, 11, 12, 13, 13b, 15, 29, 30 and 32. The FCA-checked line is untouched and every consent-path screen renders byte-identically. `GAPS.md` G52 closed; G53 (the new line awaits a copy check), G54 (frames 29 and 32 still claim account sourcing in their own copy) and G55 (the pre-consent frames) opened. |

@@ -16,6 +16,7 @@
 import { flagRowHTML, infoBannerHTML, actionBarDockHTML } from '../components/ui.js';
 import { formatCurrency } from '../format.js';
 import { playCircle } from '../icons.js';
+import { guidanceNotAdviceLine } from '../regulatory.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -26,7 +27,6 @@ function fill(template, values) {
 export function render(container, ctx) {
   const { state, setState, content } = ctx;
   const c = content['/learn/ltv/video'];
-  const reg = content.shared.regulatory;
 
   const propertyValue = state['property-value'].value;
   const returnHash = `#${state.returnFrame || '/learn/ltv'}`;
@@ -54,7 +54,7 @@ export function render(container, ctx) {
           </div>
           ${infoBannerHTML(c.infoBannerText)}
           ${flagRowHTML(c.flagLabel)}
-          <p class="legal-text">${reg.guidanceNotAdvice}</p>
+          <p class="legal-text">${guidanceNotAdviceLine(state, content)}</p>
         </div>
         ${actionBarDockHTML(`
           <button type="button" class="button button--primary" data-action="dismiss">${c.primaryCta}</button>

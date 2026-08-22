@@ -21,13 +21,13 @@ import { formatCurrency, formatPercent } from '../format.js';
 import { monthsToTarget, onTrackFor, checkpointAmount } from '../model/model.js';
 import { RATES } from '../model/rates.js';
 import { chevronRight } from '../icons.js';
+import { guidanceNotAdviceLine } from '../regulatory.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
 export function render(container, ctx) {
   const { state, setState, content } = ctx;
   const c = content['/calculator/review'];
-  const reg = content.shared.regulatory;
 
   if (state['savings-rate'].value === null || state['deposit-target'].value === null) {
     window.location.hash = '#/calculator/saving';
@@ -107,7 +107,7 @@ export function render(container, ctx) {
 
       ${infoBannerHTML(c.noteBannerText)}
       ${flagRowHTML(c.flagLabel)}
-      <p class="legal-text">${reg.guidanceNotAdvice}</p>
+      <p class="legal-text">${guidanceNotAdviceLine(state, content)}</p>
     </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,

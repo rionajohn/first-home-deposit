@@ -24,6 +24,7 @@ import { formatCurrency } from '../format.js';
 import { generalAnnualRange } from '../model/model.js';
 import { GENERAL_SAVINGS_RANGE } from '../model/rates.js';
 import { bullet } from '../icons.js';
+import { guidanceNotAdviceLine } from '../regulatory.js';
 
 export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
 
@@ -126,7 +127,7 @@ export function render(container, ctx) {
 
       ${flagRowHTML(c.flagLabel)}
 
-      <p class="legal-text">${reg.guidanceNotAdvice}</p>
+      <p class="legal-text">${guidanceNotAdviceLine(state, content)}</p>
     </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,

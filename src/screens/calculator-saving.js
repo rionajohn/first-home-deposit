@@ -56,6 +56,7 @@ import { monthlyAmountFromDate, rangeFromCentral } from '../model/model.js';
 import { RATES, GENERAL_SAVINGS_RANGE } from '../model/rates.js';
 import { MOCK_POSITION } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
+import { guidanceNotAdviceLine } from '../regulatory.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -84,7 +85,6 @@ const READ_ONLY_FIGURE_ROUTE = '/assumptions/sources';
 export function render(container, ctx) {
   const { state, setState, content } = ctx;
   const c = content['/calculator/saving'];
-  const reg = content.shared.regulatory;
 
   // deposit-target is what step 1 commits and what every figure on this
   // screen is measured against, so its absence still means "you haven't
@@ -228,7 +228,7 @@ export function render(container, ctx) {
 
       ${infoBannerHTML(c.interestBannerText)}
       ${flagRowHTML(c.flagLabel)}
-      <p class="legal-text">${reg.guidanceNotAdvice}</p>
+      <p class="legal-text">${guidanceNotAdviceLine(state, content)}</p>
     </main>
     ${actionBarHTML({
       primaryLabel: c.primaryCta,

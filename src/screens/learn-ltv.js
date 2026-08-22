@@ -41,6 +41,7 @@ import {
 } from '../model/model.js';
 import { CHART_DEPOSIT_PCTS, MORTGAGE_TERM_YEARS } from '../model/rates.js';
 import { chartBarCircle, chevronRight, playCircle } from '../icons.js';
+import { guidanceNotAdviceLine } from '../regulatory.js';
 
 export const anchors = ['guidanceNotAdvice', 'mcob3aRepossessionWarning'];
 
@@ -202,7 +203,7 @@ export function render(container, ctx) {
       })}
 
       ${flagRowHTML(c.flagLabel)}
-      <p class="legal-text">${reg.guidanceNotAdvice}</p>
+      <p class="legal-text">${guidanceNotAdviceLine(state, content)}</p>
     </main>
     ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'done' })}
   `;

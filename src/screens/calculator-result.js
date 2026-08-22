@@ -39,6 +39,7 @@ import {
 import { formatCurrency, formatPercent, formatMonthsDuration } from '../format.js';
 import { balanceAtMonth, monthsToReachAmount, checkpointAmount, monthsToTarget } from '../model/model.js';
 import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS } from '../model/rates.js';
+import { guidanceNotAdviceLine } from '../regulatory.js';
 
 export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
 
@@ -201,7 +202,7 @@ export function render(container, ctx) {
       })}
 
       ${flagRowHTML(c.flagLabel)}
-      <p class="legal-text">${reg.guidanceNotAdvice}</p>
+      <p class="legal-text">${guidanceNotAdviceLine(state, content)}</p>
     </main>
   `;
 

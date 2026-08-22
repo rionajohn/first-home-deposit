@@ -1049,7 +1049,7 @@ both text sizes.
 ---
 
 **G52. `shared.regulatory.guidanceNotAdvice` says "based on your account activity" on screens that
-read no account activity. OPEN - fixed wording, so not touched.**
+read no account activity. RESOLVED 22 August 2026 - see `DECISIONS.md` D27.**
 
 The line is `This is guidance based on your account activity. It is not financial advice and does
 not take account of everything about your situation.` It is carried by every figure-presenting
@@ -1065,4 +1065,106 @@ Resolving it is a `DECISIONS.md`-level wording change, not a routine copy edit: 
 fixed line for sessions with no linked accounts, or a rewording of this one that holds in both
 modes.
 
-*Status: open - needs a decision on the regulatory wording. Not a code change.*
+*Resolved 22 August 2026 by the first of those two options.* The FCA-checked line is untouched, to
+the character, and still renders on every screen where account activity was read. A second line,
+`content.shared.regulatoryAwaitingCheck.guidanceNotAdviceNoAccounts`, renders where none was:
+`This is guidance based on published figures and what you entered yourself, not on your accounts.
+It is not financial advice and does not take account of everything about your situation.` The
+guidance-not-advice sentence is carried over word for word - it is the half doing the regulatory
+work, and it does not weaken. Only the sourcing half changes, and it claims only what general mode
+actually has: the dated published constants in `model/rates.js`, and the figures the participant
+typed in themselves.
+
+`src/regulatory.js` selects between the two on `left-over === null` - D24's own test, the one
+`savingCeiling` uses - conjoined with `money-in === null`, which is what "nothing was read" means
+on the two sheets frame 05 can open before it commits `left-over`. Eleven screens select: 04, 09,
+10, 11, 12, 13, 13b, 15, 29, 30 and 32. Every consent-path screen renders a byte-identical PNG to
+before, the frame-05 mid-flow state included.
+
+Two things this did not fix are now open as G53 and G54.
+
+---
+
+**G53. The general-mode guidance line has not had an FCA copy check. OPEN.**
+
+`guidanceNotAdviceNoAccounts` (G52 above) is new wording written in this repo. The four lines in
+`shared.regulatory` were transcribed verbatim from the reference PNGs and are checked; this one has
+had no such check and must not be presented as though it had. It is held in a separate object,
+`shared.regulatoryAwaitingCheck`, so that the checked set keeps the four-key shape `SPEC.md` fixes
+for it and nothing can pick the unchecked line up as though it were one of them. The block above it
+in `content.js` is headed `NOT FCA COPY CHECKED. AWAITING REVIEW.`
+
+Two candidate wordings were drafted alongside it and rejected (`DECISIONS.md` D27 records all
+three). If a reviewer objects to the "not on your accounts" clause, candidate A is the same line
+without it and needs no other change.
+
+*Status: open - needs a copy check before the prototype is run with participants. Not a code
+change.*
+
+---
+
+**G54. General mode still asserts account sourcing outside the guidance line, on frames 29 and 32.
+OPEN.**
+
+G52 was about one shared line. Walking general mode with that line fixed and reading every string
+containing the word "account" turns up two sheets whose own body copy makes the same claim, and one
+of them shows account balances:
+
+| Frame | String, as it renders in general mode | Problem |
+|---|---|---|
+| 29 How we worked out your saving amount | "We've used the last 12 months of your account activity as the starting point" | No activity was read. D26 established that general mode projects from zero. |
+| 29 | "Based on your account activity to 30 July 2026. We refresh this monthly." | Same claim, in the metadata line. |
+| 32 Where these figures come from | "Everything here is read from accounts you hold with us. Nothing was entered by you unless it says so." | Inverted: in general mode nothing here is read and everything is entered or published. |
+| 32 | Section heading "Read directly from your accounts" | Nothing under it was read. Its figures correctly render as em dashes, which makes the heading read stranger, not better. |
+| 32 | "House pot GBP 3,150, Instant saver GBP 1,850, Cash ISA GBP 1,200, Lifetime ISA GBP 2,750, all assigned by you on the accounts screen" | **The worst of the five.** A caption in `content.js`, not a state figure, so the em-dash treatment above it does not reach it. A participant who declined to share their accounts is shown four named account balances. |
+
+Both sheets are reachable in general mode: 29 from frames 04, 10, 11, 12, 13 and 15, and 32 from 10 and
+11. Frames 04, 10, 11 and 15 are clean - D24 and D26 gave each of their sourcing captions a general
+variant - so this is the same defect on the two sheets that pass was not looking at.
+
+Fixing it is the D24 pattern applied twice more: a general variant of each string, selected by the
+same `src/regulatory.js`-style test, and for the balances caption a variant that names no account
+and no figure. Left out of the G52 pass deliberately: that pass was scoped to the shared regulatory
+line, and these are five screen-owned strings on two frames.
+
+*Status: open - needs a copy pass over frames 29 and 32 in general mode. The balances caption
+should be treated as the urgent one.*
+
+---
+
+**G55. Frames 02, 03 and 03b claim account activity before any has been read. OPEN.**
+
+The guidance line on the journey overview, the consent screen and the move-account sheet says the
+guidance is based on your account activity, and on all three it is displayed before the participant
+has decided whether to share any. Both paths pass through them, so it is not a general-mode
+question.
+
+They were left out of the G52 pass on purpose. The test that pass installed asks whether anything
+has been read; on these three the honest answer is "not yet", and switching them would change what
+renders on the consent path, which the pass was required not to do. Whether "not yet" should read
+as "nothing was read" is a copy question, not a mechanical one: the line on frame 02 is arguably
+describing what the feature will do rather than what this screen shows.
+
+Resolving it means deciding what these three screens are claiming, then either extending
+`src/regulatory.js`'s test to them or writing a third line for the not-yet-decided state.
+
+*Status: open - needs a decision on what the pre-consent screens are claiming.*
+
+---
+
+**G56. Frame 12's growth chart draws a y-axis label through a threshold line in general mode. OPEN.**
+
+Found while auditing the eleven general-mode screens of the G52 pass with `overlap.test.mjs`'s own
+detectors, run ad hoc over general-mode seeds rather than the committed 32-frame table. Frame 12 is
+the only failure, at both text sizes: the y-label `GBP 44,100` sits on a
+`growth-chart__threshold-line`, unmasked, so the rule passes through the glyphs.
+
+It is **not** caused by that pass. The identical failure reproduces on the commit before it
+(e7aa87e), so it predates the guidance-line change and belongs to the chart itself, next to G44's
+question about the same chart's opaque label plates. The consent path's own frame 12 passes, so
+whatever positions the label is reading a general-mode figure.
+
+The general-mode frames were not added to `scripts/overlap.test.mjs` permanently, because doing so
+would commit a suite that fails on this. Add them in the same pass that fixes it.
+
+*Status: open - pre-existing chart defect, reproduces before the G52 pass.*
