@@ -902,6 +902,81 @@ the checked one, asserted from the rendered DOM rather than from the source. `ov
 unconditionally, or revert the eleven one-line render-site changes and delete `src/regulatory.js`
 and the `regulatoryAwaitingCheck` object. Nothing else reads either.
 
+## D29. The browser's history is the navigation stack
+
+**Date.** 22 August 2026.
+
+**Decision.** Back is one operation with one implementation: `history.back()`, behind
+`goBack()` in `src/router.js`. Every back affordance calls it - the app-bar leading cell, the
+calculator's form-step header, and all seven sheets' dismiss control - and none of them names a
+destination any more. Forward navigation is unchanged and still assigns the hash, which is what
+pushes the entry that `goBack()` later pops.
+
+**Why.** Participants test on a phone browser, so iOS edge-swipe-back and the Android back button
+are in the session whether the prototype accounts for them or not, and neither can be pointed
+anywhere except at the previous history entry. Any destination written into a screen is therefore
+a second, competing answer to "where is back" that the gesture will contradict the moment the two
+disagree. `returnFrame` was that second answer: a single-slot scalar in `sessionStorage` that
+overwrites rather than stacks, read by ten screens each with its own hardcoded fallback for when
+it was empty or stale. The history stack is a record of where the participant actually went; a
+fallback is a guess made at build time about where they probably came from.
+
+**Guards replace, user navigation pushes.** This is the rule the rest depends on. A guard bounces a
+participant off a screen they never chose to be on, so it overwrites its own entry with
+`location.replace()` instead of adding one. Eleven state guards were converted, plus `/reset` and
+frame 19b's two timer transitions - see the table below. Without this, one back tap unwinds a
+cascade rather than a screen: `GAPS.md`'s note under G50 records frame 09's back travelling
+`#/goals -> #/calculator/property -> #/position/summary -> #/consent`, three hops from one tap.
+Traced after the change, that same tap moves one screen, and a cold arrival on `#/tracker` - whose
+guards chain four deep to `/calculator/property` - now consumes no history at all.
+
+| Converted to `location.replace()` | Why it is not user navigation |
+|---|---|
+| Eleven state guards (frames 09b, 10, 11, 12, 13, 15/16, 18, 19, 19b, 20, 21) | The screen refuses to render and sends the participant somewhere they did not ask to go |
+| `/reset` in `router.js` | A side-effecting pseudo-route. Left pushing, one back tap would land on `#/reset`, wipe the session and push forward again - an inescapable trap that also destroys the participant's data |
+| Frame 19b's two timer transitions | A determinate processing state that resolves itself after 1400ms. Left pushing, back from a result screen would land on 19b, whose timer re-fires and pushes forward again |
+
+**Cold start is handled once, structurally.** Deleting the fallbacks removes what a deep arrival
+used to rely on, so `seedHistoryRoot()` in `router.js` puts `/home` behind a participant who lands
+directly on a deep route, before the first render. The back control then always has somewhere real
+to go, and no screen needs to know that. `history.length` is NOT the test for "nothing behind us",
+however much it looks like it - a tab's own initial entry counts toward it, so the length is
+already 2 on the first paint and the seed would never fire. This was measured, not assumed. The
+test is `history.state`: every entry the router renders is stamped, a freshly-typed URL has a null
+state, so an unmarked entry is one never visited before. The stamp survives a reload of the same
+entry, which is what stops a mid-session refresh seeding a second root.
+
+**Two behaviours changed as a consequence, and are accepted rather than worked around.**
+
+*Frame 06's "save for something else" branch.* Back from `/goals` returned to frame 01 on the
+reasoning (D21) that a participant who left the journey should not be dropped back into it. It now
+returns to frame 06 when that is where they came from. The reasoning does not survive the move:
+frame 06 is where swipe-back will take them regardless, so the only thing the written destination
+could still change is whether the on-screen control disagrees with the gesture. The worry does not
+materialise either - going back retraces a step, it does not undo a choice, and `goal` stays
+`'other'`.
+
+*A sheet deep-linked by URL.* Dismissing it lands on `/home`, the seeded root, rather than on the
+parent screen its old fallback named. Opened the way a participant opens one - from a screen - it
+returns to that screen, which is the case that matters and the one `sheet-drag.test.mjs` asserts.
+
+**The drag rule is untouched, and `sheet-drag.js` is unmodified.** A drag still never closes a
+sheet by itself; it synthesises a click on the sheet's own dismiss control (D18). Because that
+control is now `goBack()`, the gesture inherits the change with no edit, and so does `router.js`'s
+Escape handler, which closes through the same synthesised click. Tap, Escape and drag were traced
+separately and land identically. 13b still sets `ltvVideoSeen` before navigating.
+
+**`returnFrame` stays for now.** Removing it is a separate piece of work. It is still written by
+~20 forward controls and still read by frame 03b's guard, frame 22's "Done" and frame 18's - none
+of which are back affordances. Seven screens now declare a `returnHash` that nothing reads:
+frames 10c, 13b, 18, 29, 30, 31 and 32.
+
+**Reversal.** Restore an `onBack` parameter to `bindAppBarBack` and `bindFormStepHeader`, and give
+each call site a destination again. The guard conversions should NOT be reversed with it - a guard
+that pushes is wrong under either model.
+
+---
+
 ---
 
 ## Open questions
@@ -941,3 +1016,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (below-checkpoint tracker) | D25 recorded: frame 15's action bar gains a forward primary, "What a bigger deposit changes" -> frame 13 with `returnFrame` set, and keeps "Adjust my goal" as the secondary. The locked Mortgage-in-Principle milestone row stays inert. Neither the MiP route nor any milestone state changes. |
 | 22 August 2026 (general-mode tracker) | D26 recorded, closing `GAPS.md` G51: frames 15/16 gain a fourth variant for a session with no linked accounts. There is no truthful basis for a progress figure - zero is a claim about the participant, `MOCK_POSITION` is account data, and no constant measures what anyone has saved - so the balance and the progress bar are dropped rather than filled. The headline becomes the goal they set, milestones 1 and 2 sit at `locked`, none is `done`, and the "This month" card becomes "Your plan" carrying the monthly range and what it implies. Frame 16 has no general-mode counterpart. All three consent-path variants render byte-identical; `overlap.test.mjs` gains a `15-general` frame. |
 | 22 August 2026 (guidance line) | D27 recorded: a second guidance-not-advice line for sessions where no account activity was read, selected by `src/regulatory.js` on `left-over === null && money-in === null`, applied to frames 04, 09, 10, 11, 12, 13, 13b, 15, 29, 30 and 32. The FCA-checked line is untouched and every consent-path screen renders byte-identically. `GAPS.md` G52 closed; G53 (the new line awaits a copy check), G54 (frames 29 and 32 still claim account sourcing in their own copy) and G55 (the pre-consent frames) opened. |
+| 22 August 2026 (history as the back stack) | D29 recorded: `goBack()` (`history.back()`) becomes the single implementation of back, called by the app-bar leading cell, the calculator form-step header and all seven sheets' dismiss control, none of which names a destination any more. Eleven state guards, `/reset` and frame 19b's two timer transitions convert to `location.replace()` so a guard overwrites its entry instead of adding one - the frame 09 cascade under `GAPS.md` G50 now moves one screen per tap. `seedHistoryRoot()` puts `/home` behind a cold arrival on a deep route, tested on `history.state` rather than `history.length`. Amends D21 (back from `/goals` retraces the participant's step) and D18 (unchanged in behaviour: the drag inherits `goBack()` through the dismiss control it already clicks). `returnFrame` stays, unused by any back control. |

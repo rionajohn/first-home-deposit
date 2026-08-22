@@ -46,7 +46,7 @@ export function render(container, ctx) {
   const shared = content.shared;
 
   if (state['borrow-high'].value === null) {
-    window.location.hash = '#/mip';
+    window.location.replace('#/mip');
     return;
   }
 
@@ -115,7 +115,7 @@ export function render(container, ctx) {
     })}
   `;
 
-  bindAppBarBack(container, () => { window.location.hash = '#/tracker'; });
+  bindAppBarBack(container);
 
   container.querySelector('[data-action="open-assumptions-borrowing"]').addEventListener('click', () => {
     setState({ returnFrame: '/mip/result/likely' });

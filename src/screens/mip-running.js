@@ -29,7 +29,7 @@ export function render(container, ctx) {
   const c = content['/mip/running'];
 
   if (state['deposit-target'].value === null) {
-    window.location.hash = '#/tracker';
+    window.location.replace('#/tracker');
     return;
   }
 
@@ -40,7 +40,7 @@ export function render(container, ctx) {
     </main>
   `;
 
-  bindAppBarBack(container, () => { window.location.hash = '#/mip/pre-check'; });
+  bindAppBarBack(container);
 
   const timer = window.setTimeout(() => {
     if (state.resultOutcome === 'not-yet') {
@@ -48,7 +48,7 @@ export function render(container, ctx) {
       // - saved-toward-deposit" — gap has no build-spec.md section 6 state
       // slot (unlike borrow-low/borrow-high/max-property below), so it's
       // left to be computed fresh on the result screen rather than committed.
-      window.location.hash = '#/mip/result/not-yet';
+      window.location.replace('#/mip/result/not-yet');
       return;
     }
     // build-spec.md section 1: "criteria met -> 20 ... borrow-low,
@@ -60,7 +60,7 @@ export function render(container, ctx) {
       'borrow-high': { value: range.value?.high ?? null, provenance: range.provenance },
       'max-property': { value: max.value, provenance: max.provenance },
     });
-    window.location.hash = '#/mip/result/likely';
+    window.location.replace('#/mip/result/likely');
   }, PROCESSING_DELAY_MS);
 
   // If the participant navigates away before the timer fires (e.g. the

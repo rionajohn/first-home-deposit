@@ -81,7 +81,7 @@ export function render(container, ctx) {
   const reg = content.shared.regulatory;
 
   if (state['checkpoint-amount'].value === null || state['deposit-target'].value === null) {
-    window.location.hash = '#/calculator/result';
+    window.location.replace('#/calculator/result');
     return;
   }
 
@@ -299,9 +299,7 @@ export function render(container, ctx) {
     })}
   `;
 
-  bindAppBarBack(container, () => {
-    window.location.hash = '#/home';
-  });
+  bindAppBarBack(container);
 
   container.querySelector('[data-action="open-ltv"]').addEventListener('click', () => {
     setState({ returnFrame: '/tracker' });

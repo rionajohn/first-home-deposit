@@ -50,9 +50,7 @@ export function render(container, { content, setState }) {
     })}
   `;
 
-  bindAppBarBack(container, () => {
-    window.location.hash = '#/home';
-  });
+  bindAppBarBack(container);
 
   container.querySelector('[data-action="show-possible"]').addEventListener('click', () => {
     window.location.hash = '#/consent';

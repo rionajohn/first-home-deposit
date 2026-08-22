@@ -36,7 +36,7 @@ export function render(container, ctx) {
     ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'done' })}
   `;
 
-  bindAppBarBack(container, () => { window.location.hash = returnHash; });
+  bindAppBarBack(container);
 
   container.querySelector('[data-action="done"]').addEventListener('click', () => {
     window.location.hash = returnHash;

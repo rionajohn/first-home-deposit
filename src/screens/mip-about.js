@@ -54,7 +54,7 @@ export function render(container, ctx) {
     ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'continue' })}
   `;
 
-  bindAppBarBack(container, () => { window.location.hash = returnHash; });
+  bindAppBarBack(container);
 
   container.querySelector('[data-action="continue"]').addEventListener('click', () => {
     window.location.hash = '#/mip/pre-check';

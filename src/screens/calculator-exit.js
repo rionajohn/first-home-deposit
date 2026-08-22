@@ -12,6 +12,7 @@
  * four content.shared.regulatory lines.
  */
 import { sheetHeaderHTML, actionBarDockHTML } from '../components/ui.js';
+import { goBack } from '../router.js';
 export const anchors = [];
 
 export function render(container, ctx) {
@@ -37,9 +38,7 @@ export function render(container, ctx) {
   `;
 
   container.querySelectorAll('[data-action="dismiss"]').forEach((el) => {
-    el.addEventListener('click', () => {
-      window.location.hash = returnHash;
-    });
+    el.addEventListener('click', goBack);
   });
 
   container.querySelector('[data-action="save-and-leave"]').addEventListener('click', () => {

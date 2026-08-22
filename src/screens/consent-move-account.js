@@ -10,6 +10,7 @@
 import { formatAccountBalance } from '../format.js';
 import { MOCK_ACCOUNTS, accountFigures } from '../model/accounts.js';
 import { sheetHeaderHTML, actionBarDockHTML } from '../components/ui.js';
+import { goBack } from '../router.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -36,7 +37,7 @@ export function render(container, ctx) {
 
   if (!account) {
     // Deep-linked or reloaded with no account selected — nothing sensible to show.
-    window.location.hash = returnHash;
+    window.location.replace(returnHash);
     return;
   }
 
@@ -77,9 +78,7 @@ export function render(container, ctx) {
   });
 
   container.querySelectorAll('[data-action="dismiss"]').forEach((el) => {
-    el.addEventListener('click', () => {
-      window.location.hash = returnHash;
-    });
+    el.addEventListener('click', goBack);
   });
 
   container.querySelector('[data-action="save"]').addEventListener('click', () => {

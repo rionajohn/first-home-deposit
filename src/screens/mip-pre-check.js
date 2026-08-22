@@ -55,7 +55,7 @@ export function render(container, ctx) {
   const reg = content.shared.regulatory;
 
   if (state['deposit-target'].value === null) {
-    window.location.hash = '#/tracker';
+    window.location.replace('#/tracker');
     return;
   }
 
@@ -121,7 +121,7 @@ export function render(container, ctx) {
     })}
   `;
 
-  bindAppBarBack(container, () => { window.location.hash = '#/mip'; });
+  bindAppBarBack(container);
 
   const disclosureKeys = { asked: 'mipAskedOpen', benefits: 'mipBenefitsOpen', aware: 'mipAwareOpen' };
   container.querySelectorAll('[data-action="toggle-disclosure"]').forEach((btn) => {

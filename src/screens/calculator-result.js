@@ -54,7 +54,7 @@ export function render(container, ctx) {
   const reg = content.shared.regulatory;
 
   if (state['deposit-target'].value === null || state['months-to-target'].provenance === null) {
-    window.location.hash = '#/calculator/review';
+    window.location.replace('#/calculator/review');
     return;
   }
 
@@ -206,9 +206,7 @@ export function render(container, ctx) {
     </main>
   `;
 
-  bindAppBarBack(container, () => {
-    window.location.hash = '#/calculator/review';
-  });
+  bindAppBarBack(container);
 
   // The card is a disclosure now (D12). rerenderInPlace, not a bare render:
   // it restores the scroller's offset and refocuses the very button that was

@@ -111,7 +111,7 @@ export function render(container, ctx) {
     </main>
   `;
 
-  bindAppBarBack(container, () => { window.location.hash = '#/home'; });
+  bindAppBarBack(container);
 
   function bindGroup(action, stateKey) {
     container.querySelectorAll(`[data-action="${action}"]`).forEach((btn) => {

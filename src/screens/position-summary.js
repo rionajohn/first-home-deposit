@@ -211,9 +211,7 @@ export function render(container, ctx) {
     })}
   `;
 
-  bindAppBarBack(container, () => {
-    window.location.hash = '#/position';
-  });
+  bindAppBarBack(container);
 
   // TWO COLLAPSIBLES ON THIS SCREEN, SO THE BINDING ROUTES ON THE ID.
   // The "What we used to check this" breakdown and the "How we worked this

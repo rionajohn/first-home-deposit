@@ -42,7 +42,7 @@ export function render(container, ctx) {
   const shared = content.shared;
 
   if (state['deposit-target'].value === null) {
-    window.location.hash = '#/mip';
+    window.location.replace('#/mip');
     return;
   }
 
@@ -121,7 +121,7 @@ export function render(container, ctx) {
     })}
   `;
 
-  bindAppBarBack(container, () => { window.location.hash = '#/tracker'; });
+  bindAppBarBack(container);
 
   container.querySelectorAll('[data-action="update-goal"]').forEach((el) => {
     el.addEventListener('click', () => { window.location.hash = '#/tracker'; });

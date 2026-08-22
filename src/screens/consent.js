@@ -336,9 +336,7 @@ export function render(container, ctx) {
     })}
   `;
 
-  bindAppBarBack(container, () => {
-    window.location.hash = '#/journey';
-  });
+  bindAppBarBack(container);
 
   // These two DO change the rest of the screen — the estimate-mode banner
   // appears and disappears, the primary action enables — so they re-render

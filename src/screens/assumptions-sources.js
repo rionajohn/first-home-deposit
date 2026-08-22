@@ -32,6 +32,7 @@ import { RATES } from '../model/rates.js';
 import { effectiveAccounts } from '../model/accounts.js';
 import { arrowRight } from '../icons.js';
 import { guidanceNotAdviceLine } from '../regulatory.js';
+import { goBack } from '../router.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -134,9 +135,7 @@ export function render(container, ctx) {
   `;
 
   container.querySelectorAll('[data-action="dismiss"]').forEach((el) => {
-    el.addEventListener('click', () => {
-      window.location.hash = returnHash;
-    });
+    el.addEventListener('click', goBack);
   });
 
   // Out of prototype scope (build-spec.md section 1) — the same dead-end

@@ -23,6 +23,7 @@ import { formatCurrency, formatPercent, formatFullDate } from '../format.js';
 import { depositTarget } from '../model/model.js';
 import { RATES } from '../model/rates.js';
 import { guidanceNotAdviceLine } from '../regulatory.js';
+import { goBack } from '../router.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -79,8 +80,6 @@ export function render(container, ctx) {
   `;
 
   container.querySelectorAll('[data-action="dismiss"]').forEach((el) => {
-    el.addEventListener('click', () => {
-      window.location.hash = returnHash;
-    });
+    el.addEventListener('click', goBack);
   });
 }

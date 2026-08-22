@@ -22,7 +22,7 @@ export function render(container, ctx) {
   const reg = content.shared.regulatory;
 
   if (state['deposit-target'].value === null) {
-    window.location.hash = '#/tracker';
+    window.location.replace('#/tracker');
     return;
   }
 
@@ -33,7 +33,7 @@ export function render(container, ctx) {
         ${emptyStateCardHTML({ title: c.lockedHeadline, body: c.lockedBody, ctaLabel: c.lockedCta, ctaAction: 'back-to-tracker' })}
       </main>
     `;
-    bindAppBarBack(container, () => { window.location.hash = '#/tracker'; });
+    bindAppBarBack(container);
     container.querySelector('[data-action="back-to-tracker"]').addEventListener('click', () => {
       window.location.hash = '#/tracker';
     });
@@ -60,7 +60,7 @@ export function render(container, ctx) {
     })}
   `;
 
-  bindAppBarBack(container, () => { window.location.hash = '#/tracker'; });
+  bindAppBarBack(container);
 
   container.querySelector('[data-action="open-about"]').addEventListener('click', () => {
     setState({ returnFrame: '/mip' });

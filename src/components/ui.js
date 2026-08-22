@@ -10,6 +10,8 @@
  * `data-action` after inserting it into the DOM and wires the listener
  * itself, the same pattern src/screens/home.js already established.
  */
+
+import { goBack } from '../router.js';
 import { formatDigits } from '../format.js';
 import {
   arrowLeft,
@@ -258,9 +260,9 @@ export function rerenderInPlace(container, render, ctx) {
 }
 
 /** Wires the app bar's left button, if the screen rendered one. No-op if this screen's app bar has no back control. */
-export function bindAppBarBack(container, onBack) {
+export function bindAppBarBack(container) {
   const btn = container.querySelector('[data-action="app-bar-back"]');
-  if (btn) btn.addEventListener('click', onBack);
+  if (btn) btn.addEventListener('click', goBack);
 }
 
 /**
@@ -511,8 +513,8 @@ export function formStepHeaderHTML({ title, step, appBarLabels }) {
 }
 
 /** Wires the form step header's back and close buttons. */
-export function bindFormStepHeader(container, { onBack, onClose }) {
-  container.querySelector('[data-action="form-step-back"]').addEventListener('click', onBack);
+export function bindFormStepHeader(container, { onClose }) {
+  container.querySelector('[data-action="form-step-back"]').addEventListener('click', goBack);
   container.querySelector('[data-action="form-step-close"]').addEventListener('click', onClose);
 }
 

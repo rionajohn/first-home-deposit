@@ -127,7 +127,6 @@ export function render(container, ctx) {
   `;
 
   bindFormStepHeader(container, {
-    onBack: () => { window.location.hash = '#/goal-check'; },
     onClose: () => { setState({ returnFrame: '/calculator/property' }); window.location.hash = '#/calculator/exit'; },
   });
 

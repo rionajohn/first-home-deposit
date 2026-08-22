@@ -91,7 +91,7 @@ export function render(container, ctx) {
   // finished step 1". left-over's absence does not: see the general-mode
   // note in this file's header.
   if (state['deposit-target'].value === null) {
-    window.location.hash = '#/calculator/property';
+    window.location.replace('#/calculator/property');
     return;
   }
 
@@ -240,7 +240,6 @@ export function render(container, ctx) {
   `;
 
   bindFormStepHeader(container, {
-    onBack: () => { window.location.hash = '#/calculator/property'; },
     onClose: () => { setState({ returnFrame: '/calculator/saving' }); window.location.hash = '#/calculator/exit'; },
   });
 

@@ -64,6 +64,77 @@ function parseHash() {
   return { path: path || '/home', params: new URLSearchParams(query || '') };
 }
 
+/**
+ * NAVIGATION, IN ONE PLACE. The browser's own history IS the back stack.
+ *
+ * `navigate` pushes an entry, `goBack` pops one, so the in-app back control,
+ * the iOS swipe-back edge gesture and the Android/desktop back button are the
+ * same operation and cannot disagree about where "back" is. No screen decides
+ * a back destination any more — the stack already knows it, because it is the
+ * record of where the participant actually went rather than a guess written
+ * at build time.
+ *
+ * The counterpart rule lives at the guard redirects across src/screens: a
+ * guard bounces a participant off a screen they never chose, so it uses
+ * `location.replace` and overwrites its own entry rather than adding one.
+ * That is what makes one back tap move one screen instead of unwinding a
+ * whole cascade of them (GAPS.md, the frame 09 note under G50).
+ */
+export function navigate(route) {
+  window.location.hash = route.startsWith('#') ? route : `#${route}`;
+}
+
+export function goBack() {
+  window.history.back();
+}
+
+/**
+ * Cold start on a deep route: put /home behind the participant.
+ *
+ * Typing `#/tracker` into a fresh tab — or reopening a link a facilitator
+ * pinned — lands on a screen whose app bar draws a back control with nothing
+ * of ours behind it, and `history.back()` would then drop the participant
+ * clean out of the prototype mid-session. Seeding the stack (the landing
+ * route pushed on top of /home) gives that control somewhere real to go
+ * without any screen having to carry a fallback destination of its own. That
+ * is the point: the fallbacks are gone, so the cold-start case is answered
+ * once, structurally, rather than eighteen times over.
+ *
+ * `history.length` is NOT the test for "nothing of ours behind us", however
+ * much it looks like it. A tab's own initial entry counts toward it, so the
+ * length is already 2 on the very first paint and the seed would never fire —
+ * measured, not assumed. What is exact is `history.state`: every entry this
+ * router has rendered carries `stampEntry`'s marker, and a browser hands a
+ * freshly-typed URL a null state. So an unmarked entry is one we have never
+ * been on before, which is precisely the case that needs a root behind it.
+ * The marker survives a reload of the same entry, which is what stops a
+ * refresh mid-session from seeding a second time.
+ *
+ * pushState and replaceState do not fire hashchange, so this rearranges the
+ * stack before the first render without provoking a second one.
+ *
+ * A participant who reached a deep route from somewhere outside the prototype
+ * loses that outside page as their back destination. That is deliberate: in a
+ * moderated session, back leaving the prototype is a worse failure than back
+ * not retracing a step the participant did not take inside it.
+ */
+const NAV_MARKER = 'yfh-nav-entry';
+
+function stampEntry() {
+  if (window.history.state && window.history.state[NAV_MARKER]) return;
+  window.history.replaceState({ [NAV_MARKER]: true }, '');
+}
+
+function seedHistoryRoot() {
+  // An entry we have rendered before — a reload, or one restored by the
+  // browser. Whatever sits behind it is already behind it.
+  if (window.history.state && window.history.state[NAV_MARKER]) return;
+  if (parseHash().path === '/home') return;
+  const landing = window.location.hash || '#/home';
+  window.history.replaceState({ [NAV_MARKER]: true }, '', '#/home');
+  window.history.pushState({ [NAV_MARKER]: true }, '', landing);
+}
+
 function renderNotBuilt(container, path) {
   container.innerHTML = `<div class="not-built">Not built yet: ${path}</div>`;
 }
@@ -306,6 +377,12 @@ function renderCurrentRoute() {
   const { path, params } = parseHash();
   const container = document.getElementById('app');
 
+  // Mark this entry as one the router has rendered. See seedHistoryRoot: it
+  // is what tells a cold arrival apart from a revisit, and it must happen on
+  // every render because a guard's `location.replace` clears the state it
+  // overwrites.
+  stampEntry();
+
   const wasDialogOpen = isDialogOpen(container);
   const enteringDialog = DIALOG_ROUTES.has(path);
   if (enteringDialog && !wasDialogOpen) {
@@ -336,7 +413,7 @@ function renderCurrentRoute() {
 
   if (path === '/reset') {
     resetState();
-    window.location.hash = '#/home';
+    window.location.replace('#/home');
     return;
   }
 
@@ -373,6 +450,9 @@ function renderCurrentRoute() {
 }
 
 export function startRouter() {
+  // Before the first render, and before anything can push: see above.
+  seedHistoryRoot();
+
   window.addEventListener('hashchange', renderCurrentRoute);
   document.addEventListener('keydown', handleDialogTabTrap);
 

@@ -251,16 +251,29 @@ for (const sheet of SHEETS) {
  * so a sheet that draws the standard grabber gets this for free, and this
  * test is what would notice if one of them stopped.
  *
- * Deep-linked (each falls back to a known returnFrame when opened cold),
- * except 03b, which redirects straight back out without a selected account
- * and so has to come through its real trigger.
+ * Deep-linked, except 03b, which redirects straight back out without a
+ * selected account and so has to come through its real trigger.
+ *
+ * WHAT A DEEP-LINKED SHEET RETURNS TO CHANGED, and these expectations moved
+ * with it. Dismiss is `goBack()` now — the browser's history is the back
+ * stack — so a sheet returns to whatever the participant was actually on
+ * when they opened it, and no sheet carries a written-down destination any
+ * more. Opened cold by URL there is no such screen, so the answer is the
+ * root the router seeds behind a deep arrival: /home. That is why six of the
+ * seven rows below read `#/home` and only 03b, the one opened through its
+ * real trigger, names a screen.
+ *
+ * The assertion this file exists to make is unaffected, and is the reason
+ * these rows are worth keeping rather than deleting: a drag has to land
+ * wherever the tap lands. It now does so for a reason that cannot drift,
+ * since both go through the same control and that control has one behaviour.
  */
 const ALL_SHEETS = [
   { frame: '03b', open: SHEETS[0].open, returnsTo: '#/consent' },
-  { frame: '10c', route: '/calculator/exit', returnsTo: '#/calculator/property' },
+  { frame: '10c', route: '/calculator/exit', returnsTo: '#/home' },
   // Seeded like the equivalence run above: without the calculator answered,
   // frame 13 bounces to /calculator/result and 13b has nowhere to return to.
-  { frame: '13b', route: '/learn/ltv/video', seed: SHEETS[1].seed, returnsTo: '#/learn/ltv' },
+  { frame: '13b', route: '/learn/ltv/video', seed: SHEETS[1].seed, returnsTo: '#/home' },
   { frame: '29', route: '/assumptions/saving', returnsTo: '#/home' },
   { frame: '30', route: '/assumptions/deposit', returnsTo: '#/home' },
   { frame: '31', route: '/assumptions/borrowing', returnsTo: '#/home' },

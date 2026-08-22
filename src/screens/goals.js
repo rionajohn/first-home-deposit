@@ -133,13 +133,21 @@ export function render(container, ctx) {
     </main>
   `;
 
-  // Back leaves the goals area the way any bank screen's back does. It does
-  // NOT return into the journey: a participant who chose "save for something
-  // else" has left it, and dropping them back on frame 06 would undo the
-  // choice they just made.
-  bindAppBarBack(container, () => {
-    window.location.hash = '#/home';
-  });
+  // Back retraces the participant's own step, whatever it was — this screen
+  // no longer names a destination, because none of them do (DECISIONS.md
+  // D29). It used to send everyone to frame 01 on the reasoning that a
+  // participant who chose "save for something else" had left the journey and
+  // should not be dropped back on frame 06.
+  //
+  // That reasoning does not survive the move to the browser's own history.
+  // Frame 06 is where a participant arriving that way genuinely was a moment
+  // ago, so it is where swipe-back and the Android back button will take them
+  // no matter what this line says; the only thing a written-down destination
+  // could still change is whether the on-screen control DISAGREES with them.
+  // The worry it was guarding against does not materialise either: going
+  // back to frame 06 retraces a step, it does not undo a choice. `goal` stays
+  // 'other' — nothing on frame 06 rewrites it without being asked.
+  bindAppBarBack(container);
 
   // --- The card goes to the calculator, and to nothing else ---
   //

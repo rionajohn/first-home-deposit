@@ -30,7 +30,7 @@ export function render(container, ctx) {
   const c = content['/calculator/review'];
 
   if (state['savings-rate'].value === null || state['deposit-target'].value === null) {
-    window.location.hash = '#/calculator/saving';
+    window.location.replace('#/calculator/saving');
     return;
   }
 
@@ -118,7 +118,6 @@ export function render(container, ctx) {
   `;
 
   bindFormStepHeader(container, {
-    onBack: () => { window.location.hash = '#/calculator/saving'; },
     onClose: () => { setState({ returnFrame: '/calculator/review' }); window.location.hash = '#/calculator/exit'; },
   });
 

@@ -17,6 +17,7 @@ import { flagRowHTML, infoBannerHTML, actionBarDockHTML } from '../components/ui
 import { formatCurrency } from '../format.js';
 import { playCircle } from '../icons.js';
 import { guidanceNotAdviceLine } from '../regulatory.js';
+import { goBack } from '../router.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -66,7 +67,7 @@ export function render(container, ctx) {
   container.querySelectorAll('[data-action="dismiss"]').forEach((el) => {
     el.addEventListener('click', () => {
       setState({ ltvVideoSeen: true });
-      window.location.hash = returnHash;
+      goBack();
     });
   });
 }

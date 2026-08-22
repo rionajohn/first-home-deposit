@@ -56,9 +56,7 @@ export function render(container, ctx) {
     ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'track-goal' })}
   `;
 
-  bindAppBarBack(container, () => {
-    window.location.hash = '#/position/summary';
-  });
+  bindAppBarBack(container);
 
   // One link to frame 29, not two. The "How we worked these out" chevron row
   // inside the "What we already know" card opened exactly the same sheet as

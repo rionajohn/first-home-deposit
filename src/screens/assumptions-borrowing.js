@@ -30,6 +30,7 @@ import { sheetHeaderHTML, figureRowHTML, riskWarningHTML, actionBarDockHTML } fr
 import { formatCurrency, formatFullDate } from '../format.js';
 import { RATES } from '../model/rates.js';
 import { MOCK_MIP_DATA } from '../model/accounts.js';
+import { goBack } from '../router.js';
 
 export const anchors = ['guidanceNotAdvice', 'mcob3aRepossessionWarning'];
 
@@ -87,8 +88,6 @@ export function render(container, ctx) {
   `;
 
   container.querySelectorAll('[data-action="dismiss"]').forEach((el) => {
-    el.addEventListener('click', () => {
-      window.location.hash = returnHash;
-    });
+    el.addEventListener('click', goBack);
   });
 }
