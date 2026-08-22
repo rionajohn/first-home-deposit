@@ -47,6 +47,7 @@ do not introduce a state management library.
 - Do not change behaviour outside the scope stated in the prompt.
 - Preserve existing dark mode support in anything you touch.
 - Update docs/DECISIONS.md with a dated entry for any design decision you make.
+- Before adding a decision entry, read the last number in docs/DECISIONS.md and take the next one.
 
 ## Commands
 - Serve: `python -m http.server 8080` on Windows (ES modules need a server, not file://)

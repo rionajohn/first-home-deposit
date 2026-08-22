@@ -206,7 +206,7 @@ export const MOCK_POSITION = {
   // AER anywhere in this file, and that rate is RATES.bankRate, a dated
   // constant anchored to the Bank of England Bank Rate. The caption was
   // wrong and is now shared.bankRateCaptionTemplate. These two figures ARE
-  // read from the saver; the rate is not. See DECISIONS.md D32.
+  // read from the saver; the rate is not. See DECISIONS.md D34.
   recentMonthlySavingLow: 200,
   recentMonthlySavingHigh: 310,
   // Frame 15/16's "This month" card: both captioned "Read from..." (a

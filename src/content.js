@@ -93,7 +93,7 @@ const content = {
     // figure that appears on several screens. They are shared rather than
     // written per screen because that is exactly the pair that drifts: all
     // three below were previously duplicated, and two of the three had drifted
-    // into saying different things about the same value. See DECISIONS.md D32.
+    // into saying different things about the same value. See DECISIONS.md D34.
 
     // The savings interest rate on frames 08, 10/10b, 11 and 32. It is NOT
     // read from any account - there is no AER anywhere in model/accounts.js.
