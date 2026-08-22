@@ -28,7 +28,7 @@
  */
 
 import content from '../content.js';
-import { appBarHTML, bindAppBarBack } from '../components/ui.js';
+import { appBarHTML, bindAppBarLeading } from '../components/ui.js';
 import { formatAccountBalance } from '../format.js';
 import { effectiveAccounts, goalsByHorizon } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
@@ -147,7 +147,7 @@ export function render(container, ctx) {
   // The worry it was guarding against does not materialise either: going
   // back to frame 06 retraces a step, it does not undo a choice. `goal` stays
   // 'other' — nothing on frame 06 rewrites it without being asked.
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   // --- The card goes to the calculator, and to nothing else ---
   //
@@ -176,7 +176,7 @@ export function render(container, ctx) {
   // (src/state.js), so a cold arrival has the same read figures as anyone
   // else and there is nothing to mark. See DECISIONS.md D28.
   container.querySelector('[data-action="open-deposit-calculator"]').addEventListener('click', () => {
-    ctx.setState({ goal: 'house', returnFrame: '/goals' });
+    ctx.setState({ goal: 'house', returnFrame: '/goals', journeyEntryPoint: '/goals' });
     window.location.hash = '#/calculator/property';
   });
 }

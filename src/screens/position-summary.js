@@ -17,7 +17,7 @@
  */
 import {
   appBarHTML,
-  bindAppBarBack,
+  bindAppBarLeading,
   actionBarHTML,
   infoBannerHTML,
   flagRowHTML,
@@ -206,7 +206,7 @@ export function render(container, ctx) {
     })}
   `;
 
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   // TWO COLLAPSIBLES ON THIS SCREEN, SO THE BINDING ROUTES ON THE ID.
   // The "What we used to check this" breakdown and the "How we worked this

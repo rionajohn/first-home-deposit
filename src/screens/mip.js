@@ -12,7 +12,7 @@
  * there) or by typing the route directly — the second path is exactly what
  * the locked variant exists to catch.
  */
-import { appBarHTML, bindAppBarBack, actionBarHTML, tickListHTML, infoLinkHTML, emptyStateCardHTML } from '../components/ui.js';
+import { appBarHTML, bindAppBarLeading, actionBarHTML, tickListHTML, infoLinkHTML, emptyStateCardHTML } from '../components/ui.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -33,7 +33,7 @@ export function render(container, ctx) {
         ${emptyStateCardHTML({ title: c.lockedHeadline, body: c.lockedBody, ctaLabel: c.lockedCta, ctaAction: 'back-to-tracker' })}
       </main>
     `;
-    bindAppBarBack(container);
+    bindAppBarLeading(container);
     container.querySelector('[data-action="back-to-tracker"]').addEventListener('click', () => {
       window.location.hash = '#/tracker';
     });
@@ -60,7 +60,7 @@ export function render(container, ctx) {
     })}
   `;
 
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   container.querySelector('[data-action="open-about"]').addEventListener('click', () => {
     setState({ returnFrame: '/mip' });

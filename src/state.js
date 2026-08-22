@@ -146,6 +146,20 @@ function defaultState() {
     journeyStarted: false,
     solveFor: null, // 'date' | 'amount'
     returnFrame: null,
+
+    // WHERE THE PARTICIPANT ENTERED THE JOURNEY, and the only thing the app-bar
+    // close X reads. '/home' or '/goals' - the two screens the journey is
+    // entered from - or null for a session that has not entered it yet (a typed
+    // URL, a facilitator opening frame 33), which the X falls back to /home on.
+    //
+    // NOT `returnFrame`, which answers a different question. `returnFrame` is a
+    // single scratch slot recording which screen opened the sheet you are
+    // looking at; roughly twenty forward controls overwrite it, so by the time
+    // a participant reaches frame 21 it says '/mip/result/not-yet', not where
+    // they came in. The X needs the one fact that does NOT change as they move
+    // through the flow, which is why this is written once on entry and left
+    // alone. See DECISIONS.md D30.
+    journeyEntryPoint: null,
     goalSaved: false,
     mipUnlocked: false,
     journeyPaused: false, // frame 10c "Save and leave" — build-spec.md section 1

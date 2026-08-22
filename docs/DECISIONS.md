@@ -1037,6 +1037,65 @@ frames 10c, 13b, 18, 29, 30, 31 and 32.
 each call site a destination again. The guard conversions should NOT be reversed with it - a guard
 that pushes is wrong under either model.
 
+## D30. The close X leaves the flow; the back chevron does not
+
+**Date.** 22 August 2026.
+
+**Decision.** The two leading controls are separated and mean different things. The back chevron
+moves one screen, through `goBack()` (D29). The close X leaves the journey and returns to the
+screen it was entered from - frame 01 or the goals area - through a new `exitFlow()` in
+`src/router.js`. `appBarHTML` now emits `data-action="app-bar-close"` for the X and
+`app-bar-back` for the chevron, and `bindAppBarLeading` (renamed from `bindAppBarBack`, which no
+longer described what it does) wires whichever of the two a screen drew.
+
+**Why it needed fixing.** D29 pointed every back affordance at one handler, correctly, and swept
+the X in with them because `appBarHTML` gave both controls the same `data-action`. The glyph was
+the only thing that differed. On all ten screens that draw an X it was a chevron wearing a
+different icon, which is worse than either control alone: it advertises an exit and performs a
+step.
+
+**`journeyEntryPoint`, and why `returnFrame` could not do this job.** Nothing in the app recorded
+where the journey was entered, so the state is new: `'/home'` or `'/goals'`, written once by
+frame 01's "start-journey" and by the goals card, null for a session that never entered (a typed
+URL, frame 33), which `exitFlow` falls back to `/home` on. `returnFrame` answers a different
+question - it is a single scratch slot naming whichever screen opened the sheet you are looking
+at, overwritten by roughly twenty forward controls, so on frame 21 it reads
+`/mip/result/not-yet`. The X needs the one fact that does not change as a participant moves
+through the flow.
+
+**The sheet carve-out is structural, not a special case.** A sheet closes through
+`[data-action="dismiss"]`, which is `goBack()` and lands on the screen underneath. That is a
+different action from `app-bar-close` and never reaches `exitFlow`, so `sheet-drag.js`, the
+Escape handler and the drag gesture all come through untouched - verified, not assumed. Frame
+10c is the one crossing point: its X and "Keep going" dismiss the sheet, and only its "Leave"
+exits, now to the entry point rather than a hardcoded frame 01. The calculator's form-step X
+still opens 10c, so build-spec.md section 1's definition of leaving the calculator, and the
+`journeyPaused` flag and retained drafts that go with it, are unchanged.
+
+**`replace()` does not do what it was hoped to do, and this is the honest result.** The exit
+replaces its entry rather than pushing, so the screen the X was pressed on does not sit on the
+stack as the thing one back tap returns to. It does not unwind the flow, because `replace`
+overwrites exactly one entry. Measured: goals -> calculator -> step 3 -> X -> Leave lands on
+`/goals`, and one back tap from there lands on `/calculator/review` - the step before the one
+exited from, still inside the flow. Pushing instead would be worse (back would land on the 10c
+sheet). Genuinely leaving the flow behind needs `history.go(-n)` to the entry point's own entry,
+which means tracking flow depth; that is a larger change than this correction, and is not done
+here. Recorded rather than papered over.
+
+**What is deliberately NOT changed.** The chevron, the sheet X, Escape, the drag dismiss and the
+guard redirects, all verified in D29 and re-verified here.
+
+**Glyphs that now read oddly, reported not changed.** Frame 13 (`/learn/ltv`) is reached from
+three places - frame 09's LTV info link, frame 12's, and frame 15/16's "What a bigger deposit
+changes" - and is an explainer in all three, not a flow boundary. Its X exits to the entry point,
+so a participant reading it from the tracker is returned to the goals area rather than the
+tracker. Frame 33 (`/settings`) is facilitator-only and outside the journey; its X now follows a
+`journeyEntryPoint` the facilitator did not set. Frame 22 (`/mip/adviser`) is an end-of-flow
+confirmation whose X exiting is arguably right and whose "Done" already goes elsewhere. All three
+want a glyph decision rather than a handler change.
+
+**Reversal.** Point `app-bar-close` at `goBack` and the two controls merge again.
+
 ---
 
 ## Open questions
@@ -1078,3 +1137,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (guidance line) | D27 recorded: a second guidance-not-advice line for sessions where no account activity was read, selected by `src/regulatory.js` on `left-over === null && money-in === null`, applied to frames 04, 09, 10, 11, 12, 13, 13b, 15, 29, 30 and 32. The FCA-checked line is untouched and every consent-path screen renders byte-identically. `GAPS.md` G52 closed; G53 (the new line awaits a copy check), G54 (frames 29 and 32 still claim account sourcing in their own copy) and G55 (the pre-consent frames) opened. |
 | 22 August 2026 (account-linking removed) | D28 recorded: the account-linking choice, estimate mode and general mode are deleted, and the read figures are seeded at session start instead of at frames 03 and 05. Frame 03 becomes "Your accounts" and keeps the account-assignment input; frames 04 and 05b, `mode`, `savingsWithUs`, `consentGiven`, `consentStatementChecked`, `GENERAL_SAVINGS_RANGE`, `generalAnnualRange()`, `src/regulatory.js` and `shared.regulatoryAwaitingCheck` all go. Reverses D26 and D27, amends D24. Closes `GAPS.md` G51-G55 by removal. Deviation from `build-spec.md` sections 2, 3 and 7 recorded here rather than applied there. |
 | 22 August 2026 (history as the back stack) | D29 recorded: `goBack()` (`history.back()`) becomes the single implementation of back, called by the app-bar leading cell, the calculator form-step header and all seven sheets' dismiss control, none of which names a destination any more. Eleven state guards, `/reset` and frame 19b's two timer transitions convert to `location.replace()` so a guard overwrites its entry instead of adding one - the frame 09 cascade under `GAPS.md` G50 now moves one screen per tap. `seedHistoryRoot()` puts `/home` behind a cold arrival on a deep route, tested on `history.state` rather than `history.length`. Amends D21 (back from `/goals` retraces the participant's step) and D18 (unchanged in behaviour: the drag inherits `goBack()` through the dismiss control it already clicks). `returnFrame` stays, unused by any back control. |
+| 22 August 2026 (close X) | D30 recorded: the app bar's leading cell splits into `app-bar-back` and `app-bar-close`, so the X leaves the journey via a new `exitFlow()` while the chevron keeps `goBack()`. New `journeyEntryPoint` state records `/home` or `/goals` on entry, because `returnFrame` names whichever screen opened the current sheet and cannot answer this. Frame 10c's "Leave" follows it; its X and "Keep going" do not. The sheet carve-out holds structurally - sheets dismiss through a different `data-action`. `replace()` does not unwind the flow, only the exited entry: back after an exit lands on the step before it. Amends D29. |

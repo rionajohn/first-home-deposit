@@ -11,7 +11,7 @@
  * itself, the same pattern src/screens/home.js already established.
  */
 
-import { goBack } from '../router.js';
+import { goBack, exitFlow } from '../router.js';
 import { formatDigits } from '../format.js';
 import {
   arrowLeft,
@@ -55,8 +55,16 @@ export function appBarHTML({ title, left = null, appBarLabels }) {
       : '';
   const label = left === 'close' ? appBarLabels?.closeLabel : appBarLabels?.backLabel;
 
+  // ONE CELL, TWO CONTROLS, TWO ACTIONS. The chevron and the X sit in the same
+  // 44px cell and used to carry the same `data-action`, which meant the same
+  // handler, which meant the X went back one screen instead of leaving the
+  // journey. The glyph was the only thing that differed. They are separated
+  // here, at the point the glyph is chosen, so the markup cannot say "close"
+  // and behave like "back" again.
+  const action = left === 'close' ? 'app-bar-close' : 'app-bar-back';
+
   const leftCell = left
-    ? `<button type="button" class="app-bar__cell app-bar__cell--action" data-action="app-bar-back" aria-label="${label}">${iconMarkup}</button>`
+    ? `<button type="button" class="app-bar__cell app-bar__cell--action" data-action="${action}" aria-label="${label}">${iconMarkup}</button>`
     : '<div class="app-bar__cell"></div>';
 
   return `
@@ -259,10 +267,16 @@ export function rerenderInPlace(container, render, ctx) {
   }
 }
 
-/** Wires the app bar's left button, if the screen rendered one. No-op if this screen's app bar has no back control. */
-export function bindAppBarBack(container) {
-  const btn = container.querySelector('[data-action="app-bar-back"]');
-  if (btn) btn.addEventListener('click', goBack);
+/** Wires whichever leading control the app bar rendered: the chevron to `goBack`, the X to `exitFlow`. No-op if it drew neither. */
+export function bindAppBarLeading(container) {
+  const back = container.querySelector('[data-action="app-bar-back"]');
+  if (back) back.addEventListener('click', goBack);
+
+  // A screen draws one leading control or none, so exactly one of these two
+  // ever binds. Both are wired from one call so a screen cannot pick up the
+  // chevron's handler by drawing the X, which is the defect this replaces.
+  const close = container.querySelector('[data-action="app-bar-close"]');
+  if (close) close.addEventListener('click', exitFlow);
 }
 
 /**

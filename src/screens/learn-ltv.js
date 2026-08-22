@@ -21,7 +21,7 @@
  */
 import {
   appBarHTML,
-  bindAppBarBack,
+  bindAppBarLeading,
   actionBarHTML,
   flagRowHTML,
   infoLinkHTML,
@@ -197,7 +197,7 @@ export function render(container, ctx) {
     ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'done' })}
   `;
 
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   // The card is a disclosure now (D12). rerenderInPlace, not a bare render:
   // it restores the scroller's offset and refocuses the very button that was

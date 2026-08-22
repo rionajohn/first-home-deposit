@@ -17,7 +17,7 @@
  */
 import {
   appBarHTML,
-  bindAppBarBack,
+  bindAppBarLeading,
   actionBarHTML,
   resultPanelHTML,
   rangeFigureHTML,
@@ -115,7 +115,7 @@ export function render(container, ctx) {
     })}
   `;
 
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   container.querySelector('[data-action="open-assumptions-borrowing"]').addEventListener('click', () => {
     setState({ returnFrame: '/mip/result/likely' });

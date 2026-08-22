@@ -5,7 +5,7 @@
  * No figures on this screen — nothing here reads from state.js or model.js
  * beyond navigation flags. Only anchor carried: guidanceNotAdvice.
  */
-import { appBarHTML, bindAppBarBack, actionBarHTML, infoBannerHTML } from '../components/ui.js';
+import { appBarHTML, bindAppBarLeading, actionBarHTML, infoBannerHTML } from '../components/ui.js';
 import { photo, starCircle } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice'];
@@ -50,7 +50,7 @@ export function render(container, { content, setState }) {
     })}
   `;
 
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   container.querySelector('[data-action="show-possible"]').addEventListener('click', () => {
     window.location.hash = '#/consent';

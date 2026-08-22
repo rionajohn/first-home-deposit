@@ -17,7 +17,7 @@
  */
 import {
   appBarHTML,
-  bindAppBarBack,
+  bindAppBarLeading,
   actionBarHTML,
   flagRowHTML,
   disclosureHTML,
@@ -103,7 +103,7 @@ export function render(container, ctx) {
     ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'continue', primaryDisabled: !!errorText })}
   `;
 
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   container.querySelector('[data-action="toggle-disclosure"]').addEventListener('click', () => {
     const next = setState({ breakdownOpen: !state.breakdownOpen });

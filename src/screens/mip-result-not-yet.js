@@ -13,7 +13,7 @@
  */
 import {
   appBarHTML,
-  bindAppBarBack,
+  bindAppBarLeading,
   actionBarHTML,
   resultPanelHTML,
   figureDisplayHTML,
@@ -121,7 +121,7 @@ export function render(container, ctx) {
     })}
   `;
 
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   container.querySelectorAll('[data-action="update-goal"]').forEach((el) => {
     el.addEventListener('click', () => { window.location.hash = '#/tracker'; });

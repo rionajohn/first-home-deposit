@@ -14,7 +14,7 @@
  * (returnFrame, set by both callers); contains no form fields and no
  * booking calendar — a request-logged confirmation only, a push not a pull.
  */
-import { appBarHTML, bindAppBarBack, actionBarHTML, emptyStateCardHTML } from '../components/ui.js';
+import { appBarHTML, bindAppBarLeading, actionBarHTML, emptyStateCardHTML } from '../components/ui.js';
 
 export const anchors = ['guidanceNotAdvice', 'adviserScope'];
 
@@ -36,7 +36,7 @@ export function render(container, ctx) {
     ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'done' })}
   `;
 
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   container.querySelector('[data-action="done"]').addEventListener('click', () => {
     window.location.hash = returnHash;

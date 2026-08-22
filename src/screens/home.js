@@ -78,7 +78,7 @@ export function render(container, { content, setState }) {
   `;
 
   container.querySelector('[data-action="start-journey"]').addEventListener('click', () => {
-    setState({ journeyStarted: true });
+    setState({ journeyStarted: true, journeyEntryPoint: '/home' });
     window.location.hash = '#/journey';
   });
 }

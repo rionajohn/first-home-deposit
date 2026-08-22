@@ -19,7 +19,7 @@
  */
 import {
   appBarHTML,
-  bindAppBarBack,
+  bindAppBarLeading,
   actionBarHTML,
   checklistRowHTML,
   figureRowHTML,
@@ -116,7 +116,7 @@ export function render(container, ctx) {
     })}
   `;
 
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   const disclosureKeys = { asked: 'mipAskedOpen', benefits: 'mipBenefitsOpen', aware: 'mipAwareOpen' };
   container.querySelectorAll('[data-action="toggle-disclosure"]').forEach((btn) => {

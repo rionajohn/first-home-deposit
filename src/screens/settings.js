@@ -33,7 +33,7 @@
  * applies either — this screen sets test scenario state, it does not read
  * or derive a deposit-journey figure.
  */
-import { appBarHTML, bindAppBarBack, pillSegmentsHTML, rerenderInPlace } from '../components/ui.js';
+import { appBarHTML, bindAppBarLeading, pillSegmentsHTML, rerenderInPlace } from '../components/ui.js';
 import { CACHE_VERSION_FALLBACK } from '../cache-version.js';
 import { applyScenarioClasses } from '../router.js';
 import { chevronRight } from '../icons.js';
@@ -118,7 +118,7 @@ export function render(container, ctx) {
     </main>
   `;
 
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   function bindGroup(action, stateKey) {
     container.querySelectorAll(`[data-action="${action}"]`).forEach((btn) => {

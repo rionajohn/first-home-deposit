@@ -12,7 +12,7 @@
  * four content.shared.regulatory lines.
  */
 import { sheetHeaderHTML, actionBarDockHTML } from '../components/ui.js';
-import { goBack } from '../router.js';
+import { goBack, exitFlow } from '../router.js';
 export const anchors = [];
 
 export function render(container, ctx) {
@@ -41,8 +41,17 @@ export function render(container, ctx) {
     el.addEventListener('click', goBack);
   });
 
+  // "Leave" is the journey's exit, so it goes where every other exit goes: the
+  // screen the participant entered from, not a hardcoded frame 01. Someone who
+  // came in from the goals area and leaves the calculator is returned to the
+  // goals area. `journeyPaused` and the retained draft inputs are unchanged -
+  // build-spec.md section 1 still defines what leaving means, and only this
+  // control still sets it.
+  //
+  // The sheet's own X and "Keep going" are NOT this: they dismiss and land back
+  // on the step underneath, which is the sheet carve-out and stays as it is.
   container.querySelector('[data-action="save-and-leave"]').addEventListener('click', () => {
     setState({ journeyPaused: true });
-    window.location.hash = '#/home';
+    exitFlow();
   });
 }

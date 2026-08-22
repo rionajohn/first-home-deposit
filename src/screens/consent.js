@@ -21,7 +21,7 @@
  * through the same accountFigures helper, so what it commits is always what
  * is on screen - see DECISIONS.md D5 on provenance.
  */
-import { appBarHTML, bindAppBarBack, actionBarHTML, infoBannerHTML } from '../components/ui.js';
+import { appBarHTML, bindAppBarLeading, actionBarHTML, infoBannerHTML } from '../components/ui.js';
 import { formatCurrency, formatAccountBalance } from '../format.js';
 import {
   effectiveAccounts,
@@ -310,7 +310,7 @@ export function render(container, ctx) {
     })}
   `;
 
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   // The mixed state, set as the DOM property because there is no attribute
   // for it. Rendered markup can only carry `checked`; this is what makes the

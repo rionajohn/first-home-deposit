@@ -9,7 +9,7 @@
  */
 import {
   appBarHTML,
-  bindAppBarBack,
+  bindAppBarLeading,
   actionBarHTML,
   figureRowHTML,
   riskWarningHTML,
@@ -54,7 +54,7 @@ export function render(container, ctx) {
     ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'continue' })}
   `;
 
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   container.querySelector('[data-action="continue"]').addEventListener('click', () => {
     window.location.hash = '#/mip/pre-check';

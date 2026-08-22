@@ -17,7 +17,7 @@
  * treatment 10c's exit sheet gives an interrupted flow. Noted for the build
  * summary as an inferred addition.
  */
-import { appBarHTML, bindAppBarBack, processingStateHTML } from '../components/ui.js';
+import { appBarHTML, bindAppBarLeading, processingStateHTML } from '../components/ui.js';
 import { borrowRange, maxProperty } from '../model/model.js';
 
 export const anchors = [];
@@ -40,7 +40,7 @@ export function render(container, ctx) {
     </main>
   `;
 
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   const timer = window.setTimeout(() => {
     if (state.resultOutcome === 'not-yet') {

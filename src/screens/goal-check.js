@@ -7,7 +7,7 @@
  * on this page, plus the pinned savings rate from src/model/rates.js
  * (DECISIONS.md D3), so nothing on this screen is a hardcoded number.
  */
-import { appBarHTML, bindAppBarBack, actionBarHTML, flagRowHTML, figureRowHTML, infoLinkHTML } from '../components/ui.js';
+import { appBarHTML, bindAppBarLeading, actionBarHTML, flagRowHTML, figureRowHTML, infoLinkHTML } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { RATES } from '../model/rates.js';
 
@@ -51,7 +51,7 @@ export function render(container, ctx) {
     ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'track-goal' })}
   `;
 
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   // One link to frame 29, not two. The "How we worked these out" chevron row
   // inside the "What we already know" card opened exactly the same sheet as

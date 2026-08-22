@@ -33,7 +33,7 @@
  */
 import {
   appBarHTML,
-  bindAppBarBack,
+  bindAppBarLeading,
   actionBarHTML,
   flagRowHTML,
   infoLinkHTML,
@@ -220,7 +220,7 @@ export function render(container, ctx) {
     })}
   `;
 
-  bindAppBarBack(container);
+  bindAppBarLeading(container);
 
   container.querySelector('[data-action="open-ltv"]').addEventListener('click', () => {
     setState({ returnFrame: '/tracker' });

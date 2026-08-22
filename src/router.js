@@ -88,6 +88,31 @@ export function goBack() {
 }
 
 /**
+ * THE CLOSE X, WHICH IS NOT THE BACK CHEVRON. They are different controls and
+ * this is the difference: the chevron moves one screen, the X leaves the
+ * journey altogether and returns to the screen it was entered from - frame 01
+ * or the goals area, whichever it was, read from `journeyEntryPoint`.
+ *
+ * They shared a handler until now, so the X behaved like the chevron on all
+ * ten screens that draw one, which made it a chevron with a different glyph.
+ *
+ * `replace` rather than a push, so the entry the participant is leaving does
+ * not stay on the stack as the thing an immediate back tap returns to. Note
+ * what that does and does not achieve: it overwrites ONE entry, so back after
+ * an exit lands on the screen BEFORE the one the X was pressed on, which is
+ * still inside the flow. See DECISIONS.md D30 for the measurement and why a
+ * deeper unwind was not done here.
+ *
+ * The X on a sheet is not this control and never reaches here: sheets close
+ * through `[data-action="dismiss"]`, which is `goBack()` and lands on the
+ * screen underneath (D29). Frame 10c is the one crossing point - its X and
+ * "Keep going" dismiss the sheet, and only its "Leave" calls this.
+ */
+export function exitFlow() {
+  window.location.replace(`#${getState().journeyEntryPoint || '/home'}`);
+}
+
+/**
  * Cold start on a deep route: put /home behind the participant.
  *
  * Typing `#/tracker` into a fresh tab — or reopening a link a facilitator
