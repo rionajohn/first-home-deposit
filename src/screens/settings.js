@@ -82,7 +82,7 @@ export function render(container, ctx) {
   applyScenarioClasses(container, state);
 
   container.innerHTML = `
-    ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: content.shared.appBar })}
+    ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
     <main class="screen-content" role="main">
       <h2 class="screen-title">${c.headline}</h2>
       <p class="entry-card__body">${c.body}</p>
@@ -118,6 +118,11 @@ export function render(container, ctx) {
     </main>
   `;
 
+  // The back chevron, not the close X. Frame 33 sits outside the participant
+  // journey entirely, so the X's exit-to-`journeyEntryPoint` followed a value
+  // no facilitator ever set. The chevron returns to whatever was on screen
+  // before, which is also what a later hidden gesture in from the profile
+  // screen will want, with no special case for it. See D32.
   bindAppBarLeading(container);
 
   function bindGroup(action, stateKey) {

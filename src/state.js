@@ -160,6 +160,13 @@ function defaultState() {
     // through the flow, which is why this is written once on entry and left
     // alone. See DECISIONS.md D30.
     journeyEntryPoint: null,
+
+    // `history.length` at the moment the journey was entered, so the exit can
+    // go back over the flow's entries instead of overwriting the last one.
+    // Recorded on the same click as `journeyEntryPoint` and read only by
+    // `exitFlow`. See DECISIONS.md D32 for what this does and does not
+    // guarantee - it is an approximation, deliberately, and it fails safe.
+    flowEntryHistoryLength: null,
     goalSaved: false,
     mipUnlocked: false,
     journeyPaused: false, // frame 10c "Save and leave" — build-spec.md section 1

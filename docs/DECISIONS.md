@@ -1135,6 +1135,58 @@ selection stays adjustable. Frame 11's other four rows keep their "Change" links
 **Reversal.** Restore `changeLabel`/`changeAction` on the four rows and turn the heading back into
 a button. The `infoLink` would then be the duplicate, and goes.
 
+## D32. Three screens take the chevron back, and the exit unwinds the flow
+
+**Date.** 22 August 2026.
+
+**Decision.** D30 gave the close X its own meaning - leave the journey, return to where it was
+entered. Three of the ten screens carrying an X were not flow boundaries and are corrected to the
+back chevron, which means `goBack()` and no other change. Separately, the exit itself stops
+overwriting one entry and goes back over the flow's own entries instead.
+
+**The three glyph corrections.**
+
+| Frame | Why the X was wrong |
+|---|---|
+| 13 `/learn/ltv` | An explainer on all three routes in - frame 09's LTV link, frame 12's, and frames 15/16's "What a bigger deposit changes". Being ejected to frame 01 or the goals area after reading it lost the participant's place, worst from the tracker, which is a screen they return to and orient themselves on |
+| 33 `/settings` | Facilitator-only and outside the journey, so its X followed a `journeyEntryPoint` no facilitator ever set. The chevron also gives back-to-profile for nothing when a hidden gesture in from the profile screen arrives |
+| 22 `/mip/adviser` | A terminal confirmation reached only from frames 20 and 21. D10 makes the adviser route an addition to the result, offered because MCOB 4.8A and the Consumer Duty support outcome require it be offered - so finishing with it belongs back on the result, not out of the journey |
+
+Frame 22's "Done" moves to `goBack()` with it, dropping its `returnFrame` read and its push. Both
+its controls are the same journey and are now the same call, and back from the result screen no
+longer returns to the confirmation the participant just finished with - verified. The screen's own
+header comment claimed `returnFrame` as the mechanism behind SPEC.md's back-route requirement; the
+requirement still holds and the comment now says how.
+
+**The exit unwinds, and this is the second attempt at it.** D30 used `location.replace`, which
+overwrites exactly one entry, so the flow's earlier screens stayed on the stack and one back tap
+from the entry point landed back inside the flow just left. `exitFlow` now records
+`history.length` at entry, beside `journeyEntryPoint`, and goes back by the difference.
+
+**Measured, because it is an approximation and was not going to be trusted otherwise.** Entering
+from the goals area: length 3 at entry, 7 at the exit, so back 4, landing on `/goals` - and one
+further back reaches `/home`, the seeded root, rather than `/calculator/review` as before.
+Entering from frame 01: length 2 at entry, 11 at the exit, back 9, landing on frame 01.
+
+**What it does not guarantee.** `history.length` counts forward entries as well as back ones, caps
+at 50 in Chrome, and a push made after going back truncates the forward entries - so the
+difference can understate the depth. It is not a running index. The guards leave it alone, because
+they `replace` rather than push and so add nothing to count, which is D29's rule paying off here.
+A missing, zero or negative delta falls back to D30's `replace`, landing on the right screen with
+the old limitation rather than throwing the participant somewhere unrelated. No depth tracking was
+built: a known limitation is worth more than new machinery in a research prototype.
+
+**One consequence worth stating.** Exiting to frame 01 leaves the participant at the root of the
+history, so a further back leaves the prototype. That is not new - frame 01 has always been the
+first entry of a session and has always behaved that way - but the exit makes it easier to reach.
+
+**Not changed.** The chevron, the sheet X, Escape, the drag dismiss and the guard redirects, all
+verified in D29 and D30 and re-verified here. Frame 18 `/mip/about` keeps its X and is the one
+remaining screen where the same question could be asked - see `GAPS.md` G58.
+
+**Reversal.** Set the three screens back to `left: 'close'`, and drop the `flowEntryHistoryLength`
+branch from `exitFlow` to return to D30's `replace`.
+
 ---
 
 ## Open questions
@@ -1178,3 +1230,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (history as the back stack) | D29 recorded: `goBack()` (`history.back()`) becomes the single implementation of back, called by the app-bar leading cell, the calculator form-step header and all seven sheets' dismiss control, none of which names a destination any more. Eleven state guards, `/reset` and frame 19b's two timer transitions convert to `location.replace()` so a guard overwrites its entry instead of adding one - the frame 09 cascade under `GAPS.md` G50 now moves one screen per tap. `seedHistoryRoot()` puts `/home` behind a cold arrival on a deep route, tested on `history.state` rather than `history.length`. Amends D21 (back from `/goals` retraces the participant's step) and D18 (unchanged in behaviour: the drag inherits `goBack()` through the dismiss control it already clicks). `returnFrame` stays, unused by any back control. |
 | 22 August 2026 (close X) | D30 recorded: the app bar's leading cell splits into `app-bar-back` and `app-bar-close`, so the X leaves the journey via a new `exitFlow()` while the chevron keeps `goBack()`. New `journeyEntryPoint` state records `/home` or `/goals` on entry, because `returnFrame` names whichever screen opened the current sheet and cannot answer this. Frame 10c's "Leave" follows it; its X and "Keep going" do not. The sheet carve-out holds structurally - sheets dismiss through a different `data-action`. `replace()` does not unwind the flow, only the exited entry: back after an exit lands on the step before it. Amends D29. |
 | 22 August 2026 (rates fixed) | D31 recorded: every rate becomes explanatory. The "Change" links on the savings interest rate and tax rate rows are removed from frames 10/10b and 11, and frames 15/16's rates-card heading stops being a button; all six values keep their provenance captions. Frame 13 and 13b stay - they are comprehension content and change no rate - but the heading's route to frame 13 moves to an `infoLink` below the card, labelled "What a bigger deposit changes" (D25's own CTA wording) and rendered only in the checkpoint-reached and goal-met variants, where the below-checkpoint CTA that otherwise reaches frame 13 is absent. `savings-rate` (a monthly amount, not a rate) and deposit-percentage selection are unchanged. |
+| 22 August 2026 (chevron corrections) | D32 recorded: frames 13, 33 and 22 take the back chevron instead of the close X, none of them being a flow boundary; frame 22's "Done" moves to `goBack()` with it, dropping a `returnFrame` push that left the confirmation on the stack. `exitFlow` stops overwriting one entry and goes back by the difference between `history.length` now and at flow entry, measured at 4 and 9 steps on the two entry routes, falling back to D30's `replace` when the delta is missing or not positive. Amends D30. `GAPS.md` G57 and G58 opened. |

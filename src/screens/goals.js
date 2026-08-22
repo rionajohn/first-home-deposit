@@ -176,7 +176,7 @@ export function render(container, ctx) {
   // (src/state.js), so a cold arrival has the same read figures as anyone
   // else and there is nothing to mark. See DECISIONS.md D28.
   container.querySelector('[data-action="open-deposit-calculator"]').addEventListener('click', () => {
-    ctx.setState({ goal: 'house', returnFrame: '/goals', journeyEntryPoint: '/goals' });
+    ctx.setState({ goal: 'house', returnFrame: '/goals', journeyEntryPoint: '/goals', flowEntryHistoryLength: window.history.length });
     window.location.hash = '#/calculator/property';
   });
 }

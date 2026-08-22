@@ -5,8 +5,20 @@
  * Reached as a push (not a sheet — SPEC.md's transition rules list 03b, 10c,
  * 13b, 29, 30, 31, 32 as the sheets; 13 isn't one of them) from every
  * "What rates are like at this Loan-to-Value" row on frames 12, 15 and 16,
- * and from frame 13b's dismissal. Its close icon and "Got it" primary button
- * both return to `returnFrame`, the same pattern frame 13b itself uses.
+ * and from frame 13b's dismissal.
+ *
+ * IT CARRIES THE BACK CHEVRON, NOT THE CLOSE X. Frame 13 is an explainer on
+ * every route into it, not a boundary of the journey: it is opened from
+ * frame 12 mid-calculator and from frames 15/16, and the tracker in
+ * particular is a screen participants return to and orient themselves on.
+ * The X leaves the journey for the screen it was entered from (D30), so on
+ * this screen it would have thrown a participant who was reading about
+ * deposits back out to frame 01 or the goals area and lost their place. The
+ * chevron returns them to whichever screen sent them here. See D32.
+ *
+ * Its "Got it" primary button still pushes to `returnFrame` rather than
+ * going back, so the two controls resolve to the same screen by different
+ * means - see GAPS.md G57.
  *
  * The comparison table and the deposit/mortgage proportion rows all plot
  * against CHART_DEPOSIT_PCTS (5/10/15%) rather than the participant's own
@@ -92,7 +104,7 @@ export function render(container, ctx) {
   const interestDiff = columns[0].interest - columns[columns.length - 1].interest;
 
   container.innerHTML = `
-    ${appBarHTML({ title: c.appBarTitle, left: 'close', appBarLabels: content.shared.appBar })}
+    ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
     <main class="screen-content" role="main">
       <h2 class="screen-title">${c.headline}</h2>
       ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions-deposit' })}

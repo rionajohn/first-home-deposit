@@ -1207,3 +1207,40 @@ removes the reason the general-mode frames were kept out of `scripts/overlap.tes
 not establish that frame 12's chart is sound - the label positioning that produced the collision
 was never diagnosed, and G44's question about the same chart's opaque label plates is still open.
 Re-find it against reachable figures before assuming it went with the mode.
+
+---
+
+**G57. Frame 13's "Got it" pushes where its chevron pops. OPEN.**
+
+Found while giving frame 13 the back chevron (`DECISIONS.md` D32). The two controls on the screen
+resolve to the same place by different means: the chevron is `goBack()`, while the "Got it"
+primary at `src/screens/learn-ltv.js:214` still does `window.location.hash = '#' + returnFrame`.
+
+Same destination in practice, because each of the three callers sets `returnFrame` immediately
+before navigating. Different mechanism, and the difference shows on the next tap: "Got it" pushes,
+so frame 13 stays on the stack and back from the screen it returned to lands on frame 13 again.
+This is the pattern D29 removed from every back control and D32 has just removed from frame 22's
+"Done" for exactly this reason.
+
+Not fixed here because it was outside the stated scope of that change. The fix is one line - point
+it at `goBack()` and drop the `returnFrame` read, as frame 22 now does. Worth doing with a sweep of
+the other primaries that still return by pushing (`/mip/adviser` is done; `/learn/ltv` is this one),
+rather than one at a time.
+
+---
+
+**G58. Frame 18 `/mip/about` keeps the close X, and may be the same mistake as frame 13. OPEN.**
+
+`DECISIONS.md` D32 corrected the glyph on frames 13, 33 and 22, all of which carried an X without
+being a boundary of the journey. Frame 18 was not part of that change and still carries one, so its
+X leaves the journey for `journeyEntryPoint`.
+
+It has one route in: frame 17's "What the check involves" row (`src/screens/mip.js:65-68`). That
+makes it an explainer opened from the screen before it, which is the same shape as frame 13 - and
+frame 13's X was corrected precisely because being ejected to frame 01 or the goals area after
+reading an explainer loses the participant's place. The difference, and the reason this is a
+question rather than a defect, is that frame 18 sits at the top of the Mortgage-in-Principle flow
+rather than off the side of it, and its own action bar continues to frame 19 rather than returning
+- so "leave the check" may genuinely be what its X should mean.
+
+Needs a decision about what frame 18 is, not a code change guessed at from the pattern.

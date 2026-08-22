@@ -93,15 +93,26 @@ export function goBack() {
  * journey altogether and returns to the screen it was entered from - frame 01
  * or the goals area, whichever it was, read from `journeyEntryPoint`.
  *
- * They shared a handler until now, so the X behaved like the chevron on all
- * ten screens that draw one, which made it a chevron with a different glyph.
+ * HOW IT LEAVES, which is the part that took two attempts. `location.replace`
+ * overwrites exactly one entry, so the flow's earlier screens stayed on the
+ * stack and one back tap from the entry point landed back inside the flow the
+ * participant had just left. Going back over the flow's own entries is what
+ * actually leaves it behind, and the number of them is the difference between
+ * `history.length` now and what it was when the flow was entered.
  *
- * `replace` rather than a push, so the entry the participant is leaving does
- * not stay on the stack as the thing an immediate back tap returns to. Note
- * what that does and does not achieve: it overwrites ONE entry, so back after
- * an exit lands on the screen BEFORE the one the X was pressed on, which is
- * still inside the flow. See DECISIONS.md D30 for the measurement and why a
- * deeper unwind was not done here.
+ * THIS IS AN APPROXIMATION AND IT IS MEANT TO BE. `history.length` counts
+ * forward entries as well as back ones and caps (50 in Chrome), and a push
+ * made after going back truncates the forward entries, so the difference can
+ * understate the depth. It is not a running index of where the participant
+ * is. The guards do not disturb it, because they `replace` rather than push
+ * and so add nothing to count - that is the same rule from D29 paying off
+ * here.
+ *
+ * So it fails safe rather than failing oddly: a delta that is missing, zero
+ * or negative falls back to the `replace` this used to do, which lands on the
+ * right screen with the old back-into-the-flow limitation rather than
+ * throwing the participant somewhere unrelated. Measured in a browser before
+ * being kept - see DECISIONS.md D32 for the numbers.
  *
  * The X on a sheet is not this control and never reaches here: sheets close
  * through `[data-action="dismiss"]`, which is `goBack()` and lands on the
@@ -109,7 +120,19 @@ export function goBack() {
  * "Keep going" dismiss the sheet, and only its "Leave" calls this.
  */
 export function exitFlow() {
-  window.location.replace(`#${getState().journeyEntryPoint || '/home'}`);
+  const { journeyEntryPoint, flowEntryHistoryLength } = getState();
+  const target = `#${journeyEntryPoint || '/home'}`;
+
+  const depth = flowEntryHistoryLength === null
+    ? null
+    : window.history.length - flowEntryHistoryLength;
+
+  if (depth !== null && depth > 0) {
+    window.history.go(-depth);
+    return;
+  }
+
+  window.location.replace(target);
 }
 
 /**
