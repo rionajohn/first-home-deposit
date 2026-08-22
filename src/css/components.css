@@ -106,7 +106,34 @@
   stroke-dasharray: 2.6 2.6;
 }
 
-/* --- App bar --- */
+/* --- App bar ---
+   FULL-BLEED CHROME WITH ITS CONTROLS ON THE CONTENT MARGIN. The bar itself
+   still spans the whole screen - its surface and, on `.form-step-header`
+   below, its border-bottom, run edge to edge, which is what makes it read as
+   chrome rather than as a card. What moves in is the GLYPH, and the padding
+   below is what puts it exactly on --screen-inset-x.
+
+   The glyph, not the cell. A leading control is a 24px title3 icon centred
+   in a 48px touch target (D1), so a cell laid flush against the padding edge
+   would sit the visible arrow 12px further in than the heading beneath it.
+   The padding subtracts that slack, so the ICON's left edge lands on the
+   inset and the touch target overhangs it symmetrically - the identical
+   correction `.bottom-sheet__close` already makes with its negative margins
+   (screens.css), written here as the same expression so the two cannot
+   drift apart.
+
+   `* var(--text-scale)` because the icon grows at frame 33's Large text size
+   while the 48px target does not, so the slack to subtract shrinks: 12px at
+   the default size, 10.2px at Large, glyph on the inset at both. A flat 8px
+   would have left it 2px out at Large.
+
+   This restores the relationship the Figma frames draw - frame 02's close
+   glyph and its body copy share one left margin - which the previous flush
+   cell was already 4px short of and which the wider inset would otherwise
+   have stretched to 8px. Applied to the whole bar rather than to the action
+   cell alone so both sides move together and the centred title stays put; a
+   margin on the leading cell only would have pushed the title off-centre by
+   the same amount it moved the arrow. */
 .app-bar {
   display: flex;
   align-items: center;
@@ -114,6 +141,10 @@
   height: 56px;
   width: 100%;
   flex: 0 0 auto;
+  padding-inline: calc(
+    var(--screen-inset-x) -
+      (var(--touch-target-min) - var(--icon-size-title3) * var(--text-scale)) / 2
+  );
 }
 
 .app-bar__cell {
@@ -440,7 +471,12 @@
    and specificity, not source order, is what makes it hold. See GAPS.md G41. */
 .screen > .screen-content {
   margin-bottom: calc(-1 * var(--action-bar-height, 0px));
-  padding-bottom: calc(var(--space-lg) + var(--action-bar-height, 0px));
+  /* --screen-inset-y is the gap the participant actually sees between the
+     last piece of content and the top of the action bar; the bar's own
+     measured height is what puts that gap above the bar rather than behind
+     it. Same token as the shorthand above, so the clearance above a fixed
+     action bar and the clearance below the header are one value. */
+  padding-bottom: calc(var(--screen-inset-y) + var(--action-bar-height, 0px));
 }
 
 /* --- The scroll affordance ---
@@ -521,7 +557,13 @@
   align-items: stretch;
   gap: var(--space-sm);
   width: 100%;
-  padding: var(--space-lg);
+  /* The BAR is full-bleed - its surface and its border-top run edge to edge,
+     which is what makes it read as chrome rather than as a card. Its BUTTONS
+     are content, so they take the screen inset horizontally and line up with
+     the cards above them; before this they sat 4px proud of that column.
+     Vertical padding is the bar's own internal spacing, not an edge inset, so
+     it stays on the spacing scale. */
+  padding: var(--space-lg) var(--screen-inset-x);
   background: var(--color-surface);
   border-top: 1px solid var(--color-border-subtle);
 
@@ -1096,14 +1138,25 @@
   font-weight: 600;
 }
 
-/* --- Content column --- */
+/* --- Content column ---
+   THE shared screen wrapper. Every full screen in the app renders its body
+   into one of these (`<main class="screen-content">`), so the edge inset is
+   set once, here, and no screen carries a margin of its own - verified by
+   sweeping the stylesheets for per-screen padding overrides: there are none,
+   and the two `.screen-content` modifiers that exist (`--centered`,
+   `.declined-content`) set alignment only.
+
+   Inset from --screen-inset-* (tokens.css), not the 8pt spacing scale, so
+   "how far in from the edge does the app start" can be tuned without moving
+   the gaps between cards. `gap` stays on --space-lg: that IS a spacing
+   question. */
 .screen-content {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
   align-items: stretch;
   width: 100%;
-  padding: var(--space-lg);
+  padding: var(--screen-inset-y) var(--screen-inset-x);
   flex: 1 1 auto;
   min-height: 0; /* let this child shrink below its content size so it (not .screen) is what scrolls */
   overflow-y: auto;
@@ -1668,12 +1721,18 @@
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
+/* The same correction as `.app-bar` above, for the same reason - this bar
+   carries the same 24px-glyph-in-a-48px-target controls, one at each end. */
 .form-step-header__title-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 56px;
   width: 100%;
+  padding-inline: calc(
+    var(--screen-inset-x) -
+      (var(--touch-target-min) - var(--icon-size-title3) * var(--text-scale)) / 2
+  );
 }
 
 .form-step-header__cell {
@@ -1705,11 +1764,17 @@
   color: var(--color-label);
 }
 
+/* The header itself stays full-bleed - its border-bottom is one of the rules
+   that runs edge to edge, and the 44/48px title-bar cells are Figma-drawn
+   geometry. The step row is the one thing in it that is plain text sitting
+   directly above the content column, so it takes the screen inset and stays
+   flush with the heading beneath it; on --space-lg it would have been left
+   4px out of line the moment the content moved in. */
 .form-step-header__step-row {
   display: flex;
   align-items: center;
   height: 32px;
-  padding: 0 var(--space-lg);
+  padding: 0 var(--screen-inset-x);
 }
 
 .form-step-header__step {

@@ -374,7 +374,7 @@
    shorthand later in the sheet would reset this longhand back to its own
    bottom value. */
 .bottom-sheet > .bottom-sheet__content {
-  padding-bottom: calc(var(--space-2xl) + var(--action-bar-height, 0px));
+  padding-bottom: calc(var(--screen-inset-y) + var(--action-bar-height, 0px));
 }
 
 /* --- Normal document flow inside the sheet's scroller ---
@@ -540,15 +540,18 @@
    grabber: the heading read as starting immediately below the bar, and the
    target was close enough to it that a downward drag begun on the grabber
    and a tap on the close control were the same few pixels of screen.
-   `--space-2xl` — the sheet's own content padding — puts the heading 24px
-   below the grabber and still leaves the target 15px clear of it, so the
-   two controls are visibly separate things. */
+   `--screen-inset-y` - the same 24px the sheet's own content padding uses -
+   puts the heading 24px below the grabber and still leaves the target 15px
+   clear of it, so the two controls are visibly separate things. It is the
+   inset token rather than `--space-2xl` for the reason the horizontal
+   padding is: this row's job is to sit on the body copy's own margins, so
+   it has to move when they move rather than when the spacing scale does. */
 .bottom-sheet__title-row {
   display: flex;
   align-items: flex-start;
   gap: var(--space-md);
   width: 100%;
-  padding: var(--space-2xl) var(--space-2xl) var(--space-lg);
+  padding: var(--screen-inset-y) var(--screen-inset-x) var(--space-lg);
   box-sizing: border-box;
 }
 
@@ -595,6 +598,17 @@
   cursor: pointer;
 }
 
+/* The sheet's own shared wrapper - the second and last scrolling content area
+   in the app, and the counterpart of `.screen-content`. It reads the SAME
+   --screen-inset-* tokens rather than a sheet-specific pair, because the
+   sheet CARD is horizontally full-bleed (it touches both screen edges, with
+   only its top corners rounded), so this padding is the distance from the
+   phone screen's edge exactly as `.screen-content`'s is. Two different
+   numbers here would be two different insets on the same edge.
+
+   Top padding is 0 and stays 0: the header above supplies the head
+   clearance, and the handle-only variant gets it from the rule further down
+   this file. */
 .bottom-sheet__content {
   flex: 1 1 auto;
   min-height: 0;
@@ -602,7 +616,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
-  padding: 0 var(--space-2xl) var(--space-2xl);
+  padding: 0 var(--screen-inset-x) var(--screen-inset-y);
 }
 
 /* The same 24px of head clearance on a sheet that has no title row to carry

@@ -110,6 +110,28 @@
   --space-3xl: 32px;
   --space-4xl: 40px;
 
+  /* --- Screen inset: the app's distance from the edge of the phone screen ---
+     The single place this is set. Every scrolling content area in the app
+     reads these two and nothing else: `.screen-content` on a full screen
+     (components.css) and `.bottom-sheet__content` on an overlay sheet
+     (screens.css), plus the action bar's horizontal padding so its buttons
+     line up with the content above them rather than sitting 4px proud of it.
+
+     Deliberately NOT --space-xl / --space-2xl, even though they currently
+     hold the same numbers. The 8pt spacing scale answers "how far apart are
+     two things"; this answers "how far in from the edge does the app start",
+     which is a different question with a different reason to change. Aliasing
+     them would mean a later adjustment to one silently moved the other -
+     re-tuning gaps between cards would walk the screen margin with it.
+
+     Both apply at every width. The framed view at >=768px (shell.css) is a
+     393px mock of the phone, not a fluid desktop column, so a wider inset
+     there would show participants a narrower content column than the same
+     build gives them on a real handset and would diverge from the Figma
+     frames that are this repo's system of record. See DECISIONS.md D23. */
+  --screen-inset-x: 20px;
+  --screen-inset-y: 24px;
+
   /* --- Corner radii --- */
   --radius-sm: 8px;
   --radius-md: 12px;

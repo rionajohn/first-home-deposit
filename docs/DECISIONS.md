@@ -4,7 +4,7 @@ Authoritative where `build-spec.md` is silent. Where the two conflict, `build-sp
 
 Each decision records what was decided, why, and what it would take to reverse it. Open questions sit at the end and must be closed before the prototype goes in front of a participant.
 
-Last updated: 20 August 2026
+Last updated: 22 August 2026
 
 ---
 
@@ -645,6 +645,64 @@ The line between the two is visible on the screen itself. `/goals` shows a `bala
 
 ---
 
+## D23. One screen inset, in two tokens, at every width
+
+**Decision.** How far the app's content sits from the edge of the phone screen is set in exactly two places, `--screen-inset-x: 20px` and `--screen-inset-y: 24px` (`tokens.css`), and nothing else in the codebase decides it. Both apply at every viewport width. Content was previously 16px from the edge on all four sides and read as crowded against it.
+
+**The three insets the tokens produce**, all measured from the phone screen's own edge rather than from a declared padding value:
+
+| Inset | Value | Where it comes from |
+|---|---|---|
+| Horizontal, both edges | 20px | `--screen-inset-x` |
+| Below the header, before the first block | 24px | `--screen-inset-y` |
+| Above a revealed action bar | 24px | `--screen-inset-y`, plus the bar's measured height |
+
+**Only two elements own an inset, because the app has only two scrolling content areas.** `.screen-content` is the shared wrapper every full screen renders its body into (`<main class="screen-content">`, all 24 of them), and `.bottom-sheet__content` is its counterpart on the seven overlay sheets. There was no per-screen padding to migrate: the stylesheets were swept for it and the only `.screen-content` modifiers that exist (`--centered`, `.declined-content`) set alignment, never spacing.
+
+**Both wrappers read the same two tokens, rather than a screen pair and a sheet pair.** A sheet card is horizontally full-bleed - it touches both screen edges, with only its top corners rounded - so its content padding *is* the distance from the phone screen's edge, exactly as `.screen-content`'s is. Two numbers there would be two different insets on one edge; the sheets moved from 24px to 20px to match. Sheets keep 24px vertically, which is what they already had.
+
+**Not aliased to `--space-xl` / `--space-2xl`, though they currently hold the same numbers.** The 8pt spacing scale answers "how far apart are two things"; these answer "how far in from the edge does the app start". Aliasing them would mean re-tuning the gap between two cards silently walked the screen margin with it.
+
+### Full-bleed elements, identified before the change and preserved by breaking out rather than by exempting screens
+
+| Element | What stays edge to edge |
+|---|---|
+| `.app-bar` | Surface, and the full 56px bar |
+| `.form-step-header` | Surface, plus its `border-bottom` |
+| `.action-bar` | Surface, plus its `border-top` |
+| `.bottom-nav` | Surface, plus its `border-top`, plus the safe-area band below the tabs (D14) |
+| `.sheet-scrim` | The whole dimmed area, insets included - see `shell.css` |
+| `.bottom-sheet` | The card's left and right edges |
+| `.action-bar-dock::before` | The 56px scroll-affordance fade |
+
+Nothing *inside* either scroller is full-bleed, and nothing needs to be: the codebase contains no negative-margin breakout, so widening the wrapper could not strand one. Confirmed by sweeping all four stylesheets for negative horizontal margins - the only two negative margins in the codebase are D17's action-bar overlap and a `-1px` on a visually-hidden helper.
+
+### The controls inside a full-bleed header move in; the header itself does not
+
+**Decision.** `.app-bar` and `.form-step-header__title-bar` take horizontal padding of `calc(var(--screen-inset-x) - (var(--touch-target-min) - var(--icon-size-title3) * var(--text-scale)) / 2)`, and `.form-step-header__step-row` takes the plain inset. The action bar's buttons take `--screen-inset-x` too.
+
+**Why the arithmetic rather than the plain token.** A leading control is a 24px title3 glyph centred in a 48px touch target (D1), so a cell laid flush against a 20px padding edge would sit the *visible* arrow at 32px - 12px further in than the heading beneath it. The expression subtracts that slack so the glyph's own edge lands on 20px and the touch target overhangs it symmetrically. `* var(--text-scale)` because the glyph grows at frame 33's Large text size while the 48px target does not: the slack is 12px at the default size and 10.2px at Large, and the glyph measures 20px at both. This is the identical correction `.bottom-sheet__close` already makes with its negative margins, written as the same expression so the two cannot drift.
+
+**Why this is not a full-bleed exemption.** The bar's surface and border still span the whole screen, which is what makes it read as chrome. Only its controls move. The relationship restored is the one the Figma frames draw - frame 02's close glyph and its body copy share one left margin - which the old flush cell was already 4px short of and which the wider inset would otherwise have stretched to 8px.
+
+Left alone deliberately: the 44px empty spacer cell opposite an action cell, which leaves `.app-bar`'s centred title 2px off the screen's centre. That is pre-existing Figma-drawn geometry, unchanged by this pass and unrelated to the edge inset.
+
+### 768px and above keeps the same inset, and does not get a wider one
+
+**Decision.** No breakpoint. The framed view uses `--screen-inset-x` / `--screen-inset-y` exactly as the frameless view does.
+
+**Why.** At `>=768px` this app is not a fluid desktop layout: `shell.css` renders a fixed 393px phone mock inside a device bezel, centred on a canvas and scaled to fit the viewport height. There is no content column to cap or centre - the bezel already does both - so a wider "desktop" inset could only be applied *inside* the 393px phone screen, which would show a participant on a laptop a 329px content column where the same build gives a participant on a handset 353px. One screen would have two layouts, and the narrower one would no longer match the Figma frames that are this repo's system of record.
+
+**A measurement note, so the numbers are not misread.** At 1280x900 the rendered inset measures 18.64px, not 20px. That is the mock's scale-to-fit transform (`0.9318` at that viewport height), not a different rule: `.screen-content`'s computed `padding-left` is `20px` at 1280x900, 1280x1000 and 1440x1080 alike, and at viewport heights of 1000px and up the transform is identity and the inset renders at exactly 20px.
+
+**To reverse.** Add a `@media (min-width: 768px)` block redeclaring the two tokens on `:root`. Every consumer picks it up; no rule elsewhere needs to change. That is the whole point of them being tokens.
+
+### Verified
+
+`node --test scripts/overlap.test.mjs` (66 assertions, all 32 frames x both text sizes), `bottom-nav.test.mjs` (6), `sheet-drag.test.mjs` (15) and `src/model/*.test.js` (47) all pass unchanged. `scripts/inset-shots.mjs` measures the three insets and the glyph alignment on six views x two widths x both themes, and sweeps 320/375/414/768/1280px for horizontal overflow: none at any width, `scrollWidth === clientWidth` throughout and no child overhanging the phone screen by more than 0px.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -676,4 +734,5 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 21 August 2026 (Goals tab) | D11 amended: Goals is a live tab - enabled, routing to `/goals`, lit while on that screen. Payments, Insights and Profile stay `disabled`. Frame 01 stopped rendering its own copy of the bar, which had left its tabs bound to nothing: `mountBottomNav` is the only renderer and the only binder now. See `GAPS.md` G47. |
 | 21 August 2026 (tab states) | D11 amended again: the bar has three tab states, not two — active (indicator + bold label + filled icon + `aria-current`), enabled-not-active (identical to disabled at rest, darkens under a press), and disabled (`aria-disabled`, not focusable). A tab is active only where the route IS its destination, so `/home` and `/goals` light one and every other screen lights none. The old two-state split was an accident: no rule set `color` on a tab, so enabled inherited full strength and disabled was greyed by the user agent. See `GAPS.md` G49. |
 | 21 August 2026 (Goals -> calculator) | D22 recorded: the /goals deposit card routes to frame 02 for a cold arrival and frame 08 only when `journeyStarted` AND `saved-toward-deposit` are both set, so it never hands off to a screen that will redirect; `goal` and `returnFrame` are written only once the destination is settled; and the pre-consent balances on /goals stay, because the bank already holds them and frame 03 asks for a different processing purpose. Closes `GAPS.md` G48. |
+| 22 August 2026 (screen inset) | D23 recorded: the app's distance from the edge of the phone screen becomes two tokens, `--screen-inset-x: 20px` and `--screen-inset-y: 24px`, read by both scrolling content areas (`.screen-content`, `.bottom-sheet__content`) and by the action bar's buttons; content moves from 16px to 20px horizontally and 24px vertically, sheets from 24px to 20px horizontally so one edge has one inset. Header and tab-bar surfaces, their rules and the sheet scrim stay full-bleed; a header's controls move onto the content margin, restoring the alignment the Figma frames draw. No breakpoint at 768px - the framed view is a 393px mock of the phone, not a fluid column. |
 | 21 August 2026 (Goals -> 09a) | D21 amended: the /goals card routes to frame 09/09a for everyone, setting `mode = 'general'` when `consentGiven !== true`, exactly as `build-spec.md`'s frame 04 row does. Replaces D22's /journey-for-cold-arrivals split, whose routing half is now superseded. Walked 09a to 12 in that state: 09a and 09 work, **frame 10 does not render** - it guards on `left-over` and loops back to 09 - and `build-spec.md`'s own frame 04 general path does the same. Recorded as `GAPS.md` G50, open. |
