@@ -125,6 +125,58 @@ a mismatch shows as a visible seam around the status bar on an installed copy.
 
 ---
 
+## Merging and deploying
+
+### Branches
+
+Two branches. `build` is where all work happens. `main` is what participants see, and nothing is
+committed to it directly.
+
+Check which branch you are on before starting a session:
+
+```bash
+git branch --show-current
+```
+
+Switch to `build`:
+
+```bash
+git checkout build
+```
+
+If `build` does not exist locally on a machine that has only ever seen `main`:
+
+```bash
+git checkout -b build origin/build
+```
+
+Anything committed to `main` by accident should be moved to `build` rather than left there, since
+`main` is meant to be a record of what has been deployed to participants.
+
+### Deploying a build
+
+1. Commit and push everything on `build` first, and confirm `git status` is clean.
+2. `git checkout main`, then `git merge build`.
+3. Tag before pushing. Every build a participant sees gets a tag, so the session can be traced to
+   a commit.
+4. `git push origin main --tags`.
+5. `git checkout build` to carry on working. **Do not leave the working copy on `main`** — the next
+   session will otherwise commit to it without noticing.
+
+Vercel deploys `main` automatically. The production URL is `first-home-feature.vercel.app` and a
+static build takes under a minute.
+
+### Before a session, check two things
+
+- **Open the production URL on a real phone, not a desktop browser.** `env(safe-area-inset-*)`
+  resolves to zero on desktop, so the framed view only ever tests the fallback values. The
+  safe-area handling on sheets and the bottom nav is untested until a notched device loads it.
+- **Check the build version shown on `#/settings` matches the deploy you just made.** The service
+  worker may serve a cached shell from an earlier visit, and the version display exists to make
+  that visible.
+
+---
+
 ## Commands
 
 ```bash
