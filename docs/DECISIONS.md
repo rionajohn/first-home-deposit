@@ -749,6 +749,68 @@ Left alone deliberately: the 44px empty spacer cell opposite an action cell, whi
 
 ---
 
+## D26. The general-mode tracker measures the plan, not the balance
+
+**Decision.** Frames 15/16 gain a fourth variant, selected on `saved-toward-deposit` being null. It shows **no balance and no progress bar**, because there is no truthful figure to put in either. The headline figure becomes `deposit-target` - the goal the participant set - and the "This month" card is replaced by a "Your plan" card. Frame 16 has no general-mode counterpart and cannot have one. Closes `GAPS.md` G51.
+
+### What the participant has actually done by the time they get here
+
+Read out of `sessionStorage` at `/tracker` after walking 04 -> 09a -> 09 -> 10 -> 11 -> 12 -> "Save my goal":
+
+| Done | State | Set by |
+|---|---|---|
+| Declined to link accounts | `mode: 'general'`, `consentGiven: null`, `accountAssignments: {}` | frame 04 / frame 03 "Not now" |
+| Set a monthly saving range | `generalMonthlyLow/High` 150 / 288, provenance `estimated` | frame 04 slider |
+| Entered a property value | `property-value` 280,000, `entered` | frame 09 |
+| Chose a deposit percentage | `deposit-pct` 0.15, `entered` | frame 09 |
+| Confirmed the monthly range | `monthly-low/high`, `savings-rate`, provenance inherited | frame 10 |
+| Worked it out | `months-to-target`, `checkpoint-amount` | frame 11 |
+| Saved the goal | `goalSaved: true` | frame 12 |
+
+Null throughout: `saved-toward-deposit`, `emergency-fund`, `unassigned`, `money-in`, `essential-spending`, `left-over`.
+
+### Why there is no progress figure, and why none was substituted
+
+Every candidate was checked and every one fails:
+
+| Candidate | Why not |
+|---|---|
+| `saved-toward-deposit` | Null. Nothing was read. |
+| Zero | **The one worth writing down.** Frame 12 may legitimately PROJECT from a zero balance and caption it as an assumption ("starting from nothing"). A tracker headline reading "GBP 0" under "your deposit so far" is a different act: it is a claim about the participant. They may hold savings elsewhere. It would be a false statement, not a conservative one. |
+| `MOCK_POSITION.thisMonthSaved` / `thisMonthInterest` | `accounts.js` documents both as directly-read account figures, provenance `read`. Substituting them would be exactly the fabrication this variant exists to avoid. |
+| A published average of what first-time buyers have saved | No such constant exists in `rates.js`, and adding one would put a figure about somebody else on screen as this participant's progress. This is where the D24 `savingCeiling` precedent stops: a published constant can supply a *bound* the screen needs, never a *measurement* of this person. |
+| Time elapsed since the goal was set | `goalSaved` is a boolean. The prototype holds no timestamp, and inventing one is inventing state. |
+
+So the screen stops being a progress tracker and becomes a plan screen. That is the answer to "what does it measure": **the goal the participant set and what they said they would put toward it, with nothing claimed about where they currently stand.**
+
+### What it shows, and where each figure comes from
+
+| On screen | Source | Caption |
+|---|---|---|
+| `deposit-target` (headline) | `property-value` x `deposit-pct`, both entered | "Worked out from the 15% deposit you chose on a GBP 280,000 home" |
+| `checkpoint-amount` | `CHECKPOINT_FRACTION` x `deposit-target` | "Unlocks at GBP 31,500, 75% of the goal you set" |
+| Monthly range | `monthly-low`/`monthly-high` | "The range you set", or if the seeded range was kept, "The published range you kept. Source: NatWest Savings Index 2026" |
+| `on-track-for` | `onTrackFor()` from that range | "Worked out from that range, starting from nothing, because we can't see what you've already saved" |
+| Rate bands | `LTV_RATE_BANDS_BY_DEPOSIT_PCT`, a dated constant, x their `property-value` | unchanged from the consent path |
+
+Nothing else appears. The "Saved" and "Interest earned" rows are gone rather than zeroed, per the rule that a figure without a source does not appear at all.
+
+### The milestones
+
+`['locked', 'locked', 'current', 'locked']`. Milestones 1 and 2 ARE the consent journey and neither happened, so both sit at `locked` - the dashed, not-started icon. They stay visible rather than being hidden: they are precisely the two things this session is missing, and seeing them is how a participant understands why there is no balance. "Deposit goal set" is genuinely `current`, the same state the consent path's own below-checkpoint variant gives it. The ladder is not linear in this mode and does not pretend to be. No milestone is `done`, because none of the four has been completed and left behind.
+
+Milestone 4's body drops the consent path's "{gap} to go" - a gap needs a starting point - and says instead that linked accounts would be needed to tell them when they reach the checkpoint. The row stays inert, as D25 left it.
+
+### Why frame 16 has no general-mode counterpart
+
+Passing the checkpoint is a statement about a balance nobody has measured, so the variant is always `below-checkpoint` and the Mortgage in Principle milestone stays locked. This is not a limitation being worked around: `mip-pre-check.js` reads `money-in`, `essential-spending` and `saved-toward-deposit`, none of which exist here, so the MiP route could not run even if it were offered. D25's action bar - a guidance primary and a demoted "Adjust my goal" - is therefore the only action bar general mode ever sees, and it needed no change.
+
+### Verified
+
+Walked 04 -> tracker at 375px, screenshotting each step. All three consent-path tracker variants (below-checkpoint, checkpoint-reached, goal-met) render **byte-identical PNGs** to before, top and bottom of scroll, as do the consent path's own frames 10, 11 and 12. `scripts/overlap.test.mjs` gains a `15-general` frame and passes at both text sizes (68 assertions, up from 66); `bottom-nav` (6), `sheet-drag` (15) and `src/model/*.test.js` (47) pass unchanged.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -784,3 +846,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 21 August 2026 (Goals -> 09a) | D21 amended: the /goals card routes to frame 09/09a for everyone, setting `mode = 'general'` when `consentGiven !== true`, exactly as `build-spec.md`'s frame 04 row does. Replaces D22's /journey-for-cold-arrivals split, whose routing half is now superseded. Walked 09a to 12 in that state: 09a and 09 work, **frame 10 does not render** - it guards on `left-over` and loops back to 09 - and `build-spec.md`'s own frame 04 general path does the same. Recorded as `GAPS.md` G50, open. |
 | 22 August 2026 (general-mode calculator) | D24 recorded, closing `GAPS.md` G50: `left-over` stays null for a session that never linked an account, and frame 10's slider takes its ceiling from `GENERAL_SAVINGS_RANGE.max` instead, seeded from the range the participant set on frame 04. Frame 10's guard drops `left-over` and keeps `deposit-target`. Two model fixes (`monthsToTarget`'s null-ceiling comparison and its starting balance) and general-mode caption variants across frames 10, 11, 12 and 13. Walked 04 -> 09a -> 09 -> 10 -> 11 -> 12 at 375px; the consent path's own 10/11/12 render pixel-identical to before. |
 | 22 August 2026 (below-checkpoint tracker) | D25 recorded: frame 15's action bar gains a forward primary, "What a bigger deposit changes" -> frame 13 with `returnFrame` set, and keeps "Adjust my goal" as the secondary. The locked Mortgage-in-Principle milestone row stays inert. Neither the MiP route nor any milestone state changes. |
+| 22 August 2026 (general-mode tracker) | D26 recorded, closing `GAPS.md` G51: frames 15/16 gain a fourth variant for a session with no linked accounts. There is no truthful basis for a progress figure - zero is a claim about the participant, `MOCK_POSITION` is account data, and no constant measures what anyone has saved - so the balance and the progress bar are dropped rather than filled. The headline becomes the goal they set, milestones 1 and 2 sit at `locked`, none is `done`, and the "This month" card becomes "Your plan" carrying the monthly range and what it implies. Frame 16 has no general-mode counterpart. All three consent-path variants render byte-identical; `overlap.test.mjs` gains a `15-general` frame. |

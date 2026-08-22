@@ -690,6 +690,30 @@ const content = {
     savedCaption: 'Read from the accounts you assigned to your deposit',
     goalCaptionTemplate: 'of your {target} deposit goal',
     checkpointProgressLabel: 'Checkpoint',
+
+    // GENERAL MODE (GAPS.md G51, resolved in DECISIONS.md D26). With no
+    // accounts linked there is no saved-toward-deposit and no truthful
+    // substitute for one, so this variant shows no balance and no progress
+    // bar. The headline figure is the goal the participant set, and every
+    // other figure on the screen is either something they entered or an
+    // existing dated constant, captioned with where it came from.
+    generalFigureLabel: 'The deposit goal you set',
+    generalFigureProvenanceTemplate: 'Worked out from the {pct} deposit you chose on a {property} home',
+    generalBody:
+      "You haven't linked any accounts, so we can't see what you've already saved. This page tracks the plan you set rather than a balance.",
+    accountsLinkedBodyGeneral: 'Not linked. Linking them is what lets us count what you already have toward this goal.',
+    accountsSortedBodyGeneral: "Nothing to sort yet. This is where you'd say what each account is for.",
+    // Deliberately does NOT repeat the checkpoint figure: the provenance
+    // caption directly below the tracker already carries it, and the row's
+    // job here is to say why the milestone cannot be tracked.
+    mipLockedBodyGeneral: "We'd need linked accounts to tell you when you reach the checkpoint.",
+    unlocksAtGeneralTemplate: 'Unlocks at {checkpoint}, {pct} of the goal you set',
+    planHeading: 'Your plan',
+    planMonthlyLabel: 'Putting aside each month',
+    planMonthlyCaptionEntered: 'The range you set',
+    planMonthlyCaptionEstimatedTemplate: 'The published range you kept. Source: {source}',
+    onTrackCaptionGeneral:
+      "Worked out from that range, starting from nothing, because we can't see what you've already saved",
     belowCheckpointBodyTemplate: "You're {gap} away from the point where checking a Mortgage in Principle starts to be useful.",
     checkpointReachedBodyTemplate:
       "You've passed the {pct} checkpoint. You can now check whether a Mortgage in Principle is likely to be approved.",

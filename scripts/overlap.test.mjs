@@ -105,6 +105,19 @@ const FRAMES = [
   ['13b', '/learn/ltv/video', {}],
   ['15', '/tracker', { 'saved-toward-deposit': f(12000), 'checkpoint-amount': f(21000, 'derived') }],
   ['16', '/tracker', { 'saved-toward-deposit': f(22000), 'checkpoint-amount': f(21000, 'derived') }],
+  // Not a numbered Figma frame: the general-mode tracker (DECISIONS.md D26,
+  // GAPS.md G51), which drops the balance and the progress bar and carries a
+  // "Your plan" card in place of "This month". Audited here for the same
+  // reason as `goals` above — it is a distinct rendered geometry, and its
+  // milestone bodies and provenance captions are the longest strings the
+  // milestone tracker has to wrap at either text size.
+  ['15-general', '/tracker', {
+    'saved-toward-deposit': f(null, null), 'emergency-fund': f(null, null), 'unassigned': f(null, null),
+    'money-in': f(null, null), 'essential-spending': f(null, null), 'left-over': f(null, null),
+    'monthly-low': f(150, 'estimated'), 'monthly-high': f(288, 'estimated'), 'savings-rate': f(219, 'estimated'),
+    generalMonthlyLow: f(150, 'estimated'), generalMonthlyHigh: f(288, 'estimated'),
+    'checkpoint-amount': f(21000, 'derived'), mode: 'general', consentGiven: null, savingsWithUs: null,
+  }],
   ['17', '/mip', {}],
   ['18', '/mip/about', {}],
   ['19', '/mip/pre-check', {}],

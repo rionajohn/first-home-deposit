@@ -993,7 +993,7 @@ set to `/goals`. Not fixed here; it is the same decision as the above.
 ---
 
 **G51. Frames 15/16 (the deposit tracker) have no general-mode variant, and frame 12 now hands off
-to them. OPEN - deliberately not guessed at.**
+to them. RESOLVED 22 August 2026 - see `DECISIONS.md` D26.**
 
 Found while resolving G50. Now that the calculator runs end to end without consent, frame 12's "Save
 my goal" reaches `/tracker` in a session that never linked an account, and three things on that
@@ -1016,7 +1016,35 @@ neither is taken here.
 which is what the model already assumes for a session with no accounts (`generalAnnualRange`), and
 its captions now say so. The gap is entirely on the far side of "Save my goal".
 
-*Status: open - needs a frame or a written rule before general-mode sessions go past frame 12.*
+*Status: resolved 22 August 2026 by a written rule and a fourth variant - see `DECISIONS.md` D26.*
+
+*What was decided, and the reasoning that governs it.* The load-bearing question was what the
+tracker measures when nothing has been read, and the answer is that **no truthful progress figure
+exists**, so none is shown. Each of the three rows in the table above is dealt with by removal
+rather than substitution:
+
+| Row above | What the variant does |
+|---|---|
+| The headline `saved-toward-deposit` | Gone, along with the progress bar. The headline is now `deposit-target`, the goal the participant set, captioned "Worked out from the 15% deposit you chose on a GBP 280,000 home". |
+| Milestones 1 and 2 drawn `done` | Both sit at `locked` - the dashed, not-started icon - and stay visible rather than being hidden. No milestone in this variant is `done`. "Deposit goal set" is `current`, which they did do. |
+| The "This month" card | Replaced by a "Your plan" card: the monthly range they set (captioned with its own source) and `on-track-for` worked out from it. `thisMonthSaved` and `thisMonthInterest` are gone, not zeroed. |
+
+Zero was considered and rejected as a headline: frame 12 may legitimately PROJECT from a zero
+balance and caption that as an assumption, but "GBP 0 saved" on a tracker is a claim about the
+participant, who may hold savings elsewhere. No constant was added to `rates.js` either - a
+published average of what buyers have saved would be a figure about somebody else shown as this
+person's progress. That is where D24's `savingCeiling` precedent stops: a published constant can
+supply a bound a screen needs, never a measurement of the participant.
+
+*Frame 16 has no general-mode counterpart, and cannot have one.* Passing the checkpoint is a
+statement about a balance nobody has measured, so the variant is always below-checkpoint and the
+Mortgage in Principle milestone stays locked. `mip-pre-check.js` reads `money-in`,
+`essential-spending` and `saved-toward-deposit`, so the route could not run even if it were
+offered. D25's action bar needed no change.
+
+*Verified.* Walked 04 to the tracker at 375px; all three consent-path tracker variants render
+byte-identical PNGs to before; `scripts/overlap.test.mjs` gains a `15-general` frame and passes at
+both text sizes.
 
 ---
 
