@@ -1638,6 +1638,176 @@ produces the same marker. 128 tests passing (model, overlap, bottom-nav, sheet-d
 
 ---
 
+## D38. The goals area reaches the tracker, and gains a skip-ahead control that is not a feature
+
+**Date.** 24 August 2026.
+
+**Marked as a research affordance.** Half of this entry describes a control that WOULD NOT EXIST IN
+A PRODUCTION BUILD. It is an instrument for moderated sessions, not part of the design being tested,
+and it is written to be removed in one move: delete `src/skip-ahead.js`, the `.skip-ahead` block in
+`screens.css`, the five `skipAhead*` keys in `content.js`, the two-key state pair in `state.js`, the
+`skipAheadHTML` helper and its handler in `goals.js`, the two `accountFiguresPatch` call sites, and
+`scripts/skip-ahead.test.mjs`. Nothing else in the app knows it exists.
+
+### Part one: the tracker entry on /goals
+
+**Decision.** `/goals` gains a second card in its long-term section, alongside the deposit
+calculator entry, built from the same `ctaCardHTML` helper both now call. It routes to `/tracker` -
+the same route the Insights tab resolves to (D35). Both doors land on the same screen in the same
+state; neither is the real one.
+
+**Why one function and not two blocks of markup.** The two cards are two things you can do with the
+same long-term goal, so they have to read as siblings. Written once, a change to the treatment
+cannot land on one and miss the other. The calculator stays first because the tracker measures a
+goal against a target and there is no target until the calculator has produced one.
+
+**Back follows D29 without this screen saying anything.** `/tracker`'s app bar is `goBack()`, which
+is `history.back()`, so it returns to whichever screen actually pushed the entry below it - `/goals`
+for a participant who arrived from the card, wherever they were for a participant who used the tab.
+The card writes NO state at all, which is what makes that true: naming a destination is exactly what
+D29 removed from every other screen.
+
+**`journeyEntryPoint` is deliberately not written here**, unlike the calculator card beside it. It
+belongs to the close X, which no screen between here and the tracker draws, and the tracker writes
+it itself at the one moment it means something - when its action bar opens the Mortgage in Principle
+flow (D30, D32). Writing it on this click would record the goals area as the entry point of a flow
+the participant has not entered.
+
+**No guard of its own.** `/tracker` already guards on `checkpoint-amount` and `replace()`s a
+participant with no goal into the calculator, at no cost in back taps. A second, earlier guard here
+would be a second copy of one rule, and the Insights tab does not have one - the two routes must
+behave identically or they are not the same door.
+
+### Part two: the skip-ahead control
+
+**Decision.** `/goals` carries a two-option control moving the session between the starting savings
+position ("Now") and the checkpoint position ("Further along"), at which `/tracker` unlocks the
+Mortgage in Principle milestone. It is a toggle in both directions, any number of times, and the
+starting position returns exactly as it was.
+
+**The threshold is `CHECKPOINT_FRACTION`, and no figure is written down.** The later position is
+`checkpointAmount()` from `model.js`, which is `CHECKPOINT_FRACTION * depositTarget(state)` and
+nothing else. Two things follow: changing the fraction in `rates.js` moves the control with it, and
+the position lands on the same arithmetic the tracker's own `checkpoint-amount` came from, so
+`saved >= checkpoint` holds by construction rather than by rounding luck. Asserted as a ratio, not
+as an amount, in `scripts/skip-ahead.test.mjs`.
+
+**A stash, not a computed override.** About a dozen screens read `state['saved-toward-deposit']`
+directly. An override read through a helper would mean changing every one of them, and would leave
+the next screen someone adds able to miss it silently. So the control WRITES the later position into
+the store and keeps the one it replaced in `skipAheadStash`, restoring it verbatim on the way back.
+Every screen and every model function is untouched and follows on its own, and "returns exactly as
+it was" becomes a property of copying an object back rather than of re-deriving it and hoping.
+
+**What moves.** Most of it needs nothing: the tracker's headline, progress fill,
+below/reached/met variant and therefore every milestone state and its action bar, plus
+`gapToCheckpoint`, `gap`, `monthsToTarget`, `onTrackFor`, `neededLoanAmount`, `maxProperty` and
+`mipEstimatedLtv`, are all computed at render time. THREE FIGURES ARE STORED rather than derived and
+would otherwise be left behind at the position they were committed at:
+
+| Figure | Committed by | Handled how |
+|---|---|---|
+| `months-to-target` | frame 11's "Work it out" | recomputed, and only where already committed |
+| `on-track-for` | frame 11's "Work it out" | recomputed, and only where already committed |
+| `max-property` | `/mip/running`, on each run | recomputed, and only where already committed |
+
+"Only where already committed" is tested on `provenance === null`, this store's own never-set
+marker: skipping ahead must not conjure a figure onto a screen the participant has not reached yet.
+`borrow-low`/`borrow-high` are absent from that list because they derive from `loan-amount`, which is
+sized against `deposit-target` and never sees the savings position.
+
+**What is never touched.** `property-value`, `deposit-pct`, `deposit-target`, `savings-rate`,
+`goal`, the target month and year, and the account assignments. The patch names its keys explicitly
+rather than spreading a computed object, so a figure can only move by being added to one of the two
+lists in `skip-ahead.js`.
+
+**Provenance is carried over, not rewritten.** The four-value vocabulary describes where a figure
+came from in the world the participant is being shown, and in that world the balance at the
+checkpoint is still read from their accounts. There is no fifth value meaning "the prototype put
+this here", and inventing one would put a word on screen that frame 29's provenance key does not
+explain. The control's own label is what says this is a prototype position.
+
+**Two screens had to stop clobbering it.** `position-summary.js` (frame 06) and `consent.js`
+(frame 03) recompute the account totals whenever a participant changes which accounts count. Either
+would have overwritten the later position with an account total - silently returning the session to
+"Now" while the control still read "Further along", and discarding the participant's own account
+edit when the control was moved back. `accountFiguresPatch` re-points the recomputed deposit total
+at the stash instead, so the edit survives the round trip and the position on screen stays put.
+`emergency-fund` and `unassigned` are not part of the savings position and are still written live.
+
+**Two things cannot be kept coherent, and are reported rather than fudged:**
+
+  1. **Interest earned.** `MOCK_POSITION.thisMonthInterest` (GBP 38) is a directly-read mock figure
+     carrying a "Read from your savings accounts" caption, fixed as such by D34. At the checkpoint
+     position it no longer follows from the balance beside it. Deriving it from the balance would
+     contradict its own caption on screen and reopen D34, so it stays put and is stated here.
+  2. **Per-account balances** on frames 03, 06 and 32. Raising them means inventing balances, which
+     the content rules forbid. While the control is at "Further along" those three screens show a
+     saved total larger than the accounts they list.
+
+**Copy.** "Prototype control: skip ahead", two options "Now" and "Further along", and a supporting
+line: "Not part of the app. It moves the example figures to a later point in this goal, so you can
+see what the tracker shows then. No money is saved or moved." It names itself before it names its
+action; the subject of the sentence describing what moves is "the example figures", not "your
+savings"; and it makes no financial claim and recommends nothing, which is why the block adds no
+regulatory anchor to `/goals`. "Skip ahead" rather than "fast-forward" - fast-forwarding is done TO
+a timeline the participant is on, which is the reading to avoid. The option labels name a position,
+not an action, for the same reason. A separate line replaces the note before a goal exists.
+
+**A copy check moved the note up one step**, from caption size in the tertiary colour to footnote
+size in the secondary. MCOB 3A.3.1R's balance rule does not bind here - nothing on `/goals` is
+promoted - but its principle does: the qualifier must not be less legible than the thing it
+qualifies, and "no money is saved or moved" had been the faintest text on the screen.
+
+**Fully accessible, unlike frame 10's facilitator gesture, because it is visible.** A visible
+control a keyboard or screen-reader participant cannot reach, or cannot hear the state of, is a
+different prototype for them than for everyone else - a defect in the instrument, not a finding
+about the design. `role="radiogroup"` with two `role="radio"` buttons carrying `aria-checked`,
+labelled by the heading and described by the note, with a roving tabindex so the group is ONE tab
+stop and the arrows move within it. Arrow keys move and select, which is the radiogroup pattern's
+own behaviour rather than a shortcut invented here. Before a goal exists "Further along" carries
+`aria-disabled` rather than `disabled`: it keeps its place and its announcement and only the
+affordance is withdrawn - a control that vanishes between two visits to the same screen is harder to
+account for mid-session than one that says why it will not move.
+
+**A radiogroup rather than a switch or a flipping button.** It selects between two named positions
+rather than turning a thing on, and both names are visible at once, so a participant can read what
+they are moving between before they move. A switch announces "Further along, on", which says an
+action was performed; two radios announce "Now, selected", which says where the session is.
+
+**One trigger, on one screen.** Not on the tracker, not inside the Mortgage in Principle flow, not
+on frame 33. A participant part-way through a task must not be able to change the position the task
+is measured against, and a second control would also mean two places to look when a session's
+figures are not where the facilitator expected. Frame 33's `stage` control is unrelated and remains
+what it was: inert, read by no screen.
+
+**Marked, not foreign, visually.** Every other block on `/goals` is a `.card` - an opaque surface
+square with the screen inset. This one is none of those: no card surface, a dashed rather than solid
+outline, a label above rather than a heading inside. It reads as an annotation on the prototype
+rather than as something the bank offers, while staying inside the design system for everything else
+(same tokens, same 8pt spacing, same type scale, same segmented geometry as frames 10 and 10b). No
+new token, so dark mode follows without a second rule set.
+
+**Verified.** Walked at 390px in light and dark. At "Now" the tracker is below checkpoint (headline
+GBP 8,950, milestones done/done/current/locked, primary "What a bigger deposit changes"); at
+"Further along" it is checkpoint-reached (GBP 18,750 = 0.75 x GBP 25,000, done/done/done/current,
+"Mortgage in Principle - Unlocked. Whenever you're ready.", primary "Check what a lender might lend
+you", the Loan-to-Value link appearing). On track for moves from November 2029-August 2030 to
+October 2027-February 2028. The Mortgage in Principle flow runs end to end from there: `/mip` to
+`/mip/about` to `/mip/pre-check` to `/mip/running` to `/mip/result/likely`. Three round trips
+through the live control leave `sessionStorage` byte-identical to the start each time, with every
+entered figure unmoved. Keyboard confirmed in a browser: four Tab presses reach the group, it is one
+tab stop, and ArrowRight/ArrowLeft/Home/End each move the position and flip `aria-checked`. 143
+tests passing - 43 model, 66 overlap (three `/goals` rows added: the control's available, skipped
+and unavailable states, at both text sizes), 8 bottom-nav, 15 sheet-drag, plus 11 new in
+`scripts/skip-ahead.test.mjs`.
+
+**Reversal.** Part one: drop the second `ctaCardHTML` call and its handler, and the three
+`trackerCard*` keys. Part two: the deletion list at the top of this entry. Neither part depends on
+the other.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -1685,4 +1855,5 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (false "Watched") | D37 recorded: frame 13's explainer marker changes from "Watched" to "Opened", and `explainerWatchedLabel` is renamed `explainerOpenedLabel`. Frame 13b's media block has no playback, and `ltvVideoSeen` is set by dismissing the sheet however it was entered - so the row claimed a video had been watched, sometimes by a participant who had asked for the diagram and never touched the video row. When the flag is set is unchanged; only its label. Swept all eight journey flags: `ltvVideoSeen` is the only one a screen reads to display a claim, and a text sweep of 23 routes found no other false-action marker. Three near-misses left alone and listed in the entry, including frames 15/16's unconditional "You told us what each one's for", which is reported as unsure rather than changed. **D8 and G17a corrected in the same commit**: both said frame 13's "See it as a diagram" row had been removed; `git log -S` shows it was only ever added, both rows open 13b per the reference PNG's own annotation, and the frame 13 entry in G29's screenshot-exemption list cited a deviation that does not exist. Original reasoning left intact, corrections appended and dated. |
 | 22 August 2026 (frame 18 timeline) | D36 recorded: frame 18's `[Visual aid]` placeholder is replaced by the process timeline it specified - four labelled nodes joined by a hairline, Mortgage in Principle marked as where the participant is, the three ahead of them reading as ahead rather than done. **It is a process sequence, not a progress indicator, and is exempt from DESIGN.md's bar exclusions on that basis** - vertical, discrete nodes rather than a filled track, measuring nothing, with no completed state at all. Vertical because four horizontal labels do not fit 62px columns at 320px. New `circleDot` icon and `processTimelineHTML` component; no new colour, spacing or width token. Not interactive: no button, link, tabindex or pointer cursor, proved by walking the tab order. An `<ol>` with `aria-current="step"` and a visible "You are here", so sequence and position are not carried by the drawing alone. Frame 13b's separate `[Visual aid]` and the `.media-placeholder` video block are untouched. |
 | 22 August 2026 (MiP reachable) | D35 recorded: the Insights tab resolves to `/tracker` (Payments and Profile stay disabled), which makes the six-screen Mortgage in Principle flow reachable - it was already built and already wired, and nothing navigated to the tracker. `diamondFill` added, because `TAB_ICONS_ACTIVE` held twins for two tabs and lighting a third called `undefined`; the glyph lookup now falls back to the outline, and the tab hint stops being a Home-or-Goals ternary. The tracker's action bar is confirmed as the single entry (`reference/frames/16` draws it; the instruction's "milestone row is a live link" did not hold), and the locked milestone row drops its no-op `<button>`. `journeyEntryPoint` gains `/tracker`, so the X on 17, 18, 19b, 20 and 21 exits to the tracker rather than frame 01. Four copy keys change: the entry stops claiming the prototype issues a decision in principle, and frames 19 and 19b stop implying a check runs here. No knowledge check built on frame 17 - it exists in no spec, wireframe or frame, and the author confirmed it came from a stale summary. |
+| 24 August 2026 (goals -> tracker, skip-ahead control) | D38 recorded, in two parts. `/goals` gains a deposit tracker card beside the calculator card, both built from one new `ctaCardHTML` helper, routing to `/tracker` - the same route the Insights tab resolves to (D35), with back following D29 because the card writes no state at all. And `/goals` alone gains a skip-ahead control, **a research affordance that would not exist in a production build**: a `role="radiogroup"` selecting between the starting savings position and `CHECKPOINT_FRACTION` x `deposit-target`, at which the Mortgage in Principle milestone unlocks. No fraction or amount is written down anywhere in it. It stashes the position it replaces and restores it verbatim, so three round trips leave state byte-identical and nothing the participant entered moves; `months-to-target`, `on-track-for` and `max-property` are recomputed because they are stored rather than derived, and only where already committed. Frames 03 and 06 stop clobbering the stashed position. Two things are reported as incoherent rather than fudged: frames 15/16's "Interest earned", a directly-read mock figure fixed by D34, and the per-account balances on frames 03, 06 and 32, which cannot rise without inventing balances. A copy check raised the supporting note from caption to footnote size. 143 tests passing. |
 | 22 August 2026 (D32 collision resolved) | The provenance-captions entry, recorded second under a number the chevron entry already held, becomes **D34**; the chevron entry keeps D32. Four citations meant the provenance entry and were updated - its own heading, its change-log row, `content.js`'s shared-caption comment and `accounts.js`'s bank-rate comment. Nine meant the chevron entry and were left alone: `GAPS.md` G57 (twice) and G58, `router.js`, `state.js`, `learn-ltv.js`, `mip-adviser.js`, `settings.js`, and its own change-log row. D33's paragraph recording the collision as open is corrected. Sequence is now D1-D34, no duplicate and no gap; D34 sits before D33 in the file, and D20 before D13, neither being renumbered or moved. `CLAUDE.md` gains a working rule to take the next number from the last entry. |

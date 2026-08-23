@@ -1800,3 +1800,107 @@
   font-weight: 500;
   color: var(--color-label);
 }
+
+/* --- The skip-ahead control (/goals only — src/skip-ahead.js, DECISIONS.md
+   D38) ---------------------------------------------------------------------
+
+   A RESEARCH AFFORDANCE, AND IT HAS TO LOOK LIKE ONE. Every other block on
+   this screen is a `.card`: an opaque white surface, square with the screen
+   inset, which is what the bank's own content looks like throughout the app.
+   This one is deliberately none of those things - no card surface, a dashed
+   rather than solid outline, and a label above rather than a heading inside.
+   It reads as an annotation on the prototype rather than as a thing the bank
+   offers, which is the same judgement `goals.js` already makes in reverse
+   about the two cards above it.
+
+   It stays inside the design system for everything else: the same tokens, the
+   same 8pt spacing, the same type scale and the same segmented geometry frames
+   10 and 10b use, so it is unmistakably part of this build and not a stray
+   browser control. Marked, not foreign.
+
+   NO NEW TOKEN. Every value below is an existing one, so the dark theme
+   follows without a second rule set - `--color-bg`, `--color-surface` and the
+   three label colours all swap in `.theme-dark` already. */
+.skip-ahead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-top: var(--space-3xl);
+  padding: var(--space-lg);
+  border: 1px dashed var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: none;
+}
+
+.skip-ahead__label {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  font-weight: 600;
+  color: var(--color-label-secondary);
+}
+
+/* The segmented track. Same construction as `.segmented-control` (frames 10,
+   10b) but sitting on the card surface rather than the page, because the
+   dashed block around it is transparent and an inset track has to read as
+   inset against something. */
+.skip-ahead__options {
+  display: flex;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  width: 100%;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+}
+
+/* `height: auto` with a `min-height`, and no `white-space: nowrap`: at the
+   large text size "Further along" is wider than half of a 390px screen less
+   the insets, so the label wraps and the segment grows to hold it rather than
+   truncating. */
+.skip-ahead__option {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: var(--touch-target-min);
+  height: auto;
+  padding: var(--space-sm) var(--space-xs);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: inherit;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 400;
+  color: var(--color-label-secondary);
+  cursor: pointer;
+}
+
+.skip-ahead__option--selected {
+  background: var(--color-bg);
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+/* `aria-disabled`, not `disabled` — the option keeps its tab stop and its
+   announcement, and only the affordance is withdrawn. Styled off the ARIA
+   attribute itself so the two cannot drift apart. */
+.skip-ahead__option[aria-disabled='true'] {
+  color: var(--color-label-tertiary);
+  cursor: default;
+}
+
+/* FOOTNOTE, NOT CAPTION, and secondary rather than tertiary. This is the
+   sentence that stops the control being misread - "not part of the app", "no
+   money is saved or moved" - and at caption size in the tertiary colour it was
+   the smallest, faintest text on the screen. MCOB 3A.3.1R's balance rule is
+   about promotions and does not bind here (nothing on /goals is promoted), but
+   its principle does: the qualifier must not be less legible than the thing it
+   qualifies. It now matches the label above it in size and colour, and is set
+   apart from it by weight alone. */
+.skip-ahead__note {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  font-weight: 400;
+  color: var(--color-label-secondary);
+}

@@ -28,10 +28,11 @@
  */
 
 import content from '../content.js';
-import { appBarHTML, bindAppBarLeading } from '../components/ui.js';
+import { appBarHTML, bindAppBarLeading, rerenderInPlace } from '../components/ui.js';
 import { formatAccountBalance } from '../format.js';
 import { effectiveAccounts, goalsByHorizon } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
+import { canSkipAhead, isSkippedAhead, skipAheadPatch, skipBackPatch } from '../skip-ahead.js';
 
 /**
  * No regulatory anchor, deliberately.
@@ -70,6 +71,81 @@ function goalRowHTML(account, savedLabel) {
   `;
 }
 
+/**
+ * The section's card-with-a-forward-action. TWO CALLERS, ONE FUNCTION, and
+ * that is the point: the deposit calculator entry and the deposit tracker
+ * entry are two things you can do with the same long-term goal, so they have
+ * to read as siblings rather than as a card and a near-copy of it. Written
+ * once so a change to the treatment cannot land on one and miss the other.
+ */
+function ctaCardHTML({ title, body, cta, action }) {
+  return `
+    <div class="card goals-cta-card">
+      <h4 class="goals-cta-card__title">${title}</h4>
+      <p class="goals-cta-card__body">${body}</p>
+      <button type="button" class="goals-cta-card__action" data-action="${action}">
+        <span class="goals-cta-card__action-label">${cta}</span>
+        ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
+      </button>
+    </div>
+  `;
+}
+
+/**
+ * THE SKIP-AHEAD CONTROL (src/skip-ahead.js, DECISIONS.md D38). A research
+ * affordance, drawn here and on no other screen.
+ *
+ * WHY IT IS A RADIOGROUP AND NOT A SWITCH OR A BUTTON. It selects between two
+ * named positions rather than turning a thing on, and both names are visible
+ * at once, so a participant can read what they are moving between before they
+ * move. A switch would announce "Further along, on", which says an action was
+ * performed; two radios announce "Now, selected" / "Further along, selected",
+ * which says where the session is. Reversible in one gesture either way, which
+ * is the requirement the control exists to meet.
+ *
+ * IT IS FULLY IN THE ACCESSIBILITY TREE, unlike the facilitator gesture on
+ * frame 10, because it is visible. A visible control that a keyboard or
+ * screen-reader participant cannot reach or cannot hear the state of is a
+ * different prototype for them than for everyone else, which would be a defect
+ * in the instrument rather than a finding about the design.
+ *
+ * ROVING TABINDEX, per the ARIA radiogroup pattern: the group is one tab stop,
+ * the selected option is the one that takes it, and the arrow keys move within
+ * it. The alternative - two tab stops - would put a control the bank does not
+ * have in the middle of the participant's tab order twice.
+ *
+ * THE UNAVAILABLE CASE stays rendered and stays focusable. Before a deposit
+ * goal exists there is no checkpoint to skip to, so "Further along" carries
+ * `aria-disabled` rather than `disabled`: a control that vanishes between two
+ * visits to the same screen is harder to account for mid-session than one that
+ * is present and says why it will not move.
+ */
+function skipAheadHTML({ c, position, available }) {
+  const option = ({ value, label, selected, disabled }) => `
+    <button
+      type="button"
+      class="skip-ahead__option${selected ? ' skip-ahead__option--selected' : ''}"
+      role="radio"
+      aria-checked="${selected}"
+      ${disabled ? 'aria-disabled="true"' : ''}
+      tabindex="${selected ? '0' : '-1'}"
+      data-action="set-skip-ahead"
+      data-value="${value}"
+    >${label}</button>
+  `;
+
+  return `
+    <section class="skip-ahead">
+      <p class="skip-ahead__label" id="skip-ahead-label">${c.skipAheadLabel}</p>
+      <div class="skip-ahead__options" role="radiogroup" aria-labelledby="skip-ahead-label" aria-describedby="skip-ahead-note">
+        ${option({ value: 'now', label: c.skipAheadNowOption, selected: position === 'now', disabled: false })}
+        ${option({ value: 'ahead', label: c.skipAheadAheadOption, selected: position === 'ahead', disabled: !available })}
+      </div>
+      <p class="skip-ahead__note" id="skip-ahead-note">${available ? c.skipAheadNote : c.skipAheadUnavailableNote}</p>
+    </section>
+  `;
+}
+
 function sectionHTML({ heading, caption, accounts, savedLabel, emptyBody, extraHTML = '' }) {
   const rows = accounts.length
     ? accounts.map((a) => goalRowHTML(a, savedLabel)).join('')
@@ -94,19 +170,39 @@ export function render(container, ctx) {
   const accounts = effectiveAccounts(state.accountAssignments, state.accountIncluded);
   const { short, long } = goalsByHorizon(accounts);
 
-  // The bridge into the feature. It sits under the long-term heading because
-  // a house deposit is a long-term goal — the card is part of that section,
-  // not a banner floating between two.
-  const houseCardHTML = `
-    <div class="card goals-cta-card">
-      <h4 class="goals-cta-card__title">${c.houseCardTitle}</h4>
-      <p class="goals-cta-card__body">${c.houseCardBody}</p>
-      <button type="button" class="goals-cta-card__action" data-action="open-deposit-calculator">
-        <span class="goals-cta-card__action-label">${c.houseCardCta}</span>
-        ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
-      </button>
-    </div>
-  `;
+  // The two bridges into the feature. They sit under the long-term heading
+  // because a house deposit is a long-term goal — the cards are part of that
+  // section, not banners floating between two.
+  //
+  // ORDER. The calculator stays first because it is the one that has to have
+  // happened: the tracker measures a goal against a target, and there is no
+  // target until the calculator has produced one. Reading down, the section
+  // asks "what would this take" and then "how is it going", which is the
+  // order a participant meets them in anyway.
+  const houseCardHTML = ctaCardHTML({
+    title: c.houseCardTitle,
+    body: c.houseCardBody,
+    cta: c.houseCardCta,
+    action: 'open-deposit-calculator',
+  });
+
+  // THE SECOND ROUTE TO `/tracker`, and deliberately not a different screen.
+  // The Insights tab already resolves there (NAVIGABLE_TABS in
+  // components/ui.js, DECISIONS.md D35); this is the goals area's own way in,
+  // landing on the same route in the same state.
+  //
+  // It carries no guard of its own. `/tracker` guards on `checkpoint-amount`
+  // and redirects a participant who has not set a goal into the calculator,
+  // and that guard `replace()`s rather than pushes (D29), so the redirect
+  // costs no back tap. Adding a second, earlier guard here would be a second
+  // copy of one rule, and the Insights tab does not have one either — the two
+  // routes must behave identically or they are not the same door.
+  const trackerCardHTML = ctaCardHTML({
+    title: c.trackerCardTitle,
+    body: c.trackerCardBody,
+    cta: c.trackerCardCta,
+    action: 'open-deposit-tracker',
+  });
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
@@ -128,8 +224,10 @@ export function render(container, ctx) {
         accounts: long,
         savedLabel: c.savedLabel,
         emptyBody: c.emptySectionBody,
-        extraHTML: houseCardHTML,
+        extraHTML: houseCardHTML + trackerCardHTML,
       })}
+
+      ${skipAheadHTML({ c, position: isSkippedAhead(state) ? 'ahead' : 'now', available: canSkipAhead(state) })}
     </main>
   `;
 
@@ -178,5 +276,85 @@ export function render(container, ctx) {
   container.querySelector('[data-action="open-deposit-calculator"]').addEventListener('click', () => {
     ctx.setState({ goal: 'house', returnFrame: '/goals', journeyEntryPoint: '/goals', flowEntryHistoryLength: window.history.length });
     window.location.hash = '#/calculator/property';
+  });
+
+  // --- The tracker card goes to the tracker, and writes nothing -------------
+  //
+  // NO STATE PATCH, WHICH IS THE WHOLE OF THE BACK BEHAVIOUR. Back from
+  // `/tracker` is `history.back()` (DECISIONS.md D29), so it returns to
+  // whichever screen actually pushed the entry below it — this one when a
+  // participant arrived from here, `/home` or wherever they were when they
+  // used the Insights tab. Naming a destination is what would break that, and
+  // is exactly what D29 removed from every other screen.
+  //
+  // `journeyEntryPoint` and `flowEntryHistoryLength` are NOT written here,
+  // unlike the calculator card above. They belong to the close X, which no
+  // screen from here to the tracker draws; the tracker writes them itself, at
+  // the one moment they mean something, when its action bar opens the
+  // Mortgage in Principle flow (tracker.js, D30/D32). Writing them on this
+  // click would record the goals area as the entry point of a flow the
+  // participant has not entered.
+  container.querySelector('[data-action="open-deposit-tracker"]').addEventListener('click', () => {
+    window.location.hash = '#/tracker';
+  });
+
+  // --- The skip-ahead control ----------------------------------------------
+  //
+  // ONE TRIGGER, ON ONE SCREEN. There is deliberately no second way to move
+  // the session between the two positions: not from the tracker, not from
+  // inside the Mortgage in Principle flow, and not from frame 33. A
+  // participant part-way through a task must not be able to change the
+  // position the task is measured against, and a second control would also
+  // mean two places to look when a session's figures are not where the
+  // facilitator expected.
+  //
+  // Selection re-renders this screen in place rather than navigating, so the
+  // participant stays where they were, keeps their scroll position and keeps
+  // focus on the option they just chose (`rerenderInPlace` restores it by
+  // `data-action` plus `data-value`).
+  const skipOptions = Array.from(container.querySelectorAll('[data-action="set-skip-ahead"]'));
+
+  function selectPosition(value) {
+    const current = isSkippedAhead(state) ? 'ahead' : 'now';
+    if (value === current) return;
+
+    // `skipAheadPatch` returns null when there is no goal to be part-way
+    // toward. The option is already marked `aria-disabled` in that state; this
+    // is the same rule enforced where it actually applies, so a click, an
+    // Enter and an arrow key cannot disagree about it.
+    const patch = value === 'ahead' ? skipAheadPatch(state) : skipBackPatch(state);
+    if (!patch) return;
+
+    const next = ctx.setState(patch);
+    rerenderInPlace(container, render, { ...ctx, state: next });
+  }
+
+  skipOptions.forEach((option, index) => {
+    option.addEventListener('click', () => selectPosition(option.dataset.value));
+
+    // ARROW KEYS MOVE AND SELECT, which is the radiogroup pattern's own
+    // behaviour rather than a shortcut invented here: in a radio group, moving
+    // the focus IS choosing. Home and End are the same move to the ends. Space
+    // and Enter are left to the browser, which already fires `click` on a
+    // <button> for both.
+    option.addEventListener('keydown', (event) => {
+      const back = event.key === 'ArrowLeft' || event.key === 'ArrowUp';
+      const forward = event.key === 'ArrowRight' || event.key === 'ArrowDown';
+      const first = event.key === 'Home';
+      const last = event.key === 'End';
+      if (!back && !forward && !first && !last) return;
+
+      event.preventDefault();
+      const target = first
+        ? 0
+        : last
+          ? skipOptions.length - 1
+          : (index + (forward ? 1 : -1) + skipOptions.length) % skipOptions.length;
+      // Focus first so the move still happens when the target is unavailable
+      // and `selectPosition` declines - the participant is not left with focus
+      // on an option they have just navigated away from.
+      skipOptions[target].focus();
+      selectPosition(skipOptions[target].dataset.value);
+    });
   });
 }

@@ -205,6 +205,26 @@ function defaultState() {
     targetMonth: null, // 1-12
     targetYear: null,
 
+    // --- The skip-ahead control (src/skip-ahead.js, DECISIONS.md D38) ------
+    //
+    // A RESEARCH AFFORDANCE. Not a build-spec.md variable, not a feature, and
+    // not part of what is being tested — it is how a moderated session reaches
+    // the tracker's later state and the Mortgage in Principle screens beyond
+    // it without saving toward the goal for real. The control lives on /goals
+    // and nowhere else.
+    //
+    // `skippedAhead` is which of the two positions is showing.
+    // `skipAheadStash` holds the starting position's figures verbatim while
+    // the later one is showing, so moving back is a restore rather than a
+    // second derivation — see skip-ahead.js for the whole of the reasoning and
+    // for which figures are in it.
+    //
+    // Both are cleared by `resetState()` along with everything else, so the
+    // next participant starts at "Now" whatever the last one left the control
+    // on.
+    skippedAhead: false,
+    skipAheadStash: null,
+
     // Frame 33 scenario controls (build-spec.md section 7) — testing only,
     // not part of the feature being tested.
     theme: 'greyscale', // 'greyscale' | 'brand'

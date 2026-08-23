@@ -33,6 +33,7 @@ import {
   accountFigures,
   GROUP_ORDER,
 } from '../model/accounts.js';
+import { accountFiguresPatch } from '../skip-ahead.js';
 import { checkmark, chevronRight, minus } from '../icons.js';
 
 export const anchors = ['guidanceNotAdvice'];
@@ -334,7 +335,15 @@ export function render(container, ctx) {
     // Recalculate the figures this screen owns in the same step, so
     // saved-toward-deposit always matches what the row says is selected —
     // rather than only catching up on "Agree and continue".
-    live = setState({ ...edited, ...accountFigures({ ...live, ...edited }) });
+    //
+    // `accountFiguresPatch` is the one qualification: while /goals' skip-ahead
+    // control is at "Further along", `saved-toward-deposit` is standing in for
+    // a later position and a recomputed account total must not overwrite it.
+    // The total goes to the stashed starting position instead, so this tick
+    // still survives the move back to "Now". Nothing changes when the control
+    // is at "Now", which is every ordinary session. See src/skip-ahead.js.
+    const figures = accountFigures({ ...live, ...edited });
+    live = setState({ ...edited, ...accountFiguresPatch(live, figures) });
     syncAccounts(container, live, c);
   }
 

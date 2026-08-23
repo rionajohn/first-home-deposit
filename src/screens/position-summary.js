@@ -33,6 +33,7 @@ import { formatCurrency } from '../format.js';
 import { effectiveAccounts, groupTotals } from '../model/accounts.js';
 import { LISA_CAP_PROPERTY_VALUE } from '../model/rates.js';
 import { arrowUpRight, checkmarkCircle, chevronRight, infoCircle } from '../icons.js';
+import { accountFiguresPatch, startingSavedTowardDeposit } from '../skip-ahead.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -64,16 +65,26 @@ export function render(container, ctx) {
   const totals = groupTotals(accounts);
   const provenance = 'read';
   let state = initialState;
+  // THE COMPARISON IS AGAINST THE STARTING POSITION, NOT THE FIGURE ON SCREEN.
+  // Ordinarily those are the same thing. While the skip-ahead control on
+  // /goals is at "Further along" they are not: `saved-toward-deposit` holds
+  // the checkpoint position, which will never equal an account total, so a
+  // bare comparison would fire a write on every render and each one would
+  // overwrite the skipped position - silently returning the session to "Now"
+  // while the control still read "Further along", and discarding the
+  // participant's own account edit when the control was moved back.
+  // `accountFiguresPatch` re-points the recomputed deposit total at the
+  // stashed starting position instead; see src/skip-ahead.js.
   if (
-    state['saved-toward-deposit'].value !== totals.deposit ||
+    startingSavedTowardDeposit(state).value !== totals.deposit ||
     state['emergency-fund'].value !== totals.emergency ||
     state.unassigned.value !== totals.unassigned
   ) {
-    state = setState({
+    state = setState(accountFiguresPatch(state, {
       'saved-toward-deposit': { value: totals.deposit, provenance },
       'emergency-fund': { value: totals.emergency, provenance },
       unassigned: { value: totals.unassigned, provenance },
-    });
+    }));
   }
 
   const moneyIn = state['money-in'].value;

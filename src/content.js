@@ -401,6 +401,63 @@ const content = {
     houseCardBody:
       "We'll work out what you'd need and how long it could take, using what's already in your accounts.",
     houseCardCta: 'Work out my deposit',
+
+    // THE SECOND CARD IN THE SAME SECTION, AND THE SAME COMPONENT.
+    //
+    // A house deposit is one long-term goal with two things you can do with
+    // it: work out what it would take, and watch how it is going. Those are
+    // siblings, so they are two instances of one card rather than a card and
+    // a banner. The tracker is also the Insights tab's destination - both
+    // routes land on `/tracker`, and neither is the "real" one.
+    //
+    // No figure here, for the same reason the card above carries none: this
+    // screen presents no computed result (see the `anchors` note in
+    // goals.js). "What you have put aside so far" describes what the tracker
+    // shows; it does not state an amount, so nothing on this screen has to
+    // be kept in step with the tracker's own headline.
+    trackerCardTitle: 'How is your deposit going?',
+    trackerCardBody:
+      'Your deposit tracker shows what you have put aside so far, and what is still to go.',
+    trackerCardCta: 'Open my deposit tracker',
+
+    // --- The skip-ahead control (src/skip-ahead.js, DECISIONS.md D38) -------
+    //
+    // A PROTOTYPE CONTROL, AND EVERY LINE HERE HAS TO SAY SO. A participant
+    // reading this screen aloud has to arrive at "this is a way to skip
+    // forward in the prototype", not at "the bank can move my savings" and not
+    // at "the app is fast-forwarding my finances". Three rules the copy is
+    // built on, worth writing down because each is easy to break in a rewrite:
+    //
+    //   1. It names itself before it names its action. "Prototype control"
+    //      comes first, in the heading, where a participant reading top to
+    //      bottom meets it before anything else in the block.
+    //   2. It never says the money is real and never says it is not the
+    //      participant's. "The example figures" is the subject of the sentence
+    //      that describes what moves - not "your savings", which would be a
+    //      claim about them, and not "fake money", which invites a
+    //      conversation about the prototype instead of about the screen.
+    //   3. It makes no financial claim and recommends nothing. There is no
+    //      figure, no rate, no timescale and no course of action here, so
+    //      there is nothing for the guidance-versus-advice boundary to catch -
+    //      which is also why this block adds no regulatory anchor to /goals.
+    //
+    // "Skip ahead" rather than "fast-forward": fast-forwarding is something
+    // done TO a timeline the participant is on, which is the reading that has
+    // to be avoided. Skipping ahead is something done to a prototype.
+    //
+    // The two option labels are deliberately about position, not action.
+    // "Now" and "Further along" name where you are looking; a pair like
+    // "Off"/"On" or "Start"/"Skip" would name a thing being done.
+    skipAheadLabel: 'Prototype control: skip ahead',
+    skipAheadNowOption: 'Now',
+    skipAheadAheadOption: 'Further along',
+    skipAheadNote:
+      'Not part of the app. It moves the example figures to a later point in this goal, so you can see what the tracker shows then. No money is saved or moved.',
+    // Shown in place of the note when there is no deposit goal yet, so there
+    // is no later point to move to. States the condition; does not tell the
+    // participant to go and do anything about it.
+    skipAheadUnavailableNote:
+      'Not part of the app. There is no later point to show until a deposit goal has been worked out.',
   },
 
   '/goal-check': {

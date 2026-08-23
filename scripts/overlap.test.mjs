@@ -92,6 +92,23 @@ const FRAMES = [
   // check is about rendered geometry, and a screen with two card sections
   // and a 64px row has exactly the shape this test was written for.
   ['goals', '/goals', {}],
+  // The skip-ahead control's three states (DECISIONS.md D38). It is the one
+  // block on /goals whose height changes with what it says, and its note is
+  // the longest run of small text on the screen, so it earns its own rows
+  // here rather than riding on 'goals' above.
+  ['goals-skipped', '/goals', {
+    skippedAhead: true,
+    skipAheadStash: {
+      'saved-toward-deposit': f(11350),
+      'months-to-target': f(84, 'derived'),
+      'on-track-for': f({ low: 76, high: 93 }, 'derived'),
+      'max-property': f(210000, 'estimated'),
+    },
+  }],
+  ['goals-no-goal', '/goals', {
+    'property-value': f(null, null), 'deposit-pct': f(null, null),
+    'deposit-target': f(null, null), 'checkpoint-amount': f(null, null),
+  }],
   ['08', '/goal-check', {}],
   ['09', '/calculator/property', {}],
   ['09a', '/calculator/property', { 'property-value': f(null, null), 'deposit-pct': f(null, null) }],
