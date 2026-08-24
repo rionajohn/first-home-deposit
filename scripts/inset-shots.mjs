@@ -63,15 +63,18 @@ const FULL = {
  * The four views the brief names, each a different wrapper/chrome pairing,
  * plus two scrolled-to-the-end variants.
  *
- * The scrolled pair earn their place: the action bar is revealed only once
- * the participant reaches the bottom (src/action-bar.js), and the gap ABOVE
- * that bar is one of the three insets being changed. Measuring it unscrolled
- * measures a bar nobody can see yet.
+ * The scrolled pair earn their place: the gap ABOVE the action bar is one of
+ * the three insets being changed, and it is only under tension once the
+ * content has actually been scrolled against the bar. (Before D39 they earned
+ * it for a stronger reason — the bar was hidden until the participant reached
+ * the bottom, so measuring it unscrolled measured a bar nobody could see. The
+ * bar is visible from first paint now; the scrolled views stay because the
+ * clearance is still what they are measuring.)
  */
 const VIEWS = [
   ['goals', '/goals', {}, false],                                   // app bar + tab bar
   ['calculator-property', '/calculator/property', {}, false],       // form-step header + action bar
-  ['calculator-property-end', '/calculator/property', {}, true],    // ... with that bar revealed
+  ['calculator-property-end', '/calculator/property', {}, true],    // ... scrolled against that bar
   ['sheet-assumptions-deposit', '/assumptions/deposit', {}, false], // overlay sheet
   ['sheet-assumptions-deposit-end', '/assumptions/deposit', {}, true],
   ['settings', '/settings', {}, false],                             // no bottom chrome at all

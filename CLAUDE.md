@@ -55,6 +55,7 @@ do not introduce a state management library.
 - Test the sheet gesture: `node --test scripts/sheet-drag.test.mjs` (drives Chromium via Playwright)
 - Test screen layout: `node --test scripts/overlap.test.mjs` (all 33 frame rows x both text sizes; asserts no divider, border or rule crosses text and no box is squashed below its content)
 - Test the skip-ahead control: `node --test scripts/skip-ahead.test.mjs` (pure Node, no browser; asserts three round trips leave state identical and that the threshold stays a ratio of CHECKPOINT_FRACTION rather than an amount)
+- Test the action bar: `node --test scripts/action-bar.test.mjs` (D39's pinned bar; 20 screens x 4 viewports plus 7 sheets, asserting the bar is visible and hittable without scrolling, flush above the tab bar, and clear of the last content element when scrolled to the end)
 - Test the tab bar: `node --test scripts/bottom-nav.test.mjs` (D11's three states; asserts an enabled-but-not-current tab resolves to the same colour, weight, icon variant and indicator as a disabled one)
 
 ## Stack rules

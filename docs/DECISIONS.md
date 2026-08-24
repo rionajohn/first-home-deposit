@@ -428,6 +428,13 @@ This is a **deliberate design change, not something in the reference frames.** F
 
 ## D17. The action bar appears once the participant reaches the end of the content
 
+> **SUPERSEDED by D39, 24 August 2026.** The bar is pinned and visible from first paint; there
+> is no hidden state. The reasoning below is left intact rather than edited, because it is the
+> argument D39 had to outweigh and the record of why is the useful part. What survives D39: the
+> measured `--action-bar-height`, the content-scrolls-under-the-bar overlap, and the 56px scroll
+> fade (moved above the dock). What does not: the hidden state, the reveal, the focus-reveal
+> path, and the rise transition.
+
 **Decision.** The pinned action bar — the primary button and, on most screens, a secondary link below it — is no longer visible from the moment a screen loads. It appears when the participant reaches the bottom of the screen's content, and hides again if they scroll back up. On screens whose content fits without scrolling it is visible immediately and stays visible.
 
 This is a **deliberate design change, not something in the reference frames**, which draw the bar present from the start on every screen that has one. It is **exempt from the screenshot-comparison pass** for the bar's visibility and the scroll affordance — see `GAPS.md` G38.
@@ -1808,6 +1815,156 @@ the other.
 
 ---
 
+## D39. The action bar is pinned and always visible, and D17's reveal-on-reach is withdrawn
+
+**Date.** 24 August 2026.
+
+**Decision.** The action bar is visible from the moment a screen paints and stays visible. It sits
+at the bottom of the phone screen, above the tab bar, and the content scrolls beneath it. D17's
+reveal-on-reach - hidden until the participant scrolled to the end of the content, hidden again on
+scrolling back up - is removed, along with the `opacity: 0` / `pointer-events: none` pair, the rise
+transition and the focus-reveal path that existed to keep the hidden state reachable.
+
+**This reverses a research decision, not just a layout one, and that is worth saying plainly.**
+D17's argument was that these screens carry the things the feature exists to be judged on - how a
+figure was worked out, where it came from, the regulatory lines, the "something doesn't look right"
+route - and that a primary button present from first paint invites a participant to press it
+without reading any of that. Making the button the reward for reaching the end put the content in
+the path rather than beside it.
+
+That argument is not wrong, and nothing has been discovered that falsifies it. It has been
+outweighed: a control the participant has to go looking for is itself a finding the sessions did
+not set out to collect, and "I could not see how to continue" is noise in a study about whether
+figures are understood. The requirement now is that a participant can read the final section and
+see their options at the same time, without a further gesture. Both cannot hold at once. If the
+comprehension argument is to win again, the middle option is to reveal the bar when the LAST
+CONTENT ELEMENT enters the viewport rather than at exact scroll-bottom - that keeps the scroll
+through the content and removes the extra gesture, and it is a change to one predicate in
+`src/action-bar.js`.
+
+### What replaced it
+
+Not a deletion. `src/action-bar.js` still measures and still decides, but it decides about LAYOUT
+rather than about visibility. Two modes, from one test - does the content overflow its scroller:
+
+| Mode | When | The dock | The scroller |
+|---|---|---|---|
+| **Pinned** | content overflows | bottom of the flex column, above the tab bar | grows under the dock (negative margin) and reserves the dock's measured height as padding, so the last real content scrolls fully clear |
+| **Inline** (`.screen.actions-inline`) | content fits | directly after the last card | stops growing; no negative margin, no reserved padding |
+
+**Inline mode is the whole of what is new.** Pinning alone would have left a short screen showing
+its content at the top, a band of empty screen, and the buttons stranded at the bottom edge - the
+bar floating rather than belonging to what is above it. `/mip/adviser` at 375x667 is the case: four
+short paragraphs and a Done button, with 200px of nothing between them if the bar is pinned.
+
+**The modes cannot oscillate, and that is arithmetic rather than luck.** Switching mode changes the
+scroller's box AND its padding together, which is precisely the feedback loop D17 avoided by
+overlapping instead of collapsing. It is safe here because the quantity the module tests is
+unchanged by the switch. Writing S for the space the flex column leaves the scroller with the dock
+in flow, N for the content's natural height including the screen inset, and H for the bar:
+
+```
+pinned   clientHeight = S + H       scrollHeight = N + H
+inline   clientHeight = min(N, S)   scrollHeight = N
+```
+
+`scrollHeight - clientHeight` is `N - S` in both. A mode change produces one more measurement,
+agrees with itself, and stops.
+
+### The tab bar does not move, and finding that out took a screenshot
+
+`.bottom-nav` gains `margin-top: auto`. A no-op in every case but one: ordinarily `.screen-content`
+is `flex: 1 1 auto` and absorbs the column's free space itself, so there is none left to claim.
+In inline mode the scroller stops growing, and without this the whole column collapsed upward and
+took the tab bar with it - the bar rose to sit directly under the action buttons, with a band of
+page background between it and the bottom of the phone screen.
+
+**The geometry test passed while that was broken.** It asserted the action bar did not overlap the
+tab bar, which was true, and said nothing about where the tab bar itself was. The contact sheet
+showed it in a second. The assertion now exists - the tab bar's bottom edge is the screen's bottom
+edge, on every screen at every viewport - but the sequence is the point: measurement finds what it
+was told to look for, and a look at the thing finds what it was not.
+
+The action bar belongs to the screen and may sit where the screen's content ends. The tab bar
+belongs to the bank (D11), is the same furniture on all 20 screens that carry it, and moving it
+would mean the app's own navigation changed place depending on how much copy a screen happened to
+have.
+
+### The top edge
+
+Two parts, and both are needed:
+
+  - **The hairline** on `.action-bar` (`border-top`, `--color-border-subtle`) - present at every
+    scroll position, the same 1px rule and the same token as `.bottom-nav`'s own top edge, so the
+    two pieces of bottom chrome are bounded the same way. This existed already; it was simply
+    never visible except in the revealed state.
+  - **The 56px gradient**, `.action-bar-dock::before`, shown while the content is long enough to
+    scroll and has not yet been scrolled to its end. Text passing under it dissolves into
+    `--color-bg` rather than being cut at a hard line.
+
+**The gradient moved from `bottom: 0` to `bottom: 100%`** - from inside the dock to immediately
+above it. D17's placement was correct for D17's reasons: the bar's hidden state was `opacity: 0`,
+and opacity applies to an element's pseudo-elements, so a gradient above a transparent bar would
+have faded the content out and then let it reappear, perfectly legible, underneath the invisible
+bar. A bar that is always opaque has nothing to reappear beneath, so the fade belongs where the
+content actually is. It stays 56px: D17's first pass masked 193px in flat `--color-bg`, 26% of the
+phone screen, and that slab is what read as a blurred region below the last element.
+
+### Where the reserved space comes from, and one deviation from the brief
+
+The brief asked for the scrolling area to be bottom-padded by **the action area plus the bottom
+navigation**, computed rather than hardcoded. It is padded by the action area alone
+(`calc(var(--screen-inset-y) + var(--action-bar-height))`, the height measured from the bar's own
+`offsetHeight` because it is one or two buttons tall and grows with frame 33's text-size control).
+
+**The tab bar's height is reserved structurally instead, which is stronger than padding rather than
+weaker.** `.screen` is a flex column and the tab bar is a sibling flex item below the scroller, so
+the scroller's viewport ENDS at the tab bar's top edge - there is no region under the tab bar for
+content to reach, whether or not anything is padded. Adding the tab bar's height as padding as well
+would double-count it and open a 56px dead band above the action bar on every screen in the app.
+Measured rather than argued: at 375x667 the clearance between the last content element and the
+action bar is 24px on all 27 screens, exactly `--screen-inset-y`, and the gap between the action bar
+and the tab bar is 0px - flush, no overlap.
+
+### Safe area
+
+Unchanged in substance and now mode-aware. Whatever sits lowest carries the inset as its own
+padding so its background reaches the bottom of the phone screen (D14, as revised): the tab bar
+where there is one, the action bar where it is `:last-child`. That second rule gains
+`:not(.actions-inline)`, because in inline mode the bar is NOT the lowest thing - it sits wherever
+the content ended, with screen background below it - so `.screen` keeps its own `padding-bottom`
+in that case instead. No screen in the current build reaches that combination; every screen with an
+action bar also has the tab bar.
+
+### Two action layers never appear at once
+
+Structural, and now asserted. A sheet route replaces the whole of `#app` (router.js), so the screen
+behind it is not in the DOM and cannot contribute a second bar. `scripts/action-bar.test.mjs`
+counts `.action-bar` elements on all seven sheets and requires exactly one, and requires no tab bar
+under a sheet.
+
+Sheets get no inline mode and need none. A sheet's dock is `position: absolute` against a card
+sized by its own content up to `max-height: 92%`, so a sheet whose content fits is already exactly
+as tall as that content and its bar is already sitting at the end of it.
+
+**Verified.** `scripts/action-bar.test.mjs`, 89 assertions: 20 screens x 4 viewports (375x667,
+375x812, 430x932, 1280x900 framed), plus 7 sheets, plus the framed-view and no-action-bar cases.
+Per screen per viewport it asserts the bar is opaque, hittable and inside the phone screen at first
+paint with no scrolling; that it does not overlap the tab bar and the tab bar is still at the bottom
+of the screen; that it carries a hairline; that the mode matches whether the content overflows, and
+that a pinned bar is flush with what is below it while an inline one follows the content; and that
+scrolled to the end, the last real content element sits fully above the bar. At 1280 it asserts the
+bar spans the 393px phone screen (366px after the frame's 0.932 scale-to-fit) and not the browser
+window. All 27 screens screenshotted at 375x667 scrolled to the end. 232 tests passing across the
+suite.
+
+**Reversal.** Restore `opacity: 0` / `pointer-events: none` / the rise on `.action-bar`, put the
+`--revealed` class and the focus-reveal listeners back in `src/action-bar.js`, return the dock's
+`::before` to `bottom: 0`, and drop `.actions-inline` and `.bottom-nav`'s `margin-top: auto`. The
+measured height and the overlap are older than D17 and are not part of this.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -1855,5 +2012,6 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (false "Watched") | D37 recorded: frame 13's explainer marker changes from "Watched" to "Opened", and `explainerWatchedLabel` is renamed `explainerOpenedLabel`. Frame 13b's media block has no playback, and `ltvVideoSeen` is set by dismissing the sheet however it was entered - so the row claimed a video had been watched, sometimes by a participant who had asked for the diagram and never touched the video row. When the flag is set is unchanged; only its label. Swept all eight journey flags: `ltvVideoSeen` is the only one a screen reads to display a claim, and a text sweep of 23 routes found no other false-action marker. Three near-misses left alone and listed in the entry, including frames 15/16's unconditional "You told us what each one's for", which is reported as unsure rather than changed. **D8 and G17a corrected in the same commit**: both said frame 13's "See it as a diagram" row had been removed; `git log -S` shows it was only ever added, both rows open 13b per the reference PNG's own annotation, and the frame 13 entry in G29's screenshot-exemption list cited a deviation that does not exist. Original reasoning left intact, corrections appended and dated. |
 | 22 August 2026 (frame 18 timeline) | D36 recorded: frame 18's `[Visual aid]` placeholder is replaced by the process timeline it specified - four labelled nodes joined by a hairline, Mortgage in Principle marked as where the participant is, the three ahead of them reading as ahead rather than done. **It is a process sequence, not a progress indicator, and is exempt from DESIGN.md's bar exclusions on that basis** - vertical, discrete nodes rather than a filled track, measuring nothing, with no completed state at all. Vertical because four horizontal labels do not fit 62px columns at 320px. New `circleDot` icon and `processTimelineHTML` component; no new colour, spacing or width token. Not interactive: no button, link, tabindex or pointer cursor, proved by walking the tab order. An `<ol>` with `aria-current="step"` and a visible "You are here", so sequence and position are not carried by the drawing alone. Frame 13b's separate `[Visual aid]` and the `.media-placeholder` video block are untouched. |
 | 22 August 2026 (MiP reachable) | D35 recorded: the Insights tab resolves to `/tracker` (Payments and Profile stay disabled), which makes the six-screen Mortgage in Principle flow reachable - it was already built and already wired, and nothing navigated to the tracker. `diamondFill` added, because `TAB_ICONS_ACTIVE` held twins for two tabs and lighting a third called `undefined`; the glyph lookup now falls back to the outline, and the tab hint stops being a Home-or-Goals ternary. The tracker's action bar is confirmed as the single entry (`reference/frames/16` draws it; the instruction's "milestone row is a live link" did not hold), and the locked milestone row drops its no-op `<button>`. `journeyEntryPoint` gains `/tracker`, so the X on 17, 18, 19b, 20 and 21 exits to the tracker rather than frame 01. Four copy keys change: the entry stops claiming the prototype issues a decision in principle, and frames 19 and 19b stop implying a check runs here. No knowledge check built on frame 17 - it exists in no spec, wireframe or frame, and the author confirmed it came from a stale summary. |
+| 24 August 2026 (pinned action bar) | D39 recorded, **superseding D17**: the action bar is visible from first paint on all 27 screens that have one and stays visible while the content scrolls beneath it. D17's hidden state, reveal, focus-reveal path and rise transition are removed; its measured height, its content-scrolls-under-the-bar overlap and its 56px fade survive, the fade moving from inside the dock to immediately above it now that the bar is always opaque. `src/action-bar.js` now decides LAYOUT rather than visibility: pinned to the bottom where the content overflows, inline after the last card where it fits, the two modes provably unable to oscillate because `scrollHeight - clientHeight` is the same number in both. `.bottom-nav` gains `margin-top: auto` so the tab bar stays at the bottom of the phone screen in both modes - a defect the geometry test passed straight through and a contact sheet caught. The brief's "pad by the action area plus the bottom navigation" is met for the action area by computed padding and for the tab bar structurally, which is stronger; padding both would double-count. New `scripts/action-bar.test.mjs`, 89 assertions over 20 screens x 4 viewports plus 7 sheets. `GAPS.md` G38 closed by removal - the deviation from the reference frames is gone, so its screenshot exemption goes with it. |
 | 24 August 2026 (goals -> tracker, skip-ahead control) | D38 recorded, in two parts. `/goals` gains a deposit tracker card beside the calculator card, both built from one new `ctaCardHTML` helper, routing to `/tracker` - the same route the Insights tab resolves to (D35), with back following D29 because the card writes no state at all. And `/goals` alone gains a skip-ahead control, **a research affordance that would not exist in a production build**: a `role="radiogroup"` selecting between the starting savings position and `CHECKPOINT_FRACTION` x `deposit-target`, at which the Mortgage in Principle milestone unlocks. No fraction or amount is written down anywhere in it. It stashes the position it replaces and restores it verbatim, so three round trips leave state byte-identical and nothing the participant entered moves; `months-to-target`, `on-track-for` and `max-property` are recomputed because they are stored rather than derived, and only where already committed. Frames 03 and 06 stop clobbering the stashed position. Two things are reported as incoherent rather than fudged: frames 15/16's "Interest earned", a directly-read mock figure fixed by D34, and the per-account balances on frames 03, 06 and 32, which cannot rise without inventing balances. A copy check raised the supporting note from caption to footnote size. 143 tests passing. |
 | 22 August 2026 (D32 collision resolved) | The provenance-captions entry, recorded second under a number the chevron entry already held, becomes **D34**; the chevron entry keeps D32. Four citations meant the provenance entry and were updated - its own heading, its change-log row, `content.js`'s shared-caption comment and `accounts.js`'s bank-rate comment. Nine meant the chevron entry and were left alone: `GAPS.md` G57 (twice) and G58, `router.js`, `state.js`, `learn-ltv.js`, `mip-adviser.js`, `settings.js`, and its own change-log row. D33's paragraph recording the collision as open is corrected. Sequence is now D1-D34, no duplicate and no gap; D34 sits before D33 in the file, and D20 before D13, neither being renumbered or moved. `CLAUDE.md` gains a working rule to take the next number from the last entry. |

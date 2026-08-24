@@ -1,67 +1,62 @@
 /**
- * Reveal-on-reach for the pinned action bar (DECISIONS.md D17).
+ * The pinned action bar (DECISIONS.md D39, superseding D17's reveal).
  *
- * The action bar — primary button plus, on most screens, a secondary link —
- * used to be visible from the moment a screen loaded. It now appears only
- * once the participant has reached the end of the content, on screens that
- * have an end to reach.
- *
- * ---------------------------------------------------------------------------
- * TWO CASES, ONE PREDICATE
- * ---------------------------------------------------------------------------
- *   Content overflows its scroller  ->  hidden on load, revealed at the
- *                                       bottom, hidden again on scrolling
- *                                       back up. Not sticky once revealed.
- *   Content fits without scrolling  ->  revealed immediately and stays
- *                                       revealed. There is no bottom to
- *                                       reach, so no gesture is waited for.
- *
- * Which case a screen is in is never decided once. It is recomputed whenever
- * anything can change the content height — a disclosure opening, a state
- * variant rendering, frame 33's text-size control, a viewport resize — so a
- * screen that fits when its disclosures are closed and overflows when one is
- * expanded switches behaviour correctly, and back again.
+ * The bar — primary button plus, on most screens, a secondary link — is
+ * visible from the moment a screen paints and stays visible. It sits at the
+ * bottom of the phone screen, above the tab bar, and the content scrolls
+ * beneath it. D17 used to withhold it until the participant reached the end
+ * of the content; that is gone, and why is in D39.
  *
  * ---------------------------------------------------------------------------
- * WHY OPACITY AND NOT visibility: hidden
+ * WHAT IS LEFT FOR THIS MODULE TO DECIDE
  * ---------------------------------------------------------------------------
- * The brief asked for `visibility` and `opacity` so the bar stays focusable.
- * `visibility: hidden` does the opposite: it removes an element from the
- * accessibility tree AND makes it unfocusable, which is exactly the
- * non-negotiable this feature has to satisfy — a keyboard participant must
- * never be unable to proceed. So the hidden state is `opacity: 0` plus
- * `pointer-events: none`:
+ * Not visibility. Two things:
  *
- *   - opacity 0            invisible, but still rendered, still focusable,
- *                          still in the accessibility tree.
- *   - pointer-events none  a tap where the invisible bar sits passes through
- *                          instead of hitting a button nobody can see.
- *   - no display/visibility change, ever, while the screen is active.
+ *   1. THE BAR'S MEASURED HEIGHT, published as `--action-bar-height` on the
+ *      host. The bar is one or two buttons tall depending on the screen and
+ *      grows with frame 33's text-size control, so the height the scroller
+ *      has to reserve cannot be written down in the stylesheet.
  *
- * Focus is then the third way in, alongside "fits" and "at the bottom": while
- * focus is anywhere inside the bar the bar is revealed, whatever the scroll
- * position says. Tabbing to it also scrolls the content to its end, so what
- * the participant sees agrees with why the bar appeared, and so scrolling
- * does not immediately hide the control they are standing on.
+ *   2. WHICH OF TWO LAYOUT MODES THE SCREEN IS IN, published as
+ *      `.actions-inline` on the host:
+ *
+ *        content overflows  ->  PINNED. The dock sits at the bottom of the
+ *                               flex column, above the tab bar. The scroller
+ *                               grows underneath it (negative margin) and
+ *                               reserves its height as padding, so the last
+ *                               real content still scrolls fully clear.
+ *
+ *        content fits       ->  INLINE. There is nothing to scroll, so
+ *                               pinning the bar to the bottom would leave a
+ *                               band of empty screen between the last card
+ *                               and the buttons. The scroller stops growing,
+ *                               and the dock follows the content directly.
  *
  * ---------------------------------------------------------------------------
- * LAYOUT: THE CONTENT SCROLLS UNDER THE BAR
+ * THE TWO MODES CANNOT OSCILLATE, AND THAT IS ARITHMETIC RATHER THAN LUCK
  * ---------------------------------------------------------------------------
- * The bar overlaps the end of the scroller rather than carving a slot out of
- * it, and the scroller carries a matching bottom padding so the last real
- * content still clears it. The scroller's height is therefore the same
- * whether the bar is showing or not.
+ * Switching mode changes the scroller's box AND its padding, which is exactly
+ * the shape of feedback loop that made D17 choose the overlap in the first
+ * place. It is safe here because the quantity this module tests is unchanged
+ * by the switch. Writing S for the space the flex column leaves the scroller
+ * when the dock is in flow, N for the content's natural height including the
+ * screen inset, and H for the bar:
  *
- * That constancy is the point. Collapsing the bar when hidden would shorten
- * the scroller, which changes whether the content overflows, which changes
- * whether the bar should show — and on a screen that overflows by less than
- * the bar's own height (09a overflows by 104px, 13b by 61px, against a ~136px
- * bar) that loop genuinely oscillates. Overlapping makes "reaching the
- * bottom" a fact about the screen rather than about the bar, and means the
- * reveal never shifts the content being read.
+ *   pinned   clientHeight = S + H      scrollHeight = N + H
+ *   inline   clientHeight = min(N, S)  scrollHeight = N
  *
- * This module measures the bar and publishes `--action-bar-height` on the
- * host; components.css does the overlapping with it.
+ * so `scrollHeight - clientHeight` is `N - S` in both modes. The predicate is
+ * the same number before and after the switch, so a mode change produces one
+ * more measurement, agrees with itself, and stops.
+ *
+ * ---------------------------------------------------------------------------
+ * SHEETS ARE PINNED ONLY, AND NEED NO MODE
+ * ---------------------------------------------------------------------------
+ * A sheet's dock is `position: absolute` against a card that is sized by its
+ * own content up to `max-height: 92%` (screens.css). A card that fits is
+ * already exactly as tall as its content, so its bar is already sitting at the
+ * end of it - there is no empty band to reclaim and nothing for an inline mode
+ * to fix. `.actions-inline` is therefore only ever written to `.screen`.
  */
 
 /**
@@ -69,9 +64,9 @@
  *
  * `scrollHeight` and `clientHeight` are integers, `scrollTop` is fractional,
  * and the framed view scales the whole frame by a non-integer factor — so an
- * exact comparison misses the bottom by fractions of a pixel and the bar
- * never appears. 2px is enough for that rounding and far too small to fire
- * early: 2px of a 390px-tall scroller is not "reaching the end".
+ * exact comparison misses the bottom by fractions of a pixel. 2px is enough
+ * for that rounding and far too small to fire early: 2px of a 390px-tall
+ * scroller is not "reaching the end".
  */
 const TOLERANCE = 2;
 
@@ -104,19 +99,18 @@ function createController(bar) {
   if (!scroller) return null;
 
   const dock = bar.closest('.action-bar-dock');
-  let focusInside = false;
+  const host = scroller.parentElement;
+  // Only a full screen has two layout modes; see the header note on sheets.
+  const modal = host ? host.classList.contains('screen') : false;
   let frame = 0;
 
   function apply() {
     frame = 0;
 
-    // Publish the bar's measured height so the scroller can overlap it by
-    // exactly that much (components.css). One or two buttons tall depending
-    // on the screen, and it changes with the text-size control, so it is
-    // measured rather than assumed. Written only when it actually differs:
-    // the value feeds a padding on the scroller, and rewriting it every frame
-    // would retrigger the ResizeObserver that called us.
-    const host = scroller.parentElement;
+    // Publish the bar's measured height so the scroller can reserve exactly
+    // that much (components.css / screens.css). Written only when it actually
+    // differs: the value feeds a padding on the scroller, and rewriting it
+    // every frame would retrigger the ResizeObserver that called us.
     if (host) {
       const measured = `${bar.offsetHeight}px`;
       if (host.style.getPropertyValue('--action-bar-height') !== measured) {
@@ -128,14 +122,17 @@ function createController(bar) {
     const atBottom =
       scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - TOLERANCE;
 
-    // Three independent reasons to show it. "Fits" and "focus inside" both
-    // hold regardless of scroll position; only the middle one is a gesture.
-    const revealed = !overflows || atBottom || focusInside;
+    // Pinned when there is something to scroll, inline when there is not.
+    // `toggle` with an explicit force writes nothing when the class is already
+    // in that state, so the ResizeObserver this switch wakes sees no second
+    // change and the pair settles in one extra frame.
+    if (modal) host.classList.toggle('actions-inline', !overflows);
 
-    bar.classList.toggle('action-bar--revealed', revealed);
-    // The affordance says "there is more below". It belongs only to the case
-    // where that is true and the bar is not already saying it.
-    if (dock) dock.classList.toggle('action-bar-dock--more-below', overflows && !revealed);
+    // The fade above the bar says "the content carries on under here". It
+    // belongs to the case where that is true: content long enough to scroll,
+    // and not yet scrolled to its end. The bar's own hairline is what marks
+    // the edge at every other moment.
+    if (dock) dock.classList.toggle('action-bar-dock--more-below', overflows && !atBottom);
   }
 
   // Coalesce to one measurement per frame: a scroll, a resize and a mutation
@@ -145,26 +142,7 @@ function createController(bar) {
     frame = requestAnimationFrame(apply);
   }
 
-  function onFocusIn() {
-    focusInside = true;
-    // Reaching the bar by keyboard is reaching the end of the content, so
-    // take the participant there rather than revealing a control floating
-    // below content they have not seen.
-    scroller.scrollTop = scroller.scrollHeight;
-    apply();
-  }
-
-  function onFocusOut(event) {
-    // relatedTarget is where focus is going. Staying inside the bar (primary
-    // -> secondary) is not leaving it.
-    if (event.relatedTarget && bar.contains(event.relatedTarget)) return;
-    focusInside = false;
-    update();
-  }
-
   scroller.addEventListener('scroll', update, { passive: true });
-  bar.addEventListener('focusin', onFocusIn);
-  bar.addEventListener('focusout', onFocusOut);
   window.addEventListener('resize', update);
 
   // Height changes come from three directions and each needs a different
@@ -195,8 +173,6 @@ function createController(bar) {
     destroy() {
       if (frame) cancelAnimationFrame(frame);
       scroller.removeEventListener('scroll', update);
-      bar.removeEventListener('focusin', onFocusIn);
-      bar.removeEventListener('focusout', onFocusOut);
       window.removeEventListener('resize', update);
       resizeObserver.disconnect();
       mutationObserver.disconnect();
@@ -216,15 +192,16 @@ function createController(bar) {
 export function mountActionBars(container) {
   disconnectAll();
 
-  // Clear the measured height before re-measuring. It is an inline custom
-  // property on the host, and `container.className = 'screen'` in router.js
-  // resets classes but not inline styles — so navigating from a screen that
-  // HAS an action bar to one that does not (frame 12, 01, 19b, 33) used to
-  // leave the old value behind. `.screen-content`'s negative margin then had
-  // no dock to be absorbed by, and the content grew past the tab bar and into
-  // the reserved safe-area band. Clearing first makes the property mean
-  // "there is a bar here, this tall" rather than "there was one, once".
+  // Clear both published values before re-measuring. They are an inline
+  // custom property and a class on the host, and `container.className =
+  // 'screen'` in router.js resets classes but not inline styles — so
+  // navigating from a screen that HAS an action bar to one that does not
+  // (frames 01, 12, 19b, 33) used to leave the old height behind, and
+  // `.screen-content`'s negative margin then had no dock to be absorbed by.
+  // Clearing first makes each property mean "there is a bar here, in this
+  // state" rather than "there was one, once".
   container.style.removeProperty('--action-bar-height');
+  container.classList.remove('actions-inline');
   for (const sheet of container.querySelectorAll('.bottom-sheet')) {
     sheet.style.removeProperty('--action-bar-height');
   }
@@ -239,6 +216,8 @@ export function mountActionBars(container) {
  * Test/verification hook: what state each action bar is in right now, without
  * reaching into class names from outside. Used by the verification scripts so
  * they assert on the controller's own view rather than on a CSS detail.
+ *
+ * `revealed` is gone with D17. There is no hidden state left to report.
  */
 export function actionBarState(container) {
   return [...container.querySelectorAll('.action-bar')].map((bar) => {
@@ -248,7 +227,7 @@ export function actionBarState(container) {
       : false;
     return {
       overflows,
-      revealed: bar.classList.contains('action-bar--revealed'),
+      mode: bar.closest('.screen.actions-inline') ? 'inline' : 'pinned',
       affordance: !!bar.closest('.action-bar-dock--more-below'),
     };
   });

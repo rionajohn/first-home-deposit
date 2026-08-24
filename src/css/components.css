@@ -371,19 +371,29 @@
 }
 
 /* ==========================================================================
-   Action bar — reveal on reach (DECISIONS.md D17)
+   Action bar — pinned (DECISIONS.md D39, superseding D17's reveal)
    ==========================================================================
 
-   The bar appears once the participant has reached the end of the content, on
-   screens that have an end to reach; on screens that fit without scrolling it
-   is visible from the start. src/action-bar.js owns the decision and toggles
-   `.action-bar--revealed` here; this file owns what the two states look like.
+   The bar is visible from the moment a screen paints and stays visible. It
+   sits at the bottom of the phone screen, above the tab bar, and the content
+   scrolls beneath it. src/action-bar.js no longer decides whether it shows —
+   it publishes the bar's measured height and which of two LAYOUT modes the
+   screen is in (`.actions-inline`); this file owns what each mode looks like.
 
-   THE DOCK exists so the "more below" fade has somewhere to live. It cannot
-   live on the bar: the hidden state is `opacity: 0`, and opacity applies to an
-   element's pseudo-elements too, so a gradient drawn on the bar would be
-   invisible in exactly the state that needs it. The dock stays opaque and
-   draws the fade above itself.
+   TWO MODES, and the second is the whole of what D39 added beyond deleting the
+   hidden state:
+
+     pinned   content overflows. The dock sits at the bottom of the flex
+              column. The scroller grows under it and reserves its height, so
+              the last real content scrolls fully clear of it.
+     inline   content fits. Nothing scrolls, so pinning the bar to the bottom
+              would leave a band of empty screen between the last card and the
+              buttons. The scroller stops growing and the dock follows the
+              content directly. See `.actions-inline` below.
+
+   THE DOCK exists so the "more below" fade has somewhere to live that is not
+   the bar itself. The bar is opaque, and the fade has to sit ABOVE it, over
+   the last of the scrolling content, rather than on top of its own surface.
 
    THE DOCK, not the bar, is the flex child of `.screen` / `.bottom-sheet`.
    `z-index` puts it above the content it overlaps — see the note on
@@ -393,12 +403,11 @@
   z-index: 1;
   width: 100%;
   flex: 0 0 auto;
-  /* The dock overlaps the last ~136px of the scroller, so as a plain box it
-     would swallow taps on whatever content sits under it — a link row, a
-     disclosure header — whether or not the bar was showing. It is only a
-     positioning wrapper, so it never takes pointer events itself; the bar
-     inside it opts back in when revealed, and `pointer-events: none` on a
-     parent does not stop a child from setting `auto`. */
+  /* The dock is a positioning wrapper, not a surface. Its own box is the
+     bar's, but its `::before` reaches 56px above it, over live scrolling
+     content — so the dock takes no pointer events and the bar inside it opts
+     back in. `pointer-events: none` on a parent does not stop a child setting
+     `auto`. */
   pointer-events: none;
 }
 
@@ -418,13 +427,14 @@
    the scroller, so the last piece of real content clears the bar rather than
    sitting permanently beneath it.
 
-   Why this and not simply collapsing the bar when hidden: collapsing changes
-   the scroller's height, which changes whether the content overflows, which
-   changes whether the bar should show. On a screen that overflows by less
-   than the bar's own height — 09a overflowed by 104px, 13b by 61px, both
-   under a ~136px bar — that loop genuinely oscillates. Overlapping keeps the
-   scroller's height constant in both states, so "reaching the bottom" is a
-   fact about the screen and not about the bar.
+   This is the PINNED mode only. When the content fits there is nothing to
+   scroll under the bar and nothing to reclaim, so `.actions-inline` below
+   turns both the negative margin and the reserved padding off and lets the
+   dock follow the content. The mode switch changes the scroller's box and its
+   padding together, which is exactly the feedback loop D17 was wary of — it is
+   safe because `scrollHeight - clientHeight` works out to the same number in
+   both modes, so the switch cannot change its own input. The arithmetic is in
+   src/action-bar.js's header.
 
    --action-bar-height is measured and set by src/action-bar.js, because the
    bar is 1 or 2 buttons tall depending on the screen.
@@ -462,38 +472,38 @@
   padding-bottom: calc(var(--screen-inset-y) + var(--action-bar-height, 0px));
 }
 
-/* --- The scroll affordance ---
-   A short fade sitting directly above the dock, saying "there is more below".
-   Shown only while the content overflows AND the bar is still hidden; it goes
-   the moment the bar arrives, because by then the bar itself is the signal.
+/* --- The top edge treatment ---
+   Two parts, and both are needed for the bar to read as a layer rather than as
+   the end of the page:
 
-   `bottom: 100%` puts it immediately above the dock, overlaying the last 56px
-   of the scroller. It fades to --color-bg, the colour the content sits on, so
-   text passing under it dissolves rather than being cut off. `pointer-events:
-   none` keeps it from intercepting a scroll or a tap on the row beneath it,
-   and it is decorative, so it carries no content of its own. */
+     - the HAIRLINE on `.action-bar` itself (`border-top`, --color-border-subtle),
+       present at every scroll position, the same 1px rule `.bottom-nav` uses.
+       It is what says "this is chrome" on a screen whose content has already
+       stopped.
+     - this GRADIENT, 56px, sitting immediately above the hairline, shown while
+       the content is long enough to scroll AND has not yet been scrolled to
+       its end. It says the content carries on underneath rather than having
+       run out. Text passing under it dissolves into --color-bg, the colour the
+       content sits on, instead of being cut off at a hard line.
+
+   `bottom: 100%` is what puts it above the dock rather than over it. Under D17
+   it was anchored to `bottom: 0`, INSIDE the dock, and that was correct then
+   for a reason that has now gone: the bar's hidden state was `opacity: 0`, so
+   a gradient above a transparent bar would have faded the content out and then
+   let it reappear, perfectly legible, underneath the invisible bar. A bar that
+   is always opaque has nothing to reappear beneath, so the fade belongs where
+   the content actually is.
+
+   `pointer-events: none` keeps it from intercepting a scroll or a tap on the
+   row beneath it, and it is decorative, so it carries no content of its own. */
 .action-bar-dock::before {
   content: '';
   position: absolute;
-  /* ANCHORED TO THE BOTTOM OF THE SCROLLER, 56px TALL.
-     This first spanned the whole dock plus 56px above it — solid --color-bg
-     across the bar's own height, fading out over the 56px above that. The
-     reasoning was that the content scrolls under the bar, and while the bar is
-     hidden it is transparent, so a gradient sitting only ABOVE the dock would
-     fade the content out and then let it reappear, perfectly legible,
-     underneath an invisible bar.
-
-     True of a gradient above the dock; not true of one at the bottom of it.
-     The dock's bottom edge IS the bottom edge of the scroller (the negative
-     margin above makes the scroller run to exactly there), so a fade anchored
-     to `bottom: 0` dissolves the content once, at the last thing the
-     participant can see, and there is nowhere below it for anything to
-     reappear. The old geometry masked 193px on a two-button screen — 26% of
-     the screen — in flat --color-bg at every scroll position, which is what
-     read as "a blurred or blank region below the last element". Same job,
-     56px instead of 193, and the content behind the hidden bar stays legible
-     until it reaches the bottom edge rather than dissolving 137px early. */
-  bottom: 0;
+  /* 56px, immediately above the bar's hairline. Not taller: D17's first pass
+     masked 193px on a two-button screen — 26% of the phone screen — in flat
+     --color-bg, and that slab is what read as "a blurred or blank region below
+     the last element". 56px dissolves the last line of text and nothing more. */
+  bottom: 100%;
   height: 56px;
   left: 0;
   right: 0;
@@ -516,24 +526,21 @@
 
 /* --- Action bar (bottom, fixed within the flex column like .bottom-nav) ---
 
-   HIDDEN IS `opacity: 0`, NOT `visibility: hidden`. The two are not
-   interchangeable: `visibility: hidden` removes an element from the
-   accessibility tree and makes it unfocusable, which would mean a keyboard or
-   screen-reader participant on a long screen could not reach the control that
-   moves them forward. Opacity leaves the bar rendered, focusable and
-   announced; `pointer-events: none` is what stops a tap landing on a button
-   nobody can see. Neither `display` nor `visibility` is ever touched while a
-   screen is active.
+   NO HIDDEN STATE. D17's `opacity: 0` / `pointer-events: none` pair is gone
+   with D39, along with the rise transition that carried the reveal — there is
+   no state change left for either to animate. What that removes is a whole
+   class of accessibility hazard as well: there is no longer any moment at
+   which the control that moves a participant forward is invisible, and
+   nothing left to get wrong about `visibility` versus `opacity`.
 
-   THE BAR IS OPAQUE, and on a full screen it overlaps the end of the content
-   — see the `.screen-content` note above. While hidden it is transparent, so
-   the content shows through where it sits; while revealed its own surface
-   colour covers whatever is behind it. Either way the scroller's height never
-   changes, so the reveal cannot shift the content being read.
+   THE BAR IS OPAQUE, and in pinned mode it overlaps the end of the content —
+   see the `.screen-content` note above. Its own surface colour covers whatever
+   scrolls beneath it, and the scroller's height does not depend on it, so
+   scrolling never shifts the content being read.
 
-   The safe-area bottom inset (D14) sits BELOW all of this, as padding on
-   `.screen`, so the reserved band stays empty and the bar rises within the
-   app's own area rather than into the home-indicator space. */
+   The safe-area bottom inset (D14) is carried by whatever sits lowest: the tab
+   bar where there is one, this bar where there is not (see the `:last-child`
+   rule below). */
 .action-bar {
   display: flex;
   flex-direction: column;
@@ -548,22 +555,36 @@
      it stays on the spacing scale. */
   padding: var(--space-lg) var(--screen-inset-x);
   background: var(--color-surface);
+  /* The hairline. Half of the top edge treatment — see the dock's `::before`
+     above for the other half, and for why the two are separate things. Same
+     1px rule, same token, as `.bottom-nav`'s own top edge, so the two pieces
+     of bottom chrome are bounded the same way. */
   border-top: 1px solid var(--color-border-subtle);
-
-  opacity: 0;
-  pointer-events: none;
-  /* A short rise, per the HIG motion tokens — the same easeOut curve the
-     sheets use, at the standard duration. */
-  transform: translateY(var(--space-sm));
-  transition:
-    opacity var(--duration-standard) var(--ease-out),
-    transform var(--duration-standard) var(--ease-out);
+  /* The dock takes no pointer events (it reaches above itself); the bar opts
+     back in. */
+  pointer-events: auto;
 }
 
-.action-bar--revealed {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
+/* --- Inline mode: the content fits, so the bar follows it -------------------
+   Turning off BOTH halves of the overlap. Without the negative margin the
+   scroller stops reaching under the dock; without `flex-grow` it stops
+   stretching to fill the column, so the dock is no longer pushed to the bottom
+   of the screen and sits directly beneath the last card instead. The reserved
+   padding goes with them: there is nothing scrolling under the bar to reserve
+   room for, and leaving it would open a --action-bar-height gap between the
+   last card and the buttons, which is the exact complaint this mode exists to
+   answer.
+
+   `.screen.actions-inline >` is three classes plus a child combinator,
+   deliberately out of reach of both `.screen > .screen-content` above and the
+   `padding` SHORTHAND on `.screen-content` further down this file. G41 lost a
+   morning to a longhand quietly reset by a same-specificity shorthand; every
+   rule in this group is specified past that rather than merely placed after
+   it. src/action-bar.js sets the class. */
+.screen.actions-inline > .screen-content {
+  flex: 0 1 auto;
+  margin-bottom: 0;
+  padding-bottom: var(--screen-inset-y);
 }
 
 /* --- An action bar with no tab bar under it carries the inset itself ---
@@ -578,28 +599,31 @@
    shorthand further down; specificity makes source order irrelevant.
 
    `--action-bar-height` is measured from the bar's `offsetHeight`
-   (src/action-bar.js), so D17's content-scrolls-under-the-bar overlap grows
-   by the inset automatically — the bar's own background covers the whole of
-   what the content scrolls beneath.
+   (src/action-bar.js), so the content-scrolls-under-the-bar overlap grows by
+   the inset automatically — the bar's own background covers the whole of what
+   the content scrolls beneath.
 
-   No full screen currently reaches this rule: every screen that has an action
-   bar also has the tab bar below it, and the screens without a tab bar (19b,
-   33) have no action bar either. It is here so the rule holds if D11's
-   exclusion list ever changes, and it is exercised directly in the
+   `:not(.actions-inline)` because the rule's premise is that the bar is the
+   lowest thing on the screen. In inline mode it is not: it sits wherever the
+   content ended, with screen background below it, so an inset carried here
+   would be a band of bar padding floating mid-screen while the real bottom
+   edge went unreserved. shell.css hands `.screen` its own `padding-bottom`
+   back in that case, under the matching `:not()`.
+
+   No full screen currently reaches this rule in either mode: every screen that
+   has an action bar also has the tab bar below it, and the screens without a
+   tab bar (19b, 33) have no action bar either. It is here so the rule holds if
+   D11's exclusion list ever changes, and it is exercised directly in the
    verification pass by removing the tab bar from a screen that has one. */
-.screen > .action-bar-dock:last-child .action-bar {
+.screen:not(.actions-inline) > .action-bar-dock:last-child .action-bar {
   padding-bottom: calc(var(--space-lg) + var(--safe-bottom));
 }
 
-/* Reduced motion: cross-fade only. The rise is decorative; the fade is what
-   carries the state change, so it stays. Matches how D1 treats every other
-   transition in the app. */
+/* Reduced motion. The bar itself no longer animates at all (D39 removed the
+   reveal and the rise with it), so the only thing left with a transition is
+   the scroll fade, shortened to the quick duration. Matches how D1 treats
+   every other transition in the app. */
 @media (prefers-reduced-motion: reduce) {
-  .action-bar {
-    transform: none;
-    transition: opacity var(--duration-quick) var(--ease-out);
-  }
-
   .action-bar-dock::before {
     transition: opacity var(--duration-quick) var(--ease-out);
   }
@@ -1014,6 +1038,25 @@
   background: var(--color-surface);
   border-top: 1px solid var(--color-border-subtle);
   flex: 0 0 auto;
+  /* --- THE TAB BAR IS ALWAYS AT THE BOTTOM OF THE PHONE SCREEN ---
+     `margin-top: auto` on a flex item claims all the column's free space above
+     it, which pins the bar to the bottom whatever the content does.
+
+     Unconditional, and a no-op in every case but one. Ordinarily
+     `.screen-content` is `flex: 1 1 auto` and absorbs the free space itself,
+     so there is none left here and this changes nothing. The exception is
+     D39's inline mode: there `.screen-content` stops growing so the action bar
+     can sit directly under the last card, and without this rule the whole
+     column collapsed upward and took the tab bar with it — the bar rose to sit
+     under the buttons and left a band of page background between itself and
+     the bottom of the phone screen.
+
+     That is a bug in a way the action bar's own position is not. The action
+     bar belongs to the screen and may sit where the screen's content ends; the
+     tab bar belongs to the BANK (D11), is the same furniture on every screen,
+     and moving it would mean the app's own navigation changed place depending
+     on how much copy a screen happened to carry. */
+  margin-top: auto;
 }
 
 .bottom-nav__tab {

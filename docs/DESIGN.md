@@ -260,11 +260,26 @@ Touch target column: ✅ = `var(--touch-target-min)` (48px) or larger.
 | `.app-bar` | 56px bar: leading cell, centred title, trailing cell | Every full screen except the calculator | leading = back / close / none | ✅ 48 (cell is 44 wide, `--action` variant 48) |
 | `.form-step-header` | Back + title + close, plus a "Step n of 3" row | 09, 09a, 09b, 10, 10b, 11 | — | ✅ 48 |
 | `.bottom-nav` | Bank tab bar, 5 tabs, persistent (D11) | 20 full screens | **three states — see below**: active / enabled-not-active / disabled | ✅ 48 |
-| `.action-bar-dock` / `.action-bar` | Pinned primary + optional secondary, **reveal on reach** (D17) | 29 screens | `--revealed`; dock `--more-below` draws a 56px fade | ✅ 48 |
+| `.action-bar-dock` / `.action-bar` | Pinned primary + optional secondary, **always visible** (D39) | 27 screens | `.screen.actions-inline` picks the layout mode; dock `--more-below` draws a 56px fade above the bar | ✅ 48 |
 | `.bottom-sheet__header` | Grabber bar above a heading + close row, fixed outside the scroller (D19) | 03b, 10c, 29–32 | close glyph present (29–32) or absent (03b, 10c) | ✅ 48 |
 
-Hidden action bar is `opacity: 0` + `pointer-events: none` — **never** `visibility: hidden`, which
-would remove it from the accessibility tree and make it unfocusable.
+**The action bar has no hidden state (D39).** It is visible from first paint on every screen that
+has one, and stays visible while the content scrolls beneath it. D17's `opacity: 0` +
+`pointer-events: none` pair and the rise transition that carried the reveal are both gone; so is
+the accessibility hazard they were carefully working around, since there is no longer any moment at
+which the control that moves a participant forward is invisible.
+
+Two layout modes, chosen by `src/action-bar.js` from whether the content overflows:
+
+| Mode | When | The dock | The scroller |
+|---|---|---|---|
+| **Pinned** | content overflows | bottom of the flex column, above the tab bar | grows under the dock (negative margin) and reserves its measured height as padding |
+| **Inline** (`.screen.actions-inline`) | content fits | directly after the last card | stops growing; no negative margin, no reserved padding |
+
+`.bottom-nav` carries `margin-top: auto` so the **tab bar stays at the bottom of the phone screen in
+both modes** — it is the bank's furniture, not the screen's, and must not move because a screen's
+copy got shorter. Sheets are pinned only: their dock is absolute against a content-sized card, so a
+sheet that fits already ends where its content does.
 
 #### `.bottom-nav` has three tab states, not two
 

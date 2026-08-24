@@ -221,11 +221,16 @@ body::-webkit-scrollbar,
      - a tab bar (19 full screens)
      - an action bar with no tab bar under it — `:last-child` is what
        distinguishes it, since `mountBottomNav` always appends the tab bar
-       after the dock when there is one
+       after the dock when there is one, AND `:not(.actions-inline)`, because
+       an action bar in inline mode (D39) sits wherever the content ended
+       rather than at the bottom edge, so it is not the thing that reaches the
+       bottom of the phone screen and cannot carry the inset for it
 
    Screens with neither (19b, 33) keep the inset here, on `.screen`. There is
    no chrome to carry it and content still has to clear the home indicator, so
-   the fallback is the correct behaviour rather than an oversight.
+   the fallback is the correct behaviour rather than an oversight. A screen
+   whose only bottom chrome is an inline action bar falls into that same case
+   and keeps it here for the same reason.
 
    Sheets are untouched by all of this: their card is `position: absolute`
    inside `.sheet-overlay`, which resolves `inset: 0` against `.screen`'s
@@ -233,7 +238,7 @@ body::-webkit-scrollbar,
    `.screen`'s padding never affected them either way. G39 put their inset
    inside the sheet's own action bar and that is unchanged. */
 .screen:has(> .bottom-nav),
-.screen:has(> .action-bar-dock:last-child) {
+.screen:not(.actions-inline):has(> .action-bar-dock:last-child) {
   padding-bottom: 0;
 }
 

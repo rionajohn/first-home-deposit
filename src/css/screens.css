@@ -318,13 +318,15 @@
    option). Taking the dock out of flow works either way: an absolutely
    positioned child contributes nothing to its parent's height, so the card is
    sized by the scroller alone, and the scroller's own bottom padding is what
-   reserves room for the bar. Nothing is ever blank: while the bar is hidden
-   the content shows through where it sits, and while it is revealed the bar's
-   own surface covers it.
+   reserves room for the bar.
 
-   Neither the card's height nor the scroller's depends on whether the bar is
-   showing, so there is no feedback loop between "does the content overflow"
-   and "should the bar be revealed". */
+   A SHEET HAS NO INLINE MODE, and needs none (D39). The full-screen case gains
+   one because a `.screen` is a fixed height and a short screen would otherwise
+   strand the bar at the bottom with a band of empty screen above it. A sheet
+   card is sized by its own content up to `max-height: 92%`, so a sheet whose
+   content fits is already exactly as tall as that content and its bar is
+   already sitting at the end of it. There is nothing to reclaim.
+   src/action-bar.js writes `.actions-inline` only to `.screen`. */
 .bottom-sheet .action-bar-dock {
   position: absolute;
   left: 0;

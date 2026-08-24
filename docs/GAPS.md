@@ -458,27 +458,25 @@ checkboxes and the select-all count only**, alongside the frame 13 (G17a), frame
 
 ---
 
-**G38. The action bar was visible from first paint on every screen — now it waits for the end of
-the content.** Not previously recorded. Every reference frame draws the primary button present from
-the start, so on the 21 screens whose content overflows this is a control the wireframes show and
-the build now withholds.
+**G38. The action bar was visible from first paint on every screen — then it waited for the end of
+the content, and now it is visible from first paint again.** Not previously recorded. Every
+reference frame draws the primary button present from the start, so while D17 was in force the
+build withheld a control the wireframes show.
 
-*Status: resolved (D17) — the bar appears once the scroll container reaches its bottom (2px
-tolerance for sub-pixel rounding), hides again on scrolling back up, and is not sticky once
-revealed. On the 8 screens whose content fits it is visible immediately and stays: there is no end
-to reach, so no gesture is waited for. Recorded as an intentional deviation from the reference PNGs
-— **exempt from the screenshot-comparison pass for the action bar's visibility and the scroll
-affordance only**, alongside the frame 13 (G17a), frame 32 (G25), frame 05b (G28),
-bottom-navigation (G29), collapsed-disclosure (G30), icon-rendering (G34), select-all-count (G36)
-and per-account-checkbox (G37) exemptions. Everything else on every screen is still diffed
-normally.*
+*Status: closed by removal (D39, 24 August 2026).* **The deviation is gone and so is the exemption.**
+The bar is visible from first paint on every screen that has one, which is what the reference frames
+draw, so there is nothing left for the screenshot-comparison pass to exempt. The remaining
+exemptions are unaffected: frame 13 (G17a), frame 32 (G25), frame 05b (G28), bottom-navigation
+(G29), collapsed-disclosure (G30), icon-rendering (G34), select-all-count (G36) and
+per-account-checkbox (G37).
 
-**Which case each screen is in**, measured at 390x844 with disclosures closed per D12:
-
-- **Overflows (22)** — 02, 03, 04, 06, 08, 09, 09b, 10, 10b, 11, 13, 13b, 15, 16, 18, 19, 20, 21,
-  29, 30, 31, 32
-- **Fits (7)** — 03b, 05, 05b, 09a, 10c, 17, `/mip/adviser`
-- **No action bar (4)** — 01, 12, 19b, 33
+**What D17's "which case" table became.** It was a list of which screens hid the bar. Under D39
+nothing hides it, and the same overflow test now picks a LAYOUT mode instead — pinned to the bottom
+where the content scrolls, inline after the last card where it does not. The membership of the two
+lists is no longer a fact worth writing down here, because it changes with the viewport rather than
+with the screen: at 393x852 frames 05, 17 and `/mip/adviser` are inline, at 375x667 only
+`/mip/adviser` is. `scripts/action-bar.test.mjs` asserts the right mode per screen per viewport
+rather than pinning a list to one screen size.
 
 D12 is the reason the middle list is as long as it is, and this is worth knowing before sessions:
 frames 05 and 05b carry a breakdown the wireframes draw open, and closed they are 345px of content
