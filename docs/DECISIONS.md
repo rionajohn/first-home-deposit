@@ -2067,6 +2067,71 @@ return the tab handler to a bare `window.location.hash = ...`. `seedHistoryRoot(
 
 ---
 
+## D41. A screen draws the back chevron only when there is a screen behind it inside its own flow
+
+**Date.** 25 August 2026.
+
+**Decision, stated generally.** The app bar's leading cell draws the back chevron when, and only
+when, there is a preceding screen inside the same flow. The root screen of a tab has none by
+definition - the tab bar put the participant there, and the tab they came from is not behind it in
+any sense back should honour - so a tab root draws no chevron. This is the counterpart to D40 on
+the same axis: D40 decided what a lateral move does to history, and this decides what a lateral
+arrival means for the control that reads it.
+
+**IT CHANGES TWO SCREENS, AND THAT IS NOT WHAT IT IS.** `/goals` and `/tracker` are the only two
+screens in the app that are DUAL-NATURED - a tab root by one route and a descent by another:
+
+| Screen | Root when | Descent when |
+|---|---|---|
+| `/goals` | the Goals tab | frame 06's "save for something else" branch (`position-summary.js`) |
+| `/tracker` | the Insights tab | the goals-page tracker card (D38) |
+
+Every other screen with an app bar has exactly one nature, and already draws the right thing.
+`/home` is the third tab root and draws no chevron, but for the wrong reason: `home.js` builds its
+app bar inline with two empty `<div class="app-bar__cell">` rather than calling `appBarHTML`, so it
+happens to be correct rather than being made correct by this rule. Left alone deliberately - it is
+right, and the rule holds over it - but it is not evidence the rule is applied there, and a future
+change to that header would not inherit it.
+
+So the rule is general and its blast radius is two. **It is not a two-screen patch**, and reading it
+as one is how the next dual-natured screen gets built wrong: any new screen reachable both from a
+tab and from a descent has to take the same conditional, and any screen that becomes a tab root has
+to lose its unconditional chevron.
+
+**Read `isRootEntry()`. Do not compute root-ness a second way.** Both screens do
+`const leading = isRootEntry() ? null : 'back';`. The two arrivals share a route, so no route test
+can distinguish them - that is D40's whole finding, and a route list there produced a duplicate
+history entry rather than a near-miss. The predicate is exported from `router.js` for exactly this
+second caller.
+
+**Absent, not inert, and that came free.** `appBarHTML` already renders a plain 44px
+`<div class="app-bar__cell">` when `left` is null - the shape `/home` has used all along. So there
+is no disabled button, no invisible control, nothing `aria-hidden` wrapped around something still
+reachable. Measured on all three roots: `focusablesInHeader = 0`, leading cell `<DIV>` 44px, and the
+title's centre within 1.5px of the bar's centre, so nothing shifts left when the chevron goes.
+
+**The close X rules are untouched.** `left: 'close'` still renders the X, still binds `exitFlow`,
+and a sheet's own dismiss is a different control on a different `data-action` entirely. Only the
+`'back'` case became conditional.
+
+**Verified.** Every tab root by tab tap: no chevron, `<DIV>` 44px leading cell, title centred, zero
+focusables in the header, and the first four tab stops land on page content and then the tab bar -
+never on the empty cell. `/tracker` via the goals card: chevron present, returns to `/goals`.
+`/goals` via frame 06: chevron present, returns to `/position/summary`. Screenshots at 390px in
+light and dark for all five cases. 237 tests passing.
+
+**KNOWN DEFECT, LOGGED NOT FIXED: `GAPS.md` G59.** A cold-loaded `/goals` or `/tracker` is stamped
+`root: false` and therefore **still draws a chevron on a tab root** - measured and reported here
+rather than quietly shipped. Participants open a link, so cold load is the common path in a session
+rather than an edge case, which makes this the most likely way to meet the very defect this rule
+removes. Closing it means deciding what a non-tab-tap arrival at a tab root counts as, which is its
+own change and has to answer the browser-session-restore case that could not be driven headlessly.
+
+**Reversal.** Restore `left: 'back'` as a literal in `goals.js` and `tracker.js` and drop the two
+`isRootEntry` imports.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -2114,6 +2179,7 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (false "Watched") | D37 recorded: frame 13's explainer marker changes from "Watched" to "Opened", and `explainerWatchedLabel` is renamed `explainerOpenedLabel`. Frame 13b's media block has no playback, and `ltvVideoSeen` is set by dismissing the sheet however it was entered - so the row claimed a video had been watched, sometimes by a participant who had asked for the diagram and never touched the video row. When the flag is set is unchanged; only its label. Swept all eight journey flags: `ltvVideoSeen` is the only one a screen reads to display a claim, and a text sweep of 23 routes found no other false-action marker. Three near-misses left alone and listed in the entry, including frames 15/16's unconditional "You told us what each one's for", which is reported as unsure rather than changed. **D8 and G17a corrected in the same commit**: both said frame 13's "See it as a diagram" row had been removed; `git log -S` shows it was only ever added, both rows open 13b per the reference PNG's own annotation, and the frame 13 entry in G29's screenshot-exemption list cited a deviation that does not exist. Original reasoning left intact, corrections appended and dated. |
 | 22 August 2026 (frame 18 timeline) | D36 recorded: frame 18's `[Visual aid]` placeholder is replaced by the process timeline it specified - four labelled nodes joined by a hairline, Mortgage in Principle marked as where the participant is, the three ahead of them reading as ahead rather than done. **It is a process sequence, not a progress indicator, and is exempt from DESIGN.md's bar exclusions on that basis** - vertical, discrete nodes rather than a filled track, measuring nothing, with no completed state at all. Vertical because four horizontal labels do not fit 62px columns at 320px. New `circleDot` icon and `processTimelineHTML` component; no new colour, spacing or width token. Not interactive: no button, link, tabindex or pointer cursor, proved by walking the tab order. An `<ol>` with `aria-current="step"` and a visible "You are here", so sequence and position are not carried by the drawing alone. Frame 13b's separate `[Visual aid]` and the `.media-placeholder` video block are untouched. |
 | 22 August 2026 (MiP reachable) | D35 recorded: the Insights tab resolves to `/tracker` (Payments and Profile stay disabled), which makes the six-screen Mortgage in Principle flow reachable - it was already built and already wired, and nothing navigated to the tracker. `diamondFill` added, because `TAB_ICONS_ACTIVE` held twins for two tabs and lighting a third called `undefined`; the glyph lookup now falls back to the outline, and the tab hint stops being a Home-or-Goals ternary. The tracker's action bar is confirmed as the single entry (`reference/frames/16` draws it; the instruction's "milestone row is a live link" did not hold), and the locked milestone row drops its no-op `<button>`. `journeyEntryPoint` gains `/tracker`, so the X on 17, 18, 19b, 20 and 21 exits to the tracker rather than frame 01. Four copy keys change: the entry stops claiming the prototype issues a decision in principle, and frames 19 and 19b stop implying a check runs here. No knowledge check built on frame 17 - it exists in no spec, wireframe or frame, and the author confirmed it came from a stale summary. |
+| 25 August 2026 (back chevron) | D41 recorded: a screen draws the back chevron only when there is a preceding screen inside its own flow, so a tab root draws none. Stated generally; it changes `/goals` and `/tracker` only because those are the two DUAL-NATURED screens - a tab root by one route and a descent by another - so both become conditional rather than losing the chevron. Both read `isRootEntry()` (D40), which is the only fact that can separate the two arrivals to one route. `/home` is the third root and is already correct, but by hardcoding two empty cells in `home.js` rather than by the rule, and is noted as such. Absent not inert: `appBarHTML`'s null-`left` branch already rendered a plain 44px `<div>`, so the slot stays reserved, the title stays centred within 1.5px, and the header has zero focusables. Close X untouched. `GAPS.md` G59 still open: a cold-loaded tab root stamps `root: false` and so still draws a chevron. |
 | 25 August 2026 (Insights tab root) | D40 recorded, and **D29 restated on the axis that actually governs it**: a descent pushes, a lateral move between roots replaces, a guard replaces - the original "Guards replace, user navigation pushes" kept underneath as superseded phrasing, because it named the initiator as a proxy for the shape of the move and had no way to classify a participant-initiated move with nothing behind it. The three tab roots are `/home`, `/goals`, `/tracker`. Tab taps from a root now `replace`: ten switches go from +10 entries to +0. New `ROOT_MARKER` per history entry and an exported `isRootEntry()`, which is the only fact that can tell a tab-root arrival from a descent to the same route - a route list produces a duplicate entry, and history depth is wrong because a tab root nearly always has the previous tab or the seeded `/home` behind it. D35 amended: `journeyEntryPoint` is the flow entry point, not the screen arrival route, so the flow X still returns to `/tracker` from both routes. Cold load / deep link / session restore still stamp `root: false` - logged as `GAPS.md` G59, open. |
 | 24 August 2026 (pinned action bar) | D39 recorded, **superseding D17**: the action bar is visible from first paint on all 27 screens that have one and stays visible while the content scrolls beneath it. D17's hidden state, reveal, focus-reveal path and rise transition are removed; its measured height, its content-scrolls-under-the-bar overlap and its 56px fade survive, the fade moving from inside the dock to immediately above it now that the bar is always opaque. `src/action-bar.js` now decides LAYOUT rather than visibility: pinned to the bottom where the content overflows, inline after the last card where it fits, the two modes provably unable to oscillate because `scrollHeight - clientHeight` is the same number in both. `.bottom-nav` gains `margin-top: auto` so the tab bar stays at the bottom of the phone screen in both modes - a defect the geometry test passed straight through and a contact sheet caught. The brief's "pad by the action area plus the bottom navigation" is met for the action area by computed padding and for the tab bar structurally, which is stronger; padding both would double-count. New `scripts/action-bar.test.mjs`, 89 assertions over 20 screens x 4 viewports plus 7 sheets. `GAPS.md` G38 closed by removal - the deviation from the reference frames is gone, so its screenshot exemption goes with it. |
 | 24 August 2026 (goals -> tracker, skip-ahead control) | D38 recorded, in two parts. `/goals` gains a deposit tracker card beside the calculator card, both built from one new `ctaCardHTML` helper, routing to `/tracker` - the same route the Insights tab resolves to (D35), with back following D29 because the card writes no state at all. And `/goals` alone gains a skip-ahead control, **a research affordance that would not exist in a production build**: a `role="radiogroup"` selecting between the starting savings position and `CHECKPOINT_FRACTION` x `deposit-target`, at which the Mortgage in Principle milestone unlocks. No fraction or amount is written down anywhere in it. It stashes the position it replaces and restores it verbatim, so three round trips leave state byte-identical and nothing the participant entered moves; `months-to-target`, `on-track-for` and `max-property` are recomputed because they are stored rather than derived, and only where already committed. Frames 03 and 06 stop clobbering the stashed position. Two things are reported as incoherent rather than fudged: frames 15/16's "Interest earned", a directly-read mock figure fixed by D34, and the per-account balances on frames 03, 06 and 32, which cannot rise without inventing balances. A copy check raised the supporting note from caption to footnote size. 143 tests passing. |

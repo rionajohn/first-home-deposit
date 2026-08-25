@@ -32,6 +32,7 @@ import { appBarHTML, bindAppBarLeading, rerenderInPlace } from '../components/ui
 import { formatAccountBalance } from '../format.js';
 import { effectiveAccounts, goalsByHorizon } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
+import { isRootEntry } from '../router.js';
 import { canSkipAhead, isSkippedAhead, skipAheadPatch, skipBackPatch } from '../skip-ahead.js';
 
 /**
@@ -204,8 +205,30 @@ export function render(container, ctx) {
     action: 'open-deposit-tracker',
   });
 
+  // --- THE BACK CHEVRON, AND WHY IT IS CONDITIONAL HERE (DECISIONS.md D41) ---
+  //
+  // A screen draws the chevron only when there is a preceding screen inside
+  // its own flow. This screen has two natures and the chevron follows
+  // whichever one the participant is in:
+  //
+  //   via the Goals tab      a tab ROOT. Nothing behind it inside the flow,
+  //                          so no chevron.
+  //   via frame 06's "save   a DESCENT. Frame 06 is behind it, so the chevron
+  //   for something else"    is drawn and pops back to it.
+  //
+  // `isRootEntry()` and nothing else. The two arrivals share a route, so no
+  // route test can tell them apart - only the history entry knows how it was
+  // created (D40). Computing root-ness a second way here is exactly what that
+  // predicate exists to prevent.
+  //
+  // Absent, not inert: `appBarHTML` renders a plain 44px `<div>` in the
+  // leading cell when `left` is null, so the slot still holds the title
+  // centred and there is no button in the tab order or the accessibility
+  // tree to land on.
+  const leading = isRootEntry() ? null : 'back';
+
   container.innerHTML = `
-    ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
+    ${appBarHTML({ title: c.appBarTitle, left: leading, appBarLabels: content.shared.appBar })}
     <main class="screen-content goals-screen" role="main">
       <h2 class="screen-title">${c.headline}</h2>
       <p class="body-text-lg">${c.body}</p>
