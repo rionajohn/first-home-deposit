@@ -1010,20 +1010,38 @@ overwrites rather than stacks, read by ten screens each with its own hardcoded f
 it was empty or stale. The history stack is a record of where the participant actually went; a
 fallback is a guess made at build time about where they probably came from.
 
-**Guards replace, user navigation pushes.** This is the rule the rest depends on. A guard bounces a
-participant off a screen they never chose to be on, so it overwrites its own entry with
-`location.replace()` instead of adding one. Eleven state guards were converted, plus `/reset` and
-frame 19b's two timer transitions - see the table below. Without this, one back tap unwinds a
-cascade rather than a screen: `GAPS.md`'s note under G50 records frame 09's back travelling
-`#/goals -> #/calculator/property -> #/position/summary -> #/consent`, three hops from one tap.
-Traced after the change, that same tap moves one screen, and a cold arrival on `#/tracker` - whose
-guards chain four deep to `/calculator/property` - now consumes no history at all.
+**A descent pushes; a lateral move replaces; a guard replaces.** This is the rule the rest depends
+on, and it is a rule about the SHAPE OF THE MOVE, not about who made it:
 
-| Converted to `location.replace()` | Why it is not user navigation |
+| Kind of move | What it does | Why |
+|---|---|---|
+| **Descent** into a screen | pushes | There is a screen behind it, and back has to return there |
+| **Lateral** between roots | replaces | There is not. The root being left has no place in the stack of the root being entered |
+| **Guard** redirect | replaces | Same reason: the screen refused to render, so there is nothing behind it either |
+
+Eleven state guards were converted, plus `/reset` and frame 19b's two timer transitions - see the
+table below. Without this, one back tap unwinds a cascade rather than a screen: `GAPS.md`'s note
+under G50 records frame 09's back travelling `#/goals -> #/calculator/property ->
+#/position/summary -> #/consent`, three hops from one tap. Traced after the change, that same tap
+moves one screen, and a cold arrival on `#/tracker` - whose guards chain four deep to
+`/calculator/property` - now consumes no history at all.
+
+| Converted to `location.replace()` | Why there is nothing behind it |
 |---|---|
 | Eleven state guards (frames 09b, 10, 11, 12, 13, 15/16, 18, 19, 19b, 20, 21) | The screen refuses to render and sends the participant somewhere they did not ask to go |
 | `/reset` in `router.js` | A side-effecting pseudo-route. Left pushing, one back tap would land on `#/reset`, wipe the session and push forward again - an inescapable trap that also destroys the participant's data |
 | Frame 19b's two timer transitions | A determinate processing state that resolves itself after 1400ms. Left pushing, back from a result screen would land on 19b, whose timer re-fires and pushes forward again |
+| Tab-bar taps from a tab root (D40, 25 August 2026) | A lateral move between roots. Ten Insights/Goals switches built ten entries that swipe-back then walked one screen at a time |
+
+> **SUPERSEDED PHRASING, kept because the wording was load-bearing and is cited elsewhere.** This
+> rule was originally stated as **"Guards replace, user navigation pushes."** For every case that
+> existed when it was written that is the same rule, and as a general statement it is wrong: it
+> names WHO INITIATED the move, which was only ever a proxy for the thing that actually governs it.
+> The proxy holds as long as every participant-initiated move is a descent. It breaks at the first
+> participant-initiated move with nothing behind it - a tab-bar tap between roots - which the old
+> phrasing can only classify as "user navigation", and would therefore have pushed. The axis was
+> always descent versus lateral; the initiator was standing in for it. None of the guard
+> conversions change, only the reason given for them.
 
 **Cold start is handled once, structurally.** Deleting the fallbacks removes what a deep arrival
 used to rely on, so `seedHistoryRoot()` in `router.js` puts `/home` behind a participant who lands
@@ -1369,6 +1387,18 @@ this commit's `build-spec.md` change alone.
 ## D35. The Mortgage in Principle flow becomes reachable: Insights lights the tracker, and the tracker is its only door
 
 **Date.** 22 August 2026.
+
+> **Amended 25 August 2026 (D40).** `journeyEntryPoint` is the FLOW entry point, not the screen
+> arrival route, and the two must not share a variable. It answers "which screen does the close X
+> leave this flow to", written once when a flow is entered and left alone as the participant moves
+> through it (D30). "Which route did the participant reach this screen by" is a different question,
+> answered per history entry by `isRootEntry()` (D40), and overloading one variable with both would
+> make the X's destination depend on how the tracker was opened rather than on where the flow began.
+>
+> So this entry stands unchanged: the tracker writes `journeyEntryPoint: '/tracker'` when its action
+> bar opens the Mortgage in Principle flow, and the X on frames 17, 18, 19b, 20 and 21 returns to
+> the tracker from BOTH routes into it - the Insights tab and the goals card alike. A proposal to
+> have the X follow the route in was considered and dropped on that basis.
 
 **Decision.** The Insights tab resolves to `/tracker`, the tracker's action bar is confirmed as the
 single entry into the Mortgage in Principle flow, and that flow now exits back to the tracker rather
@@ -1965,6 +1995,78 @@ measured height and the overlap are older than D17 and are not part of this.
 
 ---
 
+## D40. The tracker is the Insights tab root, and a lateral move between roots replaces
+
+**Date.** 25 August 2026.
+
+**Decision.** The three tab roots are `/home`, `/goals` and `/tracker` - the values of
+`NAVIGABLE_TABS` in `components/ui.js`. A tab-bar tap taken FROM a tab root is a lateral move and
+uses `location.replace()`; a tab-bar tap taken from anywhere else is a descent out of that screen
+and still pushes. This is D29's restated axis applied to the one control that had no answer under
+the old phrasing.
+
+**The Insights routing was already correct and is not what changed.** `NAVIGABLE_TABS` has mapped
+`insights: '/tracker'` since D35, and a browser probe confirms `#/home` -> tap Insights ->
+`#/tracker` with the tab enabled and bound. There is no second tracker screen, no Insights module
+and no other Insights content; `/tracker` is that tab's only destination. What was broken was
+history: **ten Insights/Goals switches built ten entries** (measured, 3 -> 13), and swipe-back then
+walked `goals -> tracker -> goals` one screen at a time.
+
+### `isRootEntry()` is the only fact that can answer this, and raw history depth cannot
+
+`src/router.js` stamps every entry it renders with `ROOT_MARKER` alongside the existing
+`NAV_MARKER`, set from a `pendingRootArrival` flag that the tab handler raises immediately before
+navigating and the next `stampEntry()` consumes. `isRootEntry()` reads that marker and is exported,
+because the back chevron asks the same question and must not compute it a second way.
+
+**Why not a list of root routes.** `/tracker` is the Insights root when the tab put the participant
+there and a DESCENT when the goals card did; `/goals` is the Goals root and a descent from frame
+06's "save for something else" branch. A route list cannot tell those apart. Traced in a browser
+before this was built, testing the route instead produces a duplicate entry rather than a near-miss:
+
+```
+tap Goals tab       #/goals    len=3   ["", "#/home", "#/goals"]
+tap tracker card    #/tracker  len=4   ["", "#/home", "#/goals", "#/tracker"]
+REPLACE -> /goals   #/goals    len=4   ["", "#/home", "#/goals", "#/goals"]   <-- duplicate
+back (1st)          #/goals            <-- same screen; back did nothing
+back (2nd)          #/home             <-- only now does it move
+```
+
+**Why not history depth either.** A tab root nearly always DOES have something behind it - the
+previous tab, or the `/home` that `seedHistoryRoot()` puts behind a deep arrival. So any test based
+on stack position or `history.length` would report "there is a predecessor" and be wrong. The
+chevron and the tab rule are both claims about the FLOW, not about the raw stack, and only the
+entry knows how it was created. `history.length` is separately unusable here for the reason D29
+already records: a tab's own initial entry counts toward it, so it reads 2 on the very first paint.
+
+**Per-entry state is the right channel, measured not assumed.** A value planted on `/home` is gone
+after both a push and a replace - each creates a fresh entry - and returns intact on navigating
+back to that entry. A refresh preserves it, because `stampEntry()` returns early on an entry it has
+already stamped.
+
+### What it costs and what it saves
+
+| Sequence | Before | After |
+|---|---|---|
+| Ten root-to-root switches | +10 entries | +0 |
+| Ten switches from a descended `/tracker` | +10 | +1, then flat |
+| `/goals` -> tracker card -> Goals tab -> back | lands on `/tracker` | unchanged, no duplicate |
+| Guarded tap from a root (`/tracker` with no goal, guards four deep) | +1 | +0 |
+
+The 10c interception is untouched: a tab tap from a calculator step still opens "Leave this for
+now?" and never reaches the lateral test.
+
+**A known gap is left open deliberately and logged as `GAPS.md` G59.** Only a tab tap raises
+`pendingRootArrival`, so a cold load, a deep link or a browser session restore stamps a tab root
+`root: false`. Safe-directional for navigation - it means "descent", so the tap pushes - but NOT
+safe for the back chevron, which is why it is logged rather than waved through.
+
+**Reversal.** Drop `ROOT_MARKER`, `pendingRootArrival` and `isRootEntry()` from `router.js`, and
+return the tab handler to a bare `window.location.hash = ...`. `seedHistoryRoot()`'s two explicit
+`root: false` stamps go with them.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -2012,6 +2114,7 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (false "Watched") | D37 recorded: frame 13's explainer marker changes from "Watched" to "Opened", and `explainerWatchedLabel` is renamed `explainerOpenedLabel`. Frame 13b's media block has no playback, and `ltvVideoSeen` is set by dismissing the sheet however it was entered - so the row claimed a video had been watched, sometimes by a participant who had asked for the diagram and never touched the video row. When the flag is set is unchanged; only its label. Swept all eight journey flags: `ltvVideoSeen` is the only one a screen reads to display a claim, and a text sweep of 23 routes found no other false-action marker. Three near-misses left alone and listed in the entry, including frames 15/16's unconditional "You told us what each one's for", which is reported as unsure rather than changed. **D8 and G17a corrected in the same commit**: both said frame 13's "See it as a diagram" row had been removed; `git log -S` shows it was only ever added, both rows open 13b per the reference PNG's own annotation, and the frame 13 entry in G29's screenshot-exemption list cited a deviation that does not exist. Original reasoning left intact, corrections appended and dated. |
 | 22 August 2026 (frame 18 timeline) | D36 recorded: frame 18's `[Visual aid]` placeholder is replaced by the process timeline it specified - four labelled nodes joined by a hairline, Mortgage in Principle marked as where the participant is, the three ahead of them reading as ahead rather than done. **It is a process sequence, not a progress indicator, and is exempt from DESIGN.md's bar exclusions on that basis** - vertical, discrete nodes rather than a filled track, measuring nothing, with no completed state at all. Vertical because four horizontal labels do not fit 62px columns at 320px. New `circleDot` icon and `processTimelineHTML` component; no new colour, spacing or width token. Not interactive: no button, link, tabindex or pointer cursor, proved by walking the tab order. An `<ol>` with `aria-current="step"` and a visible "You are here", so sequence and position are not carried by the drawing alone. Frame 13b's separate `[Visual aid]` and the `.media-placeholder` video block are untouched. |
 | 22 August 2026 (MiP reachable) | D35 recorded: the Insights tab resolves to `/tracker` (Payments and Profile stay disabled), which makes the six-screen Mortgage in Principle flow reachable - it was already built and already wired, and nothing navigated to the tracker. `diamondFill` added, because `TAB_ICONS_ACTIVE` held twins for two tabs and lighting a third called `undefined`; the glyph lookup now falls back to the outline, and the tab hint stops being a Home-or-Goals ternary. The tracker's action bar is confirmed as the single entry (`reference/frames/16` draws it; the instruction's "milestone row is a live link" did not hold), and the locked milestone row drops its no-op `<button>`. `journeyEntryPoint` gains `/tracker`, so the X on 17, 18, 19b, 20 and 21 exits to the tracker rather than frame 01. Four copy keys change: the entry stops claiming the prototype issues a decision in principle, and frames 19 and 19b stop implying a check runs here. No knowledge check built on frame 17 - it exists in no spec, wireframe or frame, and the author confirmed it came from a stale summary. |
+| 25 August 2026 (Insights tab root) | D40 recorded, and **D29 restated on the axis that actually governs it**: a descent pushes, a lateral move between roots replaces, a guard replaces - the original "Guards replace, user navigation pushes" kept underneath as superseded phrasing, because it named the initiator as a proxy for the shape of the move and had no way to classify a participant-initiated move with nothing behind it. The three tab roots are `/home`, `/goals`, `/tracker`. Tab taps from a root now `replace`: ten switches go from +10 entries to +0. New `ROOT_MARKER` per history entry and an exported `isRootEntry()`, which is the only fact that can tell a tab-root arrival from a descent to the same route - a route list produces a duplicate entry, and history depth is wrong because a tab root nearly always has the previous tab or the seeded `/home` behind it. D35 amended: `journeyEntryPoint` is the flow entry point, not the screen arrival route, so the flow X still returns to `/tracker` from both routes. Cold load / deep link / session restore still stamp `root: false` - logged as `GAPS.md` G59, open. |
 | 24 August 2026 (pinned action bar) | D39 recorded, **superseding D17**: the action bar is visible from first paint on all 27 screens that have one and stays visible while the content scrolls beneath it. D17's hidden state, reveal, focus-reveal path and rise transition are removed; its measured height, its content-scrolls-under-the-bar overlap and its 56px fade survive, the fade moving from inside the dock to immediately above it now that the bar is always opaque. `src/action-bar.js` now decides LAYOUT rather than visibility: pinned to the bottom where the content overflows, inline after the last card where it fits, the two modes provably unable to oscillate because `scrollHeight - clientHeight` is the same number in both. `.bottom-nav` gains `margin-top: auto` so the tab bar stays at the bottom of the phone screen in both modes - a defect the geometry test passed straight through and a contact sheet caught. The brief's "pad by the action area plus the bottom navigation" is met for the action area by computed padding and for the tab bar structurally, which is stronger; padding both would double-count. New `scripts/action-bar.test.mjs`, 89 assertions over 20 screens x 4 viewports plus 7 sheets. `GAPS.md` G38 closed by removal - the deviation from the reference frames is gone, so its screenshot exemption goes with it. |
 | 24 August 2026 (goals -> tracker, skip-ahead control) | D38 recorded, in two parts. `/goals` gains a deposit tracker card beside the calculator card, both built from one new `ctaCardHTML` helper, routing to `/tracker` - the same route the Insights tab resolves to (D35), with back following D29 because the card writes no state at all. And `/goals` alone gains a skip-ahead control, **a research affordance that would not exist in a production build**: a `role="radiogroup"` selecting between the starting savings position and `CHECKPOINT_FRACTION` x `deposit-target`, at which the Mortgage in Principle milestone unlocks. No fraction or amount is written down anywhere in it. It stashes the position it replaces and restores it verbatim, so three round trips leave state byte-identical and nothing the participant entered moves; `months-to-target`, `on-track-for` and `max-property` are recomputed because they are stored rather than derived, and only where already committed. Frames 03 and 06 stop clobbering the stashed position. Two things are reported as incoherent rather than fudged: frames 15/16's "Interest earned", a directly-read mock figure fixed by D34, and the per-account balances on frames 03, 06 and 32, which cannot rise without inventing balances. A copy check raised the supporting note from caption to footnote size. 143 tests passing. |
 | 22 August 2026 (D32 collision resolved) | The provenance-captions entry, recorded second under a number the chevron entry already held, becomes **D34**; the chevron entry keeps D32. Four citations meant the provenance entry and were updated - its own heading, its change-log row, `content.js`'s shared-caption comment and `accounts.js`'s bank-rate comment. Nine meant the chevron entry and were left alone: `GAPS.md` G57 (twice) and G58, `router.js`, `state.js`, `learn-ltv.js`, `mip-adviser.js`, `settings.js`, and its own change-log row. D33's paragraph recording the collision as open is corrected. Sequence is now D1-D34, no duplicate and no gap; D34 sits before D33 in the file, and D20 before D13, neither being renumbered or moved. `CLAUDE.md` gains a working rule to take the next number from the last entry. |

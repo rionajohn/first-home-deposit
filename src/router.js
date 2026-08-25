@@ -167,9 +167,59 @@ export function exitFlow() {
  */
 const NAV_MARKER = 'yfh-nav-entry';
 
+/**
+ * ROOT-NESS IS A FACT ABOUT THE HISTORY ENTRY, NOT ABOUT THE ROUTE, and this
+ * is the marker that records it. See `isRootEntry` below for why a route list
+ * cannot answer the same question.
+ */
+const ROOT_MARKER = 'yfh-root-entry';
+
+/**
+ * Set by the tab handler immediately before it navigates, consumed by the
+ * next `stampEntry`. A module-level handoff rather than an argument because
+ * the navigation and the stamp are separated by a `hashchange` — the same
+ * shape as `pendingFocusRestoreAction` below.
+ *
+ * KNOWN GAP, DELIBERATELY LEFT OPEN: only a tab tap sets this, so every other
+ * arrival at a tab root is stamped `root: false` — a cold load, a deep link, a
+ * browser session restore. See GAPS.md G59, which records what that costs.
+ */
+let pendingRootArrival = false;
+
 function stampEntry() {
   if (window.history.state && window.history.state[NAV_MARKER]) return;
-  window.history.replaceState({ [NAV_MARKER]: true }, '');
+  window.history.replaceState({ [NAV_MARKER]: true, [ROOT_MARKER]: pendingRootArrival }, '');
+  pendingRootArrival = false;
+}
+
+/**
+ * IS THE ENTRY THE PARTICIPANT IS STANDING ON A TAB ROOT?
+ *
+ * NOT "is the current route a tab root". Those are different questions and
+ * the difference is the whole reason this exists. `/tracker` is BOTH the
+ * Insights root and a descent from the goals card; `/goals` is both the Goals
+ * root and a descent from frame 06's "save for something else" branch. A
+ * route list answers "which routes can be roots" and cannot tell the two
+ * arrivals apart. Only the history entry can, because only the entry knows
+ * how it was created.
+ *
+ * Testing the route instead is not a near-miss, it is a duplicate-entry bug.
+ * Traced in a browser before this was built: `/goals` -> tracker card ->
+ * `/tracker`, then a Goals tab tap treated as lateral, replaces, and history
+ * becomes `["", "#/home", "#/goals", "#/goals"]`. Back lands on `/goals`
+ * again and appears to do nothing; only the second back moves.
+ *
+ * Exported because the back chevron asks this same question - a screen draws
+ * a chevron only when there is a preceding screen inside its own flow, which
+ * is exactly "this entry is not a tab root". It must read this rather than
+ * computing root-ness a second way.
+ *
+ * Survives back, forward and reload, because `history.state` is per-entry and
+ * `stampEntry` above returns early on an entry it has already stamped. Both
+ * measured, not assumed.
+ */
+export function isRootEntry() {
+  return !!(window.history.state && window.history.state[ROOT_MARKER]);
 }
 
 function seedHistoryRoot() {
@@ -178,8 +228,14 @@ function seedHistoryRoot() {
   if (window.history.state && window.history.state[NAV_MARKER]) return;
   if (parseHash().path === '/home') return;
   const landing = window.location.hash || '#/home';
-  window.history.replaceState({ [NAV_MARKER]: true }, '', '#/home');
-  window.history.pushState({ [NAV_MARKER]: true }, '', landing);
+  // Both stamped `root: false` explicitly. Neither was reached by a tab tap:
+  // the seeded /home is scaffolding the participant never visited, and the
+  // landing entry is a cold arrival. GAPS.md G59 records what the landing one
+  // costs — this is the line that decides it, and it runs BEFORE the first
+  // `stampEntry`, so the cold entry is already stamped by the time any render
+  // happens.
+  window.history.replaceState({ [NAV_MARKER]: true, [ROOT_MARKER]: false }, '', '#/home');
+  window.history.pushState({ [NAV_MARKER]: true, [ROOT_MARKER]: false }, '', landing);
 }
 
 function renderNotBuilt(container, path) {
@@ -326,7 +382,36 @@ function mountBottomNav(container, path) {
         window.location.hash = '#/calculator/exit';
         return;
       }
-      window.location.hash = `#${target}`;
+
+      // Tapping the tab you are already on is a no-op. Returning here BEFORE
+      // touching `pendingRootArrival` is what stops the flag leaking: an
+      // unchanged hash fires no `hashchange`, so nothing would consume it and
+      // the next descent would be stamped a root.
+      if (path === target) return;
+
+      // --- DESCENT PUSHES, LATERAL REPLACES (DECISIONS.md D29, as restated) -
+      //
+      // A tab tap from a tab root is a LATERAL move between roots: there is no
+      // screen behind it inside the flow being left, so replacing costs the
+      // participant nothing and stops ten switches building ten entries that
+      // swipe-back then walks one at a time.
+      //
+      // A tab tap from anywhere else is a DESCENT out of wherever they were,
+      // and that screen has to survive: a participant part-way through the
+      // calculator who looks at Goals and swipes back must land where they
+      // were, not wherever they were before that.
+      //
+      // `isRootEntry()` and NOT a list of root routes. `/tracker` is the
+      // Insights root when the tab put them there and a descent when the goals
+      // card did; a route list cannot tell those apart and turns the second one
+      // into a duplicate history entry. See `isRootEntry`.
+      const lateral = isRootEntry();
+      pendingRootArrival = true;
+      if (lateral) {
+        window.location.replace(`#${target}`);
+      } else {
+        window.location.hash = `#${target}`;
+      }
     });
   });
 }

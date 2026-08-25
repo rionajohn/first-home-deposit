@@ -1260,3 +1260,80 @@ rather than off the side of it, and its own action bar continues to frame 19 rat
 - so "leave the check" may genuinely be what its X should mean.
 
 Needs a decision about what frame 18 is, not a code change guessed at from the pattern.
+
+**G59. A cold-loaded tab root is stamped `root: false`, and will draw a back chevron on a tab root
+once the chevron rule lands. OPEN.**
+
+Opened by `DECISIONS.md` D40, 25 August 2026, and deliberately left open there rather than fixed in
+the same pass.
+
+`src/router.js` stamps each history entry with `ROOT_MARKER`, read back by `isRootEntry()`. The flag
+that feeds it, `pendingRootArrival`, is raised only by the tab-bar handler. **Every other way of
+arriving at a tab root therefore stamps `root: false`**: a cold load, a link opened fresh, a deep
+link, and a browser session restore. Measured, per tab root:
+
+| Arrival | `history.length` | Stamp | Back goes to |
+|---|---|---|---|
+| Cold load `#/home` | 2 | `root: false` | **leaves the prototype** |
+| Cold load `#/goals` | 3 | `root: false` | `#/home` |
+| Cold load `#/tracker` | 3 | `root: false` | `#/home` |
+| Tab tap to any of the three | - | `root: true` | previous tab |
+| Refresh, arrived as a root | unchanged | `root: true` preserved | unchanged |
+| Refresh, arrived by descent | unchanged | `root: false` preserved | the screen it descended from |
+
+Refresh is NOT affected in either direction: `stampEntry()` returns early on an entry it has already
+stamped, so a reload preserves whatever that entry was.
+
+**Where `seedHistoryRoot()` sits, which is the crux.** It runs in `startRouter()` BEFORE the first
+`renderCurrentRoute()`, and therefore before the first `stampEntry()`. It writes its two entries -
+the seeded `/home` and the landing route pushed on top of it - with `root: false` written out
+explicitly rather than inherited, because neither was reached by a tab tap. By the time any render
+happens, a cold arrival is already stamped, and nothing later re-stamps it.
+
+**This is safe-directional for navigation and NOT safe for the chevron.** For the tab rule,
+`root: false` means "descent", so the first tab tap pushes rather than replaces: one extra entry per
+cold arrival, bounded, never accumulation. For the back chevron the same value is a defect - a
+cold-loaded `/goals` or `/tracker` reports "not a root" and so will **draw a back chevron on a tab
+root**, which is the exact thing the chevron rule exists to remove.
+
+**And cold load is the common path, not an edge case.** Participants are sent a link and open it;
+they do not usually arrive at a tab root by tapping through from `/home`. So the shape of this gap
+in a real session is closer to "the chevron is usually wrong on a directly-opened tab root" than to
+"a rare cold-start case".
+
+*Not fixed here.* The chevron rule ships against `isRootEntry()` as it stands, with this gap
+present and stated. Closing it means deciding what a non-tab-tap arrival at a tab root should count
+as, which is its own question - and one that has to answer the browser-session-restore case, which
+could not be driven headlessly and so has not been measured.
+
+**G60. A tab tap and a swipe back mid-flow leaves `exitFlow()` overshooting by one screen. OPEN,
+and pre-existing.**
+
+Found while verifying D40 (25 August 2026), and confirmed NOT to be caused by it: the trace below is
+byte-identical with D40's `src/router.js` and with the version at `HEAD` before it.
+
+```
+enter MIP from the tracker   #/mip     len=4   flowEntryHistoryLength=3
+tap the Goals tab            #/goals   len=5   (a descent out of /mip, so it pushes - correct)
+swipe back                   #/mip     len=5   delta = 5 - 3 = 2
+flow X                       #/home            <-- should be #/tracker
+```
+
+`exitFlow()` goes back by `history.length` minus the length recorded at flow entry. The Goals tap
+pushed an entry, the swipe back moved the POSITION but not the LENGTH, so the delta reads 2 where
+the participant is only one entry deep in the flow, and `history.go(-2)` overshoots `/tracker` and
+lands on the seeded `/home`.
+
+This is exactly the approximation `DECISIONS.md` D32 records and accepts - "`history.length` counts
+forward entries as well as back ones ... it is not a running index of where the participant is" -
+so it fails onto a real screen rather than somewhere unrelated. What is new here is a concrete
+reproduction rather than a general caveat.
+
+**D40 does not make it worse, and makes it better in one case:** a tab-bar tap between two roots no
+longer pushes at all, so the laterals that used to inflate the count no longer do. Inside a flow the
+participant is never standing on a root, so the flow-exit path behaves exactly as it did.
+
+*Not fixed here.* The fix is to record a position rather than a length - a monotonic depth counter
+stamped into `history.state` alongside `ROOT_MARKER`, which is now available and was not when D32
+was written. That is its own change, and it should be taken together with the G59 stamping question
+rather than separately.

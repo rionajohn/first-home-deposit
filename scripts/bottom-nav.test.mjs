@@ -254,3 +254,129 @@ test('Insights is tappable everywhere; Payments and Profile never are', async ()
     assert.strictEqual(nav.profile.disabled, true, `Profile became tappable on ${route}`);
   }
 });
+
+/* ==========================================================================
+   History: a lateral move between roots replaces, a descent pushes (D40)
+   ==========================================================================
+
+   D29's restated axis, applied to the one control that had no answer under
+   the old "guards replace, user navigation pushes" phrasing. These assert on
+   `history.length` and on where back actually lands, because the defect they
+   were written for is invisible in the markup: the bar looked and behaved
+   correctly while quietly stacking one entry per tap, so ten switches left a
+   stack that swipe-back then walked one screen at a time.
+
+   `/tracker` is why root-ness is stamped per history ENTRY rather than tested
+   against a list of root routes: it is the Insights root when the tab put the
+   participant there and a descent when the goals card did. The
+   `descended /tracker` cases below are the ones a route list gets wrong, and
+   it gets them wrong by producing a duplicate entry, not by a near-miss. */
+
+/** A page parked on a route, with the journey figures seeded. */
+async function session(route = '/home') {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+  await ctx.addInitScript((v) => { try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {} }, TRACKER_SEED);
+  const page = await ctx.newPage();
+  await page.goto(`${base}/#${route}`);
+  await page.waitForSelector('.bottom-nav__tab');
+  await page.waitForTimeout(200);
+  return { ctx, page };
+}
+
+const len = (page) => page.evaluate(() => window.history.length);
+const hash = (page) => page.evaluate(() => window.location.hash);
+
+async function tap(page, tabId) {
+  await page.click(`[data-tab="${tabId}"]`);
+  await page.waitForTimeout(230);
+}
+
+test('ten root-to-root switches add no history at all', async () => {
+  const { ctx, page } = await session('/home');
+  try {
+    // The first tap is a descent out of the cold-loaded /home, which is
+    // stamped root:false (GAPS.md G59) — so it pushes, once. Everything from
+    // there is root-to-root.
+    await tap(page, 'goals');
+    const before = await len(page);
+
+    for (let i = 0; i < 10; i += 1) {
+      await tap(page, i % 2 === 0 ? 'insights' : 'goals');
+    }
+
+    const after = await len(page);
+    assert.strictEqual(after, before, `ten switches added ${after - before} history entries`);
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('a tab tap from a journey screen pushes, and back returns to that screen', async () => {
+  const { ctx, page } = await session('/position/summary');
+  try {
+    const before = await len(page);
+    await tap(page, 'goals');
+    assert.strictEqual(await hash(page), '#/goals');
+    assert.strictEqual(await len(page), before + 1, 'a descent out of a journey screen must push');
+
+    await page.goBack();
+    await page.waitForTimeout(280);
+    assert.strictEqual(await hash(page), '#/position/summary', 'back did not return to the journey screen');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('/goals -> tracker card -> Goals tab -> back leaves no duplicate entry', async () => {
+  const { ctx, page } = await session('/goals');
+  try {
+    await page.click('[data-action="open-deposit-tracker"]');
+    await page.waitForTimeout(300);
+    assert.strictEqual(await hash(page), '#/tracker');
+
+    // THE CASE A ROUTE LIST GETS WRONG. /tracker is in the list of root
+    // routes, so a route-based test would call this lateral and replace —
+    // overwriting the descent and leaving ["#/goals", "#/goals"] adjacent,
+    // where the first back tap moves nothing.
+    await tap(page, 'goals');
+    assert.strictEqual(await hash(page), '#/goals');
+
+    await page.goBack();
+    await page.waitForTimeout(300);
+    assert.strictEqual(await hash(page), '#/tracker', 'back skipped the descended tracker: a duplicate entry was written');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('ten switches from a descended /tracker cost exactly one entry', async () => {
+  const { ctx, page } = await session('/goals');
+  try {
+    await page.click('[data-action="open-deposit-tracker"]');
+    await page.waitForTimeout(300);
+    const before = await len(page);
+
+    for (let i = 0; i < 10; i += 1) {
+      await tap(page, i % 2 === 0 ? 'goals' : 'insights');
+    }
+
+    // One push for the descent out of the descended /tracker, then flat.
+    const after = await len(page);
+    assert.strictEqual(after, before + 1, `expected +1, got +${after - before}`);
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('tapping the tab you are already on does nothing at all', async () => {
+  const { ctx, page } = await session('/goals');
+  try {
+    await tap(page, 'goals');
+    const before = await len(page);
+    await tap(page, 'goals');
+    assert.strictEqual(await len(page), before, 'a no-op tap changed the history length');
+    assert.strictEqual(await hash(page), '#/goals');
+  } finally {
+    await ctx.close();
+  }
+});
