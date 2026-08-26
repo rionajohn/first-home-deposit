@@ -180,9 +180,10 @@ const ROOT_MARKER = 'yfh-root-entry';
  * the navigation and the stamp are separated by a `hashchange` — the same
  * shape as `pendingFocusRestoreAction` below.
  *
- * KNOWN GAP, DELIBERATELY LEFT OPEN: only a tab tap sets this, so every other
- * arrival at a tab root is stamped `root: false` — a cold load, a deep link, a
- * browser session restore. See GAPS.md G59, which records what that costs.
+ * TWO WRITERS, AND ONLY TWO. The tab handler is one. `seedHistoryRoot` below
+ * is the other, and it writes this exactly once per page load, for the first
+ * entry of the session — see there for why the route is decisive at that one
+ * boundary and nowhere else. Closed GAPS.md G59.
  */
 let pendingRootArrival = false;
 
@@ -222,20 +223,63 @@ export function isRootEntry() {
   return !!(window.history.state && window.history.state[ROOT_MARKER]);
 }
 
+/**
+ * Is this path the root screen of a tab?
+ *
+ * READ FROM `NAVIGABLE_TABS`, NOT WRITTEN OUT AGAIN. That map in
+ * components/ui.js is already the single definition of which tabs are live and
+ * where each one lands, so "the tab roots" is derived from it rather than
+ * duplicated - a fourth live tab would be a root here without this file
+ * changing.
+ *
+ * CONSULTED AT EXACTLY ONE BOUNDARY: the first entry of a session, in
+ * `seedHistoryRoot` below. It is NOT a route test applied generally, and
+ * `isRootEntry()` is still the only thing any screen asks. See the note there.
+ */
+function isTabRootPath(path) {
+  return Object.values(NAVIGABLE_TABS).includes(path);
+}
+
 function seedHistoryRoot() {
   // An entry we have rendered before — a reload, or one restored by the
   // browser. Whatever sits behind it is already behind it.
   if (window.history.state && window.history.state[NAV_MARKER]) return;
-  if (parseHash().path === '/home') return;
+
+  // --- THE FIRST ENTRY OF THE SESSION, AND THE ONLY PLACE A ROUTE DECIDES ---
+  //
+  // Everything past this point in the session answers "root or descent?" from
+  // how the entry was created: a tab tap raises `pendingRootArrival`, and
+  // anything else is a descent. That test cannot work on the FIRST entry,
+  // because nothing created it from inside the app - the participant opened a
+  // link or typed a URL, and there is no earlier screen for them to have
+  // descended from.
+  //
+  // So here, and only here, the route is decisive: NO DESCENT IS POSSIBLE ON
+  // THE FIRST ENTRY, so if it lands on a tab root it IS a root. That is not a
+  // route list applied generally - it is the one boundary where the usual
+  // question has no answer and the route has one. Screens still ask
+  // `isRootEntry()` and nothing else.
+  //
+  // Reaching this line at all means the entry is unstamped, and unstamped
+  // means the browser made it. `seedHistoryRoot` is called once from
+  // `startRouter`, which runs once per page load, so a URL typed MID-session
+  // fires `hashchange` and never arrives here - measured: the length grows by
+  // one, not by two. That is what separates the first entry from a later one.
+  const { path } = parseHash();
+  const landingIsRoot = isTabRootPath(path);
+
+  if (path === '/home') {
+    // Nothing to seed behind frame 01. Hand the verdict to the first
+    // `stampEntry`, which runs a moment later in `startRouter` and consumes it.
+    pendingRootArrival = landingIsRoot;
+    return;
+  }
+
   const landing = window.location.hash || '#/home';
-  // Both stamped `root: false` explicitly. Neither was reached by a tab tap:
-  // the seeded /home is scaffolding the participant never visited, and the
-  // landing entry is a cold arrival. GAPS.md G59 records what the landing one
-  // costs — this is the line that decides it, and it runs BEFORE the first
-  // `stampEntry`, so the cold entry is already stamped by the time any render
-  // happens.
-  window.history.replaceState({ [NAV_MARKER]: true, [ROOT_MARKER]: false }, '', '#/home');
-  window.history.pushState({ [NAV_MARKER]: true, [ROOT_MARKER]: false }, '', landing);
+  // The seeded /home is a tab root by the same reasoning and by the same test:
+  // it sits at the bottom of the stack with nothing behind it at all.
+  window.history.replaceState({ [NAV_MARKER]: true, [ROOT_MARKER]: true }, '', '#/home');
+  window.history.pushState({ [NAV_MARKER]: true, [ROOT_MARKER]: landingIsRoot }, '', landing);
 }
 
 function renderNotBuilt(container, path) {

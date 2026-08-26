@@ -1261,11 +1261,12 @@ rather than off the side of it, and its own action bar continues to frame 19 rat
 
 Needs a decision about what frame 18 is, not a code change guessed at from the pattern.
 
-**G59. A cold-loaded tab root is stamped `root: false`, and will draw a back chevron on a tab root
-once the chevron rule lands. OPEN.**
+**G59. A cold-loaded tab root was stamped `root: false`, and drew a back chevron on a tab root.
+CLOSED 26 August 2026.**
 
-Opened by `DECISIONS.md` D40, 25 August 2026, and deliberately left open there rather than fixed in
-the same pass.
+Opened by `DECISIONS.md` D40, 25 August 2026, left open through D41, and closed by D41's
+first-entry amendment. *The description below is the defect as it stood; the resolution is at the
+end.*
 
 `src/router.js` stamps each history entry with `ROOT_MARKER`, read back by `isRootEntry()`. The flag
 that feeds it, `pendingRootArrival`, is raised only by the tab-bar handler. **Every other way of
@@ -1301,10 +1302,24 @@ they do not usually arrive at a tab root by tapping through from `/home`. So the
 in a real session is closer to "the chevron is usually wrong on a directly-opened tab root" than to
 "a rare cold-start case".
 
-*Not fixed here.* The chevron rule ships against `isRootEntry()` as it stands, with this gap
-present and stated. Closing it means deciding what a non-tab-tap arrival at a tab root should count
-as, which is its own question - and one that has to answer the browser-session-restore case, which
-could not be driven headlessly and so has not been measured.
+**RESOLVED.** The question it turned on - what a non-tab-tap arrival at a tab root should count as -
+has an answer at exactly one boundary. **On the first entry of a session there is no earlier screen,
+so no descent can have happened.** If that entry lands on a tab root, it is a root. `seedHistoryRoot`
+now stamps it `root: true`, reading the tab roots from `NAVIGABLE_TABS` rather than a second list.
+
+The route is decisive there and only there, so this is not a route test applied generally and D41's
+rule is unchanged - screens still ask `isRootEntry()` and nothing else. The first entry is
+distinguishable because `seedHistoryRoot` is called once from `startRouter`, which runs once per page
+load: a URL typed mid-session fires `hashchange` and never reaches it, measured as the history length
+growing by one rather than two.
+
+After, on cold load: `/home`, `/goals` and `/tracker` all report `isRootEntry() === true` and draw no
+chevron; `/position/summary` and `/consent` report `false` and keep theirs. Refresh still preserves
+the stamp in both directions.
+
+**Browser session restore is still unmeasured.** It could not be driven headlessly. A restored entry
+carries its `history.state` per the HTML spec, so it should look like a revisit and keep its stamp -
+the same path a reload takes, which IS measured. Recorded as reasoning, not as a result.
 
 **G60. A tab tap and a swipe back mid-flow leaves `exitFlow()` overshooting by one screen. OPEN,
 and pre-existing.**
