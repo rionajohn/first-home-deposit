@@ -50,6 +50,7 @@ import { RATES, CHART_DEPOSIT_PCTS, CHECKPOINT_FRACTION } from '../model/rates.j
 import { MOCK_POSITION } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
 import { isRootEntry } from '../router.js';
+import { canSkipAhead, isSkippedAhead, skipAheadHTML, bindSkipAhead } from '../skip-ahead.js';
 
 export const anchors = ['guidanceNotAdvice', 'mcob3aRepossessionWarning'];
 
@@ -182,6 +183,8 @@ export function render(container, ctx) {
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: leading, appBarLabels: content.shared.appBar })}
     <main class="screen-content" role="main">
+      ${skipAheadHTML({ c, position: isSkippedAhead(state) ? 'ahead' : 'now', available: canSkipAhead(state) })}
+
       <p class="figure-display">${formatCurrency(savedTowardDeposit)}</p>
       <p class="provenance-caption provenance-caption--center">${c.savedCaption}</p>
       <p class="provenance-caption provenance-caption--center">${fill(c.goalCaptionTemplate, { target: formatCurrency(depositTargetValue) })}</p>
@@ -259,6 +262,24 @@ export function render(container, ctx) {
   `;
 
   bindAppBarLeading(container);
+
+  // --- The skip-ahead control (src/skip-ahead.js, DECISIONS.md D38) ---------
+  //
+  // A RESEARCH AFFORDANCE, DRAWN HERE AND NOWHERE ELSE. It moved from the
+  // bottom of /goals to the top of this screen: the figures it changes are all
+  // on this screen, so the control and its effect are now read together rather
+  // than two screens apart, and a facilitator does not have to leave the
+  // tracker to move the position it is showing.
+  //
+  // Both routes into the tracker get it, because they are the same screen -
+  // the Insights tab root (D40) and the goals-page card (D38) render this same
+  // module. The Mortgage in Principle flow and the deposit calculator do not
+  // draw it at all: a participant part-way through a task must not be able to
+  // change the position that task is measured against.
+  //
+  // `render` is passed so selection re-renders this screen in place rather than
+  // navigating - scroll position and focus are both held.
+  bindSkipAhead(container, ctx, render);
 
   // Frame 13 is comprehension content, so it stays reachable from here — but
   // through a link of its own, not through the rates card's heading. A heading

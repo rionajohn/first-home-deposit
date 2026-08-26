@@ -92,23 +92,6 @@ const FRAMES = [
   // check is about rendered geometry, and a screen with two card sections
   // and a 64px row has exactly the shape this test was written for.
   ['goals', '/goals', {}],
-  // The skip-ahead control's three states (DECISIONS.md D38). It is the one
-  // block on /goals whose height changes with what it says, and its note is
-  // the longest run of small text on the screen, so it earns its own rows
-  // here rather than riding on 'goals' above.
-  ['goals-skipped', '/goals', {
-    skippedAhead: true,
-    skipAheadStash: {
-      'saved-toward-deposit': f(11350),
-      'months-to-target': f(84, 'derived'),
-      'on-track-for': f({ low: 76, high: 93 }, 'derived'),
-      'max-property': f(210000, 'estimated'),
-    },
-  }],
-  ['goals-no-goal', '/goals', {
-    'property-value': f(null, null), 'deposit-pct': f(null, null),
-    'deposit-target': f(null, null), 'checkpoint-amount': f(null, null),
-  }],
   ['08', '/goal-check', {}],
   ['09', '/calculator/property', {}],
   ['09a', '/calculator/property', { 'property-value': f(null, null), 'deposit-pct': f(null, null) }],
@@ -122,6 +105,20 @@ const FRAMES = [
   ['13b', '/learn/ltv/video', {}],
   ['15', '/tracker', { 'saved-toward-deposit': f(12000), 'checkpoint-amount': f(21000, 'derived') }],
   ['16', '/tracker', { 'saved-toward-deposit': f(22000), 'checkpoint-amount': f(21000, 'derived') }],
+  // The skip-ahead control (DECISIONS.md D38) sits at the TOP of the tracker,
+  // above the headline, so it changes the geometry of the whole screen rather
+  // than adding a block at the end. Its own note is the longest run of small
+  // text on the screen, so it earns a row of its own at both text sizes.
+  ['16-skipped', '/tracker', {
+    'saved-toward-deposit': f(22000), 'checkpoint-amount': f(21000, 'derived'),
+    skippedAhead: true,
+    skipAheadStash: {
+      'saved-toward-deposit': f(12000),
+      'months-to-target': f(30, 'derived'),
+      'on-track-for': f({ low: 27, high: 33 }, 'derived'),
+      'max-property': f(null, null),
+    },
+  }],
   ['17', '/mip', {}],
   ['18', '/mip/about', {}],
   ['19', '/mip/pre-check', {}],

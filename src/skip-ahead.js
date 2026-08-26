@@ -4,8 +4,10 @@
  * This file exists so a moderated session can look at the deposit tracker in
  * its later state, and the Mortgage in Principle screens beyond it, without a
  * participant having to save toward the goal for real. It has no counterpart
- * in a production build and is written to be deleted in one move: one module,
- * one state pair, one control on one screen (`/goals`). See DECISIONS.md D38.
+ * in a production build and is written to be deleted in one move: this module,
+ * one state pair in `state.js`, the `.skip-ahead` block in `screens.css`, the
+ * five `skipAhead*` keys in `content.js`, and two lines in `tracker.js`. The
+ * control is drawn on `/tracker` and on no other screen. See DECISIONS.md D38.
  *
  * ---------------------------------------------------------------------------
  * TWO POSITIONS, AND THE ROUND TRIP BETWEEN THEM
@@ -74,6 +76,7 @@
  */
 
 import { checkpointAmount, monthsToTarget, onTrackFor, maxProperty } from './model/model.js';
+import { rerenderInPlace } from './components/ui.js';
 
 /** The two positions the control moves between. Also its two `data-value`s. */
 export const SKIP_AHEAD_POSITIONS = ['now', 'ahead'];
@@ -239,4 +242,150 @@ export function accountFiguresPatch(state, figures) {
     },
     skipAheadStash: { ...state.skipAheadStash, 'saved-toward-deposit': saved },
   };
+}
+
+// ---------------------------------------------------------------------------
+// THE CONTROL ITSELF
+// ---------------------------------------------------------------------------
+// Markup and binding live here rather than in the screen that draws them, so
+// the whole affordance is one file plus one CSS block plus five content keys.
+// That is what makes the deletion list at the top of this file true.
+//
+// IT IS DRAWN BY `/tracker` AND BY NOTHING ELSE (D38, as amended). It used to
+// sit at the bottom of `/goals`. It now sits at the top of the deposit tracker,
+// above the headline figure - the screen whose figures it actually moves, so
+// the control and its effect are read in one place rather than two screens
+// apart. Both routes into the tracker get it, because they are the same screen.
+//
+// NOT in the Mortgage in Principle flow and NOT in the deposit calculator: a
+// participant part-way through a task must not be able to change the position
+// the task is measured against. One trigger, on one screen, and no second way.
+
+
+/**
+ * WHY A RADIOGROUP AND NOT A SWITCH OR A BUTTON. It selects between two named
+ * positions rather than turning a thing on, and both names are visible at once,
+ * so a participant can read what they are moving between before they move. A
+ * switch would announce "Further along, on", which says an action was
+ * performed; two radios announce "Now, selected" / "Further along, selected",
+ * which says where the session is.
+ *
+ * FULLY IN THE ACCESSIBILITY TREE, unlike the facilitator gesture on frame 10,
+ * because it is visible. A visible control a keyboard or screen-reader
+ * participant cannot reach, or cannot hear the state of, is a different
+ * prototype for them than for everyone else - a defect in the instrument
+ * rather than a finding about the design.
+ *
+ * THE ACCESSIBLE NAME CARRIES THE PROTOTYPE FRAMING, not just the position.
+ * Each option is announced as "Prototype control: skip ahead, Further along"
+ * rather than bare "Further along", composed from the two existing content keys
+ * rather than written as a third string - nothing is redrafted. A radiogroup's
+ * own name is announced on entering the group and not repeated per option, so
+ * a participant arrowing between the two would otherwise hear only the position
+ * names and lose the one word that says this is not part of the app.
+ *
+ * ROVING TABINDEX, per the ARIA radiogroup pattern: the group is one tab stop,
+ * the selected option takes it, and the arrows move within it. Two tab stops
+ * would put a control the bank does not have into the tab order twice.
+ *
+ * THE UNAVAILABLE CASE IS CURRENTLY UNREACHABLE, AND IS KEPT DELIBERATELY.
+ * `canSkipAhead()` is false only when there is no `deposit-target` to take
+ * `CHECKPOINT_FRACTION` of. On the one route that draws this control,
+ * `/tracker`, that state cannot be reached: `render()` in
+ * `src/screens/tracker.js` opens with
+ *
+ *     if (state['checkpoint-amount'].value === null
+ *         || state['deposit-target'].value === null) {
+ *       window.location.replace('#/calculator/result');
+ *       return;
+ *     }
+ *
+ * so the screen redirects into the calculator before the control is ever
+ * drawn. THE BRANCH BECOMES LIVE AGAIN THE MOMENT THAT GUARD IS RELAXED, or if
+ * the control is ever drawn on a second screen - do not delete it on the
+ * grounds that it never renders today. When it is live, "Further along" carries
+ * `aria-disabled` rather than `disabled`, so it keeps its place in the group
+ * and its announcement and only the affordance is withdrawn.
+ */
+export function skipAheadHTML({ c, position, available }) {
+  const option = ({ value, label, selected, disabled }) => `
+    <button
+      type="button"
+      class="skip-ahead__option${selected ? ' skip-ahead__option--selected' : ''}"
+      role="radio"
+      aria-checked="${selected}"
+      aria-label="${c.skipAheadLabel}, ${label}"
+      ${disabled ? 'aria-disabled="true"' : ''}
+      tabindex="${selected ? '0' : '-1'}"
+      data-action="set-skip-ahead"
+      data-value="${value}"
+    >${label}</button>
+  `;
+
+  return `
+    <section class="skip-ahead">
+      <p class="skip-ahead__label" id="skip-ahead-label">${c.skipAheadLabel}</p>
+      <div class="skip-ahead__options" role="radiogroup" aria-labelledby="skip-ahead-label" aria-describedby="skip-ahead-note">
+        ${option({ value: 'now', label: c.skipAheadNowOption, selected: position === 'now', disabled: false })}
+        ${option({ value: 'ahead', label: c.skipAheadAheadOption, selected: position === 'ahead', disabled: !available })}
+      </div>
+      <p class="skip-ahead__note" id="skip-ahead-note">${available ? c.skipAheadNote : c.skipAheadUnavailableNote}</p>
+    </section>
+  `;
+}
+
+/**
+ * Wires the control. `render` is the drawing screen's own render function, so
+ * selection re-renders that screen in place rather than navigating: the
+ * participant stays where they were, keeps their scroll position, and keeps
+ * focus on the option they just chose (`rerenderInPlace` restores focus by
+ * `data-action` plus `data-value`, both of which these options carry).
+ */
+export function bindSkipAhead(container, ctx, render) {
+  const options = Array.from(container.querySelectorAll('[data-action="set-skip-ahead"]'));
+  if (options.length === 0) return;
+
+  function selectPosition(value) {
+    const current = isSkippedAhead(ctx.state) ? 'ahead' : 'now';
+    if (value === current) return;
+
+    // `skipAheadPatch` returns null when there is no goal to be part-way
+    // toward. The option is already marked `aria-disabled` in that state; this
+    // is the same rule enforced where it actually applies, so a click, an Enter
+    // and an arrow key cannot disagree about it.
+    const patch = value === 'ahead' ? skipAheadPatch(ctx.state) : skipBackPatch(ctx.state);
+    if (!patch) return;
+
+    const next = ctx.setState(patch);
+    rerenderInPlace(container, render, { ...ctx, state: next });
+  }
+
+  options.forEach((option, index) => {
+    option.addEventListener('click', () => selectPosition(option.dataset.value));
+
+    // ARROW KEYS MOVE AND SELECT, which is the radiogroup pattern's own
+    // behaviour rather than a shortcut invented here: in a radio group, moving
+    // the focus IS choosing. Home and End are the same move to the ends. Space
+    // and Enter are left to the browser, which already fires `click` on a
+    // <button> for both.
+    option.addEventListener('keydown', (event) => {
+      const back = event.key === 'ArrowLeft' || event.key === 'ArrowUp';
+      const forward = event.key === 'ArrowRight' || event.key === 'ArrowDown';
+      const first = event.key === 'Home';
+      const last = event.key === 'End';
+      if (!back && !forward && !first && !last) return;
+
+      event.preventDefault();
+      const target = first
+        ? 0
+        : last
+          ? options.length - 1
+          : (index + (forward ? 1 : -1) + options.length) % options.length;
+      // Focus first so the move still happens when the target is unavailable
+      // and `selectPosition` declines - the participant is not left with focus
+      // on an option they have just navigated away from.
+      options[target].focus();
+      selectPosition(options[target].dataset.value);
+    });
+  });
 }

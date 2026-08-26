@@ -28,12 +28,11 @@
  */
 
 import content from '../content.js';
-import { appBarHTML, bindAppBarLeading, rerenderInPlace } from '../components/ui.js';
+import { appBarHTML, bindAppBarLeading } from '../components/ui.js';
 import { formatAccountBalance } from '../format.js';
 import { effectiveAccounts, goalsByHorizon } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
 import { isRootEntry } from '../router.js';
-import { canSkipAhead, isSkippedAhead, skipAheadPatch, skipBackPatch } from '../skip-ahead.js';
 
 /**
  * No regulatory anchor, deliberately.
@@ -89,61 +88,6 @@ function ctaCardHTML({ title, body, cta, action }) {
         ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
       </button>
     </div>
-  `;
-}
-
-/**
- * THE SKIP-AHEAD CONTROL (src/skip-ahead.js, DECISIONS.md D38). A research
- * affordance, drawn here and on no other screen.
- *
- * WHY IT IS A RADIOGROUP AND NOT A SWITCH OR A BUTTON. It selects between two
- * named positions rather than turning a thing on, and both names are visible
- * at once, so a participant can read what they are moving between before they
- * move. A switch would announce "Further along, on", which says an action was
- * performed; two radios announce "Now, selected" / "Further along, selected",
- * which says where the session is. Reversible in one gesture either way, which
- * is the requirement the control exists to meet.
- *
- * IT IS FULLY IN THE ACCESSIBILITY TREE, unlike the facilitator gesture on
- * frame 10, because it is visible. A visible control that a keyboard or
- * screen-reader participant cannot reach or cannot hear the state of is a
- * different prototype for them than for everyone else, which would be a defect
- * in the instrument rather than a finding about the design.
- *
- * ROVING TABINDEX, per the ARIA radiogroup pattern: the group is one tab stop,
- * the selected option is the one that takes it, and the arrow keys move within
- * it. The alternative - two tab stops - would put a control the bank does not
- * have in the middle of the participant's tab order twice.
- *
- * THE UNAVAILABLE CASE stays rendered and stays focusable. Before a deposit
- * goal exists there is no checkpoint to skip to, so "Further along" carries
- * `aria-disabled` rather than `disabled`: a control that vanishes between two
- * visits to the same screen is harder to account for mid-session than one that
- * is present and says why it will not move.
- */
-function skipAheadHTML({ c, position, available }) {
-  const option = ({ value, label, selected, disabled }) => `
-    <button
-      type="button"
-      class="skip-ahead__option${selected ? ' skip-ahead__option--selected' : ''}"
-      role="radio"
-      aria-checked="${selected}"
-      ${disabled ? 'aria-disabled="true"' : ''}
-      tabindex="${selected ? '0' : '-1'}"
-      data-action="set-skip-ahead"
-      data-value="${value}"
-    >${label}</button>
-  `;
-
-  return `
-    <section class="skip-ahead">
-      <p class="skip-ahead__label" id="skip-ahead-label">${c.skipAheadLabel}</p>
-      <div class="skip-ahead__options" role="radiogroup" aria-labelledby="skip-ahead-label" aria-describedby="skip-ahead-note">
-        ${option({ value: 'now', label: c.skipAheadNowOption, selected: position === 'now', disabled: false })}
-        ${option({ value: 'ahead', label: c.skipAheadAheadOption, selected: position === 'ahead', disabled: !available })}
-      </div>
-      <p class="skip-ahead__note" id="skip-ahead-note">${available ? c.skipAheadNote : c.skipAheadUnavailableNote}</p>
-    </section>
   `;
 }
 
@@ -250,7 +194,6 @@ export function render(container, ctx) {
         extraHTML: houseCardHTML + trackerCardHTML,
       })}
 
-      ${skipAheadHTML({ c, position: isSkippedAhead(state) ? 'ahead' : 'now', available: canSkipAhead(state) })}
     </main>
   `;
 
@@ -319,65 +262,5 @@ export function render(container, ctx) {
   // participant has not entered.
   container.querySelector('[data-action="open-deposit-tracker"]').addEventListener('click', () => {
     window.location.hash = '#/tracker';
-  });
-
-  // --- The skip-ahead control ----------------------------------------------
-  //
-  // ONE TRIGGER, ON ONE SCREEN. There is deliberately no second way to move
-  // the session between the two positions: not from the tracker, not from
-  // inside the Mortgage in Principle flow, and not from frame 33. A
-  // participant part-way through a task must not be able to change the
-  // position the task is measured against, and a second control would also
-  // mean two places to look when a session's figures are not where the
-  // facilitator expected.
-  //
-  // Selection re-renders this screen in place rather than navigating, so the
-  // participant stays where they were, keeps their scroll position and keeps
-  // focus on the option they just chose (`rerenderInPlace` restores it by
-  // `data-action` plus `data-value`).
-  const skipOptions = Array.from(container.querySelectorAll('[data-action="set-skip-ahead"]'));
-
-  function selectPosition(value) {
-    const current = isSkippedAhead(state) ? 'ahead' : 'now';
-    if (value === current) return;
-
-    // `skipAheadPatch` returns null when there is no goal to be part-way
-    // toward. The option is already marked `aria-disabled` in that state; this
-    // is the same rule enforced where it actually applies, so a click, an
-    // Enter and an arrow key cannot disagree about it.
-    const patch = value === 'ahead' ? skipAheadPatch(state) : skipBackPatch(state);
-    if (!patch) return;
-
-    const next = ctx.setState(patch);
-    rerenderInPlace(container, render, { ...ctx, state: next });
-  }
-
-  skipOptions.forEach((option, index) => {
-    option.addEventListener('click', () => selectPosition(option.dataset.value));
-
-    // ARROW KEYS MOVE AND SELECT, which is the radiogroup pattern's own
-    // behaviour rather than a shortcut invented here: in a radio group, moving
-    // the focus IS choosing. Home and End are the same move to the ends. Space
-    // and Enter are left to the browser, which already fires `click` on a
-    // <button> for both.
-    option.addEventListener('keydown', (event) => {
-      const back = event.key === 'ArrowLeft' || event.key === 'ArrowUp';
-      const forward = event.key === 'ArrowRight' || event.key === 'ArrowDown';
-      const first = event.key === 'Home';
-      const last = event.key === 'End';
-      if (!back && !forward && !first && !last) return;
-
-      event.preventDefault();
-      const target = first
-        ? 0
-        : last
-          ? skipOptions.length - 1
-          : (index + (forward ? 1 : -1) + skipOptions.length) % skipOptions.length;
-      // Focus first so the move still happens when the target is unavailable
-      // and `selectPosition` declines - the participant is not left with focus
-      // on an option they have just navigated away from.
-      skipOptions[target].focus();
-      selectPosition(skipOptions[target].dataset.value);
-    });
   });
 }
