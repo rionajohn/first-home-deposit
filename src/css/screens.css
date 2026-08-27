@@ -1863,12 +1863,15 @@
    to `.screen-content`'s own 16px gap: measured at 390x844, 0px above this
    block, 32px below it, and 16px between every other pair on the screen.
 
-   THE INTERNAL GAP IS --space-md (12), AND IT IS NOW AN OPEN QUESTION. It was
-   chosen for a three-part block, to stop the note reading as a caption on the
-   track above it. That reason went with the note. In a two-part block 12 sets
-   the distance between a control and its own label, where this build's
-   convention for a label and the thing it labels is usually tighter. Left at 12
-   for now rather than changed silently; see D38's third amendment.
+   THE INTERNAL GAP IS --space-sm (8), BECAUSE IT IS THE DISTANCE BETWEEN A
+   CONTROL AND ITS OWN LABEL. That is the only relationship inside this block:
+   two parts, and the first one names the second. This build spaces that pair at
+   4 or 8 and at nothing between - `.settings-control` (frame 33) puts a label
+   8 above its own pill segments, `.currency-input` (frames 09, 09a, 09b) puts
+   one 8 above its field, and `.progress-bar`, two elements below this block on
+   this screen, sits its "Checkpoint" label 4 under its track. 8 is the value
+   for a label above something a participant taps; 4 is for a caption under a
+   thin bar. The label belongs to the track, and reads as belonging to it.
 
    It stays inside the design system for everything else: the same tokens, the
    same 8pt spacing, the same type scale and the same segmented geometry frames
@@ -1881,7 +1884,7 @@
 .skip-ahead {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   margin-bottom: var(--space-lg);
   padding-bottom: var(--space-lg);
   border-bottom: 1px dashed var(--color-border-subtle);
