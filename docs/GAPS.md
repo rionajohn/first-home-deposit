@@ -1352,3 +1352,36 @@ participant is never standing on a root, so the flow-exit path behaves exactly a
 stamped into `history.state` alongside `ROOT_MARKER`, which is now available and was not when D32
 was written. That is its own change, and it should be taken together with the G59 stamping question
 rather than separately.
+
+---
+
+**G61. The calculator's default monthly saving is 67% of what is left over, above the ~60% the
+copy rule flags. OPEN.**
+
+Frame 10's range slider seeds itself from the accounts when the participant has not set it:
+`calculator-saving.js` reads `MOCK_POSITION.recentMonthlySavingLow` and
+`recentMonthlySavingHigh` (£200 and £310, provenance `read`) and clamps each to `left-over`.
+`left-over` is £380 on a fresh session (`money-in` £2,240 less `essential-spending` £1,860), so
+neither end clamps. A participant who accepts the range without moving a handle continues with
+`savings-rate` set to the midpoint, **£255 a month - 67% of the £380 they have left**.
+
+The copy-check rule (`.claude/skills/fca-copy-check`, rule 1A) asks that no default or
+illustrative contribution exceed roughly 60% of what is left after essential spending, on the
+Consumer Duty foreseeable-harm ground that a default set that high predictably fails. 60% of £380
+is £228; the default is £27 above it.
+
+**This is live for sessions, not hypothetical.** It is what every participant gets who does not
+move a slider handle, which on a mid-fidelity prototype is most of them. It is also unrelated to
+any recent change - it is the seeded default as originally built.
+
+Found while planning the frame 33 "Journey stage" scenario, which would reproduce the same default
+by following the calculator's own step 2 sequence. Recorded here rather than worked around there:
+the scenario should reflect what the app does, not quietly do something better.
+
+*Not fixed here, because both fixes change something the repo protects.* Lowering the seeded range
+changes `MOCK_POSITION` values that are described as read from the instant saver's own deposit
+history and that match the £200-£310 range the Figma frames draw, so the built screen would stop
+matching its reference. Clamping the seed to 60% of `left-over` instead of to `left-over` changes
+the ceiling rule for every participant and would need `monthsToTarget`'s `exceeds-left-over` guard
+looked at in the same pass. Either is a decision about a figure, which CLAUDE.md puts outside a
+tidy-up.
