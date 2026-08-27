@@ -1389,7 +1389,7 @@ tidy-up.
 ---
 
 **G62. Frame 15/16's gap sentence reads "You're £0 away" while the headline shows £8,950 against a
-£28,000 goal. OPEN.**
+£28,000 goal. CLOSED 27 August 2026 - DECISIONS.md D46.**
 
 `tracker.js` computes the gap sentence with `gapToCheckpoint(state)`, which recomputes the
 checkpoint LIVE from `property-value` x `deposit-pct` rather than reading the stored
@@ -1425,3 +1425,57 @@ and changing it is a wider decision than the one being taken there.
 *Not fixed here.* The fix is a decision about which figures a screen may re-derive and which it must
 read, and it should be taken across `gapToCheckpoint`, `learn-ltv.js` and any later consumer at
 once rather than one call site at a time.
+
+---
+
+**CLOSED 27 August 2026. The symptom above is real and was reproduced exactly. The diagnosis was
+right about the mechanism and wrong about the scope, in both directions - the entry understated
+what was broken and misidentified one of the two cases it named. Recorded here so this is not
+read later as having been right.**
+
+**What this entry got wrong.**
+
+- **`learn-ltv.js` is NOT a second unhandled case.** The paragraph above says it "calls
+  `depositTarget(state)` live and does not handle the error". Lines 77-78 do call it live, but
+  line 69 guards on `property-value === null` and `window.location.replace`s before any of that
+  runs. The screen never rendered in the cleared state, so it never showed a wrong figure. What it
+  did do was redirect **into frame 12**, which was broken - so it was a route to the defect, not an
+  instance of it.
+- **`gapToCheckpoint()` does not have "other callers".** The paragraph above declines to move it
+  onto the stored key partly on the grounds that it is "a model function with other callers".
+  It has exactly one, `tracker.js:85`. That reasoning was the only thing keeping the D38 third-
+  amendment fix from being applied here, and it was not true.
+
+**What this entry missed. Three screens were broken, not one, and two of them are not mentioned
+above at all.** Every one of them guards on stored keys and then reads `property-value` live:
+
+| Screen | What it rendered in the cleared state |
+|---|---|
+| 15/16 `/tracker` | **Three** invented figures, not one: the £0 gap sentence named above, "a 10% deposit on a **£0** home" in the "Deposit goal set" milestone, and £0 deposit amounts down the rate-band table |
+| 12 `/calculator/result` | **The worst of the three, and unmentioned above**: the headline read "A deposit on a **£0** home could be **£0** to **£0**", with every threshold label and the growth chart scale collapsed to zero |
+| 11 `/calculator/review` | **Also unmentioned above**: the property value row read **£0** |
+
+`formatCurrency(null)` returns "£0" rather than throwing, which is why all three fabricated a
+figure instead of failing visibly. Frame 21 was checked in the same pass and is correct as written:
+every one of its four model calls tests `.error` and renders "—".
+
+**The root cause was upstream of all of it, and is not "which figures a screen may re-derive".**
+`calculator-property.js` wrote `property-value: null` on the field's `change` event, while every
+other figure that screen owns - `deposit-target`, `loan-amount`, `ltv` - is written on **Continue**.
+That asymmetry let the store hold a half-made edit beside a committed goal, which is a state no
+screen expects and no guard tests for. The three screens above were consequences.
+
+**Fixed by not writing the null.** An empty field is now the screen's own draft state
+(`propertyValueCleared`), the committed figure is left standing, and every consumer is fixed at
+once. A second route to the same state was found while verifying and closed with it: `"-"`, `"."`
+and `"-."` survive the input strip, yield `NaN`, and `JSON.stringify` persists `NaN` as `null`, so a
+refresh reproduced the whole defect. Only a finite number is now committed.
+
+`gapToCheckpoint()` was moved onto the stored `checkpoint-amount` as well - one line, its one
+caller, and the D38 pattern - so the tracker derives only from keys its own guard proved present.
+That is defence in depth rather than the fix.
+
+**Deliberately not done:** teaching frames 11, 12 and 15/16 to handle a null `property-value`. After
+the upstream fix there is no null to handle, and writing "we can't show this" copy for an
+unreachable state would be adding screens the spec never drew. The invariant is in `CLAUDE.md`
+under "State rules" and asserted by `scripts/g62.test.mjs`.

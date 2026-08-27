@@ -59,7 +59,12 @@ export function render(container, ctx) {
 
   const propertyValue = state['property-value'];
   const depositPct = state['deposit-pct'].value ?? DEFAULT_DEPOSIT_PCT;
-  const isEmpty = propertyValue.value === null;
+  // TWO WAYS TO BE EMPTY, AND THEY ARE DIFFERENT FACTS. `value === null` is a
+  // session that has never entered a property value; `propertyValueCleared` is
+  // a participant who is re-typing one they already committed. The screen draws
+  // 09a for both, but only the first is a figure - the second is a draft, and
+  // must not touch `property-value`. See DECISIONS.md D46.
+  const isEmpty = state.propertyValueCleared || propertyValue.value === null;
 
   let errorText = null;
   let comparisonRows = [];
@@ -97,7 +102,10 @@ export function render(container, ctx) {
       ${currencyInputHTML({
         id: 'property-value',
         label: c.propertyValueLabel,
-        value: propertyValue.value,
+        // The FIELD follows the draft; the STORE keeps what was committed. A
+        // participant who cleared the field sees it empty while every screen
+        // behind them still reads the goal they have not yet changed.
+        value: isEmpty ? null : propertyValue.value,
         hint: isEmpty ? c.propertyValueHintEmpty : c.propertyValueHintFilled,
         ariaLabel: c.propertyValueAriaLabel,
       })}
@@ -134,8 +142,33 @@ export function render(container, ctx) {
   input.addEventListener('focus', () => input.select());
   input.addEventListener('change', () => {
     const typed = input.value.replace(/[^0-9.-]/g, '');
-    const parsed = typed === '' ? NaN : Number(typed);
-    const next = setState({ 'property-value': { value: typed === '' ? null : parsed, provenance: 'entered' } });
+    // AN EMPTY FIELD IS A DRAFT, NOT A FIGURE, and this is the whole of G62's
+    // fix. Writing `property-value: null` here is what left the store holding a
+    // half-made edit beside a committed `deposit-target`, which frames 11, 12
+    // and 15/16 then rendered as £0 - an invented figure on three screens, one
+    // of them in a headline. The committed value is left exactly as it is and
+    // the emptiness is recorded as this screen's own draft state.
+    //
+    // A field the strip leaves empty because it held only letters takes this
+    // same branch, as it did before: the screen draws 09a either way.
+    //
+    // SO DOES ANYTHING THAT DOES NOT PARSE TO A FINITE NUMBER - "-", ".", "-."
+    // all survive the strip and yield NaN. That used to be written to the
+    // store, and `JSON.stringify` persists NaN as `null`, so a refresh turned
+    // it into exactly the null-beside-a-committed-goal state this fix exists to
+    // prevent. It is the same disagreement by a second route, so it takes the
+    // same answer: not a figure, therefore a draft.
+    //
+    // Frame 09's error variant is untouched. It is reached by a committed value
+    // the model rejects - `0` (ROUTES.md's own recipe) or a negative - and both
+    // are finite, so both still write and still raise `not-positive`.
+    const parsed = Number(typed);
+    const next = typed === '' || !Number.isFinite(parsed)
+      ? setState({ propertyValueCleared: true })
+      : setState({
+          propertyValueCleared: false,
+          'property-value': { value: parsed, provenance: 'entered' },
+        });
     rerenderInPlace(container, render, { ...ctx, state: next });
   });
 
@@ -166,6 +199,11 @@ export function render(container, ctx) {
     const loan = loanAmount({ 'property-value': propertyValue, 'deposit-pct': finalPct });
     const value = ltv({ 'property-value': propertyValue, 'deposit-pct': finalPct });
     setState({
+      // The draft is resolved by the same click that commits it. Continue is
+      // unreachable while the field is empty, so this can only ever be clearing
+      // a flag that is already false - it is written so the draft cannot
+      // outlive the edit it describes.
+      propertyValueCleared: false,
       'deposit-pct': finalPct,
       'deposit-target': { value: target.value, provenance: target.provenance },
       'loan-amount': { value: loan.value, provenance: loan.provenance },

@@ -49,6 +49,14 @@
  *              shoot both sides of any screen that branches on whether a goal
  *              exists - `/goals` has three states off it (D44).
  *                                                       default set
+ *   --draft    `none` or `property-cleared`. `property-cleared` puts frame 09's
+ *              property field in the cleared-but-not-committed state - the
+ *              session GAPS.md G62 was reported against. It is a state no seed
+ *              reaches, because it is a DRAFT rather than a set of figures:
+ *              every committed key stays exactly as it is and only the screen's
+ *              own flag moves (DECISIONS.md D46). Use it to shoot the screens
+ *              that read `property-value` live while a goal is committed.
+ *                                                       default none
  *   --out      Output directory.                  default .screenshots/shots
  *   --full     Capture the whole scroller rather than the viewport.
  *   --no-sheet Skip the contact sheet.
@@ -97,6 +105,7 @@ const DEFAULTS = {
   scale: '2',
   saved: '',
   goal: 'set',
+  draft: 'none',
 };
 
 function parseArgs(argv) {
@@ -175,6 +184,24 @@ if (!GOAL_STATES.includes(args.goal)) {
   process.exit(1);
 }
 const NO_GOAL_KEYS = ['property-value', 'deposit-pct', 'deposit-target', 'checkpoint-amount'];
+
+/**
+ * `--draft=property-cleared` is deliberately NOT a figure change, and that is
+ * the point of having it. `--goal=none` clears four keys; this clears none. It
+ * sets frame 09's own draft flag and leaves every committed figure standing,
+ * which is exactly the state G62 was reported against and exactly what D46
+ * fixed: the participant is re-typing a property value they have already
+ * committed, and no screen behind them may notice.
+ *
+ * Shooting it is how the fix is checked by eye rather than by assertion - the
+ * screens that read `property-value` live (11, 12, 13, 15/16) must look
+ * identical to their ordinary state.
+ */
+const DRAFT_STATES = ['none', 'property-cleared'];
+if (!DRAFT_STATES.includes(args.draft)) {
+  console.error(`Unknown --draft "${args.draft}". One of: ${DRAFT_STATES.join(', ')}.`);
+  process.exit(1);
+}
 const ENTRIES = list(args.entry);
 const STATES = list(args.state);
 const THEMES = list(args.theme);
@@ -253,6 +280,7 @@ const slug = (route) => route.replace(/^\//, '').replace(/\//g, '-') || 'root';
 function shotName({ route, entry, state, theme, text }) {
   const parts = [slug(route), entry, state, theme, `${WIDTH}w`];
   if (args.goal === 'none') parts.splice(1, 0, 'no-goal');
+  if (args.draft !== 'none') parts.splice(1, 0, args.draft);
   if (text !== 'default') parts.push(text);
   if (args.full) parts.push('full');
   return `${parts.join('__')}.png`;
@@ -304,6 +332,7 @@ try {
             if (args.goal === 'none') {
               for (const key of NO_GOAL_KEYS) seed[key] = { value: null, provenance: null };
             }
+            if (args.draft === 'property-cleared') seed.propertyValueCleared = true;
             await context.addInitScript((v) => {
               try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {}
             }, seed);

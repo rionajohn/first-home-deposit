@@ -2977,6 +2977,100 @@ the `defaultState` export in `state.js`. The control returns to inert; nothing e
 
 ---
 
+## D46. A draft is not a figure: frame 09 stops writing null, and the fix is upstream of every consumer
+
+**Date.** 27 August 2026.
+
+**Decision.** Clearing frame 09's property value field no longer writes `property-value: null`. The
+empty field becomes that screen's own draft state (`propertyValueCleared`), the committed figure is
+left standing, and the four screens that read `property-value` live are fixed at once rather than
+one at a time. `gapToCheckpoint()` moves onto the stored `checkpoint-amount` in the same pass.
+
+**The symptom, and why it was not the defect.** GAPS.md G62 reported `/tracker` rendering "You're £0
+away from the point where checking a Mortgage in Principle starts to be useful" beside an £8,950
+headline and "of your £24,000 deposit goal". Reproduced exactly. But the £0 was a consequence three
+screens wide, not the fault - and G62 both understated its scope and misidentified one of the two
+cases it named. See that entry for what it got wrong; this one records what was actually true.
+
+**The root cause.** `calculator-property.js` wrote `property-value` on the field's `change` event,
+while every other figure that screen owns - `deposit-target`, `loan-amount`, `ltv` - is written on
+**Continue**. That asymmetry is the whole bug. It let the store hold a half-made edit
+(`property-value: null`) beside a committed goal (`deposit-target: 24000`): a combination no
+downstream screen expects, and one no guard tests for, because each guard tests the keys it needs
+and none of them needs both.
+
+**Three screens were broken, and `formatCurrency(null)` is why they lied rather than failed.** It
+returns "£0". So frame 12's headline read "A deposit on a £0 home could be £0 to £0", frame 11's
+property row read £0, and the tracker carried three separate £0s. A figure the app could not compute
+was displayed as if it had been computed. That is the rule this build cares about most.
+
+**Why the fix is upstream and not per consumer.** Per-consumer null-handling would mean writing
+"we can't show this" copy on three screens for a state that should not exist, and every screen added
+later could regress independently. Not writing the null removes the state instead. One change, four
+screens fixed, and nothing to remember next time.
+
+**An empty field was never committable, so it is now not recordable either.** Frame 09's Continue is
+already disabled while the field is empty (`primaryDisabled: isEmpty`). The app had therefore
+already decided an empty property value is not a value; the store was simply not told. `isEmpty`
+now reads `propertyValueCleared || value === null` - two different facts that draw the same variant:
+a session that has never entered a value, and a participant re-typing one they already committed.
+
+**"Adjust my goal" means adjust.** There is no delete-my-goal affordance anywhere in the app, so
+abandoning a half-made edit must leave the committed goal standing. The alternative considered and
+rejected was to clear the downstream commits along with the field, which would have made the
+tracker's guard fail and redirect honestly - but it destroys a participant's goal as a side effect
+of clearing a text field, and there is no way back from it.
+
+**A second route to the same state, found while verifying and closed with it.** `"-"`, `"."` and
+`"-."` survive the input strip and yield `NaN`. `NaN` used to be written to the store, and
+`JSON.stringify` persists it as `null` - so a refresh reproduced the entire defect through a
+different door, and would have survived this fix. Only a finite number is committed now. Frame 09's
+error variant is untouched: it is reached by a committed value the model rejects, `0` (ROUTES.md's
+own recipe) or a negative, and both are finite.
+
+**`gapToCheckpoint()` reads the stored checkpoint.** One line, and its one caller is `/tracker`,
+whose guard has already tested `checkpoint-amount`. This is D38's third amendment applied to its
+second consumer: a screen must not display a figure re-derived from a key its own guard never
+checked, because the two sources will eventually disagree. It is defence in depth rather than the
+fix - after the change above there is no disagreement to have - and it makes the tracker derive only
+from keys the guard proved present. G62's stated reason for not doing this, that the function has
+"other callers", was not true.
+
+**Deliberately not done.** Teaching frames 11, 12 and 15/16 to handle a null `property-value`. After
+the upstream fix there is no null to handle, and inventing fallback copy for an unreachable state
+would add screens the spec never drew. The invariant is written down instead, in two places that
+will actually be read: `CLAUDE.md` gains a **State rules** section, because this is a rule the next
+screen that takes an input will break unless it is somewhere a session reads before starting, and
+`scripts/g62.test.mjs` asserts it.
+
+**The test asserts the invariant, not the symptom.** A test written against the £0 would pass the
+moment any one of those three screens learned to hide it, while the store went on holding a state no
+screen expects. What is asserted is that abandoning a draft changes no committed key - on the stored
+JSON string, so a key-order change cannot slip past either.
+
+**`shots.mjs` gains `--draft=property-cleared`**, which is deliberately not a figure change: it sets
+the flag and clears nothing, unlike `--goal=none` which clears four keys. It is the only way to
+shoot a state that is a draft rather than a set of figures.
+
+**Verified.** The six-step reproduction driven in Chromium at 390px - and it is six, not five:
+"Adjust my goal" lands on frame 11, and the property field is one further tap on ("Change"). At
+step 4 the store now reads `property-value 240000, propertyValueCleared true, deposit-target 24000`,
+the field renders empty, and Continue is disabled. At step 6 `/tracker` reads **"You're £9,050
+away"** and **"£24,000, a 10% deposit on a £240,000 home"**. In the same cleared state frame 12 reads
+"A deposit on a £240,000 home could be £12,000 to £36,000", frame 11 reads £240,000, and `/learn/ltv`
+now renders instead of redirecting. Every input path walked: `"-"`, `"."` and `"abc"` set the draft
+and leave the figure; `"0"` and `"-500"` commit and raise the error variant; `"300000"` commits and
+enables Continue; a refresh after `"-"` leaves the committed value intact. Ten screenshots at 390px
+in light and dark across all five screens, dark mode unchanged. 270 tests passing - 43 model, 68
+overlap, 89 action-bar, 15 sheet-drag, 13 bottom-nav, 11 skip-ahead, 21 stage, plus 10 new.
+`CACHE_VERSION` v35.
+
+**Reversal.** Restore the single `setState` in `calculator-property.js`'s `change` handler, drop
+`propertyValueCleared` from `state.js` and `stage.js`, restore `checkpointAmount(state)` inside
+`gapToCheckpoint()`, and delete `scripts/g62.test.mjs` and the `--draft` option. G62 reopens with it.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -3041,3 +3135,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (D32 collision resolved) | The provenance-captions entry, recorded second under a number the chevron entry already held, becomes **D34**; the chevron entry keeps D32. Four citations meant the provenance entry and were updated - its own heading, its change-log row, `content.js`'s shared-caption comment and `accounts.js`'s bank-rate comment. Nine meant the chevron entry and were left alone: `GAPS.md` G57 (twice) and G58, `router.js`, `state.js`, `learn-ltv.js`, `mip-adviser.js`, `settings.js`, and its own change-log row. D33's paragraph recording the collision as open is corrected. Sequence is now D1-D34, no duplicate and no gap; D34 sits before D33 in the file, and D20 before D13, neither being renumbered or moved. `CLAUDE.md` gains a working rule to take the next number from the last entry. |
 
 | 27 August 2026 (journey stage wired) | **D45 recorded**, and **D38 amended a fifth time** to reconcile with it. D38 rejected a second session-position control by name, frame 33 included; it was right about position and wrong about setup. Skip-ahead moves a savings position WITHIN a goal that already exists, Journey stage establishes whether a session has a goal AT ALL - one control for position, one for setup, and they must never both be able to answer the same question, enforced by what each control writes rather than by convention. Frame 33's stage control was fully built and fully inert; it now writes the state each stage means, from `src/stage.js`. **Setting up** is the empty state unchanged, **Saving** is a goal set through the calculator with the position below its checkpoint, **Ready to check** is that same saving stage with `skipAheadPatch()` applied - composed rather than separately constructed, because a different journey is a different participant rather than the same one further along. Every stage is computed from a fresh `defaultState()`, so a change is idempotent in BOTH directions, and every figure comes from the model function the screen that commits it calls, in the calculator's own order - two numbers are written down, the property value and the deposit percentage a stand-in participant would have typed and tapped. 240,000 keeps `months-to-target` inside the 60-month window: **49.3 months**, on track for **45 to 55**, the window closing at about 275,800. `stage` is still read by no screen, which is now a different thing from inert - it is written once and never re-read at render time, so a participant who then runs the calculator with their own figures sees the tracker follow their entries. Verified in Chromium at 390px: each stage set from frame 33 then Insights tapped, landing on `/calculator/property`, frame 15 and frame 16 respectively; ready-to-check toggled to "Now" through the tracker's own control byte-identical in `sessionStorage` to saving set directly, key order included, apart from the single `stage` key that records which pill is lit. `ROUTES.md` corrected in three places rather than the two expected - its "Read this first" paragraph also claimed no setting seeds figures, and named a `mode` control D28 removed. `scripts/session-seed.mjs` deliberately stays separate, and why is recorded. New `scripts/stage.test.mjs`, 21 assertions. `CACHE_VERSION` v34. 260 tests passing. |
+| 27 August 2026 (draft state, G62 closed) | **D46 recorded**, closing `GAPS.md` G62 and correcting it. The symptom was `/tracker` reading "You're £0 away" beside an £8,950 headline and a £24,000 goal; the cause was not `gapToCheckpoint()` re-deriving. `calculator-property.js` wrote `property-value: null` on the field's `change` event while `deposit-target`, `loan-amount` and `ltv` are written on Continue, so the store held a half-made edit beside a committed goal - a state no screen expects and no guard tests for. **Three screens were broken, not one**, and two are unmentioned in G62: frame 12's headline read "A deposit on a **£0** home could be **£0** to **£0**", frame 11's property row read £0, and the tracker carried three separate £0s (the gap sentence, "a 10% deposit on a **£0** home", and the rate-band table). `formatCurrency(null)` returns "£0", which is why all three fabricated a figure instead of failing visibly. **G62 was also wrong twice**: `learn-ltv.js` is not a second unhandled case (its own guard redirects - into frame 12, which was the broken screen), and `gapToCheckpoint()` has one caller, not "other callers", which was the only reason given for not applying D38's third-amendment fix to it. **Fixed upstream**: an empty field is now the screen's own draft state (`propertyValueCleared`), the committed figure is left standing, and all four consumers are fixed at once - per-consumer null-handling would have meant inventing "we can't show this" copy on three screens for a state that should not exist. A second route found while verifying and closed with it: `"-"`, `"."` and `"-."` survive the input strip, yield `NaN`, and `JSON.stringify` persists `NaN` as `null`, so a refresh reproduced the whole defect; only a finite number is committed now, and frame 09's error variant (`0`, negatives) is untouched. `gapToCheckpoint()` moved onto the stored `checkpoint-amount` as defence in depth. Rejected: clearing the downstream commits too, which would make the tracker redirect honestly but destroys a participant's goal as a side effect of clearing a text field. `CLAUDE.md` gains a **State rules** section - screen-local draft state never writes to a section 6 figure, and a screen may only display a figure derived from a key its own guard tested - because this is the rule the next screen that takes an input will break. New `scripts/g62.test.mjs` asserting the invariant rather than the symptom, 10 assertions; `shots.mjs` gains `--draft=property-cleared`. Verified in Chromium across the six-step reproduction (six, not five - "Adjust my goal" lands on frame 11), every input path, and 10 screenshots in light and dark. `CACHE_VERSION` v35. 270 tests passing. |

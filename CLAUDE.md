@@ -30,6 +30,18 @@ do not introduce a state management library.
 - Any correction applies everywhere the same pattern appears, not just the
   screen named in the prompt.
 
+## State rules
+- **Screen-local draft state never writes to a section 6 figure.** A field being
+  edited, cleared or half-typed is the screen's own state and belongs in its own
+  key (`propertyValueCleared`, `targetMonth`). A figure is written when the
+  participant commits it, which on every calculator screen means Continue.
+- A screen may only display a figure derived from a key its own guard tested. If
+  a guard passes on stored keys, the screen must not re-derive that figure live
+  from something the guard never checked - the two will eventually disagree.
+- Breaking either rule leaves the store holding a state no screen expects, and
+  `formatCurrency(null)` renders it as £0 rather than failing. See DECISIONS.md
+  D46 and D38's third amendment; both were this same defect.
+
 ## Content rules:
 - All figures stay anchored to the Bank of England Bank Rate as already set in
   the codebase. Do not invent or change financial figures.
@@ -55,6 +67,7 @@ do not introduce a state management library.
 - Test the sheet gesture: `node --test scripts/sheet-drag.test.mjs` (drives Chromium via Playwright)
 - Test screen layout: `node --test scripts/overlap.test.mjs` (all 33 frame rows x both text sizes; asserts no divider, border or rule crosses text and no box is squashed below its content)
 - Test the skip-ahead control: `node --test scripts/skip-ahead.test.mjs` (pure Node, no browser; asserts three round trips leave state identical and that the threshold stays a ratio of CHECKPOINT_FRACTION rather than an amount)
+- Test the draft invariant: `node --test scripts/g62.test.mjs` (pure Node, no browser; asserts that abandoning a draft changes no committed key, and that `gapToCheckpoint()` reads the stored checkpoint rather than re-deriving it)
 - Test the journey stage control: `node --test scripts/stage.test.mjs` (pure Node, no browser; asserts each stage is idempotent in both directions, that ready-to-check is the saving stage with `skipAheadPatch()` applied rather than a second goal, and that no derived figure is written by hand)
 - Test the action bar: `node --test scripts/action-bar.test.mjs` (D39's pinned bar; 20 screens x 4 viewports plus 7 sheets, asserting the bar is visible and hittable without scrolling, flush above the tab bar, and clear of the last content element when scrolled to the end)
 - Test the tab bar: `node --test scripts/bottom-nav.test.mjs` (D11's three states; asserts an enabled-but-not-current tab resolves to the same colour, weight, icon variant and indicator as a disabled one)

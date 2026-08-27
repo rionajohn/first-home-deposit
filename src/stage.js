@@ -186,6 +186,12 @@ const STAGE_KEYS = [
   'accountIncluded',
   'accountSelectionEdited',
 
+  // Frame 09's draft flag (D46). Not a figure, but it describes the goal's own
+  // input, so a stage change must not leave a stale draft claiming the
+  // participant is part-way through re-typing a property value this stage just
+  // wrote or cleared.
+  'propertyValueCleared',
+
   // The flags that assert a goal exists or has been acted on.
   'calculatorEntered',
   'goal',

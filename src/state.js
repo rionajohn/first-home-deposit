@@ -212,6 +212,23 @@ export function defaultState() {
     targetMonth: null, // 1-12
     targetYear: null,
 
+    // Frame 09 (Property and deposit) — IS THE PROPERTY VALUE FIELD SITTING
+    // EMPTY WHILE THE PARTICIPANT RE-TYPES IT?
+    //
+    // Screen-local draft state, held here for the same reason targetMonth is
+    // and under the same rule: a draft never writes to a section 6 figure.
+    // Frame 09 used to record an empty field by writing `property-value: null`,
+    // which left the store holding a half-made edit beside a committed
+    // `deposit-target` - a combination no downstream screen expects and no
+    // guard tests for. Frames 11, 12 and 15/16 all read `property-value` live
+    // and all three fabricated £0 figures from it. See GAPS.md G62 and
+    // DECISIONS.md D46.
+    //
+    // The committed figure is left alone while this is true. Frame 09's
+    // Continue is already disabled on an empty field, so an empty value was
+    // never committable; it is now not recordable either.
+    propertyValueCleared: false,
+
     // --- The skip-ahead control (src/skip-ahead.js, DECISIONS.md D38) ------
     //
     // A RESEARCH AFFORDANCE. Not a build-spec.md variable, not a feature, and

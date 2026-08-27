@@ -96,10 +96,21 @@ export function checkpointAmount(state) {
  */
 export function gapToCheckpoint(state) {
   const savedTowardDeposit = state['saved-toward-deposit'];
-  const checkpoint = checkpointAmount(state);
+  // THE STORED KEY, NOT A LIVE DERIVATION, and for the reason D38's third
+  // amendment already gave for `canSkipAhead()`: `/tracker` is the only caller,
+  // its guard has already tested the STORED `checkpoint-amount`, and a figure
+  // measured against a differently-sourced checkpoint can disagree with the
+  // guard that let the screen draw. It did - see GAPS.md G62.
+  //
+  // Both inputs are stored, so nothing here is recomputed. The gap itself is
+  // not a build-spec.md section 6 figure, which is why it is derived at all.
+  const checkpoint = state['checkpoint-amount'];
   const provenance = combineProvenance(savedTowardDeposit, checkpoint);
 
-  if (checkpoint.error) return fail(checkpoint.error, provenance);
+  // Unreachable from `/tracker` BY CONSTRUCTION rather than by coincidence: the
+  // screen redirects unless this key holds a number. Kept for a caller that
+  // reads the gap without that guard in front of it.
+  if (typeof checkpoint.value !== 'number') return fail('not-committed', provenance);
   return ok(checkpoint.value - savedTowardDeposit.value, provenance);
 }
 
