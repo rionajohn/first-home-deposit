@@ -115,15 +115,38 @@ export function render(container, ctx) {
   const accounts = effectiveAccounts(state.accountAssignments, state.accountIncluded);
   const { short, long } = goalsByHorizon(accounts);
 
-  // The two bridges into the feature. They sit under the long-term heading
-  // because a house deposit is a long-term goal — the cards are part of that
-  // section, not banners floating between two.
+  // --- WHICH BRIDGE IS OFFERED, AND THE ONE RULE THAT DECIDES IT ----------
   //
-  // ORDER. The calculator stays first because it is the one that has to have
-  // happened: the tracker measures a goal against a target, and there is no
-  // target until the calculator has produced one. Reading down, the section
-  // asks "what would this take" and then "how is it going", which is the
-  // order a participant meets them in anyway.
+  // THE RULE IS "DO NOT ADVERTISE A DOOR THAT REDIRECTS" (DECISIONS.md D44).
+  // It is not "alternate the cards", and reading it that way is what would
+  // make the third state below look like an inconsistency later. A card is
+  // offered when the screen it leads to will actually render for this session,
+  // and withheld when that screen would bounce the participant somewhere else.
+  //
+  //   no goal set            calculator only. `/tracker` guards on
+  //                          `checkpoint-amount` and `deposit-target` and
+  //                          `replace()`s into the calculator, so the tracker
+  //                          card would be a door onto a redirect.
+  //   goal set, below the    tracker only. The calculator would open on a goal
+  //   checkpoint             the participant has already set, and the route to
+  //                          change it exists one screen away: `/tracker`'s
+  //                          own "Adjust my goal" secondary (D25).
+  //   at or above the        BOTH. Both destinations render, so both may be
+  //   checkpoint             offered - and the tracker drops its secondary on
+  //                          this variant (`tracker.js`, `unlocked ?
+  //                          undefined : ...`), so this is the state where the
+  //                          goals area is the calculator's nearest route.
+  //
+  // The third state is not an exception to the first two. All three are the
+  // same rule applied to what the session can actually reach.
+  //
+  // ORDER, IN THE STATE THAT SHOWS BOTH. The tracker card comes first and the
+  // calculator second, which inverts the order this section used when both
+  // always showed. Two reasons. The card that is present in more than one
+  // state does not move between them - crossing the checkpoint adds a card
+  // below the tracker rather than pushing the tracker down - and by this point
+  // "how is it going" is the participant's live question, while "what would
+  // this take" has become the way to change something already settled.
   const houseCardHTML = ctaCardHTML({
     title: c.houseCardTitle,
     body: c.houseCardBody,
@@ -136,18 +159,33 @@ export function render(container, ctx) {
   // components/ui.js, DECISIONS.md D35); this is the goals area's own way in,
   // landing on the same route in the same state.
   //
-  // It carries no guard of its own. `/tracker` guards on `checkpoint-amount`
-  // and redirects a participant who has not set a goal into the calculator,
-  // and that guard `replace()`s rather than pushes (D29), so the redirect
-  // costs no back tap. Adding a second, earlier guard here would be a second
-  // copy of one rule, and the Insights tab does not have one either — the two
-  // routes must behave identically or they are not the same door.
+  // STILL NO GUARD OF ITS OWN, and withholding the card is not one. `/tracker`
+  // keeps the only copy of the rule, and the Insights tab still has none - tap
+  // it with no goal and it redirects into the calculator exactly as it always
+  // did. What changed is only whether this screen ADVERTISES the door, not how
+  // the door behaves when it is used. The two routes are still the same door;
+  // one of them just stops pointing at it while it would redirect.
   const trackerCardHTML = ctaCardHTML({
     title: c.trackerCardTitle,
     body: c.trackerCardBody,
     cta: c.trackerCardCta,
     action: 'open-deposit-tracker',
   });
+
+  // The two predicates. `hasGoal` is `/tracker`'s own guard verbatim
+  // (`tracker.js`, the `replace()` at the top of `render`) and `unlocked` is
+  // its own `below-checkpoint` test, so this screen and that one cannot drift
+  // apart about which state a session is in.
+  const hasGoal = state['checkpoint-amount'].value !== null
+               && state['deposit-target'].value !== null;
+  const unlocked = hasGoal
+               && state['saved-toward-deposit'].value >= state['checkpoint-amount'].value;
+
+  const bridgeCardsHTML = !hasGoal
+    ? houseCardHTML
+    : unlocked
+      ? trackerCardHTML + houseCardHTML
+      : trackerCardHTML;
 
   // --- THE BACK CHEVRON, AND WHY IT IS CONDITIONAL HERE (DECISIONS.md D41) ---
   //
@@ -191,7 +229,7 @@ export function render(container, ctx) {
         accounts: long,
         savedLabel: c.savedLabel,
         emptyBody: c.emptySectionBody,
-        extraHTML: houseCardHTML + trackerCardHTML,
+        extraHTML: bridgeCardsHTML,
       })}
 
     </main>
@@ -239,7 +277,14 @@ export function render(container, ctx) {
   // had read nothing. Accounts are now connected from session start
   // (src/state.js), so a cold arrival has the same read figures as anyone
   // else and there is nothing to mark. See DECISIONS.md D28.
-  container.querySelector('[data-action="open-deposit-calculator"]').addEventListener('click', () => {
+  // BOUND ONLY IF DRAWN. Both of these used to be unconditional
+  // `querySelector(...).addEventListener(...)`, which was safe only while both
+  // cards always rendered; either one would now throw on `null` in the state
+  // that withholds it, and the throw would take the rest of this function with
+  // it - including the second card's own handler. Optional chaining rather
+  // than an `if` on the same predicate as the markup, so the binding cannot
+  // disagree with what was rendered even if the predicate above changes.
+  container.querySelector('[data-action="open-deposit-calculator"]')?.addEventListener('click', () => {
     ctx.setState({ goal: 'house', returnFrame: '/goals', journeyEntryPoint: '/goals', flowEntryHistoryLength: window.history.length });
     window.location.hash = '#/calculator/property';
   });
@@ -260,7 +305,8 @@ export function render(container, ctx) {
   // Mortgage in Principle flow (tracker.js, D30/D32). Writing them on this
   // click would record the goals area as the entry point of a flow the
   // participant has not entered.
-  container.querySelector('[data-action="open-deposit-tracker"]').addEventListener('click', () => {
+  // Bound only if drawn, for the reason above the calculator handler.
+  container.querySelector('[data-action="open-deposit-tracker"]')?.addEventListener('click', () => {
     window.location.hash = '#/tracker';
   });
 }

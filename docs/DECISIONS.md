@@ -2039,6 +2039,17 @@ same long-term goal, so they have to read as siblings. Written once, a change to
 cannot land on one and miss the other. The calculator stays first because the tracker measures a
 goal against a target and there is no target until the calculator has produced one.
 
+> **Amended 27 August 2026 - THE TWO CARDS ARE NO LONGER BOTH ALWAYS DRAWN (D44).** This part
+> reads throughout as though the section always carries both; it does not. `/goals` now offers a
+> card only where the screen behind it will render rather than redirect: the calculator alone
+> before a goal is set, the tracker alone between the goal and the checkpoint, both once the
+> checkpoint is passed. The "siblings, one component" reasoning survives unchanged and is why the
+> state that shows both still reads as one section rather than a card and a banner; what is
+> superseded is only the assumption that there are always two. The card ORDER above is superseded
+> too, in the one state that shows both: the tracker comes first there, so that crossing the
+> checkpoint adds a card below it rather than pushing it down. Everything else in this part -
+> `ctaCardHTML`, the routing, the back behaviour, and the deliberate absence of a guard - stands.
+
 **Back follows D29 without this screen saying anything.** `/tracker`'s app bar is `goBack()`, which
 is `history.back()`, so it returns to whichever screen actually pushed the entry below it - `/goals`
 for a participant who arrived from the card, wherever they were for a participant who used the tab.
@@ -2681,6 +2692,114 @@ through saving" belong in it. A key that selects the variant one script is looki
 that script's own override list, because a key added to the shared seed changes every script that
 imports it - which is the point of the file and also its one hazard.
 
+## D44. The goals area does not advertise a door that redirects
+
+**Date.** 27 August 2026.
+
+**Decision.** `/goals` offers a bridge card only where the screen behind it will actually render
+for this session. It withholds one where that screen would bounce the participant somewhere else.
+
+**THE RULE IS NOT "ALTERNATE THE CARDS", AND THE DIFFERENCE MATTERS.** Alternation is what the
+first two states happen to look like; it is not the reason for them, and stating it that way makes
+the third state read as an inconsistency that a later pass would try to "fix". There is one rule,
+applied three times to what the session can reach:
+
+| Session state | Cards offered | Because |
+|---|---|---|
+| No deposit goal set | **Calculator only** | `/tracker` guards on `checkpoint-amount` and `deposit-target` and `replace()`s into the calculator, so a tracker card would be a door onto a redirect |
+| Goal set, below the checkpoint | **Tracker only** | Both destinations render, but the calculator would open on a goal already set, and the route to change it is one screen away - `/tracker`'s own "Adjust my goal" secondary (D25) |
+| At or above the checkpoint | **Both** | Both destinations render, and `/tracker` drops its secondary on this variant, so the goals area is the calculator's nearest route |
+
+**WHY THE MIDDLE STATE DOES NOT NEED BOTH, AND THE LAST ONE DOES.** This is the whole of the
+asymmetry and it is a fact about `tracker.js`, not a preference. Its action bar reads
+`secondaryLabel: unlocked ? undefined : c.belowCheckpointSecondaryCta`, so **"Adjust my goal" is
+drawn on the below-checkpoint variant and on no other**. Below the checkpoint the calculator is
+already one tap from the tracker, so the goals area does not have to carry it. At or above the
+checkpoint that secondary is gone, and without a card here the participant furthest along would
+have no nearby route into the calculator at all - only frame 21 after a Mortgage in Principle "not
+yet", or re-walking the journey from frame 01 through the consent screens.
+
+**WHAT WAS BUILT AND MEASURED INSTEAD, AND REJECTED.** The first answer to that gap was to drop the
+`unlocked ?` condition and draw "Adjust my goal" on every tracker variant. It was previewed at
+390px in light and dark at both text sizes before being written, and it is not a layout problem -
+nothing truncates or overflows. It was rejected on two grounds:
+
+- **The pair reads as competing next steps.** Below the checkpoint the two actions agree: the
+  primary is guidance that returns to the tracker and neither commits to anything. On the unlocked
+  variant the primary is the one genuine forward step in the app - it opens the terminal Mortgage in
+  Principle flow and writes `journeyEntryPoint` - and a secondary underneath it goes backwards into
+  the calculator. Primary/secondary weighting cannot carry that distinction, because the
+  below-checkpoint bar already uses the same weighting for two actions that agree. **It also
+  reintroduces exactly what D25 removed**, which demoted frame 11 from primary on the grounds that
+  it "is a step backwards into the calculator" - put back at the one moment forward motion finally
+  exists. And directly under "You've passed the 75% checkpoint", "Adjust my goal" reads as "or
+  perhaps your goal is wrong": a doubt beside an achievement. Not advice under MCOB 4.8A, since it
+  recommends no course of action, but it muddies the one screen state that otherwise has a single
+  clear next step.
+- **It costs a milestone row.** Measured at 390x844: the dock goes 81px to 137px and the fold from
+  y=707 to y=651, taking the whole milestone rows above it from **two to one** at default text (at
+  large text it is already one, so no change there). D38's second amendment already paid two
+  milestone rows for the skip-ahead position; this would have taken a third, from the variant that
+  currently shows the most.
+
+Showing both cards in the unlocked state closes the same gap for nothing: `tracker.js`,
+`content.js`'s tracker section and D25 are all untouched, the action bar keeps its single clear
+next step, and no fold moves.
+
+**A TAPPABLE MILESTONE ROW WAS ALSO CONSIDERED AND REJECTED.** `milestoneTrackerHTML` already
+supports a per-row `action` and renders a `<button>` when given one, so "Deposit goal set" could
+have carried the route on the thing it changes, at no cost to the fold. Rejected because it would
+make one row of four tappable in a list where nothing else is: **in a think-aloud a participant
+will tap the others and get nothing, and that is a confound that would have to be discounted from
+the data.** It is also close to the design rule that a row is either editable or explanatory and
+never both.
+
+**WHY NOT THE SKIP-AHEAD POSITION, WHICH WAS THE FIRST PROPOSAL.** Driving the cards from
+`isSkippedAhead()` was investigated and rejected on a finding that settles it: **`skippedAhead` is
+written only by `bindSkipAhead`, so no participant action ever sets it.** A card tied to it would
+appear only when a facilitator pressed a prototype toggle, and a participant who completed the
+calculator properly would keep being offered "Work out my deposit" for ever. It would also make a
+research affordance load-bearing for participant-facing content, against D38's deletion contract -
+the affordance is written to be removed in one move, and `consent.js` and `position-summary.js`
+already import from it only for coherence guards that change no pixel. `/goals` reading it would
+have been the first time the instrument decided what a participant sees.
+
+**THE PREDICATES ARE THE TRACKER'S OWN.** `hasGoal` is `/tracker`'s guard verbatim and `unlocked`
+is its `below-checkpoint` test, read from the same two keys, so the two screens cannot drift apart
+about which state a session is in. This is the same lesson as D38's third amendment: two things
+answering one question from different sources eventually disagree.
+
+**WITHHOLDING A CARD IS NOT A GUARD, AND THE TWO DOORS STILL BEHAVE IDENTICALLY.** This entry
+deliberately does not add a second copy of `/tracker`'s rule. The Insights tab is unchanged and
+still resolves to `/tracker` from every route that draws a tab bar, including `/goals` itself; tap
+it with no goal and it redirects into the calculator exactly as it always did. So on a fresh
+session the goals page and the tab bar **do disagree about whether the tracker is advertised**, and
+that is the intended result: D38's "same door" rule governs how a route behaves when it is used,
+not whether every surface points at it. The Insights tab is a permanent fixture of the bank's
+chrome and cannot be conditional; a card in a content section can.
+
+**One consequence recorded rather than left to be discovered.** `/goals` previously read only
+`state.accountAssignments` and `state.accountIncluded` and was identical in every journey state.
+It now reads three section 6 keys and has three states. That is a real new dependency for a screen
+whose whole framing is that it belongs to the surrounding bank app rather than to the feature
+(D21) - but the dependency is on what the participant has done, not on how the prototype is
+configured, which is the distinction that made the skip-ahead version unacceptable.
+
+**Order, in the state that shows both.** Tracker first, calculator second, which inverts the order
+used when both always showed. The card present in more than one state does not move between them -
+crossing the checkpoint adds a card below the tracker rather than pushing the tracker down - and by
+that point "how is it going" is the live question while "what would this take" has become the way
+to change something already settled.
+
+**Verified.** All three states walked at 390px in light and dark, with every card that is drawn
+actually clicked: no goal offers the calculator alone and lands on `/calculator/property`; below
+the checkpoint offers the tracker alone and lands on `/tracker`; unlocked offers both and each
+lands correctly. No page errors in any state - which is the thing that had to be checked, because
+both click handlers were unconditional `querySelector(...).addEventListener(...)` and either would
+have thrown on `null` in the state that withholds its card, taking the other card's handler down
+with it. Both are now optionally chained, so the binding cannot disagree with what was rendered.
+`overlap.test.mjs` gains two rows for the two states its late-journey seed could not reach.
+
 ---
 
 ## Open questions
@@ -2731,6 +2850,7 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (frame 18 timeline) | D36 recorded: frame 18's `[Visual aid]` placeholder is replaced by the process timeline it specified - four labelled nodes joined by a hairline, Mortgage in Principle marked as where the participant is, the three ahead of them reading as ahead rather than done. **It is a process sequence, not a progress indicator, and is exempt from DESIGN.md's bar exclusions on that basis** - vertical, discrete nodes rather than a filled track, measuring nothing, with no completed state at all. Vertical because four horizontal labels do not fit 62px columns at 320px. New `circleDot` icon and `processTimelineHTML` component; no new colour, spacing or width token. Not interactive: no button, link, tabindex or pointer cursor, proved by walking the tab order. An `<ol>` with `aria-current="step"` and a visible "You are here", so sequence and position are not carried by the drawing alone. Frame 13b's separate `[Visual aid]` and the `.media-placeholder` video block are untouched. |
 | 22 August 2026 (MiP reachable) | D35 recorded: the Insights tab resolves to `/tracker` (Payments and Profile stay disabled), which makes the six-screen Mortgage in Principle flow reachable - it was already built and already wired, and nothing navigated to the tracker. `diamondFill` added, because `TAB_ICONS_ACTIVE` held twins for two tabs and lighting a third called `undefined`; the glyph lookup now falls back to the outline, and the tab hint stops being a Home-or-Goals ternary. The tracker's action bar is confirmed as the single entry (`reference/frames/16` draws it; the instruction's "milestone row is a live link" did not hold), and the locked milestone row drops its no-op `<button>`. `journeyEntryPoint` gains `/tracker`, so the X on 17, 18, 19b, 20 and 21 exits to the tracker rather than frame 01. Four copy keys change: the entry stops claiming the prototype issues a decision in principle, and frames 19 and 19b stop implying a check runs here. No knowledge check built on frame 17 - it exists in no spec, wireframe or frame, and the author confirmed it came from a stale summary. |
 | 26 August 2026 (first-entry stamping) | D41 amended and **`GAPS.md` G59 closed**. D41's rule is unchanged; the stamping underneath it gains one case. On the first entry of a session no descent can have happened, so if that entry lands on a tab root it IS a root and `seedHistoryRoot` stamps it `root: true`, reading the roots from `NAVIGABLE_TABS` rather than a second list. The route decides at that boundary and nowhere else - screens still ask `isRootEntry()` only. Fixes a cold-loaded `/goals` or `/tracker` drawing a chevron on a tab root, which mattered because participants open a link and cold load is the primary arrival path in a session. Measured after: `/home`, `/goals`, `/tracker` cold all report `isRootEntry() === true` with no chevron; `/position/summary` and `/consent` cold report false and keep theirs; refresh preserves the stamp in both directions. Knock-on reported: a cold `/home` is now a root, so the first tab tap of a session replaces rather than pushes and ten root-to-root switches cost +0 where they cost +1. Session restore still unmeasured. 235 tests passing. |
+| 27 August 2026 (goals bridge cards become conditional) | **D44 recorded**: `/goals` offers a bridge card only where the screen behind it will actually render, and withholds one where that screen would redirect. **The rule is not "alternate the cards"** - alternation is what the first two states look like, not the reason for them, and framing it that way would make the third read as an inconsistency later. No goal: calculator only, because `/tracker` would `replace()` into the calculator. Goal set, below the checkpoint: tracker only, because the calculator is already one tap away via `/tracker`'s "Adjust my goal" secondary (D25). At or above the checkpoint: **both**, because `tracker.js` draws that secondary on the below-checkpoint variant and no other, so without a card here the participant furthest along has no nearby calculator route at all. The predicates are `/tracker`'s own guard and its own `below-checkpoint` test, read from the same keys, so the two screens cannot drift apart. Rejected on the way: drawing "Adjust my goal" on every tracker variant - previewed at 390px, light and dark, both text sizes, and it is not a layout problem, but it reads as competing next steps beside "Check what a lender might lend you", reintroduces the backwards step D25 demoted, and costs a milestone row above the fold (dock 81px to 137px, fold y=707 to y=651, two whole rows to one at default text). Also rejected: a tappable "Deposit goal set" milestone row, because one tappable row in a list of four inert ones is a think-aloud confound. Also rejected, earlier: driving the cards from `isSkippedAhead()`, because `skippedAhead` is written only by `bindSkipAhead` and no participant action sets it, so the tracker card would have appeared only when a facilitator pressed a toggle - and it would have made a research affordance load-bearing for participant-facing content, against D38's deletion contract. `tracker.js`, the tracker content keys and D25 are all untouched. Both `/goals` click handlers are now optionally chained; either would have thrown on `null` in the state that withholds its card. D38 part one amended on the "both cards, always" framing; `ROUTES.md` gains its first `/goals` row and the three-state table. `overlap.test.mjs` gains `goals-no-goal` and `goals-below-checkpoint`, the two states its late-journey seed cannot reach; `shots.mjs` gains `--goal=none` for the same reason. `CACHE_VERSION` v33. 239 tests passing. |
 | 27 August 2026 (screenshot harness committed, seed collapsed) | **D43 recorded**, in two parts. `scripts/shots.mjs` becomes the committed screenshot harness - routes, entry path, skip-ahead position, theme, text size and viewport as comma-separated lists, every combination shot, output to the already-gitignored `.screenshots/` with a contact sheet built by rendering an HTML grid in the same browser rather than by adding an image library. It replaces a heredoc that had been regenerated inline for three consecutive sessions, cost a hand-approved permission prompt each time, and shipped a duplicate `const` that threw on first run. Entry path is one of its axes because `goals` and `insights` are real taps, not hash writes, and only a real tap makes the router record a descent (D40) and so decide the back chevron (D41). And `scripts/session-seed.mjs` becomes the ONE session `shots.mjs`, `overlap.test.mjs`, `action-bar.test.mjs` and `inset-shots.mjs` all seed from. Three differences found collapsing the copies: `on-track-for` held a bare number in two of them where the model returns a `{low, high}` range, inert because nothing reads the stored key, now corrected; `mipUnlocked` was set only by `action-bar.test.mjs`, where it is load-bearing, and is `true` in the shared seed - **so `overlap.test.mjs`'s frame 17 now audits the unlocked variant rather than the locked one it was hitting by accident, which is the frame as drawn**; `skippedAhead`/`skipAheadStash` matched `state.js`'s defaults and changed nothing. `skip-ahead.test.mjs` keeps its own fixture on purpose (D38, third amendment). One line added to CLAUDE.md: screenshots come from `scripts/shots.mjs`, never from a harness generated inline. No app code touched, so no `CACHE_VERSION` bump. 235 tests passing. |
 | 27 August 2026 (stale fold measurement corrected) | D38's SECOND amendment corrected in place, and the fourth amendment's claim that it was left alone withdrawn. The second amendment's "two whole rows above the fold" was measured against a 169px block and has been wrong since the note removal took the block to 103px. **A stale measurement in a decision record is worse than none, because the next person reasons from it.** The original figure, its 169px block height and its date stay visible; the re-measurement sits beside them, at 390x844 against the same fold that paragraph uses (`.screen-content`'s bottom, y=788): 169px two whole rows with "Deposit goal set" cut, 103px three with "Mortgage in Principle" cut, 99px three with "Mortgage in Principle" cut. **The third row came back with the note removal, not with the gap change** - 66 of the 70px - and the cause is stated so it is not misattributed. Verified by reproduction rather than arithmetic: forcing the block back to 169px returns the recorded figure exactly. The decision is unaffected; no position above the milestone list keeps all four rows at any of the three heights. The pinned action bar's own fold (y=651) is named for the first time and gives one whole row at all three heights. No code change, so no `CACHE_VERSION` bump. |
 | 27 August 2026 (skip-ahead internal gap) | D38 amended a fourth time, closing the question the third amendment left open: the gap between the label and the segmented track becomes `--space-sm` (8). **One declaration changed and nothing else.** The reasoning is taken from what the block is rather than from what was removed from it - two parts, a control and its own label, which is the one relationship this build already spaces at 4 or 8 and at nothing between: `.settings-control` (frame 33) puts a label 8 above its own pill segments, `.currency-input` (frames 09, 09a, 09b) puts one 8 above its field, and `.progress-bar`, two elements below this block on this same screen, sits its "Checkpoint" label 4 under its track. 8 is the value for a label above something a participant taps. The restyle amendment's defence of 12 rested on the supporting note binding to the toggle, and is void because there is no note; both it and the open-question paragraph are superseded on this value and on nothing else. Measured on both routes into `/tracker`, both themes and both positions - eight renders, all identical: block 103px to **99px**, gaps unchanged at 0 above, 32 below and 16 between every other pair in `.screen-content`, label 18px, track 56px, measured label-to-track 8px, width 350px at x=20 untouched. The 4px is reclaimed by the screen below the block and buys nothing at the fold - whole milestone rows above it are unchanged at one against the pinned dock (y=651) and three against `.screen-content`'s bottom (y=788). One tab stop, arrows and Home/End move and select, `aria-checked` flips both ways, both accessible names intact, no dangling ARIA references, three round trips byte-identical, dark mode unchanged. Noticed and reported rather than rewritten: the second amendment's "two whole rows above the fold" was measured against a 169px block and went stale when the note was removed, not here. `CACHE_VERSION` v32. |

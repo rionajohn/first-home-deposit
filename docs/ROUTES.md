@@ -28,6 +28,7 @@ Click path is from `#/home`. "Cold" = type the URL with an empty session.
 | 03b | Move this account | `#/consent/move-account` | ❌ → 03 | 03 → tap any account row | `selectedAccountId` |
 | 05 | What we can see | `#/position` | ✅ | 03 → "Continue" | none (seeded at session start) |
 | 06 | What we found | `#/position/summary` | ✅ | 05 → "Looks right" | none (seeded at session start) |
+| — | Your goals | `#/goals` | ✅ | Goals tab · or 06 → "Not right now - save for something else" | none - but **which bridge cards it shows depends on the goal**, see below |
 | 08 | Ready for the calculator | `#/goal-check` | ✅ | 06 → "Yes, keep going" | none (seeded at session start) |
 | 09 | Property and deposit | `#/calculator/property` | ✅ | 08 → "Open the deposit calculator" | none |
 | 09a | …before a value is entered | `#/calculator/property` | ✅ | same — it is 09's empty state | `property-value` = null |
@@ -62,6 +63,23 @@ because the figures they waited for are seeded at session start.
 **Query strings do nothing.** `?mode=estimate` and `?solve=amount` appear in `build-spec.md` §3 but no
 screen reads them, and there is no longer a mode for the first one to select. Variants come from
 state: the on-screen segmented control for 10b.
+
+## What `#/goals` shows, and when
+
+The long-term section carries a bridge card into the feature. **A card is shown only where the
+screen behind it will actually render** - `#/goals` does not advertise a door that redirects
+(`DECISIONS.md` D44). Three states, and nothing else on the screen changes between them:
+
+| Session state | Cards shown | Route to the other screen |
+|---|---|---|
+| No deposit goal set | **"What would a deposit actually involve?"** only | Tracker is not offered here; the Insights tab still reaches it and still redirects into the calculator |
+| Goal set, below the checkpoint | **"How is your deposit going?"** only | Calculator is one tap on from the tracker - its "Adjust my goal" secondary |
+| Saved ≥ checkpoint | **Both**, tracker first | The tracker drops "Adjust my goal" on this variant, so the goals card is the calculator's nearest route |
+
+**If the card you expect is missing, the session is in a different state than you think** - check
+the goal with the tracker recipes below rather than assuming the screen is broken. The Insights tab
+is unaffected in all three states: it always resolves to `#/tracker` and redirects when there is no
+goal.
 
 ## Journey spine — 11 clicks, #/home to #/tracker
 
@@ -115,6 +133,8 @@ lower the left-over figure, then return to 10. Don't plan a task around this one
 2. Wrong variant → check `#/settings` Data and MIP outcome, then re-enter the screen.
 3. Stale figures from the last participant → `#/reset`.
 4. Journey stage looks wrong → that control does nothing; use the recipes above.
+5. A bridge card is missing from `#/goals` → that is deliberate, and tells you the goal state. See
+   "What `#/goals` shows, and when" above.
 
 ---
 

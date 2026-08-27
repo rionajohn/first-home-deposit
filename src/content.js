@@ -410,6 +410,13 @@ const content = {
     // a banner. The tracker is also the Insights tab's destination - both
     // routes land on `/tracker`, and neither is the "real" one.
     //
+    // THEY ARE NOT ALWAYS BOTH DRAWN (DECISIONS.md D44). `/goals` offers a
+    // card only where the screen behind it will render rather than redirect:
+    // the calculator alone before a goal is set, the tracker alone between the
+    // goal and the checkpoint, and both once the checkpoint is passed. They
+    // are still siblings, and still one component - the section just does not
+    // always have two things to say.
+    //
     // No figure here, for the same reason the card above carries none: this
     // screen presents no computed result (see the `anchors` note in
     // goals.js). "What you have put aside so far" describes what the tracker

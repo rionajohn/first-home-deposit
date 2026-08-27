@@ -78,7 +78,21 @@ const FRAMES = [
   // outside the reference set (DECISIONS.md D21). Audited here because the
   // check is about rendered geometry, and a screen with two card sections
   // and a 64px row has exactly the shape this test was written for.
+  //
+  // THREE ROWS, BECAUSE THE SCREEN HAS THREE STATES (DECISIONS.md D44). The
+  // long-term section carries one bridge card, the other, or both, depending
+  // on which destination would actually render for the session. `FULL` seeds
+  // saved == checkpoint, so the bare row below is the BOTH-cards state and is
+  // the tallest of the three; the two rows after it are the one-card states,
+  // which the bare row would otherwise never reach.
   ['goals', '/goals', {}],
+  ['goals-no-goal', '/goals', {
+    'property-value': f(null, null), 'deposit-pct': f(null, null),
+    'deposit-target': f(null, null), 'checkpoint-amount': f(null, null),
+  }],
+  ['goals-below-checkpoint', '/goals', {
+    'saved-toward-deposit': f(12000), 'checkpoint-amount': f(21000, 'derived'),
+  }],
   ['08', '/goal-check', {}],
   ['09', '/calculator/property', {}],
   ['09a', '/calculator/property', { 'property-value': f(null, null), 'deposit-pct': f(null, null) }],

@@ -44,6 +44,11 @@
  *              the same figure; `--saved=12000` puts the session below it so
  *              `--state=now,ahead` shoots the two apart.
  *                                                default the seed's own value
+ *   --goal     `set` or `none`. `none` clears the committed deposit goal, a
+ *              state the late-journey seed cannot otherwise reach. Needed to
+ *              shoot both sides of any screen that branches on whether a goal
+ *              exists - `/goals` has three states off it (D44).
+ *                                                       default set
  *   --out      Output directory.                  default .screenshots/shots
  *   --full     Capture the whole scroller rather than the viewport.
  *   --no-sheet Skip the contact sheet.
@@ -91,6 +96,7 @@ const DEFAULTS = {
   out: '.screenshots/shots',
   scale: '2',
   saved: '',
+  goal: 'set',
 };
 
 function parseArgs(argv) {
@@ -151,6 +157,24 @@ if (SAVED !== null && !Number.isFinite(SAVED)) {
   console.error('--saved must be a number, e.g. --saved=12000.');
   process.exit(1);
 }
+
+/**
+ * `--goal=none` clears the committed deposit goal, which is a state the seed
+ * cannot otherwise reach: `session-seed.mjs` is a late-journey session by
+ * definition, so every route that branches on "has this participant set a
+ * goal yet" would only ever be shot on one side of the branch. `/goals` has
+ * three states off that question (DECISIONS.md D44) and two of them need this.
+ *
+ * It clears the same four keys frame 09's empty variant leaves null, so the
+ * result is a session that has walked in but not committed, rather than an
+ * incoherent one with a target and no property value.
+ */
+const GOAL_STATES = ['set', 'none'];
+if (!GOAL_STATES.includes(args.goal)) {
+  console.error(`Unknown --goal "${args.goal}". One of: ${GOAL_STATES.join(', ')}.`);
+  process.exit(1);
+}
+const NO_GOAL_KEYS = ['property-value', 'deposit-pct', 'deposit-target', 'checkpoint-amount'];
 const ENTRIES = list(args.entry);
 const STATES = list(args.state);
 const THEMES = list(args.theme);
@@ -228,6 +252,7 @@ const slug = (route) => route.replace(/^\//, '').replace(/\//g, '-') || 'root';
 
 function shotName({ route, entry, state, theme, text }) {
   const parts = [slug(route), entry, state, theme, `${WIDTH}w`];
+  if (args.goal === 'none') parts.splice(1, 0, 'no-goal');
   if (text !== 'default') parts.push(text);
   if (args.full) parts.push('full');
   return `${parts.join('__')}.png`;
@@ -275,6 +300,9 @@ try {
             const seed = { ...FULL, theme: theme === 'dark' ? 'dark' : 'greyscale', textSize: text };
             if (SAVED !== null) {
               seed['saved-toward-deposit'] = { ...FULL['saved-toward-deposit'], value: SAVED };
+            }
+            if (args.goal === 'none') {
+              for (const key of NO_GOAL_KEYS) seed[key] = { value: null, provenance: null };
             }
             await context.addInitScript((v) => {
               try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {}
