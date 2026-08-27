@@ -1809,60 +1809,55 @@ produces the same marker. 128 tests passing (model, overlap, bottom-nav, sheet-d
 >
 > **The reason, in one line.** The block was styled for a context it no longer sits in.
 
-> **Amended 27 August 2026 (second amendment that day) - the block moves out of the opening.** It
-> now sits between the checkpoint sentence and the milestone list, not at the top of the screen.
-> **The amendment above is superseded on three points and stands on the rest:** it is no longer a
-> first child, it no longer carries a single dashed bottom rule, and it no longer adds zero top
-> spacing. The placeholder-idiom finding, the copy amendment, the gap-12 reasoning, the track-width
-> reading and the contrast figures all still hold.
+> **Amended 27 August 2026 (second amendment that day) - THE CONTROL STAYS AT THE TOP, AND THAT IS
+> NOW A DECISION RATHER THAN A DEFAULT.** The amendment above stands unchanged in every particular;
+> this one closes the question it left open.
 >
-> **Why it moved.** At the top of the screen the eye landed on the white segmented track before it
-> landed on the headline figure, because the annotation preceded the thing it annotates. The screen
-> the tracker is wanted to resemble is `37bae7f` - figure, provenance captions and progress bar
-> first, milestones following - and the block was standing in front of that opening.
+> **What was tried.** The block was moved out of the opening, to between the checkpoint sentence and
+> the milestone list, and the move was built, verified and committed. It was then reverted
+> (`git revert`), and the treatment recorded above is what is in the build. The reverted commit is
+> kept in history rather than squashed, because the measurements in it are the evidence for this
+> decision.
 >
-> **Two dashed edges now, not one, and this is forced by the position.** A single bottom rule is
-> correct only for a block with app content on exactly one side. This block now has the checkpoint
-> sentence above it and the milestone list below it. Rendered and read at 390px, a bottom-only rule
-> leaves the top edge open and the annotation reads as attached to the sentence above it - as a
-> qualifier on "You've passed the 75% checkpoint", which is the one sentence it must not appear to
-> qualify. Two edges fence it as the inserted aside it is. Bracketing with two dashed rules is this
-> block's own extension of the build's existing "set apart, not settled" mark rather than a borrowed
-> convention, and that is the price of sitting mid-content.
+> **What prompted it.** At the top, the eye meets the white segmented track before the headline
+> figure, because the annotation precedes the thing it annotates. The screen this was measured
+> against is `37bae7f`, the last version before the block landed on the tracker at all: figure,
+> provenance captions and progress bar first, milestones following, all four milestone rows whole
+> above the fold.
 >
-> **NO RULE AT ALL WAS TRIED AND FAILS, and the reason is worth keeping.** The proposal was that the
-> 32px gaps, the absent fill, the absent radius and the absent provenance caption could carry the
-> separation on their own. In this position all four are shared with the neighbours: `.body-text`
-> above and the milestone rows below are equally unfilled, unrounded and uncaptioned, and 32px
-> against the screen's 16px reads as section spacing rather than as a boundary. The label is 13px
-> secondary at 600 - the same type role as "Checkpoint", the progress bar's own label a few lines
-> above - so with nothing fencing it the block reads as one more section of the app. Plain-on-page
-> IS the app's idiom on this screen. That argument only ever worked while every neighbour was a
-> `.card`, which was true at the bottom of /goals and is not true here.
+> **THE DECISION: the control at the top, over four-of-four milestones above the fold.** The trade is
+> real and is settled this way rather than left open.
 >
-> **What the move does NOT do, stated plainly.** It does not restore `37bae7f`'s opening. Measured
-> at 390x844, default text: `37bae7f` shows all four milestone rows whole above the fold; with the
-> block in this position two are whole and "Deposit goal set" is cut. That is true of all three
-> treatments tried - the block is 152 to 186px tall depending on its rules, and the fourth row needs
-> that space. Moving it one element earlier, immediately after `.progress-bar`, changes nothing:
-> still two whole rows. **Only a position below the milestone list restores four of four**, and two
-> were measured: directly after `.milestone-tracker` puts the block's top edge at y=733 against a
-> fold of 788, so its label stays visible at first paint; after the milestone list's own "Ready to
-> check" caption puts it at y=785, three pixels above the fold and effectively out of sight. Neither
-> is adopted here, and both are recorded so the next pass does not re-derive them.
+> **The reason.** The block is 150 to 190px tall depending on its rules, and the fourth milestone row
+> needs that space, so **no position above the milestone list keeps all four** - measured at 390x844,
+> default text: two whole rows and "Deposit goal set" cut, identically for a bottom rule only, for
+> two rules, for no rule at all, and for the position one element earlier immediately after
+> `.progress-bar`. Every position that does keep all four fails another way. Directly after
+> `.milestone-tracker` keeps four but splits the milestone list from its own "Ready to check"
+> caption; after that caption keeps four but puts the block's top edge at y=785 against a fold of
+> 788, three pixels of it visible, which is the below-the-fold problem that moved the control off
+> `/goals` in the first place. And any mid-content position puts the app's own content on BOTH sides
+> of the block, which a one-sided rule cannot fence: rendered at 390px, a bottom-only rule there
+> leaves the top open and the annotation reads as a qualifier on "You've passed the 75% checkpoint",
+> the one sentence it must not appear to qualify. Fencing both sides needs a bracketing mark - two
+> dashed edges - that this build does not otherwise use, and inventing one was the thing the
+> treatment above was written to avoid.
 >
-> **Symmetric margin and padding, for the same reason the rules are symmetric.**
-> `margin: var(--space-lg) 0` adds to `.screen-content`'s own 16px gap for 32px clear on each side;
-> `padding: var(--space-lg) 0` holds both rules off the text they enclose. Measured: every other gap
-> on the screen is 16px, the two either side of this block are 32px, and the block is 186px tall.
+> **So the top is the position where the styling is honest.** The app's own content is on one side of
+> this block only, and that is exactly the condition under which a single dashed edge is the right
+> mark. The cost is two milestone rows below the fold, paid knowingly.
 >
-> **The header comment is restated from the position rather than from the order of the
-> declarations,** and opens by saying that the app's own content is on both sides of the block,
-> because that single fact decides the rules, the padding and the margins. Two earlier treatments
-> were correct for positions this block no longer holds and were carried forward unexamined; the
-> comment now says so.
+> **Also recorded from the reverted pass, because it does not depend on the position.** Removing the
+> rules entirely and leaving the 32px gaps, the absent fill, the absent radius and the absent
+> provenance caption to carry the separation was tried and fails wherever the block's neighbours are
+> not cards: those four properties are shared with `.body-text` and the milestone rows, 32px against
+> the screen's 16px reads as section spacing rather than a boundary, and the label shares its type
+> role - 13px secondary at 600 - with "Checkpoint", the progress bar's own label. Plain-on-page is
+> the app's idiom on this screen.
 >
-> **The reason, in one line.** The annotation was standing in front of the figure it annotates.
+> **The reason, in one line.** The block is too tall to sit above the milestones without costing two
+> rows, and every position that keeps all four either buries the control or needs a mark the build
+> does not use.
 
 **Marked as a research affordance.** Half of this entry describes a control that WOULD NOT EXIST IN
 A PRODUCTION BUILD. It is an instrument for moderated sessions, not part of the design being tested,
@@ -2400,7 +2395,7 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (frame 18 timeline) | D36 recorded: frame 18's `[Visual aid]` placeholder is replaced by the process timeline it specified - four labelled nodes joined by a hairline, Mortgage in Principle marked as where the participant is, the three ahead of them reading as ahead rather than done. **It is a process sequence, not a progress indicator, and is exempt from DESIGN.md's bar exclusions on that basis** - vertical, discrete nodes rather than a filled track, measuring nothing, with no completed state at all. Vertical because four horizontal labels do not fit 62px columns at 320px. New `circleDot` icon and `processTimelineHTML` component; no new colour, spacing or width token. Not interactive: no button, link, tabindex or pointer cursor, proved by walking the tab order. An `<ol>` with `aria-current="step"` and a visible "You are here", so sequence and position are not carried by the drawing alone. Frame 13b's separate `[Visual aid]` and the `.media-placeholder` video block are untouched. |
 | 22 August 2026 (MiP reachable) | D35 recorded: the Insights tab resolves to `/tracker` (Payments and Profile stay disabled), which makes the six-screen Mortgage in Principle flow reachable - it was already built and already wired, and nothing navigated to the tracker. `diamondFill` added, because `TAB_ICONS_ACTIVE` held twins for two tabs and lighting a third called `undefined`; the glyph lookup now falls back to the outline, and the tab hint stops being a Home-or-Goals ternary. The tracker's action bar is confirmed as the single entry (`reference/frames/16` draws it; the instruction's "milestone row is a live link" did not hold), and the locked milestone row drops its no-op `<button>`. `journeyEntryPoint` gains `/tracker`, so the X on 17, 18, 19b, 20 and 21 exits to the tracker rather than frame 01. Four copy keys change: the entry stops claiming the prototype issues a decision in principle, and frames 19 and 19b stop implying a check runs here. No knowledge check built on frame 17 - it exists in no spec, wireframe or frame, and the author confirmed it came from a stale summary. |
 | 26 August 2026 (first-entry stamping) | D41 amended and **`GAPS.md` G59 closed**. D41's rule is unchanged; the stamping underneath it gains one case. On the first entry of a session no descent can have happened, so if that entry lands on a tab root it IS a root and `seedHistoryRoot` stamps it `root: true`, reading the roots from `NAVIGABLE_TABS` rather than a second list. The route decides at that boundary and nowhere else - screens still ask `isRootEntry()` only. Fixes a cold-loaded `/goals` or `/tracker` drawing a chevron on a tab root, which mattered because participants open a link and cold load is the primary arrival path in a session. Measured after: `/home`, `/goals`, `/tracker` cold all report `isRootEntry() === true` with no chevron; `/position/summary` and `/consent` cold report false and keep theirs; refresh preserves the stamp in both directions. Knock-on reported: a cold `/home` is now a root, so the first tab tap of a session replaces rather than pushes and ten root-to-root switches cost +0 where they cost +1. Session restore still unmeasured. 235 tests passing. |
-| 27 August 2026 (skip-ahead moves below the progress bar) | D38 amended a third time: the block moves from the top of `/tracker` to between the checkpoint sentence and the milestone list, so the headline figure opens the screen again rather than the annotation. Behaviour, copy and placement on `/tracker` are otherwise unchanged; `tracker.js` moves one line. The single dashed bottom rule becomes TWO dashed edges with symmetric `margin: var(--space-lg) 0` and `padding: var(--space-lg) 0`: a one-sided rule is correct only for a block with app content on one side, and with the checkpoint sentence above and the milestones below, a bottom-only rule leaves the top open and the annotation reads as a qualifier on "You've passed the 75% checkpoint". No rule at all was tried and fails - the 32px gaps, absent fill, absent radius and absent provenance caption are all shared with the new neighbours, and the label shares its type role with "Checkpoint" a few lines above, so the block reads as one more section of the app. STATED PLAINLY: this does NOT restore `37bae7f`'s opening - four milestone rows whole above the fold there, two here, and the same two for every treatment tried and for the position one element earlier. Only a position below the milestone list restores four of four; two such positions are measured and recorded, neither adopted. The `screens.css` header is restated from the position rather than the order. `CACHE_VERSION` v27. 235 tests passing. |
+| 27 August 2026 (skip-ahead stays at the top, decided) | D38 amended: the experiment that moved the block below the checkpoint sentence was built, verified, committed and then reverted with `git revert`, and **the control staying at the top of `.screen-content` is recorded as a decision rather than an unresolved trade**. The reason: the block is 150-190px tall whatever its rules, so no position above the milestone list keeps all four rows above the fold - measured identically at two whole rows for a bottom rule, two rules, no rule, and the position immediately after `.progress-bar` - while every position that does keep four either splits the milestone list from its own caption, lands three pixels above the fold, or puts app content on both sides of the block, which a one-sided rule cannot fence and which needs a bracketing mark this build does not otherwise use. The top is the position where the app's content is on one side only, which is the condition that makes the single dashed edge correct. Cost accepted: two milestone rows below the fold. Carried forward from the reverted commit and kept: the position-is-load-bearing framing at the head of the `.skip-ahead` comment, the warning that a treatment must not follow the block to a new position unexamined, and the finding that no rule at all fails wherever the neighbours are not cards. `CACHE_VERSION` v28. 235 tests passing. |
 | 27 August 2026 (skip-ahead restyled for the tracker) | D38 amended again: the control's TREATMENT catches up with the move recorded above. Placement, behaviour and four of the five strings are unchanged. The dashed box goes - a dashed box is this build's placeholder idiom (`.media-placeholder`, `.visual-aid-placeholder`, `.routes-illustration`) and a research instrument must not wear it - replaced by a single dashed bottom rule, which is the build's existing unsettled-not-settled mark (`.account-group-header--unassigned`, `.status-card__still-to-sort`) and puts the boundary on the side the app's content is on. `margin-top: var(--space-3xl)` becomes `margin-bottom: var(--space-lg)`, so the block adds no top spacing, `--screen-inset-y` alone governs, and the 56px void below the app bar goes: 0px above, 32px below, every other gap on the screen 16px. Horizontal padding removed, so the block aligns to the 350px content column and the track widens 318 to 350, matching the headline figure, the progress bar and the action bar button - width does not mark app content on this screen, fill and weight do, and the block gives up both. The internal gap stays at 12 after being screenshot at 8 and rejected: at 8 the note reads as a caption on the toggle and appears to disclaim only the toggle, when what a participant might take as real is the deposit figure below. `skipAheadNote` takes its one deliberate copy amendment - "what this screen shows then" - the screen no longer naming itself in the third person. Three stale CSS comments corrected. Contrast unchanged and re-measured from the page: light 4.93/4.93/16.68/5.28, dark 6.36/6.36/21/5.95. Three round trips leave state identical. `CACHE_VERSION` v26. 235 tests passing. |
 | 26 August 2026 (skip-ahead moves to the tracker) | D38 amended: the skip-ahead control moves from the bottom of `/goals` to the top of `/tracker`, above the headline figure, on both routes into the tracker and nowhere else. Still a research affordance that would not exist in a production build. Copy unchanged verbatim; the five `skipAhead*` keys move from `/goals` to `/tracker` unedited. `skipAheadHTML` and a new `bindSkipAhead` move out of `goals.js` into `src/skip-ahead.js`, so the affordance really is one module plus one CSS block plus five keys plus two lines in `tracker.js`. Option accessible names now compose the label with the position - "Prototype control: skip ahead, Further along" - because a radiogroup announces its name once on entry and a participant arrowing between two options would otherwise lose the prototype framing. The unavailable branch becomes unreachable behind `tracker.js`'s `checkpoint-amount`/`deposit-target` guard and is KEPT, with that guard named so it is obvious the branch goes live if it is relaxed. Interest earned now shares a screen with the control but sits ~1200px below the fold, so the two are never seen together; unfixed, per D34. `overlap.test.mjs` gains a `16-skipped` row and drops the two `/goals` control rows. 235 tests passing. |
 | 25 August 2026 (back chevron) | D41 recorded: a screen draws the back chevron only when there is a preceding screen inside its own flow, so a tab root draws none. Stated generally; it changes `/goals` and `/tracker` only because those are the two DUAL-NATURED screens - a tab root by one route and a descent by another - so both become conditional rather than losing the chevron. Both read `isRootEntry()` (D40), which is the only fact that can separate the two arrivals to one route. `/home` is the third root and is already correct, but by hardcoding two empty cells in `home.js` rather than by the rule, and is noted as such. Absent not inert: `appBarHTML`'s null-`left` branch already rendered a plain 44px `<div>`, so the slot stays reserved, the title stays centred within 1.5px, and the header has zero focusables. Close X untouched. `GAPS.md` G59 still open: a cold-loaded tab root stamps `root: false` and so still draws a chevron. |
