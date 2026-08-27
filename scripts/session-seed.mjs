@@ -27,6 +27,25 @@
  * script's own override list, not here. Only figures that are true of "a
  * participant part-way through saving" belong in this file.
  *
+ * NOT THE JOURNEY STAGE PATCH EITHER, and deliberately not derived from it.
+ * `src/stage.js` builds frame 33's three stages (DECISIONS.md D45) and looks
+ * like it does the same job as this file. It does the opposite one. `FULL` is a
+ * harness fixture, deliberately past nothing in particular, so each script
+ * overrides the two or three keys that select the variant it is auditing; it
+ * holds hand-written derived figures on purpose, and its property value was
+ * chosen to stress layout. The stage patch is ONE fixed scenario, derives every
+ * figure through the model, and its property value was chosen to keep
+ * `months-to-target` inside the 60-month projection window. Making either the
+ * source of the other would drag one file's constraint into the other: the
+ * harnesses would lose the freedom to pick a variant by overriding two keys, or
+ * a participant-facing session would inherit figures picked for pixel
+ * measurement.
+ *
+ * `stage: 'saving'` below is therefore a plain recorded value and NOT a claim
+ * that these figures are the saving stage's. It describes exactly the case D45
+ * verifies: a session where a stage was set and the participant then ran the
+ * calculator with their own figures. Nothing reads the key at render time.
+ *
  * NOT SHARED WITH `skip-ahead.test.mjs`. Its `savingSession()` fixture derives
  * `checkpoint-amount` from `CHECKPOINT_FRACTION` on purpose (DECISIONS.md D38,
  * third amendment) so that two tests which assert "no number is written down"

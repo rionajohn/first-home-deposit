@@ -2170,6 +2170,46 @@ is measured against, and a second control would also mean two places to look whe
 figures are not where the facilitator expected. Frame 33's `stage` control is unrelated and remains
 what it was: inert, read by no screen.
 
+> **Amended 27 August 2026 (fifth amendment) - THE PARAGRAPH ABOVE WAS RIGHT ABOUT POSITION AND
+> WRONG ABOUT SETUP, AND FRAME 33'S `stage` CONTROL IS NOW LIVE (D45).** The last sentence is
+> superseded in both of its claims: `stage` is not unrelated, and it is no longer inert. Nothing
+> else in that paragraph is - the ban on a second POSITION control stands exactly as written.
+>
+> **The distinction the paragraph was missing.** "A second session-position control" was the right
+> thing to reject and the wrong description of what frame 33 offers. The two controls answer
+> different questions:
+>
+> | | Question it answers | What it may write |
+> |---|---|---|
+> | Skip-ahead (`/tracker`) | Where is this session WITHIN a goal it already has? | The savings position and what re-derives from it |
+> | Journey stage (frame 33) | Does this session have a goal AT ALL? | Whether the goal exists, and every figure that constitutes it |
+>
+> **One control for position, one for setup, and they must never both be able to answer the same
+> question.** That is the rule this amendment adds, and it is enforced by what each control writes
+> rather than by convention. The stage control reaches `skippedAhead` and `skipAheadStash` only by
+> calling `skipAheadPatch()` itself - it never constructs the later position by hand - and the
+> skip-ahead control never writes `stage`. So the two can disagree on screen without either being
+> wrong: frame 33 can read "Ready to check" while `/tracker`'s own control sits at "Now", because
+> the session HAS the goal that stage set up and is being SHOWN at the earlier position within it.
+> Two facts, not one fact recorded twice. Asserted in `scripts/stage.test.mjs`
+> ("neither control writes the other's key"), and measured: `ready-to-check` toggled back to "Now"
+> is byte-identical in `sessionStorage` to `saving` set directly, key order included, apart from the
+> single `stage` key that records which pill is lit.
+>
+> **Why the original ban was still correct.** A control that moved the POSITION from frame 33 would
+> be the thing this paragraph forbids: two places to look when the figures are not where the
+> facilitator expected, and a way to move a task's measure while a participant is part-way through
+> it. `stage` cannot be reached mid-task in the same sense, because it is not reachable at all
+> without leaving the participant's screen and typing a URL, and because what it sets is the state a
+> session STARTS from rather than a position inside one.
+>
+> **What is superseded, precisely.** The clause "not on frame 33" survives as a ban on a second
+> position control there, and is void as a ban on the stage control. "Frame 33's `stage` control is
+> unrelated and remains what it was: inert, read by no screen" is void in full - and note that
+> "read by no screen" is STILL true and is no longer the same as inert. `stage` is written once by
+> the control and never re-read at render time; see D45 for why a set-up is written rather than
+> interpreted.
+
 **Marked, not foreign, visually.** Every other block on `/goals` is a `.card` - an opaque surface
 square with the screen inset. This one is none of those: no card surface, a dashed rather than solid
 outline, a label above rather than a heading inside. It reads as an annotation on the prototype
@@ -2802,6 +2842,141 @@ with it. Both are now optionally chained, so the binding cannot disagree with wh
 
 ---
 
+## D45. Frame 33's Journey stage sets up a session, and does it by replaying the calculator
+
+**Date.** 27 August 2026.
+
+**Decision.** Frame 33's "Journey stage" control is wired. Selecting a stage writes the state that
+stage means, computed from a fresh `defaultState()` and through the model, in `src/stage.js`. It was
+fully built and fully inert: `state.js` declared it, `content.js` held the label and three options,
+`settings.js` rendered and bound it and wrote the key correctly, and no screen read the key it
+wrote.
+
+**The problem.** `/tracker` opens on a guard against the STORED `checkpoint-amount` and
+`deposit-target`, and both are null until frame 09's Continue, frame 10's Continue and frame 11's
+"Work it out" have all run. So tapping Insights on a fresh session redirects into the deposit
+calculator, and a facilitator could not demonstrate the tracker, the skip-ahead control or the
+Mortgage in Principle flow without spending session time on the calculator first. That is session
+time spent on a screen the participant was not brought in to look at.
+
+**Reconciled with D38 first, not afterwards.** D38 rejected a second session-position control by
+name, frame 33 included. It was right about position and wrong about setup, and its fifth amendment
+now says so: skip-ahead moves a savings position WITHIN a goal that already exists, while Journey
+stage establishes whether a session has a goal AT ALL. One control for position, one for setup, and
+they must never both be able to answer the same question. See D38 for how that boundary is enforced
+by what each control writes rather than by convention.
+
+**The three stages.**
+
+| Stage | What it is | Tracker |
+|---|---|---|
+| Setting up | Today's empty state, unchanged | Insights still redirects to `/calculator/property` |
+| Saving | A goal set through the calculator, position below its checkpoint | Frame 15, Mortgage in Principle milestone locked |
+| Ready to check | The saving stage with `skipAheadPatch()` applied | Frame 16, milestone available |
+
+**"Ready to check" is composed, not constructed.** It is the saving stage with the skip-ahead
+control's own patch on top, and deliberately NOT a separately built state, and deliberately not a
+cheaper property value that happens to put the checkpoint below the mock balance. A different
+journey is a different participant, not the same one further along - and the point of this stage is
+that the facilitator is demonstrating the SAME goal the saving stage sets up, seen later. Composing
+the patches makes that literally true rather than approximately: every figure describing the goal is
+identical between the two stages, and only the position within it moves. It also means the stage
+cannot drift from the control, because both take the threshold from the same stored
+`checkpoint-amount` and neither has a fraction, percentage or amount written down in it.
+
+**Every stage is computed from a fresh `defaultState()`, never layered on the current store.** Two
+things follow, and both are the point. Stage changes become idempotent IN BOTH DIRECTIONS: every
+stage writes every key in `STAGE_KEYS`, the later ones with their own values and the earlier ones
+with the default, so ready-to-check to setting-up leaves nothing behind. And the figures in a patch
+are true of the session it creates, because they are derived against the same seeded account totals
+the patch resets the account picture to - otherwise a participant's earlier account edit would leave
+a stored `months-to-target` describing a balance the session does not hold.
+
+**Nothing derived is written by hand.** The patch follows the calculator's own call order, screen by
+screen, and takes every figure from the function that screen calls: the entered pair, then
+`depositTarget`/`loanAmount`/`ltv`; then step 2's rate seeding from `MOCK_POSITION`, clamped against
+`left-over` exactly as frame 10 clamps it; then `monthsToTarget`/`onTrackFor`/`checkpointAmount`.
+Provenance is whatever the model returned rather than being stamped: under D5 that makes
+`deposit-target` and `checkpoint-amount` 'entered' rather than 'derived', because they are partly
+derived from an entered input, and it makes the monthly range and its midpoint 'read', because a
+participant who accepted the seeded range has not entered anything.
+
+**Two numbers are written down, and only two.** The property value (240,000) and the deposit
+percentage (0.10) a stand-in participant would have typed and tapped. Both live in `src/stage.js`
+rather than `rates.js`: they are participant inputs chosen on a participant's behalf, not rates, and
+keeping them with the control keeps the affordance deletable in one move.
+
+**Why 240,000.** It has to leave `months-to-target` inside the 60-month projection window
+(`CHART_WINDOW_MONTHS`), because above it `monthsToTarget()` returns `beyond-window`, `onTrackFor()`
+has no range to give, and the tracker's "On track for" row falls to a boundary variant instead of
+the ordinary screen the stage exists to demonstrate. Confirmed against the mock accounts as they
+stand: an 8,950 starting balance and a 255 a month savings rate put a 24,000 target at **49.3
+months**, on track for **45 to 55 months**, with the window closing at about 275,800 - roughly
+36,000 of headroom, so a later change to the mock balances or to the Bank Rate has room to move
+before the stage silently changes which variant it demonstrates. It also leaves 8,950 below the
+18,000 checkpoint, so the saving stage renders locked and "Ready to check" has somewhere to go. Both
+properties are asserted as properties in `scripts/stage.test.mjs`, not as numbers.
+
+**A stage is written, not interpreted.** `stage` is still read by no screen, and that is now a
+different thing from being inert. The control writes once; nothing re-reads the key at render time.
+That is what makes a participant who then runs the calculator with their own figures see the tracker
+follow THEIR entries - the stage was the state they started from, not a filter over what they do
+next. Walked: after "Saving" the tracker reads a 24,000 goal at 8,950 saved, locked; the same
+session run through the calculator at 180,000 at 5% reads a 9,000 goal at 8,950 saved, checkpoint
+passed - while frame 33 still reads "Saving", correctly, because that is where the session started.
+
+**What the control owns, and what it will not touch.** A key belongs to `STAGE_KEYS` when its value
+is a CLAIM ABOUT A DEPOSIT GOAL: the goal's figures, the account picture they are read from, and the
+flags asserting a goal exists or has been acted on. Selecting a stage is a scenario reset, so
+anything asserting a goal the new stage does not have would be a lie left behind - a surviving
+`mipUnlocked` would let `/mip` be deep-linked by a session with no goal, and a surviving
+`checkRunAt` would claim a soft search was recorded against a goal that no longer exists. It owns
+nothing that is a claim about the BROWSER (`journeyEntryPoint` and `flowEntryHistoryLength` are
+written from `window.history.length` on a click per D30/D32 and cannot be reconstructed from a
+patch; `journeyStarted` is written on the same click and splitting the trio is worse than leaving
+it), nothing that is a claim about the CLOCK (`targetMonth`/`targetYear`, which frame 10 seeds from
+today's date on its own first render), nothing belonging to another frame 33 control, and nothing
+`router.js` already resets.
+
+**`mipUnlocked` is deliberately not set by any stage.** The tracker's own "Check my Mortgage in
+Principle" control writes it, together with the entry point the flow's close X reads. A facilitator
+taking that tap is part of the demonstration rather than something to skip past, and it is the tap
+that makes the flow's exit behaviour correct.
+
+**Frame 33 stays facilitator-only and URL-reachable only.** No gesture is added and no on-screen
+link. Unchanged by this entry.
+
+**`scripts/session-seed.mjs` is NOT this patch, and should not become it.** The two look similar and
+do opposite jobs. `FULL` is a browser-harness fixture, deliberately "past nothing in particular", so
+each script overrides the two or three keys selecting the variant it is auditing; it holds
+hand-written derived figures on purpose, and its property value was chosen to stress layout. The
+stage patch is one fixed scenario, derives every figure through the model, and its property value
+was chosen to stay inside the projection window. Making either the source of the other would drag
+one file's constraint into the other: the harness would lose the freedom to pick a variant by
+overriding two keys, or a participant-facing session would inherit figures picked for pixel
+measurement. `FULL` keeps its own copy, and keeps carrying `stage: 'saving'` as a plain recorded
+value - which is now a session that went through the calculator with its own figures after a stage
+was set, exactly the case two paragraphs above.
+
+**Verified.** Driven in Chromium at 390px against the real screens, not against the model alone.
+Fresh session, each stage, tap Insights: "Setting up" lands on `#/calculator/property` (the redirect
+cascade, unchanged); "Saving" lands on `#/tracker` showing 8,950 of a 24,000 goal, "You're 9,050
+away...", milestones done/done/current/locked, "Unlocks at 18,000"; "Ready to check" lands on
+`#/tracker` showing 18,000, "You've passed the 75% checkpoint", the Mortgage in Principle row
+available. Ready-to-check toggled to "Now" through the tracker's own control is byte-identical in
+`sessionStorage` to "Saving" set directly - key order included - apart from the single `stage` key,
+which is the separation D38's fifth amendment requires rather than a defect. Seven stage selections
+by real clicks across all three stages in both directions: every revisit byte-identical to that
+stage's first visit, and "Setting up" byte-identical to an untouched fresh session. 260 tests
+passing - 43 model, 68 overlap, 89 action-bar, 15 sheet-drag, 13 bottom-nav, 11 skip-ahead, plus 21
+new in `scripts/stage.test.mjs`. `CACHE_VERSION` v34.
+
+**Reversal.** Delete `src/stage.js`, its line in `sw.js`'s `SHELL_ASSETS`, `scripts/stage.test.mjs`,
+the `stagePatch` import and the third argument to `settings.js`'s `bindGroup('set-stage', ...)`, and
+the `defaultState` export in `state.js`. The control returns to inert; nothing else changes.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -2864,3 +3039,5 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 24 August 2026 (pinned action bar) | D39 recorded, **superseding D17**: the action bar is visible from first paint on all 27 screens that have one and stays visible while the content scrolls beneath it. D17's hidden state, reveal, focus-reveal path and rise transition are removed; its measured height, its content-scrolls-under-the-bar overlap and its 56px fade survive, the fade moving from inside the dock to immediately above it now that the bar is always opaque. `src/action-bar.js` now decides LAYOUT rather than visibility: pinned to the bottom where the content overflows, inline after the last card where it fits, the two modes provably unable to oscillate because `scrollHeight - clientHeight` is the same number in both. `.bottom-nav` gains `margin-top: auto` so the tab bar stays at the bottom of the phone screen in both modes - a defect the geometry test passed straight through and a contact sheet caught. The brief's "pad by the action area plus the bottom navigation" is met for the action area by computed padding and for the tab bar structurally, which is stronger; padding both would double-count. New `scripts/action-bar.test.mjs`, 89 assertions over 20 screens x 4 viewports plus 7 sheets. `GAPS.md` G38 closed by removal - the deviation from the reference frames is gone, so its screenshot exemption goes with it. |
 | 24 August 2026 (goals -> tracker, skip-ahead control) | D38 recorded, in two parts. `/goals` gains a deposit tracker card beside the calculator card, both built from one new `ctaCardHTML` helper, routing to `/tracker` - the same route the Insights tab resolves to (D35), with back following D29 because the card writes no state at all. And `/goals` alone gains a skip-ahead control, **a research affordance that would not exist in a production build**: a `role="radiogroup"` selecting between the starting savings position and `CHECKPOINT_FRACTION` x `deposit-target`, at which the Mortgage in Principle milestone unlocks. No fraction or amount is written down anywhere in it. It stashes the position it replaces and restores it verbatim, so three round trips leave state byte-identical and nothing the participant entered moves; `months-to-target`, `on-track-for` and `max-property` are recomputed because they are stored rather than derived, and only where already committed. Frames 03 and 06 stop clobbering the stashed position. Two things are reported as incoherent rather than fudged: frames 15/16's "Interest earned", a directly-read mock figure fixed by D34, and the per-account balances on frames 03, 06 and 32, which cannot rise without inventing balances. A copy check raised the supporting note from caption to footnote size. 143 tests passing. |
 | 22 August 2026 (D32 collision resolved) | The provenance-captions entry, recorded second under a number the chevron entry already held, becomes **D34**; the chevron entry keeps D32. Four citations meant the provenance entry and were updated - its own heading, its change-log row, `content.js`'s shared-caption comment and `accounts.js`'s bank-rate comment. Nine meant the chevron entry and were left alone: `GAPS.md` G57 (twice) and G58, `router.js`, `state.js`, `learn-ltv.js`, `mip-adviser.js`, `settings.js`, and its own change-log row. D33's paragraph recording the collision as open is corrected. Sequence is now D1-D34, no duplicate and no gap; D34 sits before D33 in the file, and D20 before D13, neither being renumbered or moved. `CLAUDE.md` gains a working rule to take the next number from the last entry. |
+
+| 27 August 2026 (journey stage wired) | **D45 recorded**, and **D38 amended a fifth time** to reconcile with it. D38 rejected a second session-position control by name, frame 33 included; it was right about position and wrong about setup. Skip-ahead moves a savings position WITHIN a goal that already exists, Journey stage establishes whether a session has a goal AT ALL - one control for position, one for setup, and they must never both be able to answer the same question, enforced by what each control writes rather than by convention. Frame 33's stage control was fully built and fully inert; it now writes the state each stage means, from `src/stage.js`. **Setting up** is the empty state unchanged, **Saving** is a goal set through the calculator with the position below its checkpoint, **Ready to check** is that same saving stage with `skipAheadPatch()` applied - composed rather than separately constructed, because a different journey is a different participant rather than the same one further along. Every stage is computed from a fresh `defaultState()`, so a change is idempotent in BOTH directions, and every figure comes from the model function the screen that commits it calls, in the calculator's own order - two numbers are written down, the property value and the deposit percentage a stand-in participant would have typed and tapped. 240,000 keeps `months-to-target` inside the 60-month window: **49.3 months**, on track for **45 to 55**, the window closing at about 275,800. `stage` is still read by no screen, which is now a different thing from inert - it is written once and never re-read at render time, so a participant who then runs the calculator with their own figures sees the tracker follow their entries. Verified in Chromium at 390px: each stage set from frame 33 then Insights tapped, landing on `/calculator/property`, frame 15 and frame 16 respectively; ready-to-check toggled to "Now" through the tracker's own control byte-identical in `sessionStorage` to saving set directly, key order included, apart from the single `stage` key that records which pill is lit. `ROUTES.md` corrected in three places rather than the two expected - its "Read this first" paragraph also claimed no setting seeds figures, and named a `mode` control D28 removed. `scripts/session-seed.mjs` deliberately stays separate, and why is recorded. New `scripts/stage.test.mjs`, 21 assertions. `CACHE_VERSION` v34. 260 tests passing. |

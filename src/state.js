@@ -132,7 +132,14 @@ function seededFigures() {
   };
 }
 
-function defaultState() {
+/**
+ * A brand new session, computed fresh on every call. Exported for
+ * `src/stage.js`, which builds frame 33's Journey stage patches from a fresh
+ * one rather than layering onto the current store - that is what makes a stage
+ * change idempotent in both directions. Callers must not mutate what they get
+ * back; every writer in this app spreads into a new object instead.
+ */
+export function defaultState() {
   const figures = {};
   for (const key of SECTION_6_KEYS) {
     figures[key] = { value: null, provenance: null };

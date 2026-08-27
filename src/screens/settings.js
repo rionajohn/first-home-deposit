@@ -13,6 +13,14 @@
  * whichever option is highlighted is whatever the app's actual current
  * state already holds; nothing here forces a fallback selection.
  *
+ * THREE OF THE FOUR CONTROLS SET ONE KEY. "Journey stage" sets a key AND the
+ * session state that stage means: a stage is a set-up, so it writes what the
+ * deposit calculator would have written rather than leaving a flag for screens
+ * to re-interpret. The patch is built in src/stage.js, from a fresh
+ * defaultState() and through the model, so a stage change is idempotent in both
+ * directions and no derived figure is written by hand. See DECISIONS.md D45,
+ * and D38 as amended for why this is not a second skip-ahead control.
+ *
  * build-spec.md section 1's only navigation row for this frame: "Any toggle
  * -> Re-renders the current frame -> theme, textSize, mode, stage,
  * resultOutcome set globally." Every toggle below re-renders in place
@@ -36,6 +44,7 @@
 import { appBarHTML, bindAppBarLeading, pillSegmentsHTML, rerenderInPlace } from '../components/ui.js';
 import { CACHE_VERSION_FALLBACK } from '../cache-version.js';
 import { applyScenarioClasses } from '../router.js';
+import { stagePatch } from '../stage.js';
 import { chevronRight } from '../icons.js';
 
 export const anchors = [];
@@ -125,10 +134,19 @@ export function render(container, ctx) {
   // screen will want, with no special case for it. See D32.
   bindAppBarLeading(container);
 
-  function bindGroup(action, stateKey) {
+  // `patchFor` is what makes one of these four controls do more than record
+  // which pill is lit. Three of them are read at render time by whatever screen
+  // cares (theme and textSize by `applyScenarioClasses`, resultOutcome by
+  // frame 19b), so setting the key IS the whole effect. Journey stage is not
+  // read by any screen and never will be: it describes a session's SET-UP, and
+  // a set-up is a thing you write once, not a flag every screen re-interprets.
+  // So it writes the state the deposit calculator would have written - see
+  // src/stage.js, and DECISIONS.md D45.
+  function bindGroup(action, stateKey, patchFor = () => ({})) {
     container.querySelectorAll(`[data-action="${action}"]`).forEach((btn) => {
       btn.addEventListener('click', () => {
-        const next = setState({ [stateKey]: btn.dataset.value });
+        const value = btn.dataset.value;
+        const next = setState({ [stateKey]: value, ...patchFor(value) });
         rerenderInPlace(container, render, { ...ctx, state: next });
       });
     });
@@ -136,7 +154,7 @@ export function render(container, ctx) {
 
   bindGroup('set-theme', 'theme');
   bindGroup('set-text-size', 'textSize');
-  bindGroup('set-stage', 'stage');
+  bindGroup('set-stage', 'stage', stagePatch);
   bindGroup('set-outcome', 'resultOutcome');
 
   // router.js's own '#/reset' route calls resetState() and navigates to

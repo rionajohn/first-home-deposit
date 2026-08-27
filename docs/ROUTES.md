@@ -2,10 +2,15 @@
 
 Session crib sheet. Base URL + the hash. Verified against the running build, not the spec.
 
-**Read this first.** `#/settings` (frame 33) sets **only** `theme`, `textSize`, `mode`, `resultOutcome`
-— it seeds **no figures**. There is no URL or setting that jumps you to a mid-journey screen with its
-data filled in. Any screen marked **needs journey** below must be reached by clicking from `#/home`.
-`#/reset` clears everything and returns to `#/home` — use between participants.
+**Read this first.** `#/settings` (frame 33) is the only way to set a session up without clicking
+through the journey, and **Journey stage** is the control that does it — the other three change
+appearance or pick a variant and seed no figures. There is still no URL that jumps you to a
+mid-journey screen: type `#/settings`, tap a stage, then go to the screen you want. Any screen marked
+**needs journey** below is reachable once the stage has given the session a goal, or by clicking the
+spine from `#/home`. `#/reset` clears everything and returns to `#/home` — use between participants.
+
+(The `mode` control this paragraph used to name is gone — `DECISIONS.md` D28 removed it with the
+account-linking choice.)
 
 ## Frame 33 controls: what each one actually does
 
@@ -13,8 +18,36 @@ data filled in. Any screen marked **needs journey** below must be reached by cli
 |---|---|---|
 | Theme | Greyscale, Brand | None yet — both render the same palette |
 | Text size | Default, **Large** | Scales all type ×1.15, every screen |
-| Journey stage | Setting up, Saving, Ready to check | **Nothing. Not read by any screen** — does not unlock the tracker or MIP |
+| Journey stage | Setting up, **Saving**, **Ready to check** | **Sets the session up.** See the table below — this is what makes `#/tracker` and the MIP flow reachable without running the calculator |
 | MIP outcome | Likely, **Not yet** | Selects 20 vs 21 when 19b resolves |
+
+### What each Journey stage gives you
+
+Tap it on `#/settings`, then go where you want. Figures are the same every time — the stage replays
+what the calculator would have committed, it does not invent anything (`DECISIONS.md` D45).
+
+| Stage | Property / deposit | Target | Checkpoint | Saved | Tap Insights and you land on |
+|---|---|---|---|---|---|
+| **Setting up** | — | — | — | £8,950 | **09** `#/calculator/property` — the empty state, unchanged |
+| **Saving** | £240,000 @ 10% | £24,000 | £18,000 | £8,950 | **15** `#/tracker`, below checkpoint, MIP milestone locked |
+| **Ready to check** | £240,000 @ 10% | £24,000 | £18,000 | £18,000 | **16** `#/tracker`, checkpoint reached, MIP milestone available |
+
+**Ready to check is the Saving stage moved forward, not a different goal.** It is Saving with the
+tracker's own skip-ahead control applied, so the goal figures are identical and only the savings
+position differs. On track for reads 45–55 months at Saving and 17–21 at Ready to check.
+
+**Setting up is a full reset of the goal.** Selecting any stage clears whatever the last participant
+left — a run through the MIP flow, an edited account selection, a skipped-ahead position — so you do
+not need `#/reset` between stages. `#/reset` is still what you want between *participants*, because
+it also clears theme, text size and MIP outcome.
+
+**The stage and the tracker's skip-ahead control are separate, and are meant to be.** Journey stage
+says whether the session has a goal; skip-ahead says where in it you are showing. So frame 33 can
+read "Ready to check" while the tracker's control sits at "Now" — that is the session at the Saving
+position, not a bug. `DECISIONS.md` D38 as amended.
+
+**A stage is a starting point, not a lock.** If the participant then runs the calculator with their
+own figures, the tracker follows *their* entries and frame 33 keeps showing whichever stage you set.
 
 ## Screens
 
@@ -60,6 +93,22 @@ you on **09** (`#/calculator/property`), not on the screen you typed — each gu
 before it, and they chain. The cascade is shorter than it was: the guards on 05, 06 and 08 are gone,
 because the figures they waited for are seeded at session start.
 
+**A session is only "empty" until you set a Journey stage.** Every ❌ above is about a session with no
+goal. Driven in the browser, one clean session per URL, at **Saving** and at **Ready to check** —
+identical results at both:
+
+| Typed URL | What happens once a stage is set |
+|---|---|
+| 10, 11, 12, 13, 15/16, 19, 21 | **Resolve.** The screen you typed is the screen you get |
+| 17 `#/mip` | Resolves, but draws its **locked** variant ("Not unlocked yet") — `mipUnlocked` is still false |
+| 19b `#/mip/running` | Resolves and then self-resolves to the result in ~3s, as designed |
+| 20 `#/mip/result/likely` | Still redirects, to `#/mip` — it needs `borrow-high`, which only a real 19b run commits |
+
+**The stage deliberately does not set `mipUnlocked`.** That is written by the tracker's own "Check my
+Mortgage in Principle" control, together with the entry point the flow's close X reads, so take that
+tap rather than typing `#/mip` — it is one tap from the tracker at **Ready to check**, and it is what
+makes the flow's exits behave.
+
 **Query strings do nothing.** `?mode=estimate` and `?solve=amount` appear in `build-spec.md` §3 but no
 screen reads them, and there is no longer a mode for the first one to select. Variants come from
 state: the on-screen segmented control for 10b.
@@ -72,9 +121,9 @@ screen behind it will actually render** - `#/goals` does not advertise a door th
 
 | Session state | Cards shown | Route to the other screen |
 |---|---|---|
-| No deposit goal set | **"What would a deposit actually involve?"** only | Tracker is not offered here; the Insights tab still reaches it and still redirects into the calculator |
-| Goal set, below the checkpoint | **"How is your deposit going?"** only | Calculator is one tap on from the tracker - its "Adjust my goal" secondary |
-| Saved ≥ checkpoint | **Both**, tracker first | The tracker drops "Adjust my goal" on this variant, so the goals card is the calculator's nearest route |
+| No deposit goal set | **"What would a deposit actually involve?"** only | Tracker is not offered here; the Insights tab still reaches it and still redirects into the calculator. This is the **Setting up** stage |
+| Goal set, below the checkpoint | **"How is your deposit going?"** only | Calculator is one tap on from the tracker - its "Adjust my goal" secondary. This is the **Saving** stage |
+| Saved ≥ checkpoint | **Both**, tracker first | The tracker drops "Adjust my goal" on this variant, so the goals card is the calculator's nearest route. This is the **Ready to check** stage |
 
 **If the card you expect is missing, the session is in a different state than you think** - check
 the goal with the tracker recipes below rather than assuming the screen is broken. The Insights tab
@@ -89,6 +138,11 @@ goal.
 
 ## Tracker recipes — mock accounts give a fixed £8,950 saved
 
+**Quicker than any of these: set a Journey stage on `#/settings`.** These recipes are still here
+because they are how you reach a state the stages do not cover — a goal met, or a target you have
+chosen yourself. Use a stage when you want the ordinary below-checkpoint or checkpoint-reached
+screen, and a recipe when you want a specific number.
+
 Set at frame 09. Checkpoint is 75% of target; target is property × deposit %.
 
 | Want | Enter at 09 | Target | Checkpoint | Result |
@@ -96,6 +150,7 @@ Set at frame 09. Checkpoint is 75% of target; target is property × deposit %.
 | **15** below checkpoint | £280,000 @ 5% | £14,000 | £10,500 | 8,950 < 10,500 → locked |
 | **16** checkpoint reached | £200,000 @ 5% | £10,000 | £7,500 | 8,950 ≥ 7,500 → MIP unlocks |
 | **goal met** fallback | £150,000 @ 5% | £7,500 | £5,625 | 8,950 ≥ 7,500 → goal met |
+| — *(for comparison)* | **Journey stage: Saving / Ready to check** | £24,000 | £18,000 | 8,950 → **15**; 18,000 → **16** |
 
 ## The eleven no-frame-drawn states
 
@@ -129,10 +184,13 @@ lower the left-over figure, then return to 10. Don't plan a task around this one
 
 ## If a screen won't load
 
-1. Typed a URL and landed on 09 or 03 → that screen **needs journey**. Click the spine instead.
-2. Wrong variant → check `#/settings` Data and MIP outcome, then re-enter the screen.
+1. Typed a URL and landed on 09 or 03 → that screen needs a goal. Set **Journey stage** on
+   `#/settings`, or click the spine.
+2. Wrong variant → check `#/settings` Journey stage and MIP outcome, then re-enter the screen. (The
+   "Data" control this line used to name is gone — `DECISIONS.md` D28.)
 3. Stale figures from the last participant → `#/reset`.
-4. Journey stage looks wrong → that control does nothing; use the recipes above.
+4. Journey stage looks wrong → it only writes on the tap. Re-tap the stage on `#/settings`; that
+   re-seeds from scratch and clears anything the session picked up since.
 5. A bridge card is missing from `#/goals` → that is deliberate, and tells you the goal state. See
    "What `#/goals` shows, and when" above.
 
