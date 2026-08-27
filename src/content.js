@@ -748,11 +748,17 @@ const content = {
     // The two option labels are deliberately about position, not action.
     // "Now" and "Further along" name where you are looking; a pair like
     // "Off"/"On" or "Start"/"Skip" would name a thing being done.
+    //
+    // "this screen" rather than "the tracker", amended 27 August 2026. The
+    // control sits ON the tracker now, so the original clause had the screen
+    // naming itself in the third person and a participant reading the note
+    // aloud there would stumble over it. D38 records the amendment; it had
+    // previously recorded this copy as moved verbatim.
     skipAheadLabel: 'Prototype control: skip ahead',
     skipAheadNowOption: 'Now',
     skipAheadAheadOption: 'Further along',
     skipAheadNote:
-      'Not part of the app. It moves the example figures to a later point in this goal, so you can see what the tracker shows then. No money is saved or moved.',
+      'Not part of the app. It moves the example figures to a later point in this goal, so you can see what this screen shows then. No money is saved or moved.',
     // Shown in place of the note when there is no deposit goal yet, so there
     // is no later point to move to. States the condition; does not tell the
     // participant to go and do anything about it.

@@ -1723,6 +1723,92 @@ produces the same marker. 128 tests passing (model, overlap, bottom-nav, sheet-d
 > 1200px below the fold, roughly two and a half screens down. A participant cannot see both at once,
 > so the contradiction is not put in front of anyone by the move. Still not fixed, for D34's reason.
 
+> **Amended 27 August 2026 - the block is restyled for the context it now sits in.** The move above
+> changed where the control is drawn and nothing about how it looks. That was the defect: its
+> treatment had been designed for the bottom of `/goals` and was carried to the top of `/tracker`
+> unexamined. The two versions were pixel-identical, confirmed by screenshot diff - 0 of 260,400
+> pixels differ in light, 1 at a delta of 1/255 in dark. Placement changed; styling did not follow.
+>
+> **The dashed box is gone, replaced by a single dashed bottom rule.** This is the substantive
+> change, and the reason is that a dashed BOX is already this build's placeholder idiom:
+> `.media-placeholder` and `.visual-aid-placeholder` both use one on `--color-border-strong`, and
+> `.routes-illustration` on `--color-border-subtle`. At the bottom of `/goals` that was harmless,
+> because two solid white `.card` blocks sat directly above it and the contrast read as "not one of
+> those". As the OPENING element of `/tracker` there is nothing above it to contrast with, so it read
+> as emphasis, and worse, as artwork that had not arrived yet. **A research instrument must not wear
+> the build's placeholder idiom.** A single dashed edge means something else here, and means the right
+> thing: `.account-group-header--unassigned` and `.status-card__still-to-sort` both carry one, on this
+> same token, dividing unsettled from settled. The block borrows a convention rather than inventing
+> one, and the mark and the boundary it marks become the same object.
+>
+> **The 32px moved from the top edge to the bottom edge.** `margin-top: var(--space-3xl)` was written
+> to hold the annotation away from a card above it. As a first child it separated from nothing and
+> rendered as a 56px void below the app bar. The block now adds no top spacing at all -
+> `--screen-inset-y` governs, exactly as for the first element of every other screen, and no spacing
+> step is used because there is no second thing to be spaced from. It carries
+> `margin-bottom: var(--space-lg)` instead, which adds to `.screen-content`'s own 16px gap for 32px
+> below: double the default sibling gap, on the side the app's content is actually on. Measured at
+> 390x844, 0px above the block, 32px below it, and every other gap on the screen 16px.
+>
+> **Horizontal padding removed, so the block aligns to the content column.** The label and the note
+> stop sitting 16px inside the column every other line on the screen observes. The consequence is
+> that `.skip-ahead__options` widens from 318px to 350px.
+>
+> **THE TRACK IS NOW THE SAME WIDTH AS THE APP'S OWN ELEMENTS, AND THAT IS INTENTIONAL.** Every
+> content element on `/tracker` measures 350px at x=20: the headline figure, both provenance
+> captions, the progress bar and the action bar's button. Width does not mark app content on this
+> screen - fill and weight do - and the block gives up both: no surface behind the label or note, no
+> radius, no card, and a dashed edge underneath. An inset track was the thing that looked accidental.
+> The track keeps `--color-surface` because it is a control and has to be found and hit, and that is
+> what does the "I am a control" work now.
+>
+> **A recorded observation, not an open problem.** The white track is the brightest object in the
+> upper half of the screen, and it is a full-width horizontal bar sitting two elements above another
+> one, the progress bar. The headline figure and two captions separate them and the dashed rule closes
+> the block, so they are not read as a pair. Written down in case a session ever shows an eye going
+> track to progress bar.
+>
+> **The internal gap stays at `--space-md` (12), deliberately.** Tightening it to `--space-sm` (8) was
+> tried, screenshot both ways at 390px, and rejected. At 8 the note binds to the segmented control
+> above it and reads as a caption on the toggle, which narrows what it appears to disclaim. What a
+> participant might take as real is the deposit figure below, not the control, so "Not part of the
+> app" and "No money is saved or moved" have to attach to the screen and its figures rather than to
+> the switch. 12 keeps the note a statement of its own, and gives the block's one filled surface a
+> little more air, which is the direction a change made to quieten the block should go. The value is
+> not arbitrary and should not later be read as arbitrary.
+>
+> **How the separation survives, given the box is gone.** Quieter is not the same as blending in.
+> Four carriers, none of which was ever the outline: the label, unchanged at weight 600, the first
+> line on the screen, naming itself before it names its action; the note, unchanged in substance; the
+> dashed rule; and the absence of the furniture every figure below it carries - no provenance caption,
+> no assumptions link, no surface, no radius. At `--color-border-subtle` the rule is decorative, about
+> 1.14:1, and reinforces the other three rather than replacing them.
+>
+> **Contrast unchanged, because no colour, size or weight changed.** Re-measured from the rendered
+> page at 390px, in both positions and both themes. Light: label 4.93:1, note 4.93:1, selected option
+> 16.68:1, unselected option 5.28:1. Dark: 6.36:1, 6.36:1, 21:1, 5.95:1. All pass AA for normal text.
+> The `aria-disabled` branch, still unreachable behind `tracker.js`'s guard, computes at 5.21:1 light
+> and 5.09:1 dark.
+>
+> **THE COPY CHANGED, WHICH THIS ENTRY PREVIOUSLY RECORDED AS MOVED VERBATIM.** `skipAheadNote`'s
+> middle clause now reads "so you can see what **this screen** shows then", not "what the tracker
+> shows then". The original clause referred to the tracker from a screen that was not the tracker; now
+> that the control sits on the tracker, the screen was naming itself in the third person, and a
+> participant reading the note aloud there would stumble over it. Amended deliberately, not
+> incidentally: the "copy unchanged verbatim" line in the amendment above is superseded on this clause
+> and on no other. The label, both option names and the rest of the note are untouched. Checked
+> against the FCA copy rules - no recommendation, no proposed amount, no figure, no rate, one clause,
+> no numbers.
+>
+> **Three stale comments fixed in the same pass.** The `screens.css` header still opened "(/goals
+> only" and still argued that "every other block on this screen is a `.card`"; the
+> `.skip-ahead__options` comment still justified the track against "the dashed block around it"; and
+> the `.skip-ahead__note` comment still reasoned about promotions from "nothing on /goals is
+> promoted". All three described the old context. The third was not in the brief, and is included
+> because it is the same correction.
+>
+> **The reason, in one line.** The block was styled for a context it no longer sits in.
+
 **Marked as a research affordance.** Half of this entry describes a control that WOULD NOT EXIST IN
 A PRODUCTION BUILD. It is an instrument for moderated sessions, not part of the design being tested,
 and it is written to be removed in one move: delete `src/skip-ahead.js`, the `.skip-ahead` block in
@@ -2259,6 +2345,7 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (frame 18 timeline) | D36 recorded: frame 18's `[Visual aid]` placeholder is replaced by the process timeline it specified - four labelled nodes joined by a hairline, Mortgage in Principle marked as where the participant is, the three ahead of them reading as ahead rather than done. **It is a process sequence, not a progress indicator, and is exempt from DESIGN.md's bar exclusions on that basis** - vertical, discrete nodes rather than a filled track, measuring nothing, with no completed state at all. Vertical because four horizontal labels do not fit 62px columns at 320px. New `circleDot` icon and `processTimelineHTML` component; no new colour, spacing or width token. Not interactive: no button, link, tabindex or pointer cursor, proved by walking the tab order. An `<ol>` with `aria-current="step"` and a visible "You are here", so sequence and position are not carried by the drawing alone. Frame 13b's separate `[Visual aid]` and the `.media-placeholder` video block are untouched. |
 | 22 August 2026 (MiP reachable) | D35 recorded: the Insights tab resolves to `/tracker` (Payments and Profile stay disabled), which makes the six-screen Mortgage in Principle flow reachable - it was already built and already wired, and nothing navigated to the tracker. `diamondFill` added, because `TAB_ICONS_ACTIVE` held twins for two tabs and lighting a third called `undefined`; the glyph lookup now falls back to the outline, and the tab hint stops being a Home-or-Goals ternary. The tracker's action bar is confirmed as the single entry (`reference/frames/16` draws it; the instruction's "milestone row is a live link" did not hold), and the locked milestone row drops its no-op `<button>`. `journeyEntryPoint` gains `/tracker`, so the X on 17, 18, 19b, 20 and 21 exits to the tracker rather than frame 01. Four copy keys change: the entry stops claiming the prototype issues a decision in principle, and frames 19 and 19b stop implying a check runs here. No knowledge check built on frame 17 - it exists in no spec, wireframe or frame, and the author confirmed it came from a stale summary. |
 | 26 August 2026 (first-entry stamping) | D41 amended and **`GAPS.md` G59 closed**. D41's rule is unchanged; the stamping underneath it gains one case. On the first entry of a session no descent can have happened, so if that entry lands on a tab root it IS a root and `seedHistoryRoot` stamps it `root: true`, reading the roots from `NAVIGABLE_TABS` rather than a second list. The route decides at that boundary and nowhere else - screens still ask `isRootEntry()` only. Fixes a cold-loaded `/goals` or `/tracker` drawing a chevron on a tab root, which mattered because participants open a link and cold load is the primary arrival path in a session. Measured after: `/home`, `/goals`, `/tracker` cold all report `isRootEntry() === true` with no chevron; `/position/summary` and `/consent` cold report false and keep theirs; refresh preserves the stamp in both directions. Knock-on reported: a cold `/home` is now a root, so the first tab tap of a session replaces rather than pushes and ten root-to-root switches cost +0 where they cost +1. Session restore still unmeasured. 235 tests passing. |
+| 27 August 2026 (skip-ahead restyled for the tracker) | D38 amended again: the control's TREATMENT catches up with the move recorded above. Placement, behaviour and four of the five strings are unchanged. The dashed box goes - a dashed box is this build's placeholder idiom (`.media-placeholder`, `.visual-aid-placeholder`, `.routes-illustration`) and a research instrument must not wear it - replaced by a single dashed bottom rule, which is the build's existing unsettled-not-settled mark (`.account-group-header--unassigned`, `.status-card__still-to-sort`) and puts the boundary on the side the app's content is on. `margin-top: var(--space-3xl)` becomes `margin-bottom: var(--space-lg)`, so the block adds no top spacing, `--screen-inset-y` alone governs, and the 56px void below the app bar goes: 0px above, 32px below, every other gap on the screen 16px. Horizontal padding removed, so the block aligns to the 350px content column and the track widens 318 to 350, matching the headline figure, the progress bar and the action bar button - width does not mark app content on this screen, fill and weight do, and the block gives up both. The internal gap stays at 12 after being screenshot at 8 and rejected: at 8 the note reads as a caption on the toggle and appears to disclaim only the toggle, when what a participant might take as real is the deposit figure below. `skipAheadNote` takes its one deliberate copy amendment - "what this screen shows then" - the screen no longer naming itself in the third person. Three stale CSS comments corrected. Contrast unchanged and re-measured from the page: light 4.93/4.93/16.68/5.28, dark 6.36/6.36/21/5.95. Three round trips leave state identical. `CACHE_VERSION` v26. 235 tests passing. |
 | 26 August 2026 (skip-ahead moves to the tracker) | D38 amended: the skip-ahead control moves from the bottom of `/goals` to the top of `/tracker`, above the headline figure, on both routes into the tracker and nowhere else. Still a research affordance that would not exist in a production build. Copy unchanged verbatim; the five `skipAhead*` keys move from `/goals` to `/tracker` unedited. `skipAheadHTML` and a new `bindSkipAhead` move out of `goals.js` into `src/skip-ahead.js`, so the affordance really is one module plus one CSS block plus five keys plus two lines in `tracker.js`. Option accessible names now compose the label with the position - "Prototype control: skip ahead, Further along" - because a radiogroup announces its name once on entry and a participant arrowing between two options would otherwise lose the prototype framing. The unavailable branch becomes unreachable behind `tracker.js`'s `checkpoint-amount`/`deposit-target` guard and is KEPT, with that guard named so it is obvious the branch goes live if it is relaxed. Interest earned now shares a screen with the control but sits ~1200px below the fold, so the two are never seen together; unfixed, per D34. `overlap.test.mjs` gains a `16-skipped` row and drops the two `/goals` control rows. 235 tests passing. |
 | 25 August 2026 (back chevron) | D41 recorded: a screen draws the back chevron only when there is a preceding screen inside its own flow, so a tab root draws none. Stated generally; it changes `/goals` and `/tracker` only because those are the two DUAL-NATURED screens - a tab root by one route and a descent by another - so both become conditional rather than losing the chevron. Both read `isRootEntry()` (D40), which is the only fact that can separate the two arrivals to one route. `/home` is the third root and is already correct, but by hardcoding two empty cells in `home.js` rather than by the rule, and is noted as such. Absent not inert: `appBarHTML`'s null-`left` branch already rendered a plain 44px `<div>`, so the slot stays reserved, the title stays centred within 1.5px, and the header has zero focusables. Close X untouched. `GAPS.md` G59 still open: a cold-loaded tab root stamps `root: false` and so still draws a chevron. |
 | 25 August 2026 (Insights tab root) | D40 recorded, and **D29 restated on the axis that actually governs it**: a descent pushes, a lateral move between roots replaces, a guard replaces - the original "Guards replace, user navigation pushes" kept underneath as superseded phrasing, because it named the initiator as a proxy for the shape of the move and had no way to classify a participant-initiated move with nothing behind it. The three tab roots are `/home`, `/goals`, `/tracker`. Tab taps from a root now `replace`: ten switches go from +10 entries to +0. New `ROOT_MARKER` per history entry and an exported `isRootEntry()`, which is the only fact that can tell a tab-root arrival from a descent to the same route - a route list produces a duplicate entry, and history depth is wrong because a tab root nearly always has the previous tab or the seeded `/home` behind it. D35 amended: `journeyEntryPoint` is the flow entry point, not the screen arrival route, so the flow X still returns to `/tracker` from both routes. Cold load / deep link / session restore still stamp `root: false` - logged as `GAPS.md` G59, open. |
