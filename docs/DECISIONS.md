@@ -2804,6 +2804,78 @@ the affordance is written to be removed in one move, and `consent.js` and `posit
 already import from it only for coherence guards that change no pixel. `/goals` reading it would
 have been the first time the instrument decided what a participant sees.
 
+> **Amended 27 August 2026 - BOTH REJECTED OPTIONS WERE PROPOSED A SECOND TIME AND RE-REJECTED.
+> Nothing in this entry changes.** Recorded so that neither is proposed a third time, and so the
+> next reader does not start from the wrong premise this re-examination started from.
+>
+> **1. THE INSTRUMENT COST OF PUTTING "ADJUST MY GOAL" ON THE UNLOCKED VARIANT. Read this one
+> first: it is the only argument here that does not depend on taste.** The at-or-above-checkpoint
+> variant exists to get participants into the Mortgage in Principle flow - that is what the
+> checkpoint unlocks and what the screen is for. A backwards-pointing action sitting beside the
+> control that opens that flow will send some participants into the calculator instead, and **those
+> sessions lose the observation the variant was built to produce**. That is a cost to the data, not
+> a matter of how the pair reads. The design argument below is a judgement and can be argued with;
+> this one cannot.
+>
+> **2. THE PREMISE THIS RE-EXAMINATION STARTED FROM WAS WRONG, AND D25 DOES NOT SAY WHAT IT WAS
+> ASSUMED TO SAY.** The assumption was that "Adjust my goal" had been REMOVED from frame 16 by D25,
+> and that the removal could therefore be revisited. **It was never there.** D25 governs frame 15
+> only. What D25 decided was to KEEP "Adjust my goal" and DEMOTE it to secondary, because below the
+> checkpoint the screen's only action pointed backwards into the calculator and the state "had no
+> onward move at all". The unlocked variant has never had that problem - it has a forward primary -
+> so D25's reason does not transfer to it and offers no support either way. There is no
+> `checkpointReachedSecondaryCta` key in `content.js`; only `belowCheckpointSecondaryCta`, named for
+> the variant it belongs to. **Adding the secondary to frame 16 would be a new control needing a new
+> string and a copy check, not a restoration.**
+>
+> **3. THE MEASUREMENTS STILL HOLD, AND THE FOLD IS NOT THE ARGUMENT.** Re-measured at 390px by
+> injecting the secondary into the live DOM, in light and dark and at both text sizes:
+>
+> | Text size | Dock | Fold y | Milestone rows fully above the fold |
+> |---|---|---|---|
+> | Default, as built | 81px | 707 | **2** of 4 - "Accounts linked", "Accounts sorted" |
+> | Default, + secondary | 137px | 651 | **1** of 4 |
+> | Large, as built | 81px | 707 | 1 of 4 |
+> | Large, + secondary | 137px | 651 | 1 of 4 - **no change** |
+>
+> +56px on the dock and 56px off the fold in every case. These reproduce this entry's original
+> figures exactly (81 to 137, 707 to 651), which is worth knowing: D39's pinned action bar and
+> D38's fourth amendment have both landed since that measurement and neither moved it. Geometry is
+> identical in both themes - they differ in colour only - so no screenshot was taken and the
+> argument does not turn on appearance. **New since the original measurement: at Large text the cost
+> is zero**, the screen being already down to one milestone row. So the fold cost is
+> default-text-only and it is one row, which is a real cost but not one to reject a change on.
+>
+> **4. HOW THE PAIR READS, WHICH IS THE DESIGN ARGUMENT AND IS VARIANT-SPECIFIC.** Below the
+> checkpoint, "What a bigger deposit changes" then "Adjust my goal" is sequential: the primary
+> explains a relationship, the secondary is how you act on having understood it. At or above it,
+> "Check what a lender might lend you" then "Adjust my goal" invites the participant to go back and
+> change the target **at the exact moment the app has told them they have reached a threshold
+> measured against that target**. One says "go on, you have arrived"; the other says "change what
+> arriving means". Not two steps in an order - two readings of what just happened.
+>
+> **5. THE SKIP-AHEAD CONDITION WAS PROPOSED AGAIN AND REJECTED ON THE SAME FINDING.** Driving the
+> cards from `isSkippedAhead()` came back as a first thought a second time. The finding below
+> settles it and settled it again unchanged: **`skippedAhead` is written only by `bindSkipAhead`, so
+> no participant action ever sets it.** A participant who completed the calculator without a
+> facilitator touching the toggle would be offered "Work out my deposit" for ever, having already
+> worked out their deposit. Noted so it is not proposed a third time.
+>
+> One nuance that was not in the original rejection and is worth having: the skip-ahead position
+> **already** changes `/goals`, legitimately. Moving to "Further along" raises
+> `saved-toward-deposit` past the checkpoint, which flips `unlocked` and adds the calculator card.
+> That is the position having an effect through a FIGURE, which any participant could also reach by
+> saving, rather than through the FLAG, which only a facilitator can set. The first is fine; the
+> second is what this entry rejects.
+>
+> **WHAT THIS MEANS FOR STRICT ALTERNATION.** It is not free. Moving the calculator route onto the
+> tracker so `/goals` could show one card in every state would cost the participant furthest along
+> their only nearby route to the calculator, and the fix for that costs more than it buys. The
+> third state keeps both cards, and this entry's rule stands as written.
+>
+> **No `CACHE_VERSION` bump for this amendment: it is documentation only, and nothing served to a
+> browser changed.** The full suite was run to show the edit touched nothing.
+
 **THE PREDICATES ARE THE TRACKER'S OWN.** `hasGoal` is `/tracker`'s guard verbatim and `unlocked`
 is its `below-checkpoint` test, read from the same two keys, so the two screens cannot drift apart
 about which state a session is in. This is the same lesson as D38's third amendment: two things
