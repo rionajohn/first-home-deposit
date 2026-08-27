@@ -2613,6 +2613,76 @@ explanation in the state where it is least legible and least useful.
 
 ---
 
+## D43. Screenshots come from a committed harness, and every browser-driven script seeds from one session
+
+**Date.** 27 August 2026.
+
+**Decision, in two parts.** `scripts/shots.mjs` is the screenshot harness for this repo and is
+committed. And `scripts/session-seed.mjs` holds the one late-journey session that `shots.mjs`,
+`overlap.test.mjs`, `action-bar.test.mjs` and `inset-shots.mjs` all seed from. Both are recorded
+here because both are now standing rules in CLAUDE.md rather than a preference.
+
+**Why the harness is committed.** It was being regenerated inline, as a shell heredoc, once per
+session for three consecutive sessions. That cost is not the typing: an inline heredoc is
+unreviewable, undiffable and hand-approved at a permission prompt every time, and one of the three
+generated copies carried a duplicate `const` that threw on first run. **A verification aid that is
+rebuilt each time it is used is not a verification aid**, because nothing carries forward - not the
+fix to the bug in it, not the entry paths it learned to walk, not the naming. Committed, it is a
+file that can be extended when a pass needs something it does not do yet, which is the instruction
+in CLAUDE.md: extend it, do not rebuild it.
+
+**What it renders, and why the entry path is one of its axes.** Routes, entry path, skip-ahead
+position, theme, text size and viewport, each a comma-separated list, every combination shot. Entry
+is a real walk rather than a hash write - `goals` taps the tracker card, `insights` taps the tab -
+because the router records a descent and a tab root differently (D40) and that is what decides
+whether the app bar draws a back chevron (D41). A harness that only ever set the hash would render a
+third thing no participant sees. Output goes to the already-gitignored `.screenshots/`, with a
+contact sheet built by rendering an HTML grid in the same browser rather than by adding an image
+library - the repo has no runtime dependencies and the one dev dependency it has can already do it.
+
+**One thing the harness reports rather than hides.** The shared seed sits exactly AT
+`checkpoint-amount`, so "Now" and "Further along" put the same figure on screen and differ only in
+which segment is filled. That is a property of the seed, not a fault in the control, and it looked
+like the latter. `--saved` moves the balance below the checkpoint, and the run prints a note saying
+so whenever both positions are asked for from a session at or past it.
+
+### The shared seed, and the three differences found collapsing it
+
+The three copies had drifted. Two differences were inert, one was load-bearing, and one of them
+changed what a test covers:
+
+- **`on-track-for` held a bare number in two of the three copies, where the model returns a
+  `{ low, high }` range.** `onTrackFor()` returns a range and `tracker.js` renders it through
+  `formatMonthYearRange(value.low, value.high, ...)`. The wrong shape survived because **nothing
+  reads the stored key** - every consumer recomputes from `onTrackFor(state)` - so it was never
+  rendered. Corrected to the range in the shared seed, so the fixture cannot teach the wrong shape
+  to the next thing that does read it. No test changed behaviour.
+- **`mipUnlocked` was set only by `action-bar.test.mjs`, and there it is load-bearing.** Frame 17
+  draws an empty-state card with no action bar until the tracker unlocks the flow, and that test
+  asserts the presence of the bar against an explicit `{ mipUnlocked: false }` row, so its baseline
+  has to be `true`. It is `true` in the shared seed, which is what "a session this far along" means.
+- **CONSEQUENCE, STATED RATHER THAN SLIPPED IN: `overlap.test.mjs`'s frame 17 now audits the
+  unlocked variant.** It was auditing the locked one, by the accident of never setting the key. The
+  unlocked card is the frame as drawn, so this is the better coverage of the two, and the suite
+  passes at 64 with it. If the locked variant needs auditing it should be a row of its own with an
+  explicit override, the way `action-bar.test.mjs` already does it.
+- `skippedAhead: false` and `skipAheadStash: null` were set only by `action-bar.test.mjs` and are
+  `state.js`'s own defaults, so they changed nothing. Stated in the shared seed anyway, so a reader
+  can see which skip-ahead position the fixture starts from.
+
+**`skip-ahead.test.mjs` deliberately keeps its own fixture** and is NOT collapsed in. Its
+`savingSession()` derives `checkpoint-amount` from `CHECKPOINT_FRACTION` (D38, third amendment) so
+that two tests asserting "no number is written down" follow the constant rather than being broken by
+a change to it. Seeding that from a hard-coded shared value would undo exactly what that fixture was
+strengthened to do.
+
+**The rule for adding to the shared seed.** Only figures that are true of "a participant part-way
+through saving" belong in it. A key that selects the variant one script is looking at belongs in
+that script's own override list, because a key added to the shared seed changes every script that
+imports it - which is the point of the file and also its one hazard.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -2661,6 +2731,7 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (frame 18 timeline) | D36 recorded: frame 18's `[Visual aid]` placeholder is replaced by the process timeline it specified - four labelled nodes joined by a hairline, Mortgage in Principle marked as where the participant is, the three ahead of them reading as ahead rather than done. **It is a process sequence, not a progress indicator, and is exempt from DESIGN.md's bar exclusions on that basis** - vertical, discrete nodes rather than a filled track, measuring nothing, with no completed state at all. Vertical because four horizontal labels do not fit 62px columns at 320px. New `circleDot` icon and `processTimelineHTML` component; no new colour, spacing or width token. Not interactive: no button, link, tabindex or pointer cursor, proved by walking the tab order. An `<ol>` with `aria-current="step"` and a visible "You are here", so sequence and position are not carried by the drawing alone. Frame 13b's separate `[Visual aid]` and the `.media-placeholder` video block are untouched. |
 | 22 August 2026 (MiP reachable) | D35 recorded: the Insights tab resolves to `/tracker` (Payments and Profile stay disabled), which makes the six-screen Mortgage in Principle flow reachable - it was already built and already wired, and nothing navigated to the tracker. `diamondFill` added, because `TAB_ICONS_ACTIVE` held twins for two tabs and lighting a third called `undefined`; the glyph lookup now falls back to the outline, and the tab hint stops being a Home-or-Goals ternary. The tracker's action bar is confirmed as the single entry (`reference/frames/16` draws it; the instruction's "milestone row is a live link" did not hold), and the locked milestone row drops its no-op `<button>`. `journeyEntryPoint` gains `/tracker`, so the X on 17, 18, 19b, 20 and 21 exits to the tracker rather than frame 01. Four copy keys change: the entry stops claiming the prototype issues a decision in principle, and frames 19 and 19b stop implying a check runs here. No knowledge check built on frame 17 - it exists in no spec, wireframe or frame, and the author confirmed it came from a stale summary. |
 | 26 August 2026 (first-entry stamping) | D41 amended and **`GAPS.md` G59 closed**. D41's rule is unchanged; the stamping underneath it gains one case. On the first entry of a session no descent can have happened, so if that entry lands on a tab root it IS a root and `seedHistoryRoot` stamps it `root: true`, reading the roots from `NAVIGABLE_TABS` rather than a second list. The route decides at that boundary and nowhere else - screens still ask `isRootEntry()` only. Fixes a cold-loaded `/goals` or `/tracker` drawing a chevron on a tab root, which mattered because participants open a link and cold load is the primary arrival path in a session. Measured after: `/home`, `/goals`, `/tracker` cold all report `isRootEntry() === true` with no chevron; `/position/summary` and `/consent` cold report false and keep theirs; refresh preserves the stamp in both directions. Knock-on reported: a cold `/home` is now a root, so the first tab tap of a session replaces rather than pushes and ten root-to-root switches cost +0 where they cost +1. Session restore still unmeasured. 235 tests passing. |
+| 27 August 2026 (screenshot harness committed, seed collapsed) | **D43 recorded**, in two parts. `scripts/shots.mjs` becomes the committed screenshot harness - routes, entry path, skip-ahead position, theme, text size and viewport as comma-separated lists, every combination shot, output to the already-gitignored `.screenshots/` with a contact sheet built by rendering an HTML grid in the same browser rather than by adding an image library. It replaces a heredoc that had been regenerated inline for three consecutive sessions, cost a hand-approved permission prompt each time, and shipped a duplicate `const` that threw on first run. Entry path is one of its axes because `goals` and `insights` are real taps, not hash writes, and only a real tap makes the router record a descent (D40) and so decide the back chevron (D41). And `scripts/session-seed.mjs` becomes the ONE session `shots.mjs`, `overlap.test.mjs`, `action-bar.test.mjs` and `inset-shots.mjs` all seed from. Three differences found collapsing the copies: `on-track-for` held a bare number in two of them where the model returns a `{low, high}` range, inert because nothing reads the stored key, now corrected; `mipUnlocked` was set only by `action-bar.test.mjs`, where it is load-bearing, and is `true` in the shared seed - **so `overlap.test.mjs`'s frame 17 now audits the unlocked variant rather than the locked one it was hitting by accident, which is the frame as drawn**; `skippedAhead`/`skipAheadStash` matched `state.js`'s defaults and changed nothing. `skip-ahead.test.mjs` keeps its own fixture on purpose (D38, third amendment). One line added to CLAUDE.md: screenshots come from `scripts/shots.mjs`, never from a harness generated inline. No app code touched, so no `CACHE_VERSION` bump. 235 tests passing. |
 | 27 August 2026 (stale fold measurement corrected) | D38's SECOND amendment corrected in place, and the fourth amendment's claim that it was left alone withdrawn. The second amendment's "two whole rows above the fold" was measured against a 169px block and has been wrong since the note removal took the block to 103px. **A stale measurement in a decision record is worse than none, because the next person reasons from it.** The original figure, its 169px block height and its date stay visible; the re-measurement sits beside them, at 390x844 against the same fold that paragraph uses (`.screen-content`'s bottom, y=788): 169px two whole rows with "Deposit goal set" cut, 103px three with "Mortgage in Principle" cut, 99px three with "Mortgage in Principle" cut. **The third row came back with the note removal, not with the gap change** - 66 of the 70px - and the cause is stated so it is not misattributed. Verified by reproduction rather than arithmetic: forcing the block back to 169px returns the recorded figure exactly. The decision is unaffected; no position above the milestone list keeps all four rows at any of the three heights. The pinned action bar's own fold (y=651) is named for the first time and gives one whole row at all three heights. No code change, so no `CACHE_VERSION` bump. |
 | 27 August 2026 (skip-ahead internal gap) | D38 amended a fourth time, closing the question the third amendment left open: the gap between the label and the segmented track becomes `--space-sm` (8). **One declaration changed and nothing else.** The reasoning is taken from what the block is rather than from what was removed from it - two parts, a control and its own label, which is the one relationship this build already spaces at 4 or 8 and at nothing between: `.settings-control` (frame 33) puts a label 8 above its own pill segments, `.currency-input` (frames 09, 09a, 09b) puts one 8 above its field, and `.progress-bar`, two elements below this block on this same screen, sits its "Checkpoint" label 4 under its track. 8 is the value for a label above something a participant taps. The restyle amendment's defence of 12 rested on the supporting note binding to the toggle, and is void because there is no note; both it and the open-question paragraph are superseded on this value and on nothing else. Measured on both routes into `/tracker`, both themes and both positions - eight renders, all identical: block 103px to **99px**, gaps unchanged at 0 above, 32 below and 16 between every other pair in `.screen-content`, label 18px, track 56px, measured label-to-track 8px, width 350px at x=20 untouched. The 4px is reclaimed by the screen below the block and buys nothing at the fold - whole milestone rows above it are unchanged at one against the pinned dock (y=651) and three against `.screen-content`'s bottom (y=788). One tab stop, arrows and Home/End move and select, `aria-checked` flips both ways, both accessible names intact, no dangling ARIA references, three round trips byte-identical, dark mode unchanged. Noticed and reported rather than rewritten: the second amendment's "two whole rows above the fold" was measured against a 169px block and went stale when the note was removed, not here. `CACHE_VERSION` v32. |
 | 27 August 2026 (skip-ahead note removed, read-source fixed) | D38 amended a third time, and one of its own claims CORRECTED. The entry recorded the unavailable branch as unreachable behind `tracker.js`'s guard; that was never true. The guard tested the stored `checkpoint-amount` and `deposit-target` while `canSkipAhead()` recomputed the checkpoint live from `property-value` x `deposit-pct`, and clearing the property-value field on frame 09 nulls `property-value` without clearing the committed `deposit-target`. Reproduced through ordinary actions - tracker, "Adjust my goal", clear the field, return - the control drew itself inert. Fixed by removing the disagreement rather than the branch: `canSkipAhead()` and `skipAheadPatch()` both read the stored `checkpoint-amount` the guard tests, so "Further along" is enabled wherever `/tracker` renders. `skipAheadPatch()` had to move too, or the option would have been enabled and done nothing. Stash-and-restore untouched; three round trips byte-identical. The `savingSession()` fixture now derives `checkpoint-amount` from `CHECKPOINT_FRACTION` so two "no number is written down" tests keep their meaning. Separately, the supporting note is removed - both strings, the element, the `aria-describedby` and the dead CSS rule - because the control is operated by the facilitator, who does not need the explanation; the label survives and still composes each option's accessible name. Block 169px to 103px, gaps unchanged at 0/32/16. The 12px internal gap is left as it was and flagged as an open question. `CACHE_VERSION` v31. 235 tests passing. |

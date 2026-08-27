@@ -29,6 +29,11 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
+// The seed is shared with the other browser-driven scripts. See
+// `scripts/session-seed.mjs` for what it holds, and for the rule about adding
+// to it: a key that selects the variant THIS script looks at belongs in this
+// file's own override list, not in the shared one.
+import { FULL, f } from './session-seed.mjs';
 
 const ROOT = path.resolve('.');
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.png': 'image/png' };
@@ -48,29 +53,6 @@ function startServer() {
     server.listen(0, '127.0.0.1', () => { base = `http://127.0.0.1:${server.address().port}`; resolve(); });
   });
 }
-
-const f = (v, p = 'read') => ({ value: v, provenance: p });
-
-/** A late-journey session, so no screen bounces to an earlier one. */
-const FULL = {
-  'money-in': f(2600), 'essential-spending': f(1450), 'left-over': f(1150, 'derived'),
-  'saved-toward-deposit': f(21000), 'emergency-fund': f(4200), unassigned: f(800),
-  'property-value': f(280000, 'entered'), 'deposit-pct': f(0.1, 'entered'),
-  'deposit-target': f(28000, 'derived'), 'loan-amount': f(252000, 'derived'), ltv: f(0.9, 'derived'),
-  'monthly-low': f(400, 'estimated'), 'monthly-high': f(600, 'estimated'),
-  'savings-rate': f(500, 'entered'), 'months-to-target': f(14, 'derived'),
-  'on-track-for': f({ low: 14, high: 17 }, 'derived'), 'checkpoint-amount': f(21000, 'derived'),
-  'borrow-low': f(168000, 'estimated'), 'borrow-high': f(189000, 'estimated'), 'max-property': f(210000, 'estimated'),
-  calculatorEntered: true, goal: 'house', checkRunAt: '2026-08-20T10:00:00.000Z',
-  softSearchRecorded: true, stage: 'saving', resultOutcome: 'likely', solveFor: 'date',
-  returnFrame: '/tracker', selectedAccountId: 'house-pot',
-  // Frame 17 draws an empty-state card with its own inline CTA, and NO action
-  // bar, until the tracker has unlocked the flow. A session that has reached
-  // these screens has unlocked it; the locked variant is covered by the
-  // no-action-bar test at the end of this file instead.
-  mipUnlocked: true,
-  skippedAhead: false, skipAheadStash: null,
-};
 
 /**
  * Every route that renders an action bar, by the flow the brief names.
