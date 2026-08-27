@@ -675,7 +675,22 @@ const content = {
     goalSetTitle: 'Deposit goal set',
     goalSetBodyTemplate: "{target}, a {pct} deposit on a {property} home. Now it's just saving.",
     mipTitle: 'Mortgage in Principle',
-    mipLockedBodyTemplate: 'Unlocks at {checkpoint}. {gap} to go.',
+    // THE TWO STATES OPEN WITH THE SAME THREE WORDS AND DIVERGE AFTER THE
+    // FIRST SENTENCE, and that is load-bearing rather than incidental
+    // (DECISIONS.md D42). "Available from {checkpoint}" is the same clause on
+    // the same figure in both, so passing the checkpoint reads as one figure
+    // changing state rather than as the row being replaced. Do not tidy these
+    // into two different phrasings.
+    //
+    // NOT "Unlocks at": game language for a mortgage product, and once the
+    // unlocked row stopped saying "Unlocked" this was the only place it
+    // survived.
+    //
+    // The definition of a Mortgage in Principle is deliberately NOT repeated
+    // here. It sits in the unlocked row, where the text is at full colour and
+    // where a participant has a reason to act on it; this row is greyed, and
+    // is the harder of the two to read.
+    mipLockedBodyTemplate: 'Available from {checkpoint}. {gap} to go.',
     // NOT "Unlocked. Whenever you're ready." (DECISIONS.md D42). Two faults:
     // "unlocked" is game language for a mortgage product, and the row carried
     // no figure while the rows above it carry two, three and two.

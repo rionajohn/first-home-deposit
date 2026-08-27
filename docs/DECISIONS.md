@@ -2431,10 +2431,24 @@ difference between `available` and `locked` is visible as well as compliant:
 The body is identical across all four states by design - it is the title that carries "blocked", so
 a participant reads the difference at the top of the row where the milestone is named.
 
-**Still open, deliberately.** `mipLockedBodyTemplate` still reads `'Unlocks at {checkpoint}. {gap}
-to go.'` With the unlocked row changed, "Unlocks" is now the odd one out on the same list. A
-replacement in the new register, keeping both figures, is drafted and awaiting a decision; it is not
-changed here because this entry's copy change was agreed one line at a time.
+**The locked row followed, and the two now open identically.** `mipLockedBodyTemplate` was
+`'Unlocks at {checkpoint}. {gap} to go.'`; once the unlocked row stopped saying "Unlocked", that was
+the only place the game language survived. It is now:
+
+> `'Available from {checkpoint}. {gap} to go.'`
+
+**THE PARALLEL OPENING IS THE POINT, and is recorded here so it is not later tidied into two
+different phrasings.** Both states now open with the same clause on the same figure - "Available
+from {checkpoint}" - and diverge only after the first sentence. Passing the checkpoint therefore
+reads as ONE FIGURE CHANGING STATE rather than as the row being replaced by a different sentence.
+That is the same reasoning that chose the unlocked draft over the alternatives, applied to the other
+half of the pair; two independently sensible phrasings would lose it.
+
+**The definition of a Mortgage in Principle is deliberately not repeated on the locked row.** It
+lives in the unlocked row alone, for two reasons: the locked row's text is greyed to
+`--color-label-secondary` and is the harder of the two to read, and the unlocked state is where a
+participant has a reason to act on the definition. Adding it to the locked row would put the
+explanation in the state where it is least legible and least useful.
 
 ---
 
