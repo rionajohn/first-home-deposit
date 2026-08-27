@@ -183,8 +183,6 @@ export function render(container, ctx) {
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: leading, appBarLabels: content.shared.appBar })}
     <main class="screen-content" role="main">
-      ${skipAheadHTML({ c, position: isSkippedAhead(state) ? 'ahead' : 'now', available: canSkipAhead(state) })}
-
       <p class="figure-display">${formatCurrency(savedTowardDeposit)}</p>
       <p class="provenance-caption provenance-caption--center">${c.savedCaption}</p>
       <p class="provenance-caption provenance-caption--center">${fill(c.goalCaptionTemplate, { target: formatCurrency(depositTargetValue) })}</p>
@@ -196,6 +194,8 @@ export function render(container, ctx) {
       })}
 
       <p class="body-text">${bodyText}</p>
+
+      ${skipAheadHTML({ c, position: isSkippedAhead(state) ? 'ahead' : 'now', available: canSkipAhead(state) })}
 
       ${milestoneTrackerHTML(milestones)}
 
@@ -266,10 +266,16 @@ export function render(container, ctx) {
   // --- The skip-ahead control (src/skip-ahead.js, DECISIONS.md D38) ---------
   //
   // A RESEARCH AFFORDANCE, DRAWN HERE AND NOWHERE ELSE. It moved from the
-  // bottom of /goals to the top of this screen: the figures it changes are all
-  // on this screen, so the control and its effect are now read together rather
-  // than two screens apart, and a facilitator does not have to leave the
-  // tracker to move the position it is showing.
+  // bottom of /goals to this screen: the figures it changes are all on this
+  // screen, so the control and its effect are read together rather than two
+  // screens apart, and a facilitator does not have to leave the tracker to
+  // move the position it is showing.
+  //
+  // IT SITS BETWEEN THE CHECKPOINT SENTENCE AND THE MILESTONE LIST, not at the
+  // top. At the top it preceded the thing it annotates, so the eye met the
+  // white segmented track before the headline figure. Its two dashed edges are
+  // decided by that position - app content on both sides - and the reasoning
+  // is written out in the `.skip-ahead` header in screens.css.
   //
   // Both routes into the tracker get it, because they are the same screen -
   // the Insights tab root (D40) and the goals-page card (D38) render this same

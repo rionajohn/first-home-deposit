@@ -1806,50 +1806,67 @@
 /* --- The skip-ahead control (/tracker only - src/skip-ahead.js, DECISIONS.md
    D38) ---------------------------------------------------------------------
 
-   A RESEARCH AFFORDANCE, AND IT HAS TO LOOK LIKE ONE. It is the first child of
-   `.screen-content` on /tracker and is drawn on no other screen.
+   A RESEARCH AFFORDANCE, AND IT HAS TO LOOK LIKE ONE. Drawn on /tracker and no
+   other screen, between the checkpoint sentence and the milestone list.
 
-   IT IS NOT MARKED BY NOT BEING A `.card`. That was the argument while it sat
-   at the bottom of /goals, beneath two white cards a participant could read it
-   against. /tracker opens with a bare figure and captions, so there is no card
-   here to contrast with, and the outline it used to carry did worse than
-   nothing: a dashed BOX is already this build's placeholder idiom
-   (`.media-placeholder`, `.visual-aid-placeholder`, `.routes-illustration`), so
-   as the opening element of a screen it read as artwork that had not arrived
-   yet. A research instrument must not look unfinished.
+   EVERYTHING BELOW IS DECIDED BY THE POSITION, NOT BY THE ORDER OF THE
+   DECLARATIONS, and the position is: THE APP'S OWN CONTENT IS ON BOTH SIDES OF
+   IT. That is the whole of the reasoning. Read it before changing any value
+   here, because two earlier treatments were correct for a position this block
+   no longer holds, and both were carried forward unexamined when it moved.
 
-   WHAT MARKS IT NOW IS A SINGLE DASHED EDGE, on the bottom, which is the side
-   the app's own content is on. A dashed edge already means "set apart, not
-   settled" in this build - `.account-group-header--unassigned` and
-   `.status-card__still-to-sort` both carry one, on this same token - so the
-   block borrows a convention rather than inventing one, and the mark and the
-   boundary it marks are the same object.
+   WHY NOT A DASHED BOX. A dashed box is already this build's placeholder idiom
+   - `.media-placeholder` and `.visual-aid-placeholder` on
+   `--color-border-strong`, `.routes-illustration` on `--color-border-subtle`.
+   A research instrument must not look like artwork that has not arrived yet,
+   wherever it sits.
 
-   THE SEPARATION IS NOT CARRIED BY THE RULE. At `--color-border-subtle` the
-   rule is decorative (about 1.14:1) and could not carry it alone. It is carried
-   by the label - "Prototype control: skip ahead", the first line on the screen,
-   at 600 - by the note under it, and by the absence of the furniture every
-   figure below it carries: no provenance caption, no assumptions link, no
-   surface, no radius. The rule reinforces those three; it does not replace
-   them.
+   WHY BOTH EDGES AND NOT ONE. A single dashed bottom rule is correct only for a
+   block with app content on exactly one side; it fences the one side that needs
+   fencing. This block has the checkpoint sentence above it and the milestone
+   list below it, so a bottom-only rule leaves the top open and the annotation
+   reads as attached to the sentence above - as a qualifier on "You've passed
+   the 75% checkpoint", which is the one thing it must not appear to qualify.
+   Two edges fence it as the inserted aside it is. A dashed edge already means
+   "set apart, not settled" here (`.account-group-header--unassigned`,
+   `.status-card__still-to-sort`, both on this token); bracketing with two is
+   this block's own extension of that, and is the price of sitting mid-content.
 
-   NO SPACING OF ITS OWN AT THE TOP. As a first child there is nothing above it
-   to be held away from, and the app bar is already a boundary, so
-   `--screen-inset-y` governs the gap exactly as it does for the first element
-   of every other screen. The 32px this block used to hold above itself was
-   written to separate it from a card on /goals; it now sits on `margin-bottom`,
-   where it adds to `.screen-content`'s own 16px gap and holds the annotation
-   off the app's content instead.
+   WHY NOT NO RULE AT ALL. Rules were tried and dropped, leaving the 32px gaps,
+   the absent fill, the absent radius and the absent provenance caption to carry
+   the separation on their own. In this position all four of those are shared
+   with the block's neighbours: `.body-text` above and the milestone rows below
+   are equally unfilled, unrounded and uncaptioned, and 32px against the screen's
+   16px is section spacing rather than a boundary. Worse, the label is 13px
+   secondary at 600 - the same type role as "Checkpoint", the progress bar's own
+   label a few lines above - so with nothing fencing it the block reads as one
+   more section of the app. Plain-on-page IS the app's idiom on this screen; it
+   only marked the block out while every neighbour was a `.card`.
+
+   THE SEPARATION IS NOT CARRIED BY THE RULES. At `--color-border-subtle` they
+   are decorative (about 1.14:1). They are carried by the label - "Prototype
+   control: skip ahead", naming itself before it names its action, at 600 - and
+   by the note under it. The rules fence what those two say; they do not say it.
+
+   SYMMETRIC MARGIN AND PADDING, for the same reason the rules are symmetric.
+   `margin: var(--space-lg) 0` adds to `.screen-content`'s own 16px gap for 32px
+   clear on each side, and `padding: var(--space-lg) 0` holds both rules off the
+   text they enclose - which `overlap.test.mjs` asserts at both text sizes.
 
    THE INTERNAL GAP STAYS AT --space-md (12), NOT --space-sm. Tightening it to
    8 was tried and rejected: it binds the note to the segmented control above
    it, so the note reads as a caption on the toggle and appears to disclaim
    only the toggle. What a participant might take as real is the deposit figure
-   below, not the control, so "Not part of the app" and "No money is saved or
+   above, not the control, so "Not part of the app" and "No money is saved or
    moved" have to attach to the screen and its figures. 12 keeps the note a
    statement of its own, and gives the one filled surface in the block - the
-   track - a little more air, which is the direction a change made to quieten
-   the block should go.
+   track - a little more air.
+
+   NO HORIZONTAL PADDING, so the label and note align to the 20px screen inset
+   like every other line, and the track spans the same 350px content column as
+   the headline figure, the progress bar and the action bar button. Width does
+   not mark app content on this screen - fill and weight do - and this block
+   gives up both.
 
    It stays inside the design system for everything else: the same tokens, the
    same 8pt spacing, the same type scale and the same segmented geometry frames
@@ -1863,8 +1880,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  margin-bottom: var(--space-lg);
-  padding-bottom: var(--space-lg);
+  margin: var(--space-lg) 0;
+  padding: var(--space-lg) 0;
+  border-top: 1px dashed var(--color-border-subtle);
   border-bottom: 1px dashed var(--color-border-subtle);
 }
 
