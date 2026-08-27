@@ -61,7 +61,7 @@ Click path is from `#/home`. "Cold" = type the URL with an empty session.
 | 03b | Move this account | `#/consent/move-account` | ❌ → 03 | 03 → tap any account row | `selectedAccountId` |
 | 05 | What we can see | `#/position` | ✅ | 03 → "Continue" | none (seeded at session start) |
 | 06 | What we found | `#/position/summary` | ✅ | 05 → "Looks right" | none (seeded at session start) |
-| — | Your goals | `#/goals` | ✅ | Goals tab · or 06 → "Not right now - save for something else" | none - but **which bridge cards it shows depends on the goal**, see below |
+| — | Your goals | `#/goals` | ✅ | Goals tab · or 06 → "Not right now - save for something else" | none - but **which bridge card it shows depends on the goal**, see below |
 | 08 | Ready for the calculator | `#/goal-check` | ✅ | 06 → "Yes, keep going" | none (seeded at session start) |
 | 09 | Property and deposit | `#/calculator/property` | ✅ | 08 → "Open the deposit calculator" | none |
 | 09a | …before a value is entered | `#/calculator/property` | ✅ | same — it is 09's empty state | `property-value` = null |
@@ -115,20 +115,28 @@ state: the on-screen segmented control for 10b.
 
 ## What `#/goals` shows, and when
 
-The long-term section carries a bridge card into the feature. **A card is shown only where the
-screen behind it will actually render** - `#/goals` does not advertise a door that redirects
-(`DECISIONS.md` D44). Three states, and nothing else on the screen changes between them:
+The long-term section carries **exactly one** bridge card into the feature, and which one depends
+only on whether a deposit goal has been set. **A card is shown only where the screen behind it will
+actually render** - `#/goals` does not advertise a door that redirects (`DECISIONS.md` D44). Two
+states, and nothing else on the screen changes between them:
 
-| Session state | Cards shown | Route to the other screen |
-|---|---|---|
-| No deposit goal set | **"What would a deposit actually involve?"** only | Tracker is not offered here; the Insights tab still reaches it and still redirects into the calculator. This is the **Setting up** stage |
-| Goal set, below the checkpoint | **"How is your deposit going?"** only | Calculator is one tap on from the tracker - its "Adjust my goal" secondary. This is the **Saving** stage |
-| Saved ≥ checkpoint | **Both**, tracker first | The tracker drops "Adjust my goal" on this variant, so the goals card is the calculator's nearest route. This is the **Ready to check** stage |
+| Session state | Card shown | Leads to | Frame 33 stage |
+|---|---|---|---|
+| No deposit goal set | **"What would a deposit actually involve?"** | `#/calculator/property` | **Setting up** |
+| Goal set, at any savings position | **"How is your deposit going?"** | `#/tracker` | **Saving** and **Ready to check** |
+
+**There used to be a third state.** At or above the checkpoint the screen drew both cards. It was
+removed for consistency, deliberately and at a cost you should know about (D44, fifth amendment).
+
+**The cost, and it matters for a session.** `tracker.js` draws its "Adjust my goal" secondary on the
+below-checkpoint variant **and no other**. So once a participant is at or above the checkpoint there
+is **no nearby route to the deposit calculator at all** - not from `#/goals`, not from the tracker.
+If you need the calculator from that state, type `#/calculator/property`. Below the checkpoint it is
+still one tap on from the tracker.
 
 **If the card you expect is missing, the session is in a different state than you think** - check
 the goal with the tracker recipes below rather than assuming the screen is broken. The Insights tab
-is unaffected in all three states: it always resolves to `#/tracker` and redirects when there is no
-goal.
+is unaffected in both states: it always resolves to `#/tracker` and redirects when there is no goal.
 
 ## Journey spine — 11 clicks, #/home to #/tracker
 

@@ -127,26 +127,17 @@ export function render(container, ctx) {
   //                          `checkpoint-amount` and `deposit-target` and
   //                          `replace()`s into the calculator, so the tracker
   //                          card would be a door onto a redirect.
-  //   goal set, below the    tracker only. The calculator would open on a goal
-  //   checkpoint             the participant has already set, and the route to
-  //                          change it exists one screen away: `/tracker`'s
-  //                          own "Adjust my goal" secondary (D25).
-  //   at or above the        BOTH. Both destinations render, so both may be
-  //   checkpoint             offered - and the tracker drops its secondary on
-  //                          this variant (`tracker.js`, `unlocked ?
-  //                          undefined : ...`), so this is the state where the
-  //                          goals area is the calculator's nearest route.
+  //   goal set               tracker only, at any savings position. The
+  //                          calculator would open on a goal the participant
+  //                          has already set.
   //
-  // The third state is not an exception to the first two. All three are the
-  // same rule applied to what the session can actually reach.
-  //
-  // ORDER, IN THE STATE THAT SHOWS BOTH. The tracker card comes first and the
-  // calculator second, which inverts the order this section used when both
-  // always showed. Two reasons. The card that is present in more than one
-  // state does not move between them - crossing the checkpoint adds a card
-  // below the tracker rather than pushing the tracker down - and by this point
-  // "how is it going" is the participant's live question, while "what would
-  // this take" has become the way to change something already settled.
+  // TWO STATES, NOT THREE, AND THE THIRD WAS NOT WRONG. Until D44's fifth
+  // amendment a session at or above the checkpoint drew BOTH cards, and under
+  // the rule above that was correct: both destinations render there, so both
+  // could honestly be offered. It was removed for consistency - one card in
+  // every state - at a cost recorded and accepted in that amendment. The rule
+  // itself has not changed; what changed is that consistency now outranks
+  // offering a second honest door.
   const houseCardHTML = ctaCardHTML({
     title: c.houseCardTitle,
     body: c.houseCardBody,
@@ -172,20 +163,26 @@ export function render(container, ctx) {
     action: 'open-deposit-tracker',
   });
 
-  // The two predicates. `hasGoal` is `/tracker`'s own guard verbatim
-  // (`tracker.js`, the `replace()` at the top of `render`) and `unlocked` is
-  // its own `below-checkpoint` test, so this screen and that one cannot drift
-  // apart about which state a session is in.
+  // ONE PREDICATE, AND ONE CARD IN EVERY STATE. `hasGoal` is `/tracker`'s own
+  // guard verbatim (`tracker.js`, the `replace()` at the top of `render`), so
+  // this screen and that one cannot drift apart about which state a session is
+  // in.
+  //
+  // THERE USED TO BE A SECOND PREDICATE, `unlocked`, and a third state that
+  // drew BOTH cards once the checkpoint was passed. It was correct under this
+  // entry's own rule - both destinations render there, so both could honestly
+  // be offered - and it was removed for consistency at a known and accepted
+  // cost: `tracker.js` draws its "Adjust my goal" secondary on the
+  // below-checkpoint variant and no other, so a participant at or above the
+  // checkpoint now has NO NEARBY ROUTE TO THE CALCULATOR. The Insights tab
+  // still reaches the tracker from anywhere; the calculator is reachable only
+  // by typing its URL or by falling back below the checkpoint. That trade was
+  // made deliberately - see DECISIONS.md D44's fifth amendment, which keeps the
+  // superseded reasoning rather than deleting it.
   const hasGoal = state['checkpoint-amount'].value !== null
                && state['deposit-target'].value !== null;
-  const unlocked = hasGoal
-               && state['saved-toward-deposit'].value >= state['checkpoint-amount'].value;
 
-  const bridgeCardsHTML = !hasGoal
-    ? houseCardHTML
-    : unlocked
-      ? trackerCardHTML + houseCardHTML
-      : trackerCardHTML;
+  const bridgeCardsHTML = hasGoal ? trackerCardHTML : houseCardHTML;
 
   // --- THE BACK CHEVRON, AND WHY IT IS CONDITIONAL HERE (DECISIONS.md D41) ---
   //

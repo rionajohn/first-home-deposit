@@ -79,19 +79,24 @@ const FRAMES = [
   // check is about rendered geometry, and a screen with two card sections
   // and a 64px row has exactly the shape this test was written for.
   //
-  // THREE ROWS, BECAUSE THE SCREEN HAS THREE STATES (DECISIONS.md D44). The
-  // long-term section carries one bridge card, the other, or both, depending
-  // on which destination would actually render for the session. `FULL` seeds
-  // saved == checkpoint, so the bare row below is the BOTH-cards state and is
-  // the tallest of the three; the two rows after it are the one-card states,
-  // which the bare row would otherwise never reach.
+  // TWO ROWS, BECAUSE THE SCREEN NOW HAS TWO STATES (DECISIONS.md D44, fifth
+  // amendment). The long-term section carries exactly one bridge card: the
+  // calculator while no goal is set, the tracker once one is, at any savings
+  // position. `FULL` seeds a committed goal, so the bare row below is the
+  // tracker-card state; `goals-no-goal` is the calculator-card state, which the
+  // late-journey seed cannot otherwise reach.
+  //
+  // `goals-below-checkpoint` WAS A THIRD ROW AND IS GONE. It existed because
+  // the screen used to draw BOTH cards at or above the checkpoint and one below
+  // it, so the bare row and the below-checkpoint row were different shapes.
+  // They are the same shape now - one tracker card either side of the
+  // checkpoint - so the row asserted nothing the bare row does not. Removed
+  // rather than left in place asserting a distinction the screen no longer
+  // makes; restore it if the third state ever comes back.
   ['goals', '/goals', {}],
   ['goals-no-goal', '/goals', {
     'property-value': f(null, null), 'deposit-pct': f(null, null),
     'deposit-target': f(null, null), 'checkpoint-amount': f(null, null),
-  }],
-  ['goals-below-checkpoint', '/goals', {
-    'saved-toward-deposit': f(12000), 'checkpoint-amount': f(21000, 'derived'),
   }],
   ['08', '/goal-check', {}],
   ['09', '/calculator/property', {}],
