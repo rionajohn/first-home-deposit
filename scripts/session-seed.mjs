@@ -64,7 +64,16 @@ export const FULL = {
   // --- Section 6: the deposit goal, committed through the calculator -------
   'property-value': f(280000, 'entered'), 'deposit-pct': f(0.1, 'entered'),
   'deposit-target': f(28000, 'derived'), 'loan-amount': f(252000, 'derived'), ltv: f(0.9, 'derived'),
-  'monthly-low': f(400, 'estimated'), 'monthly-high': f(600, 'estimated'),
+  // 'entered', NOT 'estimated'. `estimated` meant "derived because the main
+  // account is elsewhere", and that mode went with the account-linking removal
+  // (DECISIONS.md D28), so these two keys can only be 'read' (the seeded range
+  // accepted untouched) or 'entered' (a handle moved). The fixture also
+  // contradicted itself: `savings-rate` below is 'entered', and
+  // calculator-saving.js derives the rate's provenance FROM this pair, so an
+  // 'estimated' pair could not have produced an 'entered' rate. Frame 11 now
+  // captions this row by that provenance (D47), which is what made the stale
+  // value visible - it was inert while nothing read the key.
+  'monthly-low': f(400, 'entered'), 'monthly-high': f(600, 'entered'),
   'savings-rate': f(500, 'entered'), 'months-to-target': f(14, 'derived'),
 
   // A RANGE, NOT A NUMBER. `onTrackFor()` returns `{ low, high }` and

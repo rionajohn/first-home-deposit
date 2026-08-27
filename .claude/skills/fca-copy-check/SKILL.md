@@ -26,18 +26,22 @@ Replace with: "based on what we can see", "you could", "one option is", "here's 
 
 Report any phrasing that is borderline rather than clear-cut as FLAG.
 
-## 1A. System-proposed savings amounts - FIX
+## 1A. System-proposed savings amounts - FIX, except the 60 percent clause, which is FLAG
 
 Phase 2 reports findings; it does not propose a contribution. The amount someone puts aside is chosen by them inside the deposit calculator, where the consequence of each choice is visible.
 
-Flag and remove:
+**A heading names a section's dominant action. Where a clause states its own, the clause wins.** The three bullets below are FIX. The 60 percent clause at the end is FLAG, and says so in its own last sentence. That was read as a contradiction once (`GAPS.md` G61) and cost a session's investigation; it is written out here so it does not have to be resolved again.
+
+Flag and remove - FIX:
 - Any screen headlining a system-proposed monthly amount, e.g. "You could put aside £310 a month"
 - Any framing of a proposed amount as a share of what the user has left, e.g. "about 80 percent of your disposable income"
 - Any wording that treats a proposed contribution as a target the user should meet
 
 Replace with a statement of fact about what is left each month, and hand the choice to the user.
 
-Separately, check that no default or illustrative contribution exceeds roughly 60 percent of what is left after essential spending. A default at 80 percent or above predictably fails and sits badly against the Consumer Duty requirement to avoid foreseeable harm. Flag any that do.
+Separately - FLAG, not FIX: check that no default or illustrative contribution exceeds roughly 60 percent of what is left after essential spending. A default at 80 percent or above predictably fails and sits badly against the Consumer Duty requirement to avoid foreseeable harm. Flag any that do.
+
+**Why that one is a flag.** This section governs COPY. A default the screen does not state is not a copy defect, and the remedy the three bullets ask for - state the facts, hand over the choice - can already be met by a screen whose own default is above the line. Raising it is a decision about a figure, which sits outside a copy audit and belongs to whoever owns the mock data. Report it, name the percentage, and leave it. `DECISIONS.md` D47 is the worked example.
 
 ## 2. Required statements - FIX
 

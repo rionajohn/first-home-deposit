@@ -543,7 +543,13 @@ const content = {
     savedSoFarLabel: 'Saved so far',
     savedSoFarCaption: 'Read from the accounts you assigned to your deposit',
     monthlySavingLabel: 'Monthly saving',
+    // TWO CAPTIONS, BECAUSE THERE ARE TWO WAYS TO ARRIVE AT THIS ROW. Frame 10
+    // seeds the range from the accounts and commits it on Continue whether or
+    // not a handle was moved, so "The range you set" was told to every
+    // participant who set nothing. See DECISIONS.md D47. The screen picks by
+    // provenance, the same way frame 05 picks between its own two captions.
     monthlySavingCaption: 'The range you set',
+    monthlySavingReadCaption: "Read from what you've been putting aside lately",
     savingsInterestLabel: 'Savings interest rate',
     taxRateLabel: 'Tax rate',
     taxRateValue: 'Basic rate',

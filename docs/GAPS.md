@@ -1356,7 +1356,7 @@ rather than separately.
 ---
 
 **G61. The calculator's default monthly saving is 67% of what is left over, above the ~60% the
-copy rule flags. OPEN.**
+copy rule flags. CLOSED 27 August 2026 - DECISIONS.md D47. Split three ways; see the closing note.**
 
 Frame 10's range slider seeds itself from the accounts when the participant has not set it:
 `calculator-saving.js` reads `MOCK_POSITION.recentMonthlySavingLow` and
@@ -1387,6 +1387,142 @@ looked at in the same pass. Either is a decision about a figure, which CLAUDE.md
 tidy-up.
 
 ---
+
+**CLOSED 27 August 2026, split three ways. The entry above bundled a flagged default, an unnoticed
+stronger finding and a copy defect under one number. They have different answers, so they are
+recorded separately.**
+
+**G61a - the 67% default. RESOLVED as a documented decision. No figure changes.** Rule 1A's 60%
+clause is a FLAG, not a FIX: the section header names the section's dominant action and the clause
+states its own. The clause governs COPY, and **no screen states £255 or 67%**. The midpoint exists
+only in the store - frame 10 shows the £200-£310 range, frame 11 shows the same range, frame 12 and
+the tracker show what follows from it in months and dates. Frame 10 headlines no proposed amount,
+frames none as a share of what is left, sets no target, and states two facts: "£380 is what's left
+each month once your essentials are covered. £310 is what you've been putting aside lately." That is
+the remedy the three FIX bullets ask for, already met. The range is fixed by the reference frames,
+which draw £200, £310 and the £0-£380 track exactly. **The default remains flagged and is not being
+raised.** The skill has been corrected so the FIX/FLAG contradiction does not have to be resolved
+again. See DECISIONS.md D47.
+
+**G61b - the £310 upper handle at 81.6% of left-over. OPEN, and the stronger finding.** Raised
+during the G61 split; carried below as its own entry, **G63**.
+
+**G61c - frame 11 captioned the range "The range you set" to a participant who set nothing. FIXED.**
+Frame 10 commits `monthly-low`/`monthly-high` on Continue whether or not a handle was moved, with
+provenance `read` when untouched, and frame 11's caption was unconditional. The row now picks by
+provenance, the same way frame 05 does: `read` gives "Read from what you've been putting aside
+lately", `entered` keeps "The range you set". This is the part of rule 1A that WAS a copy defect -
+the section's own remedy is "hand the choice to the user", and the screen was claiming a choice the
+participant had not made.
+
+*Known limitation, logged not fixed.* The 10b date path derives the range from the chosen date and
+lands on provenance `entered`, so it also reads "The range you set" where a date is what was set.
+Loose rather than false - the participant did make the input it derives from - and separating it
+would need a third string keyed on `solveFor` rather than on provenance.
+
+---
+
+**G63. Frame 10's upper slider handle defaults to 81.6% of what is left over, and £310 is the copy
+rule's own example of what not to do. OPEN.**
+
+Raised as "G61b" while splitting G61, and the stronger of the two findings that entry contained.
+
+`MOCK_POSITION.recentMonthlySavingHigh` is £310. `left-over` is £380 on a fresh session, so the
+range's upper handle sits at **81.6%** - above the 80% that rule 1A names as the level at which a
+default "predictably fails and sits badly against the Consumer Duty requirement to avoid
+foreseeable harm". G61 flagged the £255 midpoint at 67% and did not look at the handle above it.
+
+**It is also displayed, which the midpoint never was.** £310 appears twice on frame 10 - as the
+upper figure in the readout, and by name in the caption "£310 is what you've been putting aside
+lately" - and again on frame 11's review row. Rule 1A's first FIX bullet gives its own example of a
+screen breaching it: *"You could put aside £310 a month"*. The number in the rule is the number in
+this build.
+
+**The defence, stated fairly.** £310 is not presented as a proposal. It is captioned as a fact about
+the persona's past behaviour, read from the instant saver's own deposit history
+(`src/model/accounts.js`), and the caption's grammar is descriptive throughout: what's left, and
+what you've been putting aside. On the wording alone the screen does not breach the three FIX
+bullets, which is exactly why G61a resolves as it does.
+
+**And against it.** The slider seeds itself from that figure, so £310 is where the upper handle
+starts rather than somewhere the participant dragged it; and Continue commits the midpoint of the
+seeded range whether or not either handle moved. **The app does default to it.** A figure can be
+described honestly and still be the default, and rule 1A's 60% clause is about defaults rather than
+about description. Both halves of that are true at once, which is why this is a gap and not a
+finding either way.
+
+*Not resolved here.* Lowering it changes `MOCK_POSITION` values the reference frames draw exactly,
+so the built screen would stop matching frame 10's PNG. Leaving it accepts a default above the level
+the rule names. That is a decision about a figure and about a screenshot exemption, and it belongs
+to whoever owns the mock persona rather than to a copy pass.
+
+---
+
+---
+
+**G64. Frame 10b's date path has no ceiling, so a target date can commit a monthly amount above
+what is left over. OPEN.**
+
+Raised while splitting G61. It is not G61: G61 was about a default that is too high, this is about
+no upper bound existing at all on a second path through the same screen.
+
+`calculator-saving.js`'s slider path measures every input against `savingCeiling`, which is
+`left-over`. Both range inputs carry `max="${savingCeiling}"`, every `commit()` re-clamps through
+`clamp(..., savingCeiling)`, and `errorExceedsLeftOver` fires if the upper figure passes it.
+
+**The date path has none of that.** `monthlyAmountFromDate()` solves the monthly payment from the
+chosen date and is unbounded by construction - a nearer date simply means a larger payment. The only
+error the 10b branch raises is `errorPastDate`. Continue then commits the result directly:
+
+    const rate = previewAmount;
+    const range = rangeFromCentral(rate.value);
+    setState({ 'savings-rate': { value: rate.value, ... }, ... });
+
+**Driven in a browser, not reasoned about.** Switching to "Set a target date" and pressing Continue
+on the default seeded date commits a range of **£331 to £404** against a £380 `left-over` - the
+upper end already past the ceiling the slider path enforces, on the screen's own default date, with
+no warning shown and no handle touched.
+
+Downstream, `monthsToTarget()` has an `exceeds-left-over` guard, so frame 12 renders its own
+`unreachable` variant rather than a wrong projection. The figure is caught one screen late, by a
+model guard, on a screen that does not explain it - not by the screen that accepted it.
+
+*Not fixed here.* The fix is a decision about which of two paths owns the ceiling rule, and it has
+to be taken with `monthsToTarget`'s `exceeds-left-over` guard in the same pass rather than by adding
+a clamp to one branch. Related but separate: G63, the height of the slider path's own default.
+
+---
+
+**G65. Frame 10b computes the monthly amount and never shows it, so a participant commits to a
+figure they have not seen. OPEN.**
+
+Raised in the same pass as G64, on the same screen, and reachable the same way.
+
+`calculator-saving.js` computes `previewAmount = monthlyAmountFromDate(state, months)` on every
+render of the date path. It is read in exactly one place: the Continue handler, where it becomes
+`savings-rate`. **It is never rendered.** The 10b branch draws the date stepper and, if the date is
+in the past, a warning - and nothing else.
+
+So the screen asks "when would you like to have it by?", accepts a date, and commits a monthly
+amount the participant is not shown until frame 11. The variable name says a preview was intended;
+`build-spec.md` section 2's own line for this screen is "pick a target date, solve the monthly
+amount", and the solved amount is the half the participant never sees.
+
+This is what makes G64 worse than a bounds question. A participant cannot notice that £404 is more
+than they have left over, because the screen does not tell them £404 is what they are choosing.
+
+**The build is faithful; the design is the gap.** Reference PNG 10b was checked rather than assumed:
+it draws the segmented control, the month and year steppers, and the hint "We'll work out what
+you'd need to put aside each month" - and **no readout of the solved amount anywhere**. The hint is
+future tense, so the frame as drawn does defer the answer to frame 11. This build renders exactly
+what the reference draws. So this is not a build omission to be corrected against the PNG; it is a
+question about the design the PNG records.
+
+*Not fixed here.* Adding a readout means new copy and a decision about where the figure sits
+relative to the stepper, on a frame whose reference deliberately has neither. That is a "Confirm"
+for the design owner rather than something to invent in a build pass - and the £331 to £404 case
+under G64 is the argument for putting it to them, because a bound the participant cannot see is a
+bound they cannot act on.
 
 **G62. Frame 15/16's gap sentence reads "You're £0 away" while the headline shows £8,950 against a
 £28,000 goal. CLOSED 27 August 2026 - DECISIONS.md D46.**

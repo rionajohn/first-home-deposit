@@ -3071,6 +3071,95 @@ overlap, 89 action-bar, 15 sheet-drag, 13 bottom-nav, 11 skip-ahead, 21 stage, p
 
 ---
 
+## D47. Rule 1A's 60% clause is a flag, and G61 was three findings under one number
+
+**Date.** 27 August 2026.
+
+**Decision.** The FCA copy rule's 60% clause is a FLAG, not a FIX. The section header names the
+section's dominant action; the clause states its own, and where they differ the clause wins. The
+skill is corrected so this does not have to be resolved a second time. G61 is closed and split
+three ways: the flagged default is resolved as a decision with no figure changes, the stronger
+finding underneath it is opened as its own gap, and the one part that genuinely was a copy defect
+is fixed.
+
+**Why the clause is a flag, and it is not about the wording.** Rule 1A governs COPY, and **no screen
+states £255 or 67%**. The midpoint exists only in the store: frame 10 shows the £200 to £310 range,
+frame 11 shows the same range, and frame 12 and the tracker show what follows from it in months and
+dates. Frame 10 headlines no proposed amount, frames none as a share of what is left, sets no
+target, and states two facts - "£380 is what's left each month once your essentials are covered.
+£310 is what you've been putting aside lately." **That is the remedy the three FIX bullets ask for,
+already met.** A default the screen does not state is not a copy defect; raising it is a decision
+about a figure, which sits outside a copy audit.
+
+**The skill is corrected rather than the reading recorded.** A contradiction that has to be
+re-resolved by every reader is a defect in the rule, not in the reader. Section 1A now says in its
+heading that the 60% clause is the exception, says why a heading and a clause can differ, and
+carries the reasoning above as its worked example. The cost of leaving it was measured: it took a
+full investigation to establish, and would have taken another.
+
+**G61a - the 67% default. Resolved, no figure changes.** The default stays flagged and is not being
+raised. The £200-£310 range is fixed by the reference frames, which draw both figures and the
+£0-£380 track exactly, so lowering it would take the built screen out of alignment with its own PNG
+and change `MOCK_POSITION` values documented as read from the instant saver's deposit history.
+
+**G61b - the £310 upper handle at 81.6%. Opened as its own gap, deliberately unresolved.** It is the
+stronger finding and G61 did not contain it: £310 is **displayed**, twice on frame 10 and again on
+frame 11, where £255 is displayed nowhere; 81.6% is above the 80% the rule itself names as
+predictably failing, where 67% is only above the 60% flag line; and "You could put aside £310 a
+month" is the rule's own example of a screen breaching it. The number in the rule is the number in
+this build.
+
+Both sides are recorded in the entry rather than one. **For it:** £310 is captioned as a fact about
+the persona's past behaviour, read from the instant saver's own deposit history, and the grammar is
+descriptive throughout - which is exactly why G61a resolves as it does. **Against it:** the slider
+seeds its upper handle from that figure and Continue commits the midpoint whether or not a handle
+moved, so **the app does default to it**, and the 60% clause is about defaults rather than about
+description. A figure can be described honestly and still be the default. Recorded as G63.
+
+**G61c - frame 11's caption. Fixed.** `monthlySavingCaption` read "The range you set"
+unconditionally, so a participant who accepted the seeded range without touching a handle was told
+they had set it. This is the part of rule 1A that genuinely was a copy defect: the section's own
+remedy is "hand the choice to the user", and the screen was claiming a choice the participant had
+not made.
+
+The row now picks by provenance, following `position.js`'s own pattern on frame 05 rather than
+inventing one - `read` gives "Read from what you've been putting aside lately", `entered` keeps "The
+range you set". The new caption reuses frame 10's own words for the same figure ("what you've been
+putting aside lately") behind frame 11's own prefix for a read figure ("Read from the accounts you
+assigned to your deposit"), so it introduces no new vocabulary. The provenance test is written the
+same way `calculator-saving.js` writes it when committing the midpoint, so the two cannot disagree
+about what counts as having set the range. Copy-checked: it states a fact about past behaviour,
+proposes nothing, and `read` is the correct provenance value under rule 8.
+
+*Known limitation, logged not fixed.* The 10b date path derives the range from the chosen date and
+lands on provenance `entered`, so it also reads "The range you set" where a **date** is what was
+set. Loose rather than false - the participant did make the input it derives from - and separating
+it needs a third string keyed on `solveFor` rather than on provenance, which is a wider change than
+the defect warrants.
+
+**Two things found in the same pass and logged separately, because neither is G61.** Both are
+reachable in an ordinary session and both are on frame 10b. `G64`: the date path has no ceiling at
+all, where the slider path clamps every input to `left-over` - `monthlyAmountFromDate()` is
+unbounded and Continue commits it directly, which on the screen's own **default seeded date**
+commits £331 to £404 against a £380 `left-over`, with no warning and no handle touched. `G65`: the
+solved amount is computed on every render and never displayed, so a participant commits to a figure
+they do not see until frame 11. Reference PNG 10b was checked rather than assumed and draws no
+readout either, so the build is faithful and the gap is in the design, not the code - which makes
+G65 a "Confirm" for the design owner, and G64 the argument for putting it to them.
+
+**Verified.** Driven in Chromium at 390px. Straight through the calculator with no handle moved:
+provenance `read/read`, row reads "£200 to £310 / Read from what you've been putting aside lately".
+Lower handle dragged to £240 and continued: provenance `entered/entered`, row reads "£240 to £310 /
+The range you set". The 10b path: provenance `entered/entered`, row reads "The range you set" - the
+logged limitation, and the same run that produced G64's £331 to £404. No figure changed anywhere.
+`CACHE_VERSION` v36.
+
+**Reversal.** Restore the unconditional `caption: c.monthlySavingCaption` in
+`calculator-review.js`, drop `monthlySavingReadCaption` and the `monthlySavingProvenance` binding.
+The skill correction and the gap split stand on their own and would not need reverting with it.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -3136,3 +3225,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 
 | 27 August 2026 (journey stage wired) | **D45 recorded**, and **D38 amended a fifth time** to reconcile with it. D38 rejected a second session-position control by name, frame 33 included; it was right about position and wrong about setup. Skip-ahead moves a savings position WITHIN a goal that already exists, Journey stage establishes whether a session has a goal AT ALL - one control for position, one for setup, and they must never both be able to answer the same question, enforced by what each control writes rather than by convention. Frame 33's stage control was fully built and fully inert; it now writes the state each stage means, from `src/stage.js`. **Setting up** is the empty state unchanged, **Saving** is a goal set through the calculator with the position below its checkpoint, **Ready to check** is that same saving stage with `skipAheadPatch()` applied - composed rather than separately constructed, because a different journey is a different participant rather than the same one further along. Every stage is computed from a fresh `defaultState()`, so a change is idempotent in BOTH directions, and every figure comes from the model function the screen that commits it calls, in the calculator's own order - two numbers are written down, the property value and the deposit percentage a stand-in participant would have typed and tapped. 240,000 keeps `months-to-target` inside the 60-month window: **49.3 months**, on track for **45 to 55**, the window closing at about 275,800. `stage` is still read by no screen, which is now a different thing from inert - it is written once and never re-read at render time, so a participant who then runs the calculator with their own figures sees the tracker follow their entries. Verified in Chromium at 390px: each stage set from frame 33 then Insights tapped, landing on `/calculator/property`, frame 15 and frame 16 respectively; ready-to-check toggled to "Now" through the tracker's own control byte-identical in `sessionStorage` to saving set directly, key order included, apart from the single `stage` key that records which pill is lit. `ROUTES.md` corrected in three places rather than the two expected - its "Read this first" paragraph also claimed no setting seeds figures, and named a `mode` control D28 removed. `scripts/session-seed.mjs` deliberately stays separate, and why is recorded. New `scripts/stage.test.mjs`, 21 assertions. `CACHE_VERSION` v34. 260 tests passing. |
 | 27 August 2026 (draft state, G62 closed) | **D46 recorded**, closing `GAPS.md` G62 and correcting it. The symptom was `/tracker` reading "You're £0 away" beside an £8,950 headline and a £24,000 goal; the cause was not `gapToCheckpoint()` re-deriving. `calculator-property.js` wrote `property-value: null` on the field's `change` event while `deposit-target`, `loan-amount` and `ltv` are written on Continue, so the store held a half-made edit beside a committed goal - a state no screen expects and no guard tests for. **Three screens were broken, not one**, and two are unmentioned in G62: frame 12's headline read "A deposit on a **£0** home could be **£0** to **£0**", frame 11's property row read £0, and the tracker carried three separate £0s (the gap sentence, "a 10% deposit on a **£0** home", and the rate-band table). `formatCurrency(null)` returns "£0", which is why all three fabricated a figure instead of failing visibly. **G62 was also wrong twice**: `learn-ltv.js` is not a second unhandled case (its own guard redirects - into frame 12, which was the broken screen), and `gapToCheckpoint()` has one caller, not "other callers", which was the only reason given for not applying D38's third-amendment fix to it. **Fixed upstream**: an empty field is now the screen's own draft state (`propertyValueCleared`), the committed figure is left standing, and all four consumers are fixed at once - per-consumer null-handling would have meant inventing "we can't show this" copy on three screens for a state that should not exist. A second route found while verifying and closed with it: `"-"`, `"."` and `"-."` survive the input strip, yield `NaN`, and `JSON.stringify` persists `NaN` as `null`, so a refresh reproduced the whole defect; only a finite number is committed now, and frame 09's error variant (`0`, negatives) is untouched. `gapToCheckpoint()` moved onto the stored `checkpoint-amount` as defence in depth. Rejected: clearing the downstream commits too, which would make the tracker redirect honestly but destroys a participant's goal as a side effect of clearing a text field. `CLAUDE.md` gains a **State rules** section - screen-local draft state never writes to a section 6 figure, and a screen may only display a figure derived from a key its own guard tested - because this is the rule the next screen that takes an input will break. New `scripts/g62.test.mjs` asserting the invariant rather than the symptom, 10 assertions; `shots.mjs` gains `--draft=property-cleared`. Verified in Chromium across the six-step reproduction (six, not five - "Adjust my goal" lands on frame 11), every input path, and 10 screenshots in light and dark. `CACHE_VERSION` v35. 270 tests passing. |
+| 27 August 2026 (rule 1A resolved, G61 split) | **D47 recorded.** Rule 1A's 60% clause is a **FLAG, not a FIX** - a heading names a section's dominant action, a clause states its own, and where they differ the clause wins. The reason is not the wording: the clause governs COPY and **no screen states £255 or 67%**, while frame 10 headlines no proposed amount, frames none as a share of what is left, sets no target, and states two facts - which is the remedy the three FIX bullets ask for, already met. The skill is corrected in place so the contradiction does not have to be resolved again; leaving it had already cost one full investigation. **G61 closed and split three ways.** *G61a*, the 67% default: resolved as a documented decision, **no figure changes**, still flagged, the £200-£310 range being fixed by the reference frames which draw both figures and the £0-£380 track exactly. *G61b*, opened as **G63** and deliberately unresolved: the £310 upper handle is **81.6%** of left-over, it is **displayed** twice on frame 10 and again on frame 11 where £255 is displayed nowhere, 81.6% is above the 80% the rule itself names as predictably failing rather than merely above the 60% flag line, and "You could put aside £310 a month" is the rule's own example of a breach - the number in the rule is the number in this build. Both sides recorded in the entry: **for**, it is captioned as a fact about the persona's past saving and the grammar is descriptive throughout; **against**, the slider seeds its upper handle from it and Continue commits the midpoint whether or not a handle moved, so the app does default to it, and the clause is about defaults rather than description. *G61c*, **fixed**: frame 11's `monthlySavingCaption` read "The range you set" unconditionally, telling a participant who accepted the seeded range that they had set it - the one part of rule 1A that genuinely was a copy defect, since the section's own remedy is "hand the choice to the user". The row now picks by provenance following `position.js`'s frame 05 pattern; `read` gives "Read from what you've been putting aside lately", reusing frame 10's own words for the figure behind frame 11's own prefix for a read one, so no new vocabulary. Known limitation logged not fixed: the 10b path lands on `entered` and also reads "The range you set" where a date is what was set. **Two findings logged separately as neither is G61**, both on frame 10b and both reachable in a session: **G64**, the date path has no ceiling where the slider path clamps to `left-over`, so the screen's own default seeded date commits **£331 to £404** against a £380 left-over with no warning; **G65**, the solved amount is computed every render and never displayed - reference PNG 10b checked rather than assumed and draws no readout either, so the build is faithful and the gap is in the design. `CACHE_VERSION` v36. 270 tests passing. |

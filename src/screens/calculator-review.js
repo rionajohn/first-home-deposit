@@ -43,6 +43,13 @@ export function render(container, ctx) {
   const savedTowardDeposit = state['saved-toward-deposit'];
   const monthlyLow = state['monthly-low'];
   const monthlyHigh = state['monthly-high'];
+  // Either end being 'entered' means the participant moved a handle, which is
+  // the same rule calculator-saving.js applies when it commits the midpoint's
+  // own provenance. Written the same way so the two cannot disagree about what
+  // counts as having set the range.
+  const monthlySavingProvenance = monthlyLow.provenance === 'entered' || monthlyHigh.provenance === 'entered'
+    ? 'entered'
+    : monthlyLow.provenance;
 
   container.innerHTML = `
     ${formStepHeaderHTML({ title: c.appBarTitle, step: c.stepLabel, appBarLabels: content.shared.appBar })}
@@ -73,7 +80,18 @@ export function render(container, ctx) {
         ${reviewRowHTML({
           label: c.monthlySavingLabel,
           value: `${formatCurrency(monthlyLow.value)} to ${formatCurrency(monthlyHigh.value)}`,
-          caption: c.monthlySavingCaption,
+          // "The range you set" only where a range was actually set. Frame 10
+          // seeds this pair from MOCK_POSITION and commits it on Continue with
+          // provenance 'read' when neither handle was touched, so the row used
+          // to tell a participant who did nothing that they had chosen it.
+          // Same shape as position.js's own provenance-aware caption on frame
+          // 05. See DECISIONS.md D47.
+          //
+          // The 10b date path lands on 'entered' and so reads "The range you
+          // set" too, where a DATE is what was set. Loose rather than false -
+          // the participant did make the input this derives from - and recorded
+          // as a known limitation in D47 rather than fixed with a third string.
+          caption: monthlySavingProvenance === 'entered' ? c.monthlySavingCaption : c.monthlySavingReadCaption,
           changeLabel: c.changeLabel,
           changeAction: 'change-saving',
         })}
