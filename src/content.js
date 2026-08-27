@@ -676,7 +676,21 @@ const content = {
     goalSetBodyTemplate: "{target}, a {pct} deposit on a {property} home. Now it's just saving.",
     mipTitle: 'Mortgage in Principle',
     mipLockedBodyTemplate: 'Unlocks at {checkpoint}. {gap} to go.',
-    mipUnlockedBody: "Unlocked. Whenever you're ready.",
+    // NOT "Unlocked. Whenever you're ready." (DECISIONS.md D42). Two faults:
+    // "unlocked" is game language for a mortgage product, and the row carried
+    // no figure while the rows above it carry two, three and two.
+    //
+    // Deliberately the same shape as `mipLockedBodyTemplate` above, on the same
+    // figure in the same slot, so moving between the two states reads as one
+    // figure changing state rather than as a new sentence arriving.
+    //
+    // It says what a Mortgage in Principle IS, which neither state did before.
+    // No borrowing figure is quoted, because none exists until the check has
+    // run - `borrow-low`/`borrow-high` are written by /mip/running - and
+    // quoting one here would need the MCOB 3A warning and would edge into "what
+    // you could be offered", which the copy rules name directly.
+    mipUnlockedBodyTemplate:
+      'Available from {checkpoint}. A lender\'s estimate of how much they might lend, worked out before you choose a property.',
     unlocksAtTemplate: 'Unlocks at {checkpoint}',
     // The supporting line for the Mortgage in Principle entry: what the
     // participant gets, and the two things it is not. "Ready to check" said

@@ -2347,6 +2347,97 @@ own change and has to answer the browser-session-restore case that could not be 
 
 ---
 
+## D42. The milestone list separates "done" from "available", because `current` was saying both
+
+**Date.** 27 August 2026.
+
+**Decision.** The milestone tracker gains a fourth state, `available`, and the Mortgage in Principle
+row takes it when the checkpoint has been passed. Its copy stops saying "Unlocked" and starts
+carrying a figure, in the shape the locked row already uses.
+
+**The fault.** `MILESTONE_ICON` had three states and the unlocked variant reused `current` for its
+fourth row. That made one mark mean two incompatible things depending on which variant was on
+screen:
+
+- locked variant, `['done', 'done', 'current', 'locked']` - `current` sits on "Deposit goal set",
+  a milestone the participant HAS completed.
+- unlocked variant, `['done', 'done', 'done', 'current']` - the same `current` sits on "Mortgage in
+  Principle", which they have NOT done and may never do.
+
+Nothing else separated them: `done` and `current` shared text colour, weight, size and row height,
+so the only difference was the icon, and the icon was saying "achieved" in both places. **This study
+is about whether a participant can tell what the app has done from what it has not.** A list that
+says both with one mark is the confusion being measured rather than a cosmetic problem, which is why
+this was not left to the copy to carry.
+
+**The four states, and the two independent facts they encode.** The icon says done or not done. The
+text colour says blocked or not blocked. A row needs both:
+
+| State | Icon | Text | Means |
+|---|---|---|---|
+| `done` | `starCircleFill` | full colour | achieved, earlier |
+| `current` | `starCircle` | full colour | achieved, most recently |
+| `available` | `starCircleDashed` | **full colour** | not done, and not blocked |
+| `locked` | `starCircleDashed` | greyed | not done, and blocked |
+
+`available` shares the dashed circle with `locked` deliberately - a dashed circle is this build's
+"not filled in yet" mark and that is exactly what is true of it. **No new vector and no new CSS
+rule:** `available` takes `.milestone-row__title`'s own full-colour default, because only `--locked`
+overrides it. The whole state costs one line in `MILESTONE_ICON` and one word in `tracker.js`.
+
+**MORTGAGE IN PRINCIPLE IS THE ONLY ROW THAT CAN TAKE IT, checked rather than assumed.** Rows one
+and two report the accounts, which are connected from session start (D28), so they are facts before
+any screen renders. Row three reports the deposit goal, and `/tracker`'s own guard requires
+`deposit-target` before it will draw. So rows one to three are always achieved by the time this list
+exists, and `available` can never apply to them. If a later milestone is added that can be reachable
+and not yet done, it takes this same treatment.
+
+**DELIBERATE DIVERGENCE FROM `reference/frames/16`, recorded so it is not later read as drift.** The
+reference frame draws the unlocked Mortgage in Principle row with the solid-outline star, i.e. what
+this build calls `current`. This build now draws it dashed. The frame is the system of record for
+layout, type and spacing and remains so; what it cannot record is a distinction that was not noticed
+when it was drawn. The divergence is one icon on one row in one variant, it introduces no new
+artwork, and it is reversible by changing a single line of `MILESTONE_ICON`. **Anyone reconciling
+the build against frame 16 should expect this one difference and leave it alone.**
+
+**The copy.** `mipUnlockedBody` becomes `mipUnlockedBodyTemplate`:
+
+> was: `"Unlocked. Whenever you're ready."`
+> now: `'Available from {checkpoint}. A lender's estimate of how much they might lend, worked out before you choose a property.'`
+
+Three things were wrong with the old line. "Unlocked" is game language for a mortgage product. The
+row carried no figure while the rows above it carry one, three and two. And neither state of this
+row had ever said what a Mortgage in Principle actually is.
+
+The new line is deliberately the same shape as `mipLockedBodyTemplate`, on the same figure in the
+same slot, so moving between the two states reads as one figure changing state rather than as a new
+sentence arriving.
+
+**No borrowing figure is quoted, and that is not an oversight.** `borrow-low` and `borrow-high` do
+not exist until `/mip/running` has written them, so there is no honest borrowing figure to carry at
+this point. Quoting one would also pull in the MCOB 3A repossession warning and edge into "what you
+could be offered", which the copy rules name directly. `checkpoint-amount` is the one clean figure
+available: every other figure on this list is already carried by another row.
+
+**Contrast, measured from the rendered page at 390px.** All pass AA for normal text, and the
+difference between `available` and `locked` is visible as well as compliant:
+
+| | light | dark |
+|---|---|---|
+| `done` / `current` / `available` title | 16.68:1 | 21:1 |
+| `locked` title | 4.93:1 | 6.36:1 |
+| every row's body | 4.93:1 | 6.36:1 |
+
+The body is identical across all four states by design - it is the title that carries "blocked", so
+a participant reads the difference at the top of the row where the milestone is named.
+
+**Still open, deliberately.** `mipLockedBodyTemplate` still reads `'Unlocks at {checkpoint}. {gap}
+to go.'` With the unlocked row changed, "Unlocks" is now the odd one out on the same list. A
+replacement in the new register, keeping both figures, is drafted and awaiting a decision; it is not
+changed here because this entry's copy change was agreed one line at a time.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -2395,6 +2486,7 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (frame 18 timeline) | D36 recorded: frame 18's `[Visual aid]` placeholder is replaced by the process timeline it specified - four labelled nodes joined by a hairline, Mortgage in Principle marked as where the participant is, the three ahead of them reading as ahead rather than done. **It is a process sequence, not a progress indicator, and is exempt from DESIGN.md's bar exclusions on that basis** - vertical, discrete nodes rather than a filled track, measuring nothing, with no completed state at all. Vertical because four horizontal labels do not fit 62px columns at 320px. New `circleDot` icon and `processTimelineHTML` component; no new colour, spacing or width token. Not interactive: no button, link, tabindex or pointer cursor, proved by walking the tab order. An `<ol>` with `aria-current="step"` and a visible "You are here", so sequence and position are not carried by the drawing alone. Frame 13b's separate `[Visual aid]` and the `.media-placeholder` video block are untouched. |
 | 22 August 2026 (MiP reachable) | D35 recorded: the Insights tab resolves to `/tracker` (Payments and Profile stay disabled), which makes the six-screen Mortgage in Principle flow reachable - it was already built and already wired, and nothing navigated to the tracker. `diamondFill` added, because `TAB_ICONS_ACTIVE` held twins for two tabs and lighting a third called `undefined`; the glyph lookup now falls back to the outline, and the tab hint stops being a Home-or-Goals ternary. The tracker's action bar is confirmed as the single entry (`reference/frames/16` draws it; the instruction's "milestone row is a live link" did not hold), and the locked milestone row drops its no-op `<button>`. `journeyEntryPoint` gains `/tracker`, so the X on 17, 18, 19b, 20 and 21 exits to the tracker rather than frame 01. Four copy keys change: the entry stops claiming the prototype issues a decision in principle, and frames 19 and 19b stop implying a check runs here. No knowledge check built on frame 17 - it exists in no spec, wireframe or frame, and the author confirmed it came from a stale summary. |
 | 26 August 2026 (first-entry stamping) | D41 amended and **`GAPS.md` G59 closed**. D41's rule is unchanged; the stamping underneath it gains one case. On the first entry of a session no descent can have happened, so if that entry lands on a tab root it IS a root and `seedHistoryRoot` stamps it `root: true`, reading the roots from `NAVIGABLE_TABS` rather than a second list. The route decides at that boundary and nowhere else - screens still ask `isRootEntry()` only. Fixes a cold-loaded `/goals` or `/tracker` drawing a chevron on a tab root, which mattered because participants open a link and cold load is the primary arrival path in a session. Measured after: `/home`, `/goals`, `/tracker` cold all report `isRootEntry() === true` with no chevron; `/position/summary` and `/consent` cold report false and keep theirs; refresh preserves the stamp in both directions. Knock-on reported: a cold `/home` is now a root, so the first tab tap of a session replaces rather than pushes and ten root-to-root switches cost +0 where they cost +1. Session restore still unmeasured. 235 tests passing. |
+| 27 August 2026 (milestone states) | D42 recorded: the milestone tracker gains a fourth state, `available`, and the Mortgage in Principle row takes it once the checkpoint is passed. `current` was doing two jobs - "achieved most recently" on the locked variant's third row and "you may now do this" on the unlocked variant's fourth - and nothing but the icon separated them, which is the exact distinction the study measures. The icon now says done or not done, the text colour says blocked or not blocked. `available` reuses `starCircleDashed` and needs no CSS rule at all, taking the full-colour title default that only `--locked` overrides. Mortgage in Principle is the only row that can take it, checked: rows one and two are facts from session start (D28) and row three is required by `/tracker`'s own guard. Deliberate, recorded divergence from `reference/frames/16`, which draws that row with the solid outline. Copy: `mipUnlockedBody` becomes `mipUnlockedBodyTemplate`, "Unlocked. Whenever you're ready." giving way to "Available from {checkpoint}. A lender's estimate of how much they might lend, worked out before you choose a property." - game language out, a figure in, and the row finally says what a Mortgage in Principle is. No borrowing figure quoted because none exists before `/mip/running` writes one. Contrast measured: title 16.68:1 light / 21:1 dark for `available` against 4.93:1 / 6.36:1 for `locked`, all AA. `mipLockedBodyTemplate`'s "Unlocks at" is left for a separate decision. `CACHE_VERSION` v29. 235 tests passing. |
 | 27 August 2026 (skip-ahead stays at the top, decided) | D38 amended: the experiment that moved the block below the checkpoint sentence was built, verified, committed and then reverted with `git revert`, and **the control staying at the top of `.screen-content` is recorded as a decision rather than an unresolved trade**. The reason: the block is 150-190px tall whatever its rules, so no position above the milestone list keeps all four rows above the fold - measured identically at two whole rows for a bottom rule, two rules, no rule, and the position immediately after `.progress-bar` - while every position that does keep four either splits the milestone list from its own caption, lands three pixels above the fold, or puts app content on both sides of the block, which a one-sided rule cannot fence and which needs a bracketing mark this build does not otherwise use. The top is the position where the app's content is on one side only, which is the condition that makes the single dashed edge correct. Cost accepted: two milestone rows below the fold. Carried forward from the reverted commit and kept: the position-is-load-bearing framing at the head of the `.skip-ahead` comment, the warning that a treatment must not follow the block to a new position unexamined, and the finding that no rule at all fails wherever the neighbours are not cards. `CACHE_VERSION` v28. 235 tests passing. |
 | 27 August 2026 (skip-ahead restyled for the tracker) | D38 amended again: the control's TREATMENT catches up with the move recorded above. Placement, behaviour and four of the five strings are unchanged. The dashed box goes - a dashed box is this build's placeholder idiom (`.media-placeholder`, `.visual-aid-placeholder`, `.routes-illustration`) and a research instrument must not wear it - replaced by a single dashed bottom rule, which is the build's existing unsettled-not-settled mark (`.account-group-header--unassigned`, `.status-card__still-to-sort`) and puts the boundary on the side the app's content is on. `margin-top: var(--space-3xl)` becomes `margin-bottom: var(--space-lg)`, so the block adds no top spacing, `--screen-inset-y` alone governs, and the 56px void below the app bar goes: 0px above, 32px below, every other gap on the screen 16px. Horizontal padding removed, so the block aligns to the 350px content column and the track widens 318 to 350, matching the headline figure, the progress bar and the action bar button - width does not mark app content on this screen, fill and weight do, and the block gives up both. The internal gap stays at 12 after being screenshot at 8 and rejected: at 8 the note reads as a caption on the toggle and appears to disclaim only the toggle, when what a participant might take as real is the deposit figure below. `skipAheadNote` takes its one deliberate copy amendment - "what this screen shows then" - the screen no longer naming itself in the third person. Three stale CSS comments corrected. Contrast unchanged and re-measured from the page: light 4.93/4.93/16.68/5.28, dark 6.36/6.36/21/5.95. Three round trips leave state identical. `CACHE_VERSION` v26. 235 tests passing. |
 | 26 August 2026 (skip-ahead moves to the tracker) | D38 amended: the skip-ahead control moves from the bottom of `/goals` to the top of `/tracker`, above the headline figure, on both routes into the tracker and nowhere else. Still a research affordance that would not exist in a production build. Copy unchanged verbatim; the five `skipAhead*` keys move from `/goals` to `/tracker` unedited. `skipAheadHTML` and a new `bindSkipAhead` move out of `goals.js` into `src/skip-ahead.js`, so the affordance really is one module plus one CSS block plus five keys plus two lines in `tracker.js`. Option accessible names now compose the label with the position - "Prototype control: skip ahead, Further along" - because a radiogroup announces its name once on entry and a participant arrowing between two options would otherwise lose the prototype framing. The unavailable branch becomes unreachable behind `tracker.js`'s `checkpoint-amount`/`deposit-target` guard and is KEPT, with that guard named so it is obvious the branch goes live if it is relaxed. Interest earned now shares a screen with the control but sits ~1200px below the fold, so the two are never seen together; unfixed, per D34. `overlap.test.mjs` gains a `16-skipped` row and drops the two `/goals` control rows. 235 tests passing. |

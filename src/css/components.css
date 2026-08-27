@@ -2211,6 +2211,12 @@ button.milestone-row {
   color: var(--color-label-secondary);
 }
 
+/* Greying is what BLOCKED looks like, and it is the only thing that separates
+   `--locked` from `--available` - the two share the dashed icon because both
+   are genuinely not done. There is deliberately no `--available` rule: it takes
+   `.milestone-row__title`'s own full-colour default, so "not done" and "not
+   blocked" are said by two different properties. See MILESTONE_ICON in
+   components/ui.js and DECISIONS.md D42. */
 .milestone-row--locked .milestone-row__title,
 .milestone-row--locked .milestone-row__body {
   color: var(--color-label-secondary);

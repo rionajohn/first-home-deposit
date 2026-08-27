@@ -99,15 +99,30 @@ export function render(container, ctx) {
 
   const onTrack = onTrackFor(state);
 
-  // Three icon states, confirmed against the reference PNGs: every earlier
+  // Four icon states, never a flat complete/locked split: every earlier
   // milestone is 'done' (dark filled star), the milestone just reached is
-  // 'current' (light circle, solid border), and anything beyond that is
-  // 'locked' (dashed circle) — never a flat complete/locked split. Frame 15
+  // 'current' (light circle, solid border), a milestone that is reachable but
+  // not yet done is 'available' (dashed circle, full-colour text), and one that
+  // is not yet reachable is 'locked' (dashed circle, greyed text). Frame 15
   // (below-checkpoint) puts "Deposit goal set" at 'current' and "Mortgage in
   // Principle" at 'locked'; frame 16 (checkpoint-reached) promotes "Deposit
-  // goal set" to 'done' and "Mortgage in Principle" to 'current'.
+  // goal set" to 'done' and draws "Mortgage in Principle" as 'available' -
+  // the reference PNG draws that row as 'current', and D42 records why this
+  // build does not.
+  // `available`, not `current`, on the unlocked variant's fourth row: the
+  // participant has NOT got a Mortgage in Principle, they can now go and get
+  // one. `current` is reserved for the milestone most recently achieved, which
+  // is what it means on the locked variant's third row. See MILESTONE_ICON in
+  // components/ui.js and DECISIONS.md D42.
+  //
+  // ROWS 1 TO 3 CAN NEVER TAKE `available`, checked rather than assumed: the
+  // accounts are connected from session start (D28), so linked and sorted are
+  // facts by the time any screen renders, and this screen's own guard above
+  // requires `deposit-target`, so the goal is set before it draws. Mortgage in
+  // Principle is the only milestone on this list that can be reachable and not
+  // yet done.
   const milestoneStates = unlocked
-    ? ['done', 'done', 'done', 'current']
+    ? ['done', 'done', 'done', 'available']
     : ['done', 'done', 'current', 'locked'];
 
   const checkpointPctLabel = formatPercent(CHECKPOINT_FRACTION, 0);
@@ -144,7 +159,11 @@ export function render(container, ctx) {
     // is a dead end for a keyboard or screen-reader participant rather than
     // an accessibility gain. Both states are plain rows now.
     unlocked
-      ? { title: c.mipTitle, body: c.mipUnlockedBody, state: milestoneStates[3] }
+      ? {
+        title: c.mipTitle,
+        body: fill(c.mipUnlockedBodyTemplate, { checkpoint: formatCurrency(checkpointAmountValue) }),
+        state: milestoneStates[3],
+      }
       : {
         title: c.mipTitle,
         body: fill(c.mipLockedBodyTemplate, { checkpoint: formatCurrency(checkpointAmountValue), gap: formatCurrency(gap.value) }),

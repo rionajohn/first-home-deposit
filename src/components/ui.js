@@ -820,18 +820,40 @@ export function progressBarHTML({ fillPct, markerPct, label }) {
 }
 
 /**
- * Content / Milestone tracker (frames 15, 16): a vertical stack of
- * milestones, each in one of three states, confirmed against the reference
- * PNGs (not two, as first assumed): 'done' (dark filled circle, white star
- * — a milestone from earlier in the journey), 'current' (light circle,
- * solid grey border, dark star — the milestone just reached; frame 15's
- * "Deposit goal set" and frame 16's "Mortgage in Principle" both render
- * this way, never 'done'), and 'locked' (dashed circle, faint star,
- * secondary-coloured text). `milestones` is `[{ title, body, state }]`.
+ * Content / Milestone tracker (frames 15, 16): a vertical stack of milestones,
+ * each in one of FOUR states. `milestones` is `[{ title, body, state }]`.
+ *
+ * It was three, confirmed against the reference PNGs, with frame 16's
+ * "Mortgage in Principle" rendering as 'current'. That is the one place this
+ * build now diverges from the reference deliberately - see D42 and the note
+ * below.
+ *
+ * FOUR STATES, AND THE FOURTH IS THE POINT (DECISIONS.md D42).
+ *
+ * The icon says DONE or NOT DONE. The text colour says BLOCKED or NOT BLOCKED.
+ * Those are two independent facts and the row needs both:
+ *
+ *   done       filled circle, full-colour text    achieved, earlier
+ *   current    outline circle, full-colour text   achieved, most recently
+ *   available  dashed circle, FULL-COLOUR text    not done, and not blocked
+ *   locked     dashed circle, greyed text         not done, and blocked
+ *
+ * `available` shares `starCircleDashed` with `locked` deliberately: a dashed
+ * circle is this build's "not filled in yet" mark and that is exactly what is
+ * true of it. What separates the two is the text colour, and `available` gets
+ * that for free by taking `.milestone-row__title`'s own default - only
+ * `--locked` overrides it (components.css). No new vector, no new token.
+ *
+ * WHY IT EXISTS. Without it, `current` meant two incompatible things depending
+ * on which row it landed on: "the milestone you just completed" on the locked
+ * variant's "Deposit goal set", and "the thing you may now do" on the unlocked
+ * variant's "Mortgage in Principle". A participant cannot be asked to tell what
+ * the app has done from what it has not while the list says both with one mark.
  */
 const MILESTONE_ICON = {
   done: starCircleFill,
   current: starCircle,
+  available: starCircleDashed,
   locked: starCircleDashed,
 };
 
