@@ -19,13 +19,16 @@
  *             which is exactly the threshold `/tracker` unlocks the Mortgage in
  *             Principle milestone at.
  *
- * The threshold comes from `checkpointAmount()` in model.js, which is
+ * The threshold is the STORED `checkpoint-amount`, which `calculator-review.js`
+ * and `calculator-result.js` wrote from `checkpointAmount()` in model.js -
  * `CHECKPOINT_FRACTION * depositTarget(state)` and nothing else. No fraction,
  * percentage or amount is written down in this file. That matters twice over:
  * changing `CHECKPOINT_FRACTION` in rates.js moves this control with it, and
- * the skipped position lands on the same arithmetic the tracker's own
- * `checkpoint-amount` came from, so `saved >= checkpoint` is true by
- * construction rather than by rounding luck.
+ * the skipped position lands on exactly the figure the tracker measures against,
+ * so `saved >= checkpoint` is true by construction rather than by rounding luck.
+ *
+ * READING THE STORED KEY RATHER THAN RE-DERIVING IT IS DELIBERATE, and is the
+ * fix recorded in D38's third amendment - see `canSkipAhead()` below.
  *
  * ---------------------------------------------------------------------------
  * WHY A STASH RATHER THAN A COMPUTED OVERRIDE
@@ -75,7 +78,7 @@
  * of the two lists in this file.
  */
 
-import { checkpointAmount, monthsToTarget, onTrackFor, maxProperty } from './model/model.js';
+import { monthsToTarget, onTrackFor, maxProperty } from './model/model.js';
 import { rerenderInPlace } from './components/ui.js';
 
 /** The two positions the control moves between. Also its two `data-value`s. */
@@ -110,15 +113,29 @@ export function isSkippedAhead(state) {
 /**
  * Can the control reach "Further along" at all?
  *
- * It cannot before a deposit goal exists: there is no `deposit-target`, so
- * there is no checkpoint to be three quarters of the way to, and `/tracker`
- * itself redirects into the calculator in that state. The control stays
- * visible and keyboard reachable and says so, rather than disappearing between
- * two visits to the same screen.
+ * IT READS THE STORED `checkpoint-amount`, AND THAT IS THE WHOLE POINT
+ * (DECISIONS.md D38, third amendment). It used to recompute the checkpoint live
+ * through `checkpointAmount()`, which derives it from `property-value` x
+ * `deposit-pct`. `/tracker`'s guard, which decides whether this control is drawn
+ * at all, tests the STORED `checkpoint-amount` and `deposit-target` keys. Two
+ * things answering "does this session have a deposit goal?" from different
+ * sources will eventually disagree, and they did: clearing the property-value
+ * field on frame 09 writes `property-value: null` without clearing the
+ * committed `deposit-target`, so the guard passed on the stored keys while the
+ * live derivation failed `non-numeric` and the control drew itself inert.
+ *
+ * Reading the same key the guard reads makes the two agree by construction.
+ * Wherever `/tracker` renders, `checkpoint-amount` is non-null - the guard has
+ * already tested it - so "Further along" is enabled wherever the control is
+ * drawn.
+ *
+ * The `available` branch below is therefore dead by CONSTRUCTION rather than by
+ * coincidence, and is kept for a caller that draws this control somewhere the
+ * guard does not run. That is a different and much stronger claim than the one
+ * this file used to make.
  */
 export function canSkipAhead(state) {
-  const checkpoint = checkpointAmount(state);
-  return !checkpoint.error && typeof checkpoint.value === 'number';
+  return typeof state['checkpoint-amount'].value === 'number';
 }
 
 /**
@@ -138,8 +155,13 @@ export function canSkipAhead(state) {
  * a second time in a vocabulary built for something else.
  */
 export function skipAheadPatch(state) {
-  const checkpoint = checkpointAmount(state);
-  if (checkpoint.error || typeof checkpoint.value !== 'number') return null;
+  // THE SAME STORED KEY `canSkipAhead()` READS, and it has to be. If this
+  // recomputed live while that one read the store, the option could be enabled
+  // and do nothing when pressed - `bindSkipAhead` treats a null patch as "the
+  // control cannot move right now" and returns silently. One source, one
+  // answer.
+  const checkpoint = state['checkpoint-amount'];
+  if (typeof checkpoint.value !== 'number') return null;
 
   const stash = {};
   for (const key of STASHED_KEYS) stash[key] = state[key];
@@ -325,11 +347,10 @@ export function skipAheadHTML({ c, position, available }) {
   return `
     <section class="skip-ahead">
       <p class="skip-ahead__label" id="skip-ahead-label">${c.skipAheadLabel}</p>
-      <div class="skip-ahead__options" role="radiogroup" aria-labelledby="skip-ahead-label" aria-describedby="skip-ahead-note">
+      <div class="skip-ahead__options" role="radiogroup" aria-labelledby="skip-ahead-label">
         ${option({ value: 'now', label: c.skipAheadNowOption, selected: position === 'now', disabled: false })}
         ${option({ value: 'ahead', label: c.skipAheadAheadOption, selected: position === 'ahead', disabled: !available })}
       </div>
-      <p class="skip-ahead__note" id="skip-ahead-note">${available ? c.skipAheadNote : c.skipAheadUnavailableNote}</p>
     </section>
   `;
 }

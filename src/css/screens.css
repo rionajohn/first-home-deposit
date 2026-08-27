@@ -1806,66 +1806,69 @@
 /* --- The skip-ahead control (/tracker only - src/skip-ahead.js, DECISIONS.md
    D38) ---------------------------------------------------------------------
 
-   A RESEARCH AFFORDANCE, AND IT HAS TO LOOK LIKE ONE. It is the first child of
-   `.screen-content` on /tracker and is drawn on no other screen.
+   A RESEARCH AFFORDANCE, AND IT HAS TO LOOK LIKE ONE. Two parts, in this order:
+   a label, "Prototype control: skip ahead", and a two-option segmented track.
+   Nothing else. It is the first child of `.screen-content` on /tracker and is
+   drawn on no other screen.
 
-   EVERYTHING BELOW IS DECIDED BY THE POSITION, and the position is: THE APP'S
+   THE LABEL IS THE WHOLE OF THE FRAMING, so it is the one value here not to
+   touch. It says what this is before it says what it does, it is the first line
+   on the screen, and `skipAheadHTML` composes it into each option's accessible
+   name so a screen-reader participant arrowing between the two hears it as
+   well. The block once carried a supporting note underneath saying "Not part of
+   the app" and "No money is saved or moved"; that note was removed, because the
+   control is operated by the facilitator, who does not need it. Everything the
+   note used to carry now rests on the label.
+
+   EVERYTHING ELSE IS DECIDED BY THE POSITION, and the position is: THE APP'S
    OWN CONTENT IS ON ONE SIDE OF THIS BLOCK ONLY, below it. That single fact is
-   what makes a one-sided rule correct here, and it is the first thing to check
-   before changing any value in this block. Three treatments have now been
-   correct for three different positions, and twice a treatment was carried to a
-   new position unexamined - which is the whole of what went wrong both times.
-   Moving this block and keeping its styling is not a small change.
+   what makes a one-sided rule correct, and it is the first thing to check
+   before changing any value here. Three treatments have been correct for three
+   different positions, and twice a treatment was carried to a new position
+   unexamined - which is the whole of what went wrong both times. Moving this
+   block and keeping its styling is not a small change.
 
-   THE TOP IS A CHOSEN POSITION, NOT A DEFAULT (DECISIONS.md D38). Sitting it
-   below the checkpoint sentence was built, measured and reverted. It costs two
-   of the four milestone rows above the fold at 390px, because the block is
-   150-190px tall whatever its rules; and every position that keeps all four
-   either buries the control below the fold or puts app content on both sides of
-   it, which needs a bracketing mark this build does not otherwise use. The
-   control at the top, with one rule, was chosen over four-of-four milestones.
+   THE TOP IS A CHOSEN POSITION, NOT A DEFAULT. Sitting it below the checkpoint
+   sentence was built, measured and reverted: it cost two of the four milestone
+   rows above the fold at 390px, and every position that keeps all four either
+   buries the control below the fold or puts app content on both sides of it,
+   which needs a bracketing mark this build does not otherwise use.
 
    IT IS NOT MARKED BY NOT BEING A `.card`. That was the argument while it sat
    at the bottom of /goals, beneath two white cards a participant could read it
    against. /tracker opens with a bare figure and captions, so there is no card
-   here to contrast with, and the outline it used to carry did worse than
-   nothing: a dashed BOX is already this build's placeholder idiom
-   (`.media-placeholder`, `.visual-aid-placeholder`, `.routes-illustration`), so
-   as the opening element of a screen it read as artwork that had not arrived
-   yet. A research instrument must not look unfinished.
+   here to contrast with, and an outline would do worse than nothing: a dashed
+   BOX is already this build's placeholder idiom (`.media-placeholder`,
+   `.visual-aid-placeholder`, `.routes-illustration`), and as the opening
+   element of a screen it read as artwork that had not arrived yet. A research
+   instrument must not look unfinished.
 
-   WHAT MARKS IT NOW IS A SINGLE DASHED EDGE, on the bottom, which is the side
-   the app's own content is on. A dashed edge already means "set apart, not
-   settled" in this build - `.account-group-header--unassigned` and
+   WHAT MARKS IT IS A SINGLE DASHED EDGE, on the bottom, which is the side the
+   app's own content is on. A dashed edge already means "set apart, not settled"
+   in this build - `.account-group-header--unassigned` and
    `.status-card__still-to-sort` both carry one, on this same token - so the
    block borrows a convention rather than inventing one, and the mark and the
    boundary it marks are the same object.
 
    THE SEPARATION IS NOT CARRIED BY THE RULE. At `--color-border-subtle` the
    rule is decorative (about 1.14:1) and could not carry it alone. It is carried
-   by the label - "Prototype control: skip ahead", the first line on the screen,
-   at 600 - by the note under it, and by the absence of the furniture every
-   figure below it carries: no provenance caption, no assumptions link, no
-   surface, no radius. The rule reinforces those three; it does not replace
-   them.
+   by the label, and by the absence of the furniture every figure below it
+   carries: no provenance caption, no assumptions link, no surface, no radius.
+   The rule reinforces those; it does not replace them.
 
    NO SPACING OF ITS OWN AT THE TOP. As a first child there is nothing above it
    to be held away from, and the app bar is already a boundary, so
    `--screen-inset-y` governs the gap exactly as it does for the first element
-   of every other screen. The 32px this block used to hold above itself was
-   written to separate it from a card on /goals; it now sits on `margin-bottom`,
-   where it adds to `.screen-content`'s own 16px gap and holds the annotation
-   off the app's content instead.
+   of every other screen. `margin-bottom` carries the separation instead, adding
+   to `.screen-content`'s own 16px gap: measured at 390x844, 0px above this
+   block, 32px below it, and 16px between every other pair on the screen.
 
-   THE INTERNAL GAP STAYS AT --space-md (12), NOT --space-sm. Tightening it to
-   8 was tried and rejected: it binds the note to the segmented control above
-   it, so the note reads as a caption on the toggle and appears to disclaim
-   only the toggle. What a participant might take as real is the deposit figure
-   below, not the control, so "Not part of the app" and "No money is saved or
-   moved" have to attach to the screen and its figures. 12 keeps the note a
-   statement of its own, and gives the one filled surface in the block - the
-   track - a little more air, which is the direction a change made to quieten
-   the block should go.
+   THE INTERNAL GAP IS --space-md (12), AND IT IS NOW AN OPEN QUESTION. It was
+   chosen for a three-part block, to stop the note reading as a caption on the
+   track above it. That reason went with the note. In a two-part block 12 sets
+   the distance between a control and its own label, where this build's
+   convention for a label and the thing it labels is usually tighter. Left at 12
+   for now rather than changed silently; see D38's third amendment.
 
    It stays inside the design system for everything else: the same tokens, the
    same 8pt spacing, the same type scale and the same segmented geometry frames
@@ -1941,18 +1944,3 @@
   cursor: default;
 }
 
-/* FOOTNOTE, NOT CAPTION, and secondary rather than tertiary. This is the
-   sentence that stops the control being misread - "not part of the app", "no
-   money is saved or moved" - and at caption size in the tertiary colour it was
-   the smallest, faintest text on the screen. MCOB 3A.3.1R's balance rule is
-   about promotions and does not bind here (nothing on /tracker is promoted),
-   but its principle does: the qualifier must not be less legible than the
-   thing it qualifies. It now matches the label above it in size and colour,
-   and is set apart from it by weight alone. */
-.skip-ahead__note {
-  margin: 0;
-  font-size: var(--text-footnote-size);
-  line-height: var(--text-footnote-line);
-  font-weight: 400;
-  color: var(--color-label-secondary);
-}

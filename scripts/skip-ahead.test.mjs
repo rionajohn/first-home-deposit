@@ -55,7 +55,13 @@ function savingSession(overrides = {}) {
     'savings-rate': f(310, 'entered'),
     'months-to-target': f(84.2, 'entered'),
     'on-track-for': f({ low: 76, high: 93 }, 'entered'),
-    'checkpoint-amount': f(31500, 'entered'),
+    // DERIVED, NOT WRITTEN DOWN. `skipAheadPatch()` reads this stored key rather
+    // than re-deriving the checkpoint (D38's third amendment), so a hard-coded
+    // 31500 here would let a change to CHECKPOINT_FRACTION break the two tests
+    // below instead of being followed by them. Deriving it keeps those tests
+    // what their comments say they are: assertions that no number is written
+    // down, not assertions about 31500.
+    'checkpoint-amount': f(CHECKPOINT_FRACTION * 42000, 'entered'),
     'borrow-low': unset(),
     'borrow-high': unset(),
     'max-property': unset(),

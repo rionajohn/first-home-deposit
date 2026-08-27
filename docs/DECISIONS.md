@@ -1859,6 +1859,79 @@ produces the same marker. 128 tests passing (model, overlap, bottom-nav, sheet-d
 > rows, and every position that keeps all four either buries the control or needs a mark the build
 > does not use.
 
+> **Amended 27 August 2026 (third amendment that day) - THE SUPPORTING NOTE IS REMOVED, AND A
+> LIVE-VERSUS-STORED DISAGREEMENT IS FIXED.** Two changes, and the second is the more important of
+> the two even though the first is what prompted it.
+>
+> **THE CLAIM THIS ENTRY MADE ABOUT THE UNAVAILABLE BRANCH WAS WRONG, AND IS CORRECTED HERE RATHER
+> THAN QUIETLY UPDATED.** The first amendment above states, in capitals, that the branch is
+> unreachable because `tracker.js`'s guard redirects before the control is drawn, and that "that
+> specific guard, on that route, is the only reason the branch is dead". **That was never true.** The
+> guard and `canSkipAhead()` were answering the same question from different sources:
+>
+>   - the guard tested the STORED `checkpoint-amount` and `deposit-target` keys;
+>   - `canSkipAhead()` recomputed the checkpoint LIVE through `checkpointAmount()`, which derives it
+>     from `property-value` x `deposit-pct`.
+>
+> Those disagree whenever `property-value` is null while `deposit-target` is still committed, and
+> `calculator-property.js` creates exactly that state: clearing the property-value field writes
+> `property-value: null` and does not clear `deposit-target`, which is only rewritten on Continue.
+>
+> **Reproduced through ordinary participant actions, no facilitator gesture:** from `/tracker` below
+> the checkpoint, tap "Adjust my goal" (the secondary action D25 put there for this purpose), reach
+> frame 09, clear the property value field, return to `/tracker`. The guard passes on the stale
+> stored keys, the screen renders, and the control draws itself inert with `aria-disabled="true"`.
+>
+> **THE FIX IS TO REMOVE THE DISAGREEMENT, NOT THE BRANCH.** `canSkipAhead()` now reads
+> `state['checkpoint-amount']` - the same stored key the guard tests - so the two agree by
+> construction. `skipAheadPatch()` reads it too, and had to: leaving it on the live derivation would
+> have produced a worse defect than the one being fixed, an option that is enabled and does nothing
+> when pressed, because `bindSkipAhead` treats a null patch as "cannot move right now" and returns
+> silently. One source, one answer. **"Further along" is now enabled wherever `/tracker` renders**,
+> verified by re-walking the five-step trace: the control draws, the option is enabled, and pressing
+> it moves the session (`skippedAhead: true`, saved-toward-deposit £21,000).
+>
+> **The `available` branch is kept, and is now dead by CONSTRUCTION rather than by coincidence.** It
+> costs one ternary and covers a caller that draws this control somewhere the guard does not run.
+> That is a much stronger claim than the one this entry used to make, and it is the reason the branch
+> is still worth keeping after its copy has gone.
+>
+> **Stash-and-restore is untouched.** `STASHED_KEYS`, the stash mechanics and `skipBackPatch` are
+> unchanged; only the source of the checkpoint VALUE changed, and in every state where the two
+> sources agree the patch is identical. Three round trips through the live control leave
+> `sessionStorage` byte-identical, and `skip-ahead.test.mjs` passes unchanged at 11 assertions.
+>
+> **One test fixture was strengthened rather than left to pass by luck.** `savingSession()` hard-coded
+> `checkpoint-amount: 31500`, which happens to equal `CHECKPOINT_FRACTION x 42000`. With
+> `skipAheadPatch()` now reading that key, two tests whose own comments call them "a test that no
+> number is written down" would have been broken by a change to `CHECKPOINT_FRACTION` instead of
+> following it. The fixture now derives the key from `CHECKPOINT_FRACTION`, so those tests mean what
+> they say again.
+>
+> **THE NOTE IS REMOVED, both strings and the element.** `skipAheadNote` and
+> `skipAheadUnavailableNote` are deleted, with the `<p class="skip-ahead__note">` that carried them,
+> the `aria-describedby` that pointed at it and the now-dead `.skip-ahead__note` CSS rule. **The
+> reason: the control is operated by the facilitator, who does not need the explanation.** It was the
+> only part of the block addressed to someone who did.
+>
+> **What survives the removal.** The label, "Prototype control: skip ahead", and the two option
+> names. The label still names the control before it names its action, is still the first line on the
+> screen, and is still composed into each option's accessible name - "Prototype control: skip ahead,
+> Further along" - so a screen-reader participant arrowing between the two still meets the prototype
+> framing. Verified: one tab stop, arrows move and select, `aria-checked` flips both ways, no
+> dangling `aria-describedby` or `aria-labelledby` anywhere in the document, two children in the
+> block and no empty paragraph.
+>
+> **The block is now 103px tall**, down from 169px, and the gaps around it are unchanged: 0px above,
+> 32px below, 16px between every other pair on the screen.
+>
+> **`--space-md` (12) between the label and the track is left as it was, and is now an open
+> question.** It was chosen for a three-part block, to stop the note reading as a caption on the
+> track above it; that reason went with the note. In a two-part block it sets the distance between a
+> control and its own label, where this build's convention for a label and the thing it labels is
+> usually tighter. Not changed in the same pass as the removal, so the two are not confused with each
+> other.
+
 **Marked as a research affordance.** Half of this entry describes a control that WOULD NOT EXIST IN
 A PRODUCTION BUILD. It is an instrument for moderated sessions, not part of the design being tested,
 and it is written to be removed in one move: delete `src/skip-ahead.js`, the `.skip-ahead` block in
@@ -2500,6 +2573,7 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 22 August 2026 (frame 18 timeline) | D36 recorded: frame 18's `[Visual aid]` placeholder is replaced by the process timeline it specified - four labelled nodes joined by a hairline, Mortgage in Principle marked as where the participant is, the three ahead of them reading as ahead rather than done. **It is a process sequence, not a progress indicator, and is exempt from DESIGN.md's bar exclusions on that basis** - vertical, discrete nodes rather than a filled track, measuring nothing, with no completed state at all. Vertical because four horizontal labels do not fit 62px columns at 320px. New `circleDot` icon and `processTimelineHTML` component; no new colour, spacing or width token. Not interactive: no button, link, tabindex or pointer cursor, proved by walking the tab order. An `<ol>` with `aria-current="step"` and a visible "You are here", so sequence and position are not carried by the drawing alone. Frame 13b's separate `[Visual aid]` and the `.media-placeholder` video block are untouched. |
 | 22 August 2026 (MiP reachable) | D35 recorded: the Insights tab resolves to `/tracker` (Payments and Profile stay disabled), which makes the six-screen Mortgage in Principle flow reachable - it was already built and already wired, and nothing navigated to the tracker. `diamondFill` added, because `TAB_ICONS_ACTIVE` held twins for two tabs and lighting a third called `undefined`; the glyph lookup now falls back to the outline, and the tab hint stops being a Home-or-Goals ternary. The tracker's action bar is confirmed as the single entry (`reference/frames/16` draws it; the instruction's "milestone row is a live link" did not hold), and the locked milestone row drops its no-op `<button>`. `journeyEntryPoint` gains `/tracker`, so the X on 17, 18, 19b, 20 and 21 exits to the tracker rather than frame 01. Four copy keys change: the entry stops claiming the prototype issues a decision in principle, and frames 19 and 19b stop implying a check runs here. No knowledge check built on frame 17 - it exists in no spec, wireframe or frame, and the author confirmed it came from a stale summary. |
 | 26 August 2026 (first-entry stamping) | D41 amended and **`GAPS.md` G59 closed**. D41's rule is unchanged; the stamping underneath it gains one case. On the first entry of a session no descent can have happened, so if that entry lands on a tab root it IS a root and `seedHistoryRoot` stamps it `root: true`, reading the roots from `NAVIGABLE_TABS` rather than a second list. The route decides at that boundary and nowhere else - screens still ask `isRootEntry()` only. Fixes a cold-loaded `/goals` or `/tracker` drawing a chevron on a tab root, which mattered because participants open a link and cold load is the primary arrival path in a session. Measured after: `/home`, `/goals`, `/tracker` cold all report `isRootEntry() === true` with no chevron; `/position/summary` and `/consent` cold report false and keep theirs; refresh preserves the stamp in both directions. Knock-on reported: a cold `/home` is now a root, so the first tab tap of a session replaces rather than pushes and ten root-to-root switches cost +0 where they cost +1. Session restore still unmeasured. 235 tests passing. |
+| 27 August 2026 (skip-ahead note removed, read-source fixed) | D38 amended a third time, and one of its own claims CORRECTED. The entry recorded the unavailable branch as unreachable behind `tracker.js`'s guard; that was never true. The guard tested the stored `checkpoint-amount` and `deposit-target` while `canSkipAhead()` recomputed the checkpoint live from `property-value` x `deposit-pct`, and clearing the property-value field on frame 09 nulls `property-value` without clearing the committed `deposit-target`. Reproduced through ordinary actions - tracker, "Adjust my goal", clear the field, return - the control drew itself inert. Fixed by removing the disagreement rather than the branch: `canSkipAhead()` and `skipAheadPatch()` both read the stored `checkpoint-amount` the guard tests, so "Further along" is enabled wherever `/tracker` renders. `skipAheadPatch()` had to move too, or the option would have been enabled and done nothing. Stash-and-restore untouched; three round trips byte-identical. The `savingSession()` fixture now derives `checkpoint-amount` from `CHECKPOINT_FRACTION` so two "no number is written down" tests keep their meaning. Separately, the supporting note is removed - both strings, the element, the `aria-describedby` and the dead CSS rule - because the control is operated by the facilitator, who does not need the explanation; the label survives and still composes each option's accessible name. Block 169px to 103px, gaps unchanged at 0/32/16. The 12px internal gap is left as it was and flagged as an open question. `CACHE_VERSION` v31. 235 tests passing. |
 | 27 August 2026 (milestone states) | D42 recorded: the milestone tracker gains a fourth state, `available`, and the Mortgage in Principle row takes it once the checkpoint is passed. `current` was doing two jobs - "achieved most recently" on the locked variant's third row and "you may now do this" on the unlocked variant's fourth - and nothing but the icon separated them, which is the exact distinction the study measures. The icon now says done or not done, the text colour says blocked or not blocked. `available` reuses `starCircleDashed` and needs no CSS rule at all, taking the full-colour title default that only `--locked` overrides. Mortgage in Principle is the only row that can take it, checked: rows one and two are facts from session start (D28) and row three is required by `/tracker`'s own guard. Deliberate, recorded divergence from `reference/frames/16`, which draws that row with the solid outline. Copy: `mipUnlockedBody` becomes `mipUnlockedBodyTemplate`, "Unlocked. Whenever you're ready." giving way to "Available from {checkpoint}. A lender's estimate of how much they might lend, worked out before you choose a property." - game language out, a figure in, and the row finally says what a Mortgage in Principle is. No borrowing figure quoted because none exists before `/mip/running` writes one. Contrast measured: title 16.68:1 light / 21:1 dark for `available` against 4.93:1 / 6.36:1 for `locked`, all AA. `mipLockedBodyTemplate`'s "Unlocks at" is left for a separate decision. `CACHE_VERSION` v29. 235 tests passing. |
 | 27 August 2026 (skip-ahead stays at the top, decided) | D38 amended: the experiment that moved the block below the checkpoint sentence was built, verified, committed and then reverted with `git revert`, and **the control staying at the top of `.screen-content` is recorded as a decision rather than an unresolved trade**. The reason: the block is 150-190px tall whatever its rules, so no position above the milestone list keeps all four rows above the fold - measured identically at two whole rows for a bottom rule, two rules, no rule, and the position immediately after `.progress-bar` - while every position that does keep four either splits the milestone list from its own caption, lands three pixels above the fold, or puts app content on both sides of the block, which a one-sided rule cannot fence and which needs a bracketing mark this build does not otherwise use. The top is the position where the app's content is on one side only, which is the condition that makes the single dashed edge correct. Cost accepted: two milestone rows below the fold. Carried forward from the reverted commit and kept: the position-is-load-bearing framing at the head of the `.skip-ahead` comment, the warning that a treatment must not follow the block to a new position unexamined, and the finding that no rule at all fails wherever the neighbours are not cards. `CACHE_VERSION` v28. 235 tests passing. |
 | 27 August 2026 (skip-ahead restyled for the tracker) | D38 amended again: the control's TREATMENT catches up with the move recorded above. Placement, behaviour and four of the five strings are unchanged. The dashed box goes - a dashed box is this build's placeholder idiom (`.media-placeholder`, `.visual-aid-placeholder`, `.routes-illustration`) and a research instrument must not wear it - replaced by a single dashed bottom rule, which is the build's existing unsettled-not-settled mark (`.account-group-header--unassigned`, `.status-card__still-to-sort`) and puts the boundary on the side the app's content is on. `margin-top: var(--space-3xl)` becomes `margin-bottom: var(--space-lg)`, so the block adds no top spacing, `--screen-inset-y` alone governs, and the 56px void below the app bar goes: 0px above, 32px below, every other gap on the screen 16px. Horizontal padding removed, so the block aligns to the 350px content column and the track widens 318 to 350, matching the headline figure, the progress bar and the action bar button - width does not mark app content on this screen, fill and weight do, and the block gives up both. The internal gap stays at 12 after being screenshot at 8 and rejected: at 8 the note reads as a caption on the toggle and appears to disclaim only the toggle, when what a participant might take as real is the deposit figure below. `skipAheadNote` takes its one deliberate copy amendment - "what this screen shows then" - the screen no longer naming itself in the third person. Three stale CSS comments corrected. Contrast unchanged and re-measured from the page: light 4.93/4.93/16.68/5.28, dark 6.36/6.36/21/5.95. Three round trips leave state identical. `CACHE_VERSION` v26. 235 tests passing. |

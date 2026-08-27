@@ -1385,3 +1385,43 @@ matching its reference. Clamping the seed to 60% of `left-over` instead of to `l
 the ceiling rule for every participant and would need `monthsToTarget`'s `exceeds-left-over` guard
 looked at in the same pass. Either is a decision about a figure, which CLAUDE.md puts outside a
 tidy-up.
+
+---
+
+**G62. Frame 15/16's gap sentence reads "You're £0 away" while the headline shows £8,950 against a
+£28,000 goal. OPEN.**
+
+`tracker.js` computes the gap sentence with `gapToCheckpoint(state)`, which recomputes the
+checkpoint LIVE from `property-value` x `deposit-pct` rather than reading the stored
+`checkpoint-amount`. With `property-value` null, `depositTarget()` fails and the gap collapses to
+£0, so the screen says:
+
+> You're £0 away from the point where checking a Mortgage in Principle starts to be useful.
+
+while the headline above it reads £8,950, the caption reads "of your £28,000 deposit goal", and the
+progress bar draws about a third. **The screen contradicts itself.**
+
+**Reachable path, no facilitator gesture:** from `/tracker` below the checkpoint, tap "Adjust my
+goal" (D25's secondary action), reach frame 09, clear the property value field - which writes
+`property-value: null` without clearing the committed `deposit-target` - and return to `/tracker`.
+The screen's own guard passes on the stored keys and it renders.
+
+**THIS IS THE SAME LIVE-VERSUS-STORED DISAGREEMENT AS THE ONE FIXED IN `canSkipAhead()`, in a
+different consumer,** and that is the thing to know before fixing it. D38's third amendment records
+the pattern: `/tracker`'s guard decides whether the screen renders by testing the STORED
+`checkpoint-amount` and `deposit-target`, so anything on the screen that re-derives those figures
+live can disagree with the guard that let it draw. `canSkipAhead()` and `skipAheadPatch()` were moved
+onto the stored key. `gapToCheckpoint()` was not, because it is a model function with other callers
+and changing it is a wider decision than the one being taken there.
+
+**Other live consumers on the same screen, checked in the same pass:**
+
+- `assumptions-saving.js` calls `depositTarget(state)` live but HANDLES the error, falling back to
+  `inflationExclusionFallbackAmount`. Correct as written.
+- `learn-ltv.js` calls `depositTarget(state)` live and does not handle the error; its comparison
+  table multiplies `property-value` directly, so with a null value the columns compute from zero.
+  Same class of defect, not yet traced end to end.
+
+*Not fixed here.* The fix is a decision about which figures a screen may re-derive and which it must
+read, and it should be taken across `gapToCheckpoint`, `learn-ltv.js` and any later consumer at
+once rather than one call site at a time.

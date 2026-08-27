@@ -749,26 +749,22 @@ const content = {
 
     // --- The skip-ahead control (src/skip-ahead.js, DECISIONS.md D38) -------
     //
-    // A PROTOTYPE CONTROL, AND EVERY LINE HERE HAS TO SAY SO. A participant
-    // reading this screen aloud has to arrive at "this is a way to skip
-    // forward in the prototype", not at "the bank can move my savings" and not
-    // at "the app is fast-forwarding my finances". Three rules the copy is
-    // built on, worth writing down because each is easy to break in a rewrite:
+    // THREE STRINGS, AND THE LABEL CARRIES ALL OF THE FRAMING. There used to be
+    // a fourth, a supporting note explaining what the control did and that no
+    // money moved. It was removed (D38, third amendment): the control is
+    // operated by the facilitator, who does not need the explanation, and the
+    // note was the only part of the block addressed to someone who did.
     //
-    //   1. It names itself before it names its action. "Prototype control"
-    //      comes first, in the heading, where a participant reading top to
-    //      bottom meets it before anything else in the block.
-    //   2. It never says the money is real and never says it is not the
-    //      participant's. "The example figures" is the subject of the sentence
-    //      that describes what moves - not "your savings", which would be a
-    //      claim about them, and not "fake money", which invites a
-    //      conversation about the prototype instead of about the screen.
-    //   3. It makes no financial claim and recommends nothing. There is no
-    //      figure, no rate, no timescale and no course of action here, so
-    //      there is nothing for the guidance-versus-advice boundary to catch,
-    //      and it adds no regulatory anchor of its own. /tracker already
-    //      carries both anchors for the figures BELOW the control; this block
-    //      neither needs nor weakens them.
+    // WHAT THE LABEL HAS TO DO, now that it does it alone. A participant
+    // reading this screen aloud has to arrive at "this is a way to skip forward
+    // in the prototype", not at "the bank can move my savings" and not at "the
+    // app is fast-forwarding my finances". "Prototype control" therefore comes
+    // first, before the action it names, and it is the first line of the block.
+    //
+    // It is also the accessible name of both options - `skipAheadHTML` composes
+    // "Prototype control: skip ahead, Further along" - so the framing survives
+    // for a screen-reader participant arrowing between them, which is the one
+    // place the removed note would otherwise have been missed.
     //
     // "Skip ahead" rather than "fast-forward": fast-forwarding is something
     // done TO a timeline the participant is on, which is the reading that has
@@ -778,21 +774,14 @@ const content = {
     // "Now" and "Further along" name where you are looking; a pair like
     // "Off"/"On" or "Start"/"Skip" would name a thing being done.
     //
-    // "this screen" rather than "the tracker", amended 27 August 2026. The
-    // control sits ON the tracker now, so the original clause had the screen
-    // naming itself in the third person and a participant reading the note
-    // aloud there would stumble over it. D38 records the amendment; it had
-    // previously recorded this copy as moved verbatim.
+    // NO REGULATORY ANCHOR OF ITS OWN, unchanged by the removal: there is no
+    // figure, no rate, no timescale and no course of action in any of these
+    // three strings, so there is nothing for the guidance-versus-advice
+    // boundary to catch. /tracker already carries both anchors for the figures
+    // BELOW the control; this block neither needs nor weakens them.
     skipAheadLabel: 'Prototype control: skip ahead',
     skipAheadNowOption: 'Now',
     skipAheadAheadOption: 'Further along',
-    skipAheadNote:
-      'Not part of the app. It moves the example figures to a later point in this goal, so you can see what this screen shows then. No money is saved or moved.',
-    // Shown in place of the note when there is no deposit goal yet, so there
-    // is no later point to move to. States the condition; does not tell the
-    // participant to go and do anything about it.
-    skipAheadUnavailableNote:
-      'Not part of the app. There is no later point to show until a deposit goal has been worked out.',
   },
 
   '/mip': {
