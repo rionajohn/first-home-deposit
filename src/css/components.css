@@ -1059,9 +1059,19 @@
   margin-top: auto;
 }
 
+/* `user-select: none` IS FOR THE FACILITATOR GESTURE, NOT A STYLING TWEAK
+   (DECISIONS.md D54). A long press on the disabled Profile tab opens
+   /settings (src/facilitator-gesture.js); without this, a 700ms hold raises
+   the iOS text callout over the tab's label and the gesture is unusable on a
+   real phone. It sits on the SHARED rule and so applies to all five tabs -
+   deliberate, and cheap: nobody has a reason to select a tab label. Remove it
+   with the gesture, not on its own. */
 .bottom-nav__tab {
   flex: 1 1 0;
   min-width: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   display: flex;
   flex-direction: column;
   align-items: center;

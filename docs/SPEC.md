@@ -295,6 +295,10 @@ screen module's declared `anchors` list against `anchors.js`, and confirming the
 - PWA installability: add-to-home-screen on an actual iOS device and an actual Android device.
 - `prefers-reduced-motion` at the OS level, confirming cross-fade replaces all slide/rise motion.
 - `/settings` reachable only by typing the URL - confirmed absent from every visible nav element.
+  **Amended 28 August 2026 (`DECISIONS.md` D54):** there is now a second facilitator path - a ~700ms
+  long press on the **disabled** Profile tab in the bottom nav. The step above still holds as written:
+  the route remains absent from every *visible* nav element, because the gesture renders nothing, is
+  not labelled, and adds nothing to the accessibility tree. Verify both paths, not one.
 - The service worker serves the current `CACHE_VERSION` after a fresh deploy, with no stale cache
   from a prior session (open the app, deploy a change, reopen, confirm the new version loads).
 

@@ -116,6 +116,16 @@ export function appBarHTML({ title, left = null, appBarLabels }) {
  *
  * router.js mounts this on every non-excluded route and wires the live tabs;
  * no screen module needs to render or bind it.
+ *
+ * THE DISABLED PROFILE TAB ANSWERS A LONG PRESS, AND THAT IS DELIBERATE. It
+ * opens /settings - see `src/facilitator-gesture.js`, bound from
+ * `mountBottomNav`, and DECISIONS.md D54. A disabled button fires `pointerdown`
+ * but NOT `click`, which is exactly what makes the gesture safe: the tab stays
+ * completely inert to a tap and answers only a deliberate 700ms hold. **Do not
+ * "fix" the tab by removing its `disabled` attribute or by adding `profile` to
+ * `NAVIGABLE_TABS`** - either would start delivering `click` and put a tap and
+ * a hold in competition. If the tab is ever made live, review that module in
+ * the same change.
  */
 export const NAVIGABLE_TABS = { home: '/home', goals: '/goals', insights: '/tracker' };
 

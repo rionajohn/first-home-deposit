@@ -16,7 +16,8 @@
  * D8/D10), "06 Assumptions and sources" (/assumptions/saving,
  * /assumptions/deposit, /assumptions/borrowing, /assumptions/sources), and
  * "07 Prototype controls" (/settings — frame 33, a testing-only screen
- * reachable by typing the URL, not from any visible nav element).
+ * reachable by typing the URL or by the long press on the disabled Profile
+ * tab (DECISIONS.md D54), not from any visible nav element).
  *
  * Also registers the service worker (sw.js), if supported, so the settings
  * screen's build-version caption has a live CACHE_VERSION to read back from

@@ -17,6 +17,7 @@ import content from './content.js';
 import { bottomNavHTML, NAVIGABLE_TABS } from './components/ui.js';
 import { mountActionBars } from './action-bar.js';
 import { mountSheetDrag, dismissControlFor } from './sheet-drag.js';
+import { bindSettingsGesture } from './facilitator-gesture.js';
 
 export const ROUTES = [
   '/home',
@@ -331,8 +332,10 @@ const DIALOG_ROUTES = new Set([
  *     `checkRunAt` set with no result, and "did the participant wait" is
  *     part of what 19b is for.
  *   - `/settings` (33) — facilitator-only, deliberately outside the
- *     participant journey and reachable only by typing the URL (GAPS.md
- *     G23). It has its own close control back to /home already.
+ *     participant journey and reachable only by typing the URL, or by the
+ *     long press on the disabled Profile tab that `mountBottomNav` binds
+ *     (GAPS.md G23, DECISIONS.md D54 - neither path is visible). It has its
+ *     own leading control back already.
  */
 const BOTTOM_NAV_EXCLUDED_ROUTES = new Set([
   ...DIALOG_ROUTES,
@@ -412,6 +415,14 @@ function mountBottomNav(container, path) {
   // most routes the answer is "none". See TAB_FOR_ROUTE above.
   const active = TAB_FOR_ROUTE.get(path) ?? null;
   container.insertAdjacentHTML('beforeend', bottomNavHTML(content.shared.bottomNav, { active }));
+
+  // The facilitator gesture (src/facilitator-gesture.js, DECISIONS.md D54): a
+  // long press on the DISABLED Profile tab opens /settings, so a session can
+  // reach frame 33 and its reset without a hash typed in front of a
+  // participant. Bound here because this is where the bar is built, so the
+  // gesture follows the bar rather than the route. It draws nothing, announces
+  // nothing, and owns no state.
+  bindSettingsGesture(container);
 
   container.querySelectorAll('[data-action="nav-tab"]').forEach((tab) => {
     const target = NAVIGABLE_TABS[tab.dataset.tab];

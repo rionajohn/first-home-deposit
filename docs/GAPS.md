@@ -143,6 +143,13 @@ auto-reset.*
 **G23. Frame 33 reachable to the facilitator, not discoverable by a participant.** Not addressed
 anywhere. *Status: resolved - hidden route (`/settings`), never linked from any on-screen element.*
 
+*Note, 28 August 2026 (`DECISIONS.md` D54): the route now has **two** facilitator paths - the typed URL,
+and a ~700ms long press on the **disabled** Profile tab in the bottom nav. **This entry stays resolved and its
+wording stands unchanged**: the gesture adds no on-screen element, no link, no label and nothing to the
+accessibility tree, so "never linked from any on-screen element" is still literally true, and the intent -
+not discoverable by a participant - is unaffected. Recorded here so the next reader knows there are two paths
+and that neither is visible.*
+
 ---
 
 **G24. Section 5 (Regulatory anchors) - missed in the first research pass over `build-spec.md`, now

@@ -112,7 +112,7 @@ Click path is from `#/home`. "Cold" = type the URL with an empty session.
 | 30 | …your deposit and rates | `#/assumptions/deposit` | ✅ | 12 → "How did we work this out?" | none |
 | 31 | …your borrowing estimate | `#/assumptions/borrowing` | ✅ | 20 → "See how we worked this out" | none |
 | 32 | Where these figures come from | `#/assumptions/sources` | ✅ | 05 → "Where these figures come from" | none |
-| 33 | Prototype settings | `#/settings` | ✅ | **URL only** - no on-screen link anywhere | none |
+| 33 | Prototype settings | `#/settings` | ✅ | **URL, or a ~700ms long press on the disabled Profile tab** - still no on-screen link anywhere (D54, 28 August 2026) | none |
 
 **Cold ❌ cascades.** Typing `#/tracker`, `#/mip`, `#/mip/result/likely` etc. on an empty session lands
 you on **09** (`#/calculator/property`), not on the screen you typed - each guard redirects to the one

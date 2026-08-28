@@ -32,9 +32,21 @@
  * SPEC.md's own end-to-end verification step (closed after GAPS.md, the
  * more recent and authoritative source per DECISIONS.md's own precedence
  * rule) instead specifies "`/settings` reachable only by typing the URL —
- * confirmed absent from every visible nav element." No long-press gesture
- * is wired here; adding one would mean touching every other screen's app
- * bar, which is outside this session's brief.
+ * confirmed absent from every visible nav element."
+ *
+ * AMENDED 28 August 2026 (DECISIONS.md D54). A long-press gesture now exists,
+ * and the paragraph below it replaces was wrong on its own terms. It read:
+ * "adding one would mean touching every other screen's app bar." Re-costed
+ * against the code, all 17 screens that render `appBarHTML` already call the
+ * shared `bindAppBarLeading`, so one edit would have covered them - but it
+ * would still have missed frame 01, which renders `.app-bar` inline, and the
+ * three calculator steps, which draw a step header instead.
+ *
+ * The gesture that was built is NOT on the app bar. It is a ~700ms long press
+ * on the DISABLED Profile tab (`src/facilitator-gesture.js`), which reaches 20
+ * routes to the app bar's 19 - including those three calculator steps - and
+ * carries no risk of colliding with the back control. The Figma annotation's
+ * intent is met; its target is not, and D54 records why.
  *
  * No regulatory anchor applies (SPEC.md's anchor map has no row naming this
  * screen) and no Section 6 figure is shown, so no provenance caption

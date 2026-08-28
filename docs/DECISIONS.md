@@ -193,7 +193,7 @@ Frame 01's own bar was reused rather than a new control designed, for two reason
 |---|---|
 | 03b, 10c, 13b, 29, 30, 31, 32 (the seven sheets) | A tab bar belongs to the screen behind a sheet, not to the sheet. Rendering one inside a sheet would put it under the scrim, inside the sheet's own card, and would offer a second dismissal that skips the close behaviour each sheet defines for itself (13b's `video-seen`, 10c's `journeyPaused`). Apple's HIG is explicit about this structurally. |
 | 19b Running your check | A determinate processing state that resolves to 20 or 21 on its own. An exit offered mid-check would leave `checkRunAt` set with no result, and whether a participant waits is part of what 19b is for. |
-| 33 Prototype settings | Facilitator-only, deliberately outside the participant journey, reachable only by typing the URL (`GAPS.md` G23). It has its own close control back to frame 01 already. |
+| 33 Prototype settings | Facilitator-only, deliberately outside the participant journey, reachable only by typing the URL (`GAPS.md` G23). It has its own close control back to frame 01 already. **Amended 28 August 2026 (D54):** also reachable by a long press on the disabled Profile tab - still nothing visible, and the leading control is now the back chevron (D32), not a close. |
 
 **One qualification, on the calculator's step flow (09, 09a, 09b, 10, 10b, 11).** These *keep* the bar - "from anywhere in the journey" includes mid-calculator - but its Home tab opens frame 10c ("Leave this for now?") instead of jumping straight to frame 01. `build-spec.md` section 1 already defines what leaving the calculator means: the form-header close on 09/10/10b opens 10c, and only 10c's own "Leave" sets `journeyPaused = true` and retains the draft inputs. A tab bar that bypassed that would silently discard a participant's part-entered figures. Frame 11 draws no close control, but it is the same step flow holding the same drafts, so it is treated the same way.
 
@@ -3854,6 +3854,112 @@ exemption, and revert the three enumerations.
 
 ---
 
+## D54. Frame 33 gains a second facilitator path, and it is invisible
+
+**Date.** 28 August 2026.
+
+**Decision.** A **~700ms long press on the DISABLED Profile tab** in the bottom nav opens
+`/settings`. Nothing renders, nothing is labelled, nothing enters the accessibility tree, and the tab
+stays visually and semantically disabled. The typed URL still works and is unchanged.
+
+**The problem.** `/settings` and `#/reset` are both things a facilitator needs mid-session, and both
+were reachable only by typing a hash. Typing a URL in front of a participant is worse than a control
+they cannot see: it breaks the fiction of the app more thoroughly than any hidden gesture, and it
+happens at exactly the moment the session is being observed.
+
+**THREE SHAPES WERE COSTED. TWO WERE REJECTED FOR REASONS WORTH KEEPING.**
+
+- **A visible prototype block on `/home`** was the cheapest to build - the screen exists and carries
+  the tab bar - and was rejected as the **worst possible placement**: frame 01 is the first screen a
+  participant sees, and the control it would expose can flip the journey stage, the Mortgage in
+  Principle outcome, the theme and the text size mid-session.
+- **A `/profile` screen** was rejected as a large change in service of a small need. It would have
+  meant a new route, a new screen module outside the 32-frame reference set, `profile` added to
+  `NAVIGABLE_TABS`, and a currently non-focusable tab made focusable - and D11's three tab states are
+  a participant-visible signal about what is and is not built, which `bottom-nav.test.mjs` asserts
+  directly. **The control does not need a home. It needs to stop being a typed hash.**
+
+**WHY THE DISABLED PROFILE TAB AND NOT THE APP BAR**, which is what the Figma node annotates. Both
+bind in one place - the tab from `mountBottomNav`, the app bar from a central mount - so the deciding
+factors were coverage and blast radius, measured per route rather than estimated:
+
+| | Profile tab | App bar |
+|---|---|---|
+| Routes it renders on | **20 / 28** | 19 / 28 |
+| Exclusive routes | **`/calculator/property`, `/calculator/saving`, `/calculator/review`** | `/mip/running` (a 1.4s transient), `/settings` (already there) |
+| Competing control in the target | **none - the tab is inert** | the back/close button, the most-pressed control in the app |
+| What a stray tap does today | **nothing** | navigates back, or exits the flow |
+
+The three calculator steps draw a step header rather than an `.app-bar`, so the app bar cannot reach
+them at all; they are mid-journey screens where a facilitator plausibly needs frame 33. And a hesitant
+back-press is a normal thing for a participant to do, which is the risk the app bar carries and the
+tab does not.
+
+**`settings.js`'s own reason for rejecting the app-bar gesture was wrong, and is corrected in place.**
+It read "adding one would mean touching every other screen's app bar". All 17 screens that render
+`appBarHTML` already call the shared `bindAppBarLeading`, so one edit would have covered them. What it
+would still have missed - and this is the real objection - is frame 01, which renders `.app-bar`
+**inline in `home.js`**, and the three calculator steps.
+
+**A DISABLED BUTTON FIRES `pointerdown` BUT NOT `click`, AND THE GESTURE IS BUILT ON THAT.** Measured
+in Chromium in both a mouse and a touch context:
+
+```
+press on the disabled Profile tab -> pointerdown (+ touchstart on touch), on the
+                                     button and bubbling to the nav; NO mousedown, NO click
+```
+
+Activation events are not delivered to a disabled form control. **This is load-bearing rather than
+incidental**: it is what lets the tab answer a deliberate hold while staying completely inert to a tap,
+because there is no activation path for an accidental press to take. It also sets the condition under
+which this must be revisited - if `profile` is ever added to `NAVIGABLE_TABS`, `click` starts firing
+and a tap and a hold would be in competition. The maintainer comment at `bottomNavHTML` says so, and
+it is required rather than optional: a disabled control that silently answers a long press is exactly
+the kind of thing the next reader "fixes".
+
+**The threshold** is 700ms with a 10px movement tolerance, and the pointer discipline is copied from
+`sheet-drag.js` - one pointer at a time by id, primary button only, and `pointercancel` handled,
+which is the one that matters on a phone when a scroll takes the pointer over. The constants are not
+shared with that file: its thresholds are about a product gesture's feel, this one's is about not
+firing by accident.
+
+**FOUR DECISIONS TAKEN WITH IT.**
+
+1. **`user-select: none` on `.bottom-nav__tab` is part of this change, not a styling tweak.** Without
+   it, a 700ms hold raises the iOS text callout over the tab's label and the gesture is unusable on a
+   real phone. It sits on the **shared** rule and therefore applies to all five tabs - deliberate and
+   cheap, since nobody has a reason to select a tab label. **Recorded here so a later pass does not
+   read it as cosmetic and remove it independently of the gesture.**
+2. **`GAPS.md` G23 stays resolved**, with a dated note. Its resolution reads "never linked from any
+   on-screen element", and that is still literally true: the gesture adds no element, no link and no
+   accessible name. Both the letter and the intent - not discoverable by a participant - survive.
+3. **The maintainer comment at `bottomNavHTML` is required**, per above.
+4. **`skip-ahead.js` cited "the facilitator gesture on frame 10", which never existed.** There were no
+   pointer handlers anywhere in `src/` outside `sheet-drag.js`. The stale reference was found while
+   costing this and is corrected to point at what was actually built, so it does not read as a second
+   gesture that someone later goes looking for.
+
+**NO COPY, AND NO ACCESSIBLE NAME.** No label, no supporting line, no content key. This drops the
+"Prototype control" framing that `skip-ahead.js` carries and that every other prototype affordance in
+this build uses - correctly, because there is no name to carry it in and an invisible gesture should
+not announce itself. `skip-ahead.js`'s rule is explicitly about a **visible** control that a keyboard
+or screen-reader participant cannot reach; this one is invisible to everyone, so no participant is
+disadvantaged relative to another, and the typed URL survives unchanged as the keyboard path. **There
+is deliberately no keyboard equivalent.**
+
+**The return path is untouched.** `/settings` draws the back chevron bound to `goBack`, and D32 chose
+that control anticipating this exact entry point: "a later hidden gesture in from the profile screen
+... with no special case for it".
+
+**It owns no state key**, no route, no content key and no CSS block of its own.
+
+**To remove**, in one pass: delete `src/facilitator-gesture.js`, remove one import line and one call
+line in `src/router.js`, and remove the `user-select` / `-webkit-touch-callout` lines from
+`.bottom-nav__tab` in `src/css/components.css`. The comment at `bottomNavHTML` and the six dated
+"typing the URL" notes come off in the same pass.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -3927,3 +4033,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 28 August 2026 (the check is offered at any position) | **D51 recorded; D25 and D35 amended in place.** The deposit tracker's action bar carries `check-mip` as its primary on **both** variants under one string, so the Mortgage in Principle flow is enterable at any savings position and frame 21 is reachable in a moderated session rather than only by URL. An explicit author override: the checkpoint stops gating the ROUTE and keeps deciding the RESULT - below it the outcome is derived from position through the model's existing `gapToCheckpoint`, at or above it `resultOutcome` governs. An affordability/Loan-to-Value rule was rejected on the figures, the comparison frame 21's own copy states being false at every position this prototype can reach. Frame 33's outcome pill therefore no longer describes what happens below the checkpoint, accepted explicitly. D25's displaced primary becomes the in-content Loan-to-Value info link (the same string, its unlocked-only gate now spent), `belowCheckpointCta` is deleted, and `belowCheckpointBodyTemplate` is rewritten to carry no figure and hint at no direction. The milestone row takes `available` below the checkpoint - **D42 needs no amendment**, it anticipates the case - so the variants now differ at row 3 and the checkpoint leaves the milestone list; `locked` keeps no occupant and is kept rather than deleted (GAPS.md G68). Copy: `mipLockedBodyTemplate` and `mipUnlockedBodyTemplate` **collapse into one `mipBody`** (one row state, one string, and the shared "Available from {checkpoint}" opening was false on both rows); `unlocksAtTemplate` is **deleted**, which closes D42's own deferred "'Unlocks at' is left for a separate decision" line; and `readyToCheckLabel` is renamed `mipCaption` and rendered on both variants, since it was already true at either position. Verification item 2 (at-checkpoint variant byte-identical) is superseded on purpose - correctness beat the identity check. `CACHE_VERSION` v42. |
 | 28 August 2026 (frame 21 ends the flow too) | **D52 recorded; D50 amended in place.** Frame 21 takes D50's frame 20 treatment: **no action bar**, and rows 1 and 2 of its next-steps card stop being controls, through the same A2 mechanism (a row that declares no `action` renders as a plain `<div>` with no chevron and no focus stop) - no flag and no second mechanism. **Row 3 is untouched**: the adviser route rests on MCOB 4.8A and the Consumer Duty support outcome (D10, SPEC.md's anchor map), and SPEC.md's verification step 4 requires it reachable from both 20 and 21, confirmed still true as written. D50's live instruction that "the asymmetry must not be propagated to 21" is **withdrawn** by a dated banner: both screens end the same flow, and what differs is the answer, not whether the flow has finished. Lost and recorded: the in-content routes to `/tracker` and `/calculator/property` from this screen (neither orphaned - both reachable elsewhere, and the borrowing sheet keeps this screen's own card nav row), and the `--more-below` fade, which is drawn by the dock and goes with it on the longest screen in the flow. `primaryCta` and `secondaryCta` deleted; no wording changed. A **ninth** screenshot exemption in SPEC.md, and frame 21 leaves the sixth exemption's set, so both result screens are now out of it. `action-bar.test.mjs` moves the route into the no-bar test. `CACHE_VERSION` v43. |
 | 28 August 2026 (one forward route from frame 08) | **D53 recorded.** Frame 08 draws **no action bar**: "Not now, just track my goal" is removed with its content key, and the deposit calculator becomes the only forward route from the screen. The removed button wrote no state and offered a shortcut past the one thing the screen introduces, from the more prominent of two unequal slots; `build-spec.md` section 1 names the card's checkpoint button from here and **no row for this one at all**. `/tracker` stays reachable from the Insights tab, `/goals`'s bridge card, frame 12's primary and the MIP exits, and no journey state is lost - nothing in `src/` reads `calculatorEntered`, and frame 33's Journey stage builds a populated tracker more completely than the button did (D45). The **DUAA pushback affordance is untouched**: SPEC.md's anchor map satisfies it on this screen with the flag row plus the "how we worked this out" link, both of which stay - the removed control was a decline route, not pushback. Lost and recorded: the screen's only decline route, and the `--more-below` fade, which the dock draws and which goes with it on a screen that needs scrolling. The guidance-not-advice line keeps its place as the last element in the content. A **tenth** screenshot exemption in SPEC.md; frame 08 leaves the sixth exemption's set; `action-bar.test.mjs` moves the route into the no-bar test and all three no-bar enumerations now read "01, 08, 12, 19b, 20, 21 and 33". `CACHE_VERSION` v44. |
+| 28 August 2026 (a second, invisible path to frame 33) | **D54 recorded.** A **~700ms long press on the DISABLED Profile tab** opens `/settings`, so a session reaches frame 33 and its reset without a hash typed in front of a participant. Nothing renders, nothing is labelled, nothing enters the accessibility tree, and the tab stays visually and semantically disabled. A visible block on frame 01 was rejected as the worst possible placement for a control that can flip the scenario mid-session; a `/profile` screen was rejected as a large change - new route, new screen outside the 32-frame set, a focusable tab - in service of a small need. The tab beat the app bar the Figma node annotates on **coverage** (20 routes to 19, including the three calculator steps the app bar cannot reach) and **blast radius** (the tab is inert; the app bar holds the back control). Built on the measured fact that a disabled button fires `pointerdown` but **not** `click` - load-bearing, since it is what keeps the tab inert to a tap, and the condition under which this must be revisited if `profile` ever joins `NAVIGABLE_TABS`. `user-select: none` added to the shared `.bottom-nav__tab` rule for the gesture's sake, not as a styling tweak; a required maintainer comment at `bottomNavHTML`; `GAPS.md` G23 stays **resolved** with a dated note, its "never linked from any on-screen element" still literally true; and `skip-ahead.js`'s citation of a "facilitator gesture on frame 10" that never existed is corrected. **No copy and no accessible name** - the one prototype affordance in this build that does not carry the "Prototype control" framing, because there is no name to carry it in. Owns no state. Six "typing the URL" records amended in place. `CACHE_VERSION` v45. |

@@ -292,8 +292,10 @@ export function accountFiguresPatch(state, figures) {
  * performed; two radios announce "Now, selected" / "Further along, selected",
  * which says where the session is.
  *
- * FULLY IN THE ACCESSIBILITY TREE, unlike the facilitator gesture on frame 10,
- * because it is visible. A visible control a keyboard or screen-reader
+ * FULLY IN THE ACCESSIBILITY TREE, unlike the facilitator gesture in
+ * `src/facilitator-gesture.js`, because it is visible. (That citation used to
+ * read "the facilitator gesture on frame 10", which never existed in the code -
+ * a stale reference corrected when the real one was built, DECISIONS.md D54.) A visible control a keyboard or screen-reader
  * participant cannot reach, or cannot hear the state of, is a different
  * prototype for them than for everyone else - a defect in the instrument
  * rather than a finding about the design.

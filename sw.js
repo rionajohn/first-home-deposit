@@ -29,7 +29,7 @@
  * src/cache-version.js's BUILD_VERSION in step with the version
  * below; see that file's own comment for why the two are separate.
  */
-const CACHE_VERSION = 'v44';
+const CACHE_VERSION = 'v45';
 const CACHE_NAME = `yfh-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
@@ -46,6 +46,7 @@ const SHELL_ASSETS = [
   './src/components/ui.js',
   './src/config.js',
   './src/content.js',
+  './src/facilitator-gesture.js',
   './src/format.js',
   './src/icons.js',
   './src/model/accounts.js',
