@@ -3778,6 +3778,82 @@ same pass.
 
 ---
 
+## D53. Frame 08 offers one forward route, and it is the deposit calculator
+
+**Date.** 28 August 2026.
+
+**Decision.** Frame 08 (`/goal-check`) draws **no action bar**. The button it held, "Not now, just
+track my goal", is removed with its content key. The "The calculator asks you two things" card's own
+"Open the deposit calculator" button becomes the only forward route from the screen.
+
+**Why.** The screen had two forward controls and they were not equal. The card's button is the one
+`build-spec.md` section 1 names from here - *"08 Ready for the calculator | Checkpoint button | 09a if
+no values held, otherwise 09 | calculatorEntered = true | In file (annotation)"* - and it is the only
+route that writes anything. The bar's button wrote no state at all: a bare
+`window.location.hash = '#/tracker'`. So the screen introduced the calculator and then offered a
+shortcut past it, from the more prominent of the two slots.
+
+**WHAT THE REMOVED BUTTON REACHED, AND WHERE THAT STILL IS.** `/tracker`, which remains reachable
+from the Insights tab (its own root, D40), from `/goals`'s bridge card (D44), from frame 12's primary
+("See what this means for borrowing"), and from the Mortgage in Principle flow's exits. Nothing is
+orphaned by this.
+
+**No journey state is lost either, checked rather than assumed.** The handler set nothing, so the
+only state difference between the two routes was that the calculator's button also writes
+`calculatorEntered: true`. **Nothing in `src/` reads `calculatorEntered`** - it is written by
+`goal-check.js` and by `stage.js`, and read by no screen - so "reached the tracker without entering
+the calculator" was not a state any screen could tell apart. Where a session genuinely needs a
+populated tracker without a participant walking the calculator, frame 33's Journey stage already
+builds it: `savingPatch()` writes `calculatorEntered`, `goal`, `goalSaved` and every calculator figure
+from a fresh `defaultState()` (D45). That is the supported way to set it up, and it is more complete
+than the button was.
+
+**IT WAS NOT NAMED ANYWHERE AS A REQUIRED ROUTE.** `build-spec.md` section 1 lists two triggers for
+frame 08 - the checkpoint button and the app bar back - and **no row for this button at all**. Neither
+`SPEC.md` nor `DECISIONS.md` names a tracker route from this screen. It was an addition, and it is
+withdrawn.
+
+**THE PUSHBACK AFFORDANCE IS UNAFFECTED, AND IT IS NOT THIS BUTTON.** `SPEC.md`'s anchor map puts the
+**DUAA 2025 automated-decision triad (pushback / plain wording / visible sources)** on frame 08 among
+others, and says what satisfies it: *"The flag row ('something doesn't look right') plus 'how we
+worked this out' links."* Both survive untouched - the flag row above the legal line, and the
+"How we worked these out" link above the handoff card. The removed control was a **decline route**
+("not now"), which is a different thing from the pushback the map requires, and no entry ties a
+decline route to this screen specifically.
+
+**The guidance-not-advice line's placement does not change.** It stays the last element in
+`.screen-content`, at `.legal-text`, exactly where it sits on every other screen that carries it -
+including frames 20 and 21, which have no action bar either (D50, D52). Nothing moved up into the
+space the dock vacated; the line was already below the flag row and still is.
+
+**WHAT IS LOST.**
+
+- **The screen's only decline route.** After this, a participant who does not want to open the
+  calculator leaves by the header X or the tab bar, or pushes back through the flag row. That is a
+  real narrowing of what the screen offers, and it is the point of the change rather than a
+  side-effect: the alternative was two forward controls of unequal standing, one of which skipped the
+  screen's own subject.
+- **The `--more-below` fade.** It is drawn by `.action-bar-dock`'s pseudo-element (`bottom: 100%`), so
+  a screen with no bar has no dock and no fade. Frame 08 is long - headline, body, a three-row figure
+  card, an assumptions link, a three-row handoff card with its own button, the flag row and the legal
+  line - so the cue that there is more below is gone from a screen that needs scrolling. Accepted on
+  the same terms D50 and D52 accepted it: the fade exists to sit above a bar, and a bar-less fade
+  would be a new component for a cue the tab bar's edge already partly gives.
+
+**Screenshot comparison.** Frame 08's reference PNG draws the bar, so a **tenth** exemption is added
+to `SPEC.md`'s list, covering that difference only. Frame 08 also leaves the sixth exemption's set,
+having no bar whose visibility can be diffed. `scripts/action-bar.test.mjs` moves `/goal-check` out of
+`SCREENS` and into the no-bar test, whose name and preamble now read "01, 08, 12, 19b, 20, 21 and 33";
+`src/action-bar.js`'s own enumeration of that set is updated to match.
+
+**To reverse.** Restore `primaryCta` under `/goal-check` in `content.js`, put the
+`actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'track-goal' })` call back after
+`</main>` with `actionBarHTML` in the import list, and re-add the `track-goal` handler navigating to
+`#/tracker`. Move the route back into `SCREENS` in `action-bar.test.mjs`, drop the tenth `SPEC.md`
+exemption, and revert the three enumerations.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -3850,3 +3926,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 28 August 2026 (frame 20 ends the flow) | **D50 recorded.** Frame 20 is built as the end of the MIP flow: **no action bar** ("Start my Mortgage in Principle" and "Keep saving for now" removed with their handlers and their `content.js` keys), and its **first next-step row stops being a control** - no action, so no chevron and no focus stop. **The second row is deliberately untouched**, keeping its chevron and its `/mip/adviser` route, because it is the MCOB 4.8A + Consumer Duty adviser route (D10) and `SPEC.md`'s verification step 4 requires it reachable from 20; that step still holds as written, and no `GAPS.md` entry was needed. `nextStepsCardHTML` now draws a `<button>` + chevron when a step declares an `action` and a `<div>` with neither when it does not - **one fact deciding both**, since the chevron is the claim that a row goes somewhere and a button bound to nothing is a dead focus stop (D11's reasoning for `disabled` tabs). **Frame 21 is byte-identical**, asserted by comparing its rendered `.next-steps-card` outerHTML before and after (2,304 characters, strictly equal), and it keeps its bar and all three chevroned rows - the asymmetry is deliberate and must not be propagated. Costs recorded rather than discovered later: `build-spec.md` row 83's *Assumed* "Back or done -> 16 Tracker" is superseded and `/tracker` is now reached from this screen **only via the Insights tab**; the dock's `--more-below` fade goes with the dock, leaving scroll as the only more-below cue; and whether a participant presses "Start my Mortgage in Principle" stops being observable. Layout needed no work - `mountActionBars` already clears the published height for bar-less screens and `var(--action-bar-height, 0px)` falls back, so the scroller reserves `--screen-inset-y` alone. Measured in Chromium: at 375x667 the last element ends 24px above the tab bar, `.screen` padding-bottom `0px` with the inset carried inside `.bottom-nav`, so **the safe area is not doubled**; at 1280x900 framed, `--safe-bottom` resolves to 34px, the nav is 90px tall and its bottom edge is the phone screen's. `scripts/shots.mjs` gains a **`--scroll=top,end`** axis, the screens' bottom edge being the thing under review and the frame itself not being what scrolls. `SPEC.md` gains an eighth screenshot exemption, frame 20 only, and frame 20 leaves the sixth's set. `CACHE_VERSION` v40, with `BUILD_VERSION` bumped in the same commit (D49's paired-edit rule). 271 tests passing - four fewer than 275, being frame 20's four viewport rows moving out of `action-bar.test.mjs`'s `SCREENS` and into its no-bar list. |
 | 28 August 2026 (the check is offered at any position) | **D51 recorded; D25 and D35 amended in place.** The deposit tracker's action bar carries `check-mip` as its primary on **both** variants under one string, so the Mortgage in Principle flow is enterable at any savings position and frame 21 is reachable in a moderated session rather than only by URL. An explicit author override: the checkpoint stops gating the ROUTE and keeps deciding the RESULT - below it the outcome is derived from position through the model's existing `gapToCheckpoint`, at or above it `resultOutcome` governs. An affordability/Loan-to-Value rule was rejected on the figures, the comparison frame 21's own copy states being false at every position this prototype can reach. Frame 33's outcome pill therefore no longer describes what happens below the checkpoint, accepted explicitly. D25's displaced primary becomes the in-content Loan-to-Value info link (the same string, its unlocked-only gate now spent), `belowCheckpointCta` is deleted, and `belowCheckpointBodyTemplate` is rewritten to carry no figure and hint at no direction. The milestone row takes `available` below the checkpoint - **D42 needs no amendment**, it anticipates the case - so the variants now differ at row 3 and the checkpoint leaves the milestone list; `locked` keeps no occupant and is kept rather than deleted (GAPS.md G68). Copy: `mipLockedBodyTemplate` and `mipUnlockedBodyTemplate` **collapse into one `mipBody`** (one row state, one string, and the shared "Available from {checkpoint}" opening was false on both rows); `unlocksAtTemplate` is **deleted**, which closes D42's own deferred "'Unlocks at' is left for a separate decision" line; and `readyToCheckLabel` is renamed `mipCaption` and rendered on both variants, since it was already true at either position. Verification item 2 (at-checkpoint variant byte-identical) is superseded on purpose - correctness beat the identity check. `CACHE_VERSION` v42. |
 | 28 August 2026 (frame 21 ends the flow too) | **D52 recorded; D50 amended in place.** Frame 21 takes D50's frame 20 treatment: **no action bar**, and rows 1 and 2 of its next-steps card stop being controls, through the same A2 mechanism (a row that declares no `action` renders as a plain `<div>` with no chevron and no focus stop) - no flag and no second mechanism. **Row 3 is untouched**: the adviser route rests on MCOB 4.8A and the Consumer Duty support outcome (D10, SPEC.md's anchor map), and SPEC.md's verification step 4 requires it reachable from both 20 and 21, confirmed still true as written. D50's live instruction that "the asymmetry must not be propagated to 21" is **withdrawn** by a dated banner: both screens end the same flow, and what differs is the answer, not whether the flow has finished. Lost and recorded: the in-content routes to `/tracker` and `/calculator/property` from this screen (neither orphaned - both reachable elsewhere, and the borrowing sheet keeps this screen's own card nav row), and the `--more-below` fade, which is drawn by the dock and goes with it on the longest screen in the flow. `primaryCta` and `secondaryCta` deleted; no wording changed. A **ninth** screenshot exemption in SPEC.md, and frame 21 leaves the sixth exemption's set, so both result screens are now out of it. `action-bar.test.mjs` moves the route into the no-bar test. `CACHE_VERSION` v43. |
+| 28 August 2026 (one forward route from frame 08) | **D53 recorded.** Frame 08 draws **no action bar**: "Not now, just track my goal" is removed with its content key, and the deposit calculator becomes the only forward route from the screen. The removed button wrote no state and offered a shortcut past the one thing the screen introduces, from the more prominent of two unequal slots; `build-spec.md` section 1 names the card's checkpoint button from here and **no row for this one at all**. `/tracker` stays reachable from the Insights tab, `/goals`'s bridge card, frame 12's primary and the MIP exits, and no journey state is lost - nothing in `src/` reads `calculatorEntered`, and frame 33's Journey stage builds a populated tracker more completely than the button did (D45). The **DUAA pushback affordance is untouched**: SPEC.md's anchor map satisfies it on this screen with the flag row plus the "how we worked this out" link, both of which stay - the removed control was a decline route, not pushback. Lost and recorded: the screen's only decline route, and the `--more-below` fade, which the dock draws and which goes with it on a screen that needs scrolling. The guidance-not-advice line keeps its place as the last element in the content. A **tenth** screenshot exemption in SPEC.md; frame 08 leaves the sixth exemption's set; `action-bar.test.mjs` moves the route into the no-bar test and all three no-bar enumerations now read "01, 08, 12, 19b, 20, 21 and 33". `CACHE_VERSION` v44. |

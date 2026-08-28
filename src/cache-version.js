@@ -35,7 +35,7 @@
  * newer build is downloaded and a reload is due - but it is a SECOND, labelled
  * line, and it never replaces this one.
  */
-export const BUILD_VERSION = 'v43';
+export const BUILD_VERSION = 'v44';
 
 /**
  * The prefix sw.js builds its cache name from (`yfh-shell-${CACHE_VERSION}`),

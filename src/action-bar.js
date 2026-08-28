@@ -196,7 +196,7 @@ export function mountActionBars(container) {
   // custom property and a class on the host, and `container.className =
   // 'screen'` in router.js resets classes but not inline styles — so
   // navigating from a screen that HAS an action bar to one that does not
-  // (frames 01, 12, 19b, 20, 21 and 33) used to leave the old height behind, and
+  // (frames 01, 08, 12, 19b, 20, 21 and 33) used to leave the old height behind, and
   // `.screen-content`'s negative margin then had no dock to be absorbed by.
   // Clearing first makes each property mean "there is a bar here, in this
   // state" rather than "there was one, once".

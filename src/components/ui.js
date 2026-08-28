@@ -1125,9 +1125,10 @@ export function resultPanelHTML({ icon: iconFn, headline, body }) {
  *     worse than a quiet one: it takes a tab press and answers with nothing.
  *     Same reasoning as D11 rendering the inert tabs `disabled`.
  *
- * Frame 21's three steps all declare actions, so it renders exactly as it did
- * before this branch existed. Frame 20's first step does not (DECISIONS.md
- * D50), and its second - the MCOB 4.8A adviser route - does.
+ * On both result screens only the adviser row is a control. Frame 20's first
+ * step declares no action (DECISIONS.md D50) and its second - the MCOB 4.8A
+ * adviser route - does; frame 21's first and second declare none (D52) and its
+ * third, the same adviser route, does.
  */
 export function nextStepsCardHTML({ title, steps }) {
   return `

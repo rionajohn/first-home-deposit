@@ -56,15 +56,14 @@ function startServer() {
 
 /**
  * Every route that renders an action bar, by the flow the brief names.
- * Frames 01, 12, 19b, 20, 21 and 33 are absent because they have no action bar
- * at all; that absence is asserted separately at the end.
+ * Frames 01, 08, 12, 19b, 20, 21 and 33 are absent because they have no action
+ * bar at all; that absence is asserted separately at the end.
  */
 const SCREENS = [
   ['02  journey', '/journey', {}],
   ['03  accounts', '/consent', {}],
   ['05  position', '/position', {}],
   ['06  summary', '/position/summary', {}],
-  ['08  goal check', '/goal-check', {}],
   // --- deposit calculator ---
   ['09  property', '/calculator/property', {}],
   ['09a property empty', '/calculator/property', { 'property-value': f(null, null), 'deposit-pct': f(null, null) }],
@@ -331,9 +330,14 @@ test('1280x900 — the bar pins inside the bezel, not to the browser window', as
 });
 
 // --- The screens that deliberately have no action bar ------------------------
-test('375x667 — frames 01, 12, 19b, 20, 21 and 33 have no action bar, and no stale reserved height', async () => {
+test('375x667 — frames 01, 08, 12, 19b, 20, 21 and 33 have no action bar, and no stale reserved height', async () => {
   for (const [route, overrides] of [
     ['/home', {}],
+    // Frame 08 lost its bar with D53: the deposit calculator is the only
+    // forward route from it now, and that route is the card's own button
+    // inside the content, not a pinned one. Reached from frame 06, which
+    // draws a bar, so the stale-height assertions apply here too.
+    ['/goal-check', {}],
     ['/calculator/result', {}],
     ['/mip/running', {}],
     ['/settings', {}],

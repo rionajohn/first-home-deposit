@@ -448,7 +448,11 @@ const content = {
     everythingElseCaption: 'Already filled in from your accounts',
     openCalculatorCta: 'Open the deposit calculator',
     flagLabel: "Something doesn't look right",
-    primaryCta: 'Not now, just track my goal',
+    // `primaryCta` ("Not now, just track my goal") is DELETED (DECISIONS.md
+    // D53). It was the action bar's only button, and the bar is gone: the
+    // deposit calculator is the only forward route from this screen now. The
+    // destination is not lost - `/tracker` is the Insights tab root, a `/goals`
+    // bridge card, and where frame 12's own primary lands.
   },
 
   '/calculator/property': {

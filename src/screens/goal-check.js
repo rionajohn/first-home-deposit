@@ -6,8 +6,24 @@
  * figures are entered here — everything is read from state seeded earlier
  * on this page, plus the pinned savings rate from src/model/rates.js
  * (DECISIONS.md D3), so nothing on this screen is a hardcoded number.
+ *
+ * THE DEPOSIT CALCULATOR IS THE ONLY FORWARD ROUTE, AND THIS SCREEN DRAWS NO
+ * ACTION BAR (DECISIONS.md D53). It used to carry one, holding "Not now, just
+ * track my goal" straight to `/tracker`. That was the screen's second forward
+ * control and the weaker of the two: it wrote no state, and it offered a
+ * shortcut past the one thing this screen exists to introduce. The card's own
+ * "Open the deposit calculator" button is what build-spec.md section 1 names
+ * from here, and it is now the only way on.
+ *
+ * WHAT STAYS, AND WHY. The flag row and the guidance-not-advice line are
+ * untouched: SPEC.md's anchor map puts the DUAA 2025 automated-decision triad
+ * on this screen, satisfied by the flag row plus the "how we worked these out"
+ * link, and both survive. The removed button was a decline route, not the
+ * pushback affordance that map requires.
+ *
+ * The exits are the header X and the tab bar. Nothing was added for either.
  */
-import { appBarHTML, bindAppBarLeading, actionBarHTML, flagRowHTML, figureRowHTML, infoLinkHTML } from '../components/ui.js';
+import { appBarHTML, bindAppBarLeading, flagRowHTML, figureRowHTML, infoLinkHTML } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { RATES } from '../model/rates.js';
 
@@ -52,7 +68,6 @@ export function render(container, ctx) {
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
     </main>
-    ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'track-goal' })}
   `;
 
   bindAppBarLeading(container);
@@ -68,9 +83,5 @@ export function render(container, ctx) {
   container.querySelector('[data-action="open-calculator"]').addEventListener('click', () => {
     setState({ calculatorEntered: true });
     window.location.hash = '#/calculator/property';
-  });
-
-  container.querySelector('[data-action="track-goal"]').addEventListener('click', () => {
-    window.location.hash = '#/tracker';
   });
 }

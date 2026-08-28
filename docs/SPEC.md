@@ -250,7 +250,11 @@ a control (`DECISIONS.md` D50). A ninth covers **frame 21 only**, and is the sam
 (`DECISIONS.md` D52): the PNG draws an "Update my savings goal" / "See what changes this" action bar and three chevroned
 next-step rows, and the built screen draws no action bar and makes rows 1 and 2 plain rows, keeping the chevron on row 3
 ("Talk to someone about it") alone. **Both result screens therefore leave the sixth exemption's set** - neither is a screen whose
-action bar's visibility is diffed, because neither has one.
+action bar's visibility is diffed, because neither has one. A tenth covers **frame 08 only**, where the PNG draws a
+"Not now, just track my goal" action bar: the deposit calculator is the only forward route from that screen now, and the route is
+the "The calculator asks you two things" card's own button rather than a pinned one (`DECISIONS.md` D53). Frame 08 leaves the
+sixth exemption's set for the same reason as 20 and 21. Everything else on it - the card, its button, the flag row and the
+guidance-not-advice line - is diffed normally.
 In every case the exemption covers that difference only, and everything else on those screens is diffed normally. The new `/mip/adviser` screen has no reference PNG - see step 4.
 
 **2. Regulatory anchor audit - mechanical, not by eye.** Run the Stage 10 script comparing every
