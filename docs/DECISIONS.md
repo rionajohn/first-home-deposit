@@ -3443,6 +3443,15 @@ The skill correction and the gap split stand on their own and would not need rev
 
 ## D50. Frame 20 is the end of the flow: no action bar, and one next-step row stops being a control
 
+> **AMENDED 28 August 2026 (D52). THE INSTRUCTION BELOW IS WITHDRAWN.** This entry says the frame
+> 20 / frame 21 asymmetry is deliberate and that "**the asymmetry must not be propagated to 21**".
+> It has now been propagated, on purpose: frame 21 draws no action bar either, and its first two
+> next-step rows are plain rows. The reasoning below for frame 20 is unchanged and still correct;
+> what was wrong was the reading of frame 21 as "not an end - it is a not-yet". Both screens end the
+> same flow, and what differs between them is the answer, not whether the flow has finished. D52
+> records the change, what it costs and how to reverse it. **Anyone reading this entry alone should
+> not act on its frame 21 sentences.**
+
 **Date.** 28 August 2026.
 
 **Decision.** Frame 20 (`/mip/result/likely`) is the end of the Mortgage in Principle flow and is
@@ -3683,6 +3692,92 @@ word.
 
 ---
 
+## D52. Frame 21 ends the flow too: D50's treatment applied to the not-yet result
+
+**Date.** 28 August 2026.
+
+**Decision.** Frame 21 (`/mip/result/not-yet`) takes the treatment D50 gave frame 20. It draws **no
+action bar**, and the first two rows of its "What you could do next" card stop being controls. Row 3,
+"Talk to someone about it", is unchanged. **D50's own instruction that this asymmetry must not be
+propagated to 21 is withdrawn**, and D50 carries a dated banner saying so.
+
+**Why D50 said the opposite, and why that is no longer right.** D50 drew a distinction between the two
+results: frame 20 is an end - the estimate has been given, the next steps are things to go and do
+elsewhere - while frame 21 "is not an end - it is a not-yet, and its rows are the routes back into
+saving." That reading treated a not-yet result as an unfinished task the screen should push the
+participant onward from. **Both screens are the end of the same flow.** What differs is the answer,
+not whether the flow has finished, and a screen that has finished does not need an action bar to say
+so - the header X and the tab bar are how a participant leaves either one.
+
+**WHAT ROWS 1 AND 2 ARE, AND WHY THEY STOP BEING CONTROLS.**
+
+| Row | Was | Is |
+|---|---|---|
+| 1 "Save around {amount} more toward your deposit" | `<button>` with chevron, `action: 'update-goal'` -> `/tracker` | plain row |
+| 2 "Look at a property target closer to {amount}" | `<button>` with chevron, `action: 'change-property-target'` -> `/calculator/property` | plain row |
+| 3 "Talk to someone about it" | `<button>` with chevron -> `/mip/adviser` | **unchanged** |
+
+Both are statements about what a different figure would do - save this much more, aim at a property
+this size - rather than routes, which is exactly what D50 said of frame 20's first row. Row 1 also
+duplicated the action bar's own primary: "Update my savings goal" and the row both went to `/tracker`,
+two controls on one screen for one destination.
+
+**ONE MECHANISM, NOT A SECOND ONE.** `nextStepsCardHTML` already draws a row as a plain `<div>` with no
+chevron when it declares no `action`, and as a `<button>` with one when it does. Rows 1 and 2 simply
+stop declaring an action. No flag, no variant, no new component - the same A2 mechanism committed with
+D50 at `67c747b`, used a second time exactly as it was designed to be.
+
+**ROW 3 IS NOT A JUDGEMENT CALL.** The adviser route rests on MCOB 4.8A (execution-only sales: the
+customer must be told they can request advice) and the Consumer Duty consumer support outcome, per D10
+and SPEC.md's anchor map. SPEC.md's verification step 4 requires `/mip/adviser` "reachable from both 20
+and 21's 'Talk to someone about it' row", and that step **still holds as written** - checked, not
+assumed. `GAPS.md` G17b adds the research reason for keeping it live: whether a participant reaches for
+it, *especially at the not-yet outcome*, is itself a finding.
+
+**WHAT IS LOST, STATED RATHER THAN DISCOVERED LATER.**
+
+- **Two in-content routes out of this screen.** `/tracker` (rows 1 and the bar's primary) and
+  `/calculator/property` (row 2). Neither is orphaned: `/tracker` is the Insights tab root, a `/goals`
+  card, and where the header X lands from here; `/calculator/property` is reached from `/goal-check`,
+  the `/goals` card, `/calculator/review` and `/calculator/saving`. What goes is the *shortcut from
+  this screen*, and that is the point - the routes were competing with the one row that has a
+  regulatory reason to be a control.
+- **The borrowing sheet keeps a route from here.** The bar's secondary ("See what changes this") is
+  gone, but the "How we worked this out" card's own nav row opens `/assumptions/borrowing` and is
+  unaffected. That row was dead until it was bound (`GAPS.md` G20's second finding); it is now the only
+  route, which is why it matters that it works.
+- **The `--more-below` fade goes with the dock.** The scroll affordance is drawn by
+  `.action-bar-dock`'s pseudo-element (`bottom: 100%`), so a screen with no bar has no dock and no
+  fade. Frame 21 is long - result panel, gap figure, three figure rows, two risk warnings, a
+  three-row card, a disclosure and a flag row - so this is a real loss of "there is more below" on the
+  longest screen in the flow. Accepted for the same reason D50 accepted it on frame 20: the fade
+  exists to sit above a bar, and inventing a bar-less fade for two screens is a new component for a
+  cue the tab bar's own edge already partly gives.
+
+**build-spec.md section 1's "21 -> Back to my deposit -> 15 Tracker" is served by the header X**, which
+goes through `exitFlow()` to `journeyEntryPoint`. That row is marked "Assumed", not "In file", and D50
+read frame 20's identical row (`20 -> Back or done -> 16`) the same way. The screen keeps **two exits**,
+the X and the tab bar, and neither was added for this change.
+
+**Copy.** `primaryCta` ("Update my savings goal") and `secondaryCta` ("See what changes this") are
+deleted from `/mip/result/not-yet`: both lost their only reader with the bar. No string on this screen
+changed wording.
+
+**Screenshot comparison.** Frame 21's reference PNG draws the bar and three chevroned rows, so a
+**ninth** exemption is added to SPEC.md's list, covering that difference only. Frame 21 also leaves the
+sixth exemption's set, having no bar whose visibility can be diffed - so both result screens are now
+out of it. `scripts/action-bar.test.mjs` moves `/mip/result/not-yet` out of `SCREENS` and into the
+no-bar test, whose name and preamble now read "01, 12, 19b, 20, 21 and 33".
+
+**To reverse.** Restore the `actionBarHTML` block in `mip-result-not-yet.js` with the two `content.js`
+keys, re-add the `update-goal`, `change-property-target` and `see-what-changes` handlers, and give rows
+1 and 2 back their `action` properties - the component needs no change, since a step that declares an
+action gets its button and chevron back automatically. Move the route back into `SCREENS` in
+`action-bar.test.mjs` and drop the ninth SPEC.md exemption. D50's amendment banner comes off in the
+same pass.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -3754,3 +3849,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 28 August 2026 (build caption tells the truth) | **D49 recorded.** Frame 33's build caption is rendered from `BUILD_VERSION` - the constant compiled into the running modules - and is **never overwritten**; a cached version that is not the running one appears as a **second, labelled line** saying it is downloaded and waiting for a reload. `CACHE_VERSION_FALLBACK` renamed `BUILD_VERSION`: it was never a fallback. **The caption was being read as evidence and it was wrong** - Cache Storage is rewritten by whichever worker most recently activated, and `sw.js` uses `skipWaiting()`/`clients.claim()`, so after a deploy the new worker claims while the document keeps executing the modules it already had. It cost a full investigation: "Build v38" on screen, v37 executing, and a `#/reset` typed on the strength of it ran the previous build's reset. **`find()` on the cache names is gone rather than corrected** - it picked arbitrarily between two right answers during exactly the window that mattered; `readCachedVersions()` returns the whole set and **nothing ranks them**, since only equality against the running version is needed. Verified across a real v38 to v39 deploy, five steps: **zero false version claims**. **Part two stopped before implementation, on its own condition** - stamping the build version into the session would reset a participant mid-task, because the check runs on every document load and a refresh, tab restore or home-screen relaunch is a document load. Logged as **G66** with the full cost. `CACHE_VERSION` v39. 275 tests passing. |
 | 28 August 2026 (frame 20 ends the flow) | **D50 recorded.** Frame 20 is built as the end of the MIP flow: **no action bar** ("Start my Mortgage in Principle" and "Keep saving for now" removed with their handlers and their `content.js` keys), and its **first next-step row stops being a control** - no action, so no chevron and no focus stop. **The second row is deliberately untouched**, keeping its chevron and its `/mip/adviser` route, because it is the MCOB 4.8A + Consumer Duty adviser route (D10) and `SPEC.md`'s verification step 4 requires it reachable from 20; that step still holds as written, and no `GAPS.md` entry was needed. `nextStepsCardHTML` now draws a `<button>` + chevron when a step declares an `action` and a `<div>` with neither when it does not - **one fact deciding both**, since the chevron is the claim that a row goes somewhere and a button bound to nothing is a dead focus stop (D11's reasoning for `disabled` tabs). **Frame 21 is byte-identical**, asserted by comparing its rendered `.next-steps-card` outerHTML before and after (2,304 characters, strictly equal), and it keeps its bar and all three chevroned rows - the asymmetry is deliberate and must not be propagated. Costs recorded rather than discovered later: `build-spec.md` row 83's *Assumed* "Back or done -> 16 Tracker" is superseded and `/tracker` is now reached from this screen **only via the Insights tab**; the dock's `--more-below` fade goes with the dock, leaving scroll as the only more-below cue; and whether a participant presses "Start my Mortgage in Principle" stops being observable. Layout needed no work - `mountActionBars` already clears the published height for bar-less screens and `var(--action-bar-height, 0px)` falls back, so the scroller reserves `--screen-inset-y` alone. Measured in Chromium: at 375x667 the last element ends 24px above the tab bar, `.screen` padding-bottom `0px` with the inset carried inside `.bottom-nav`, so **the safe area is not doubled**; at 1280x900 framed, `--safe-bottom` resolves to 34px, the nav is 90px tall and its bottom edge is the phone screen's. `scripts/shots.mjs` gains a **`--scroll=top,end`** axis, the screens' bottom edge being the thing under review and the frame itself not being what scrolls. `SPEC.md` gains an eighth screenshot exemption, frame 20 only, and frame 20 leaves the sixth's set. `CACHE_VERSION` v40, with `BUILD_VERSION` bumped in the same commit (D49's paired-edit rule). 271 tests passing - four fewer than 275, being frame 20's four viewport rows moving out of `action-bar.test.mjs`'s `SCREENS` and into its no-bar list. |
 | 28 August 2026 (the check is offered at any position) | **D51 recorded; D25 and D35 amended in place.** The deposit tracker's action bar carries `check-mip` as its primary on **both** variants under one string, so the Mortgage in Principle flow is enterable at any savings position and frame 21 is reachable in a moderated session rather than only by URL. An explicit author override: the checkpoint stops gating the ROUTE and keeps deciding the RESULT - below it the outcome is derived from position through the model's existing `gapToCheckpoint`, at or above it `resultOutcome` governs. An affordability/Loan-to-Value rule was rejected on the figures, the comparison frame 21's own copy states being false at every position this prototype can reach. Frame 33's outcome pill therefore no longer describes what happens below the checkpoint, accepted explicitly. D25's displaced primary becomes the in-content Loan-to-Value info link (the same string, its unlocked-only gate now spent), `belowCheckpointCta` is deleted, and `belowCheckpointBodyTemplate` is rewritten to carry no figure and hint at no direction. The milestone row takes `available` below the checkpoint - **D42 needs no amendment**, it anticipates the case - so the variants now differ at row 3 and the checkpoint leaves the milestone list; `locked` keeps no occupant and is kept rather than deleted (GAPS.md G68). Copy: `mipLockedBodyTemplate` and `mipUnlockedBodyTemplate` **collapse into one `mipBody`** (one row state, one string, and the shared "Available from {checkpoint}" opening was false on both rows); `unlocksAtTemplate` is **deleted**, which closes D42's own deferred "'Unlocks at' is left for a separate decision" line; and `readyToCheckLabel` is renamed `mipCaption` and rendered on both variants, since it was already true at either position. Verification item 2 (at-checkpoint variant byte-identical) is superseded on purpose - correctness beat the identity check. `CACHE_VERSION` v42. |
+| 28 August 2026 (frame 21 ends the flow too) | **D52 recorded; D50 amended in place.** Frame 21 takes D50's frame 20 treatment: **no action bar**, and rows 1 and 2 of its next-steps card stop being controls, through the same A2 mechanism (a row that declares no `action` renders as a plain `<div>` with no chevron and no focus stop) - no flag and no second mechanism. **Row 3 is untouched**: the adviser route rests on MCOB 4.8A and the Consumer Duty support outcome (D10, SPEC.md's anchor map), and SPEC.md's verification step 4 requires it reachable from both 20 and 21, confirmed still true as written. D50's live instruction that "the asymmetry must not be propagated to 21" is **withdrawn** by a dated banner: both screens end the same flow, and what differs is the answer, not whether the flow has finished. Lost and recorded: the in-content routes to `/tracker` and `/calculator/property` from this screen (neither orphaned - both reachable elsewhere, and the borrowing sheet keeps this screen's own card nav row), and the `--more-below` fade, which is drawn by the dock and goes with it on the longest screen in the flow. `primaryCta` and `secondaryCta` deleted; no wording changed. A **ninth** screenshot exemption in SPEC.md, and frame 21 leaves the sixth exemption's set, so both result screens are now out of it. `action-bar.test.mjs` moves the route into the no-bar test. `CACHE_VERSION` v43. |

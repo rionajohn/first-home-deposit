@@ -10,11 +10,31 @@
  * live rather than read from state, since build-spec.md section 1 commits
  * no section 6 figure on this branch of the 19b transition (only "gap",
  * which has no section 6 slot of its own).
+ *
+ * THIS SCREEN IS THE END OF THE FLOW, AND HAS NO ACTION BAR (DECISIONS.md D52,
+ * applying D50's frame 20 treatment here). It used to carry two: "Update my
+ * savings goal", which repeated the route its own first next-step row already
+ * offered, and "See what changes this", which repeated the borrowing sheet the
+ * "How we worked this out" card's nav row already opens. Both are gone with
+ * their content keys. The screen is one of six with no bar at all - see
+ * `mountActionBars` in action-bar.js, which clears the published height so
+ * nothing carries in from the screen before.
+ *
+ * TWO OF THE THREE NEXT-STEP ROWS ARE NO LONGER CONTROLS. Rows 1 and 2 declare
+ * no action, so `nextStepsCardHTML` draws them as plain rows - no chevron, no
+ * focus stop. Row 3, "Talk to someone about it", keeps its action, its chevron
+ * and its route to `/mip/adviser`: it is the MCOB 4.8A + Consumer Duty adviser
+ * route (D10, SPEC.md's anchor map), and SPEC.md's verification step 4 requires
+ * it reachable from here as well as from frame 20.
+ *
+ * THE EXITS ARE THE HEADER X AND THE TAB BAR, as on frame 20. build-spec.md
+ * section 1's "21 -> Back to my deposit -> 15" row is served by the X, which
+ * goes through `exitFlow()` to `journeyEntryPoint`; that row is marked
+ * "Assumed", and D50 read frame 20's equivalent the same way.
  */
 import {
   appBarHTML,
   bindAppBarLeading,
-  actionBarHTML,
   resultPanelHTML,
   figureDisplayHTML,
   figureRowHTML,
@@ -78,18 +98,27 @@ export function render(container, ctx) {
       ${nextStepsCardHTML({
         title: c.nextStepsTitle,
         steps: [
+          // ROWS 1 AND 2 DECLARE NO ACTION, so `nextStepsCardHTML` draws each as
+          // a plain <div> with no chevron and no focus stop (DECISIONS.md D52).
+          // Both are statements about what a different figure would do - save
+          // this much more, aim at a property this size - not routes. No flag
+          // and no second mechanism: the absence of `action` is the whole of it,
+          // exactly as frame 20's first row already works (D50).
           {
             number: 1,
             title: fill(c.step1TitleTemplate, { amount: gapResult.error ? '—' : formatCurrency(gapResult.value) }),
             caption: fill(c.step1CaptionTemplate, { months: Number.isFinite(monthsToClose) ? formatMonthsDuration(monthsToClose) : '—' }),
-            action: 'update-goal',
           },
           {
             number: 2,
             title: fill(c.step2TitleTemplate, { amount: maxPropertyResult.error ? '—' : formatCurrency(maxPropertyResult.value) }),
             caption: c.step2Caption,
-            action: 'change-property-target',
           },
+          // ROW 3 KEEPS ITS ACTION, ITS CHEVRON AND ITS ROUTE. The adviser route
+          // rests on MCOB 4.8A and the Consumer Duty consumer support outcome
+          // (D10, SPEC.md's anchor map), and SPEC.md's verification step 4
+          // requires it reachable from BOTH 20 and 21. Same row, same reason, on
+          // both result screens.
           { number: 3, title: c.step3Title, caption: c.step3Caption, action: 'talk-to-adviser' },
         ],
       })}
@@ -113,20 +142,9 @@ export function render(container, ctx) {
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
     </main>
-    ${actionBarHTML({
-      primaryLabel: c.primaryCta,
-      primaryAction: 'update-goal',
-      secondaryLabel: c.secondaryCta,
-      secondaryAction: 'see-what-changes',
-      secondaryStyle: 'button',
-    })}
   `;
 
   bindAppBarLeading(container);
-
-  container.querySelectorAll('[data-action="update-goal"]').forEach((el) => {
-    el.addEventListener('click', () => { window.location.hash = '#/tracker'; });
-  });
 
   // The card is a disclosure now (D12). rerenderInPlace, not a bare render:
   // it restores the scroller's offset and refocuses the very button that was
@@ -150,19 +168,10 @@ export function render(container, ctx) {
     window.location.hash = '#/assumptions/borrowing';
   });
 
-  container.querySelector('[data-action="change-property-target"]').addEventListener('click', () => {
-    window.location.hash = '#/calculator/property';
-  });
-
   container.querySelectorAll('[data-action="talk-to-adviser"]').forEach((el) => {
     el.addEventListener('click', () => {
       setState({ returnFrame: '/mip/result/not-yet' });
       window.location.hash = '#/mip/adviser';
     });
-  });
-
-  container.querySelector('[data-action="see-what-changes"]').addEventListener('click', () => {
-    setState({ returnFrame: '/mip/result/not-yet' });
-    window.location.hash = '#/assumptions/borrowing';
   });
 }

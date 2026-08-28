@@ -1037,8 +1037,12 @@ const content = {
     automatedNote:
       'This estimate was worked out automatically. You can tell us if you disagree with it, and you can ask us to have a person review it.',
     flagLabel: "Something doesn't look right",
-    primaryCta: 'Update my savings goal',
-    secondaryCta: 'See what changes this',
+    // `primaryCta` ("Update my savings goal") and `secondaryCta` ("See what
+    // changes this") are DELETED (DECISIONS.md D52). Frame 21 ends the flow and
+    // draws no action bar, so both keys lost their only reader. Neither string
+    // is lost as a route: the tracker is reachable from the header X and the
+    // Insights tab, and the borrowing sheet from this screen's own
+    // "See how we worked this out" card nav row.
   },
 
   // No reference PNG, no Figma node — SPEC.md's own new screen this session

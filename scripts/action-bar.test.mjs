@@ -56,8 +56,8 @@ function startServer() {
 
 /**
  * Every route that renders an action bar, by the flow the brief names.
- * Frames 01, 12, 19b, 20 and 33 are absent because they have no action bar at
- * all; that absence is asserted separately at the end.
+ * Frames 01, 12, 19b, 20, 21 and 33 are absent because they have no action bar
+ * at all; that absence is asserted separately at the end.
  */
 const SCREENS = [
   ['02  journey', '/journey', {}],
@@ -80,7 +80,6 @@ const SCREENS = [
   ['17  mip', '/mip', {}],
   ['18  mip about', '/mip/about', {}],
   ['19  mip pre-check', '/mip/pre-check', {}],
-  ['21  mip not yet', '/mip/result/not-yet', { resultOutcome: 'not-yet' }],
   ['22  mip adviser', '/mip/adviser', {}],
 ];
 
@@ -332,7 +331,7 @@ test('1280x900 — the bar pins inside the bezel, not to the browser window', as
 });
 
 // --- The screens that deliberately have no action bar ------------------------
-test('375x667 — frames 01, 12, 19b, 20 and 33 have no action bar, and no stale reserved height', async () => {
+test('375x667 — frames 01, 12, 19b, 20, 21 and 33 have no action bar, and no stale reserved height', async () => {
   for (const [route, overrides] of [
     ['/home', {}],
     ['/calculator/result', {}],
@@ -346,6 +345,12 @@ test('375x667 — frames 01, 12, 19b, 20 and 33 have no action bar, and no stale
     // lost it, which is why the stale-height assertions below matter here more
     // than anywhere: it is reached from 19b, and 19 before that draws one.
     ['/mip/result/likely', {}],
+    // Frame 21 is the other end of the MIP flow and lost its bar the same way
+    // (DECISIONS.md D52, applying D50 here). Same reasoning as frame 20 above:
+    // reached from 19b, with 19 drawing a bar two screens back, so the
+    // stale-height assertions matter here too. `resultOutcome` is set because
+    // 19b routes on it, and this screen is only reached with it at 'not-yet'.
+    ['/mip/result/not-yet', { resultOutcome: 'not-yet' }],
   ]) {
     const { ctx, page } = await open(route, overrides, 375, 667);
     try {

@@ -246,8 +246,11 @@ header on frames 29, 30, 31 and 32 only: the close control is a plain glyph rath
 sits beside it in the header rather than scrolling with the body (`DECISIONS.md` D19, `GAPS.md` G42). An eighth covers **frame 20
 only**, where the PNG draws a "Start my Mortgage in Principle" / "Keep saving for now" action bar and two chevroned next-step rows:
 the screen is the end of the MIP flow, so it now draws no action bar at all and its first next-step row is a plain row rather than
-a control (`DECISIONS.md` D50). Frame 20 therefore also leaves the sixth exemption's set - it is no longer a screen whose action
-bar's visibility is diffed, because it has none. Frame 21 is unchanged and keeps all three of its chevroned rows and its bar.
+a control (`DECISIONS.md` D50). A ninth covers **frame 21 only**, and is the same difference for the same reason
+(`DECISIONS.md` D52): the PNG draws an "Update my savings goal" / "See what changes this" action bar and three chevroned
+next-step rows, and the built screen draws no action bar and makes rows 1 and 2 plain rows, keeping the chevron on row 3
+("Talk to someone about it") alone. **Both result screens therefore leave the sixth exemption's set** - neither is a screen whose
+action bar's visibility is diffed, because neither has one.
 In every case the exemption covers that difference only, and everything else on those screens is diffed normally. The new `/mip/adviser` screen has no reference PNG - see step 4.
 
 **2. Regulatory anchor audit - mechanical, not by eye.** Run the Stage 10 script comparing every

@@ -334,7 +334,7 @@ has no heading of its own and takes the same 24px as `padding-top` on its scroll
 | `.entry-card` | Title + body, the feature entry point | 01 | - | n/a |
 | `.empty-state-card` | Title + body + optional CTA (D7 fallback) | 06, 12 | - | n/a |
 | `.how-this-works-card` | Title, intro, label/value/caption rows, nav row, optional footnote - **a disclosure, closed on load** (D12) | 06, 12, 13, 20, 21 | `--closed` (rotates chevron, hides everything below the title) | ✅ 48 (header, nav row) |
-| `.next-steps-card` | Numbered step rows. A row is a `<button>` with a chevron when it declares an action and a plain `<div>` with neither when it does not - 21's three rows are all controls, 20's first is not (D50) | 20, 21 | `--divided` | ✅ 48 |
+| `.next-steps-card` | Numbered step rows. A row is a `<button>` with a chevron when it declares an action and a plain `<div>` with neither when it does not - on both result screens only the adviser row is a control: 20's first row is a plain row (D50), and 21's first and second are (D52) | 20, 21 | `--divided` | ✅ 48 |
 | `.result-panel` | Centred icon + headline + body | 20, 21 | - | n/a |
 | `.processing-state` | Spinner + title + body + caption | 19b | - | n/a |
 
