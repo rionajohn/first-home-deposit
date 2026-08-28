@@ -260,7 +260,7 @@ Touch target column: ✅ = `var(--touch-target-min)` (48px) or larger.
 | `.app-bar` | 56px bar: leading cell, centred title, trailing cell | Every full screen except the calculator | leading = back / close / none | ✅ 48 (cell is 44 wide, `--action` variant 48) |
 | `.form-step-header` | Back + title + close, plus a "Step n of 3" row | 09, 09a, 09b, 10, 10b, 11 | — | ✅ 48 |
 | `.bottom-nav` | Bank tab bar, 5 tabs, persistent (D11) | 20 full screens | **three states — see below**: active / enabled-not-active / disabled | ✅ 48 |
-| `.action-bar-dock` / `.action-bar` | Pinned primary + optional secondary, **always visible** (D39) | 27 screens | `.screen.actions-inline` picks the layout mode; dock `--more-below` draws a 56px fade above the bar | ✅ 48 |
+| `.action-bar-dock` / `.action-bar` | Pinned primary + optional secondary, **always visible** (D39) | 15 full screens + 7 sheets — counted from the callers, not from the frame list. **Not 20**, which is the end of the MIP flow and carries no onward action (D50) | `.screen.actions-inline` picks the layout mode; dock `--more-below` draws a 56px fade above the bar | ✅ 48 |
 | `.bottom-sheet__header` | Grabber bar above a heading + close row, fixed outside the scroller (D19) | 03b, 10c, 29–32 | close glyph present (29–32) or absent (03b, 10c) | ✅ 48 |
 
 **The action bar has no hidden state (D39).** It is visible from first paint on every screen that
@@ -334,7 +334,7 @@ has no heading of its own and takes the same 24px as `padding-top` on its scroll
 | `.entry-card` | Title + body, the feature entry point | 01 | — | n/a |
 | `.empty-state-card` | Title + body + optional CTA (D7 fallback) | 06, 12 | — | n/a |
 | `.how-this-works-card` | Title, intro, label/value/caption rows, nav row, optional footnote — **a disclosure, closed on load** (D12) | 06, 12, 13, 20, 21 | `--closed` (rotates chevron, hides everything below the title) | ✅ 48 (header, nav row) |
-| `.next-steps-card` | Numbered step rows | 20, 21 | `--divided` | ✅ 48 |
+| `.next-steps-card` | Numbered step rows. A row is a `<button>` with a chevron when it declares an action and a plain `<div>` with neither when it does not — 21's three rows are all controls, 20's first is not (D50) | 20, 21 | `--divided` | ✅ 48 |
 | `.result-panel` | Centred icon + headline + body | 20, 21 | — | n/a |
 | `.processing-state` | Spinner + title + body + caption | 19b | — | n/a |
 

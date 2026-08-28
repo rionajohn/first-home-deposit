@@ -8,17 +8,26 @@
  * Loan-to-Value here is mipEstimatedLtv (model.js), not state['ltv'] — see
  * that function's own comment for why the two aren't the same figure.
  *
- * "Start my Mortgage in Principle" has no destination anywhere in
- * build-spec.md or DECISIONS.md: it is the start of the full MIP
- * application (frames 22-28), confirmed out of scope and not built
- * (DECISIONS.md D8). Treated the same way frame 06's other out-of-scope
- * branch is (position-summary.js's "goal-no" handler): exits to bank home
- * rather than being a dead link.
+ * THIS SCREEN IS THE END OF THE FLOW, AND HAS NO ACTION BAR (DECISIONS.md
+ * D50). It used to carry two: "Start my Mortgage in Principle", which had no
+ * destination anywhere in build-spec.md or DECISIONS.md because it begins the
+ * full MIP application (frames 22-28, out of scope and not built, D8) and so
+ * exited to bank home; and "Keep saving for now", which repeated the tracker
+ * route the first next-step row already offered. Both are gone. The screen is
+ * one of five with no bar at all - see `mountActionBars` in action-bar.js,
+ * which clears the published height so nothing carries in from the screen
+ * before.
+ *
+ * ONE NEXT-STEP ROW IS STILL A CONTROL AND ONE IS NOT. "Talk to someone about
+ * it" keeps its action, its chevron and its route to `/mip/adviser`: it is the
+ * MCOB 4.8A + Consumer Duty adviser route (D10, SPEC.md's anchor map), and
+ * SPEC.md's verification step 4 requires it reachable from here. "Keep saving
+ * to lower your Loan-to-Value" declares no action, so `nextStepsCardHTML`
+ * draws it as a plain row - no chevron, no focus stop.
  */
 import {
   appBarHTML,
   bindAppBarLeading,
-  actionBarHTML,
   resultPanelHTML,
   rangeFigureHTML,
   figureRowHTML,
@@ -82,7 +91,9 @@ export function render(container, ctx) {
       ${nextStepsCardHTML({
         title: c.nextStepsTitle,
         steps: [
-          { number: 1, title: c.step1Title, caption: c.step1Caption, action: 'keep-saving' },
+          // No action, so no chevron and no focus stop: this row is a
+          // statement about what saving more would do, not a route (D50).
+          { number: 1, title: c.step1Title, caption: c.step1Caption },
           { number: 2, title: c.step2Title, caption: c.step2Caption, action: 'talk-to-adviser' },
         ],
       })}
@@ -106,13 +117,6 @@ export function render(container, ctx) {
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
     </main>
-    ${actionBarHTML({
-      primaryLabel: c.primaryCta,
-      primaryAction: 'start-mip',
-      secondaryLabel: c.secondaryCta,
-      secondaryAction: 'keep-saving-for-now',
-      secondaryStyle: 'button',
-    })}
   `;
 
   bindAppBarLeading(container);
@@ -134,22 +138,10 @@ export function render(container, ctx) {
     });
   });
 
-  container.querySelector('[data-action="keep-saving"]').addEventListener('click', () => {
-    window.location.hash = '#/tracker';
-  });
-
   container.querySelectorAll('[data-action="talk-to-adviser"]').forEach((el) => {
     el.addEventListener('click', () => {
       setState({ returnFrame: '/mip/result/likely' });
       window.location.hash = '#/mip/adviser';
     });
-  });
-
-  container.querySelector('[data-action="start-mip"]').addEventListener('click', () => {
-    window.location.hash = '#/home';
-  });
-
-  container.querySelector('[data-action="keep-saving-for-now"]').addEventListener('click', () => {
-    window.location.hash = '#/tracker';
   });
 }

@@ -243,8 +243,12 @@ per-account checkboxes, which the PNG does not draw at all (`DECISIONS.md` D16, 
 a sixth covers the action bar's visibility and the scroll affordance on the 22 screens whose content
 overflows, where the PNGs draw the bar present from the start (`DECISIONS.md` D17, `GAPS.md` G38). A seventh covers the sheet
 header on frames 29, 30, 31 and 32 only: the close control is a plain glyph rather than the PNGs' filled circle, and the heading
-sits beside it in the header rather than scrolling with the body (`DECISIONS.md` D19, `GAPS.md` G42). In every case the exemption
-covers that difference only, and everything else on those screens is diffed normally. The new `/mip/adviser` screen has no reference PNG — see step 4.
+sits beside it in the header rather than scrolling with the body (`DECISIONS.md` D19, `GAPS.md` G42). An eighth covers **frame 20
+only**, where the PNG draws a "Start my Mortgage in Principle" / "Keep saving for now" action bar and two chevroned next-step rows:
+the screen is the end of the MIP flow, so it now draws no action bar at all and its first next-step row is a plain row rather than
+a control (`DECISIONS.md` D50). Frame 20 therefore also leaves the sixth exemption's set — it is no longer a screen whose action
+bar's visibility is diffed, because it has none. Frame 21 is unchanged and keeps all three of its chevroned rows and its bar.
+In every case the exemption covers that difference only, and everything else on those screens is diffed normally. The new `/mip/adviser` screen has no reference PNG — see step 4.
 
 **2. Regulatory anchor audit — mechanical, not by eye.** Run the Stage 10 script comparing every
 screen module's declared `anchors` list against `anchors.js`, and confirming the exact

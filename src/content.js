@@ -943,8 +943,10 @@ const content = {
     automatedNote:
       'This estimate was worked out automatically. You can tell us if you disagree with it, and you can ask us to have a person review it.',
     flagLabel: "Something doesn't look right",
-    primaryCta: 'Start my Mortgage in Principle',
-    secondaryCta: 'Keep saving for now',
+    // No primaryCta/secondaryCta: frame 20 is the end of the flow and draws
+    // no action bar (DECISIONS.md D50). "Start my Mortgage in Principle" and
+    // "Keep saving for now" were retired with it rather than left here for a
+    // screen that no longer reads them.
   },
 
   '/mip/result/not-yet': {

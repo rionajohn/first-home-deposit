@@ -3421,6 +3421,68 @@ The skill correction and the gap split stand on their own and would not need rev
 
 ---
 
+## D50. Frame 20 is the end of the flow: no action bar, and one next-step row stops being a control
+
+**Date.** 28 August 2026.
+
+**Decision.** Frame 20 (`/mip/result/likely`) is the end of the Mortgage in Principle flow and is
+built as one. Three changes, all on that screen:
+
+1. **No action bar.** "Start my Mortgage in Principle" and "Keep saving for now" are removed, along
+   with their handlers and their `primaryCta` / `secondaryCta` keys in `content.js`. The screen
+   joins frames 01, 12, 19b, 33 and 17-locked as a screen with no bar at all.
+2. **The first next-step row stops being a control.** "Keep saving to lower your Loan-to-Value"
+   declares no action, so it renders as a plain `<div>` with no chevron and no focus stop.
+3. **The second stays exactly as it was.** "Talk to someone about it" keeps its action, its chevron
+   and its route to `/mip/adviser`.
+
+**Why row 2 is not treated like row 1, which is a deliberate departure from "remove both chevrons".**
+It is the adviser route, and the obligation to offer it is MCOB 4.8A (execution-only sales: the
+customer must be told they can request advice) plus the Consumer Duty consumer support outcome
+(no unreasonable barriers), recorded in D10 and in `SPEC.md`'s anchor map. `SPEC.md`'s verification
+step 4 requires `/mip/adviser` reachable from **both** 20 and 21, and this row is the only route to
+it from 20. Making it static would have severed a regulatory anchor and left "Our advisers only
+advise on our own mortgages." sitting under a card that no longer offers an adviser.
+
+**The chevron and the focus stop are decided by one fact, not two.** `nextStepsCardHTML` now draws a
+`<button>` with a chevron when a step declares an `action` and a `<div>` with neither when it does
+not. The chevron is the app's claim that a row goes somewhere, so it is drawn from the thing that
+decides it; and a `<button>` bound to nothing is a dead focus stop, which is the same reasoning D11
+applies in rendering the inert tabs `disabled`. `consent.js` already drew its account-row chevron
+this way. **Frame 21 renders exactly as before** - all three of its steps declare actions - which is
+what makes this a branch rather than a change to the component's existing behaviour.
+
+### What this costs, stated rather than discovered later
+
+- **`build-spec.md` section 1's row 83 is superseded.** It records "20 Result - likely to be
+  considered | Back or done | 16 Tracker - checkpoint reached", marked **Assumed**. Frame 20 no
+  longer offers any in-content route to the tracker: `/tracker` is reached from this screen **only
+  via the Insights tab**, which is the bank's own furniture and draws no lit tab on this route
+  (D11). The app-bar X still leaves the journey to `journeyEntryPoint` (D30, D32).
+- **The `--more-below` fade goes with the dock.** On a screen this long, the only remaining cue that
+  content continues below the fold is the scroll itself. The fade belongs to `.action-bar-dock`
+  (D39) and is not reproduced anywhere else.
+- **Whether a participant presses "Start my Mortgage in Principle" is no longer observable.** That
+  was a real finding the sessions could have collected - the reach for the out-of-scope branch D8
+  deliberately kept live. It is given up knowingly in exchange for the screen reading as an end.
+- **Frames 20 and 21 now diverge deliberately.** 21 keeps its action bar and all three chevroned
+  rows. `CLAUDE.md`'s standing rule that a correction applies everywhere the same pattern appears
+  does **not** apply here: this is a decision about what frame 20 *is*, not a defect fixed in one
+  place. **The asymmetry must not be propagated to 21**, whose result is not an end - it is a
+  not-yet, and its rows are the routes back into saving.
+
+**Screenshot comparison.** Frame 20's reference PNG draws the bar and both chevrons, so an eighth
+exemption is added to `SPEC.md`'s list, covering that difference only. Frame 20 also leaves the
+sixth exemption's set, having no bar whose visibility can be diffed.
+
+**To reverse.** Restore the `actionBarHTML` block and the `start-mip` / `keep-saving-for-now`
+handlers in `mip-result-likely.js` with the two `content.js` keys, and give step 1 back its
+`action: 'keep-saving'` - the component needs no change, since a step that declares an action gets
+its button and chevron back automatically. Move the route back into `SCREENS` in
+`action-bar.test.mjs` and drop the `SPEC.md` exemption.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -3490,3 +3552,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 27 August 2026 (strict alternation on /goals) | **D44 amended a fifth time**: `/goals` now shows exactly **one** bridge card in every state - the calculator while no deposit goal is set, the tracker once one is, at any savings position. `unlocked` is gone from `goals.js` and the condition is `hasGoal ? trackerCardHTML : houseCardHTML`. **The rule has not changed and the third-state reasoning is not superseded - it is outranked, and deliberately left in the entry unedited.** "Do not advertise a door that redirects" still holds and is still why the no-goal state withholds the tracker card; the third state was *correct* under it, both destinations genuinely rendering at or above the checkpoint. What changed is a judgement above the rule: one card in every state is worth more than a second honest door in one state. **The cost is accepted knowingly and recorded in both the entry and `ROUTES.md`**: `tracker.js` draws "Adjust my goal" on the below-checkpoint variant and no other (D25, which governs frame 15 only), so a participant at or above the checkpoint now has **no nearby route to the deposit calculator at all** - it is reachable by typing `#/calculator/property` and in no other way from that state. The obvious repair, drawing the secondary on the unlocked variant too, stays rejected on the fourth amendment's instrument cost: a backwards-pointing action beside the control that opens the Mortgage in Principle flow diverts participants into the calculator and costs the sessions the observation that variant exists to produce. The two amendments are consistent - the fourth refused to add a route to the tracker, the fifth removes one from `/goals`, both paid for by the same participant in the same state. Verified by driving all three journey states through frame 33 and asserting the rendered `data-action` set rather than eyeballing it (`setting-up` -> `["open-deposit-calculator"]`, `saving` and `ready-to-check` -> `["open-deposit-tracker"]`), clicking each card to confirm where it lands, and tapping Insights in all three - unchanged, `#/tracker` in the two goal states and still redirecting in the no-goal state. Shot at 390px light and dark in both states, dark mode unchanged, no layout gap where the second card was. `overlap.test.mjs` loses `goals-below-checkpoint`, now the same shape as the bare `goals` row; `ROUTES.md`'s three-state table becomes two rows and gains the missing-route warning. `CACHE_VERSION` v37. 268 tests passing. |
 | 28 August 2026 (session opens populated) | **D48 recorded.** A new session opens in the **saving stage** rather than empty, so the Insights tab lands on a populated deposit tracker from the first tap - the tracker was previously the one screen a participant could not meet, `/tracker`'s guard redirecting into the calculator until frames 09, 10 and 11 had all run. Same reasoning `state.js` already applies to `money-in`: the accounts are connected, so what follows from them is there rather than waiting on a form. **`router.js` reuses `stagePatch()`**, the same function frame 33 calls, against the same fresh `defaultState()` - a session that opened itself and one a facilitator set to "Saving" are byte-identical, asserted through the very expression `openSession()` runs. **`OPENING_STAGE` is a constant in `stage.js`, not a changed default in `state.js`, and that is load-bearing**: `baseline()` is built from `defaultState()`, so a moved default would have made frame 33's "Setting up" a no-op and put the blank calculator out of reach. It sits in `router.js` because `state.js` cannot import `stage.js` without a cycle that would put `stagePatch` in the temporal dead zone. Gated on `isNewSession()`, so a mid-session refresh restores rather than resets; `resetState()` clears the flag so `#/reset` opens the next participant's session too. **`saved-toward-deposit` untouched at £8,950** - the sum of the four accounts frames 03, 06 and 32 draw, so the session opens BELOW its checkpoint and skip-ahead keeps both positions. Accepted cost: frame 09 arrives pre-filled at £240,000/10% and `/goals` draws the tracker card from the first tap. `CACHE_VERSION` v38. 275 tests passing. |
 | 28 August 2026 (build caption tells the truth) | **D49 recorded.** Frame 33's build caption is rendered from `BUILD_VERSION` - the constant compiled into the running modules - and is **never overwritten**; a cached version that is not the running one appears as a **second, labelled line** saying it is downloaded and waiting for a reload. `CACHE_VERSION_FALLBACK` renamed `BUILD_VERSION`: it was never a fallback. **The caption was being read as evidence and it was wrong** - Cache Storage is rewritten by whichever worker most recently activated, and `sw.js` uses `skipWaiting()`/`clients.claim()`, so after a deploy the new worker claims while the document keeps executing the modules it already had. It cost a full investigation: "Build v38" on screen, v37 executing, and a `#/reset` typed on the strength of it ran the previous build's reset. **`find()` on the cache names is gone rather than corrected** - it picked arbitrarily between two right answers during exactly the window that mattered; `readCachedVersions()` returns the whole set and **nothing ranks them**, since only equality against the running version is needed. Verified across a real v38 to v39 deploy, five steps: **zero false version claims**. **Part two stopped before implementation, on its own condition** - stamping the build version into the session would reset a participant mid-task, because the check runs on every document load and a refresh, tab restore or home-screen relaunch is a document load. Logged as **G66** with the full cost. `CACHE_VERSION` v39. 275 tests passing. |
+| 28 August 2026 (frame 20 ends the flow) | **D50 recorded.** Frame 20 is built as the end of the MIP flow: **no action bar** ("Start my Mortgage in Principle" and "Keep saving for now" removed with their handlers and their `content.js` keys), and its **first next-step row stops being a control** - no action, so no chevron and no focus stop. **The second row is deliberately untouched**, keeping its chevron and its `/mip/adviser` route, because it is the MCOB 4.8A + Consumer Duty adviser route (D10) and `SPEC.md`'s verification step 4 requires it reachable from 20; that step still holds as written, and no `GAPS.md` entry was needed. `nextStepsCardHTML` now draws a `<button>` + chevron when a step declares an `action` and a `<div>` with neither when it does not - **one fact deciding both**, since the chevron is the claim that a row goes somewhere and a button bound to nothing is a dead focus stop (D11's reasoning for `disabled` tabs). **Frame 21 is byte-identical**, asserted by comparing its rendered `.next-steps-card` outerHTML before and after (2,304 characters, strictly equal), and it keeps its bar and all three chevroned rows - the asymmetry is deliberate and must not be propagated. Costs recorded rather than discovered later: `build-spec.md` row 83's *Assumed* "Back or done -> 16 Tracker" is superseded and `/tracker` is now reached from this screen **only via the Insights tab**; the dock's `--more-below` fade goes with the dock, leaving scroll as the only more-below cue; and whether a participant presses "Start my Mortgage in Principle" stops being observable. Layout needed no work - `mountActionBars` already clears the published height for bar-less screens and `var(--action-bar-height, 0px)` falls back, so the scroller reserves `--screen-inset-y` alone. Measured in Chromium: at 375x667 the last element ends 24px above the tab bar, `.screen` padding-bottom `0px` with the inset carried inside `.bottom-nav`, so **the safe area is not doubled**; at 1280x900 framed, `--safe-bottom` resolves to 34px, the nav is 90px tall and its bottom edge is the phone screen's. `scripts/shots.mjs` gains a **`--scroll=top,end`** axis, the screens' bottom edge being the thing under review and the frame itself not being what scrolls. `SPEC.md` gains an eighth screenshot exemption, frame 20 only, and frame 20 leaves the sixth's set. `CACHE_VERSION` v40, with `BUILD_VERSION` bumped in the same commit (D49's paired-edit rule). 271 tests passing - four fewer than 275, being frame 20's four viewport rows moving out of `action-bar.test.mjs`'s `SCREENS` and into its no-bar list. |

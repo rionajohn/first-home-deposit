@@ -1108,23 +1108,50 @@ export function resultPanelHTML({ icon: iconFn, headline, body }) {
 
 /**
  * Results / Next steps card (frames 20, 21): a title and a numbered list of
- * tappable rows, each a bold title + caption + chevron. `steps` is
- * `[{ number, title, caption, action }]`.
+ * rows, each a bold title + caption. `steps` is
+ * `[{ number, title, caption, action }]`, and `action` is OPTIONAL.
+ *
+ * A ROW IS A CONTROL WHEN, AND ONLY WHEN, IT DECLARES AN ACTION. A step with
+ * one renders a `<button>` carrying the chevron; a step without one renders a
+ * plain `<div>` with no chevron and no focus stop. Two rules meet here and
+ * they are the same rule:
+ *
+ *   - The chevron is the app's claim that a row goes somewhere, so it is
+ *     drawn from the fact that decides it rather than passed in beside it.
+ *     `consent.js` already draws its account-row chevron this way, and
+ *     `flagRowHTML` is the standing counter-example - a chevron on a row
+ *     whose `report-issue` action nothing binds.
+ *   - A `<button>` with nothing bound to it is a dead focus stop, which is
+ *     worse than a quiet one: it takes a tab press and answers with nothing.
+ *     Same reasoning as D11 rendering the inert tabs `disabled`.
+ *
+ * Frame 21's three steps all declare actions, so it renders exactly as it did
+ * before this branch existed. Frame 20's first step does not (DECISIONS.md
+ * D50), and its second - the MCOB 4.8A adviser route - does.
  */
 export function nextStepsCardHTML({ title, steps }) {
   return `
     <div class="card next-steps-card">
       <p class="next-steps-card__title">${title}</p>
-      ${steps.map((step, i) => `
-        <button type="button" class="next-steps-card__row${i < steps.length - 1 ? ' next-steps-card__row--divided' : ''}" data-action="${step.action}">
+      ${steps.map((step, i) => {
+        const rowClass = `next-steps-card__row${i < steps.length - 1 ? ' next-steps-card__row--divided' : ''}`;
+        const rowBody = `
           <p class="next-steps-card__number">${step.number}</p>
           <div class="next-steps-card__content">
             <p class="next-steps-card__step-title">${step.title}</p>
             <p class="next-steps-card__caption">${step.caption}</p>
-          </div>
+          </div>`;
+        return step.action
+          ? `
+        <button type="button" class="${rowClass}" data-action="${step.action}">${rowBody}
           ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
         </button>
-      `).join('')}
+      `
+          : `
+        <div class="${rowClass}">${rowBody}
+        </div>
+      `;
+      }).join('')}
     </div>
   `;
 }

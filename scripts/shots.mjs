@@ -57,6 +57,12 @@
  *              own flag moves (DECISIONS.md D46). Use it to shoot the screens
  *              that read `property-value` live while a goal is committed.
  *                                                       default none
+ *   --scroll   `top` or `end` - where the screen's scroller is left before the
+ *              shot. An axis like the others, so `--scroll=top,end` shoots
+ *              both. Added for the screens whose bottom edge is the thing
+ *              under review: what clears the tab bar at the end of a long
+ *              screen, and whether a dock's `--more-below` fade is drawn.
+ *                                                       default top
  *   --out      Output directory.                  default .screenshots/shots
  *   --full     Capture the whole scroller rather than the viewport.
  *   --no-sheet Skip the contact sheet.
@@ -106,6 +112,7 @@ const DEFAULTS = {
   saved: '',
   goal: 'set',
   draft: 'none',
+  scroll: 'top',
 };
 
 function parseArgs(argv) {
@@ -206,6 +213,7 @@ const ENTRIES = list(args.entry);
 const STATES = list(args.state);
 const THEMES = list(args.theme);
 const TEXTS = list(args.text);
+const SCROLLS = list(args.scroll);
 const WIDTH = Number(args.width);
 const HEIGHT = Number(args.height);
 const SCALE = Number(args.scale);
@@ -221,6 +229,12 @@ for (const entry of ENTRIES) {
 for (const state of STATES) {
   if (state !== 'now' && state !== 'ahead') {
     console.error(`Unknown --state "${state}". One of: now, ahead.`);
+    process.exit(1);
+  }
+}
+for (const scroll of SCROLLS) {
+  if (scroll !== 'top' && scroll !== 'end') {
+    console.error(`Unknown --scroll "${scroll}". One of: top, end.`);
     process.exit(1);
   }
 }
@@ -277,11 +291,12 @@ async function navigate(page, base, route, entry) {
 
 const slug = (route) => route.replace(/^\//, '').replace(/\//g, '-') || 'root';
 
-function shotName({ route, entry, state, theme, text }) {
+function shotName({ route, entry, state, theme, text, scroll }) {
   const parts = [slug(route), entry, state, theme, `${WIDTH}w`];
   if (args.goal === 'none') parts.splice(1, 0, 'no-goal');
   if (args.draft !== 'none') parts.splice(1, 0, args.draft);
   if (text !== 'default') parts.push(text);
+  if (scroll !== 'top') parts.push(`scroll-${scroll}`);
   if (args.full) parts.push('full');
   return `${parts.join('__')}.png`;
 }
@@ -356,11 +371,25 @@ try {
                 await page.waitForTimeout(300);
               }
 
-              const name = shotName({ route, entry, state, theme, text });
-              const file = path.join(OUT, name);
-              await page.screenshot({ path: file, fullPage: args.full });
-              shots.push({ name, file, route, entry, state, theme, text });
-              console.log(`  ${name}`);
+              // THE FRAME DOES NOT SCROLL, THE SCREEN INSIDE IT DOES
+              // (shell.css). So an end-of-scroll shot moves `.screen-content`
+              // - or a sheet's own `.bottom-sheet__content` - rather than the
+              // window, and the pause after it is long enough for
+              // action-bar.js to re-measure and settle the `--more-below`
+              // fade, which is part of what such a shot is taken to show.
+              for (const scroll of SCROLLS) {
+                await page.evaluate((where) => {
+                  const s = document.querySelector('.bottom-sheet__content, .screen-content');
+                  if (s) s.scrollTop = where === 'end' ? s.scrollHeight : 0;
+                }, scroll);
+                await page.waitForTimeout(300);
+
+                const name = shotName({ route, entry, state, theme, text, scroll });
+                const file = path.join(OUT, name);
+                await page.screenshot({ path: file, fullPage: args.full });
+                shots.push({ name, file, route, entry, state, theme, text, scroll });
+                console.log(`  ${name}`);
+              }
             } finally {
               await context.close();
             }
@@ -381,7 +410,7 @@ try {
     const THUMB = 260;
     const cards = shots.map((s) => {
       const data = fs.readFileSync(s.file).toString('base64');
-      const caption = [s.entry, s.state, s.theme, s.text === 'default' ? null : s.text]
+      const caption = [s.entry, s.state, s.theme, s.text === 'default' ? null : s.text, s.scroll === 'top' ? null : `scrolled to ${s.scroll}`]
         .filter(Boolean).join(' / ');
       return `
         <figure>
