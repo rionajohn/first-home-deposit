@@ -1615,3 +1615,51 @@ That is defence in depth rather than the fix.
 the upstream fix there is no null to handle, and writing "we can't show this" copy for an
 unreachable state would be adding screens the spec never drew. The invariant is in `CLAUDE.md`
 under "State rules" and asserted by `scripts/g62.test.mjs`.
+
+---
+
+**G66. A session from before a deploy never applies the opening stage, so Insights keeps
+redirecting. OPEN, and the fix was specified and deliberately not taken.**
+
+Raised while fixing the build caption (DECISIONS.md D49); the two share a root and only one of them
+was safe to close.
+
+`state.js`'s `isNewSession()` is false the moment anything is read back from sessionStorage, and
+`router.js`'s `openSession()` is gated on it. sessionStorage is per tab and survives every reload,
+so a tab that held a session from before D48 shipped is treated as restored on every subsequent
+load, `openSession()` never runs, and `/tracker`'s guard sends the Insights tab to
+`/calculator/property` indefinitely. **Reproduced**: v37 build, deploy, reload, reload - Insights
+still at `/calculator/property` with `isNewSession()` returning false, and only a second `#/reset`
+on the running build recovers it.
+
+**A participant who opened the link early meets this**, and nothing on screen says why.
+
+**The proposed fix, and why it is not here.** Stamp `BUILD_VERSION` into the stored session; if the
+stored stamp does not match the running one, treat the session as new and apply the opening stage.
+It closes the gap exactly. It also **resets a participant mid-task**, which is why it was stopped:
+
+- The check would live in `load()`, which runs at module evaluation - once per **document load**,
+  not once per session.
+- A document load can happen DURING a session, not only between them: a refresh, a browser tab
+  restore, an installed home-screen copy relaunched after the OS reclaimed it, a crash recovery.
+  Nothing in the app or `sw.js` forces one - `clients.claim()` takes over future fetches without
+  reloading, checked rather than assumed - but the participant or the moderator can cause one at any
+  moment.
+- What they would lose: everything in `STAGE_KEYS`. Their property value and deposit percentage and
+  every figure derived from them, their monthly saving range, their account filing from frames 03
+  and 03b, and the flags recording that a check was run.
+- **And they would land in a mixed state**, which is the worse half. `stagePatch()` writes only
+  `STAGE_KEYS`, so `targetMonth`/`targetYear`, `solveFor`, `journeyStarted`, `returnFrame` and
+  `ltvVideoSeen` would survive beside the opening stage's own goal figures - a store holding a
+  combination no screen expects, which is the condition CLAUDE.md's state rules and D46 exist to
+  prevent.
+
+*Not resolved here.* The choice is between a stale session that quietly redirects and a session that
+can reset under someone mid-task, and it was taken explicitly in favour of the stale one. Three
+options exist if it is revisited: gate the version check on a session that shows no participant
+input (`journeyStarted` false and no `entered` provenance anywhere), which is a heuristic rather
+than a rule; have the facilitator open a fresh tab or use `#/reset` once per deploy, which is the
+current workaround and costs nothing to build; or surface the mismatch on frame 33 as a prompt
+rather than acting on it. The build caption now makes the mismatch visible, which is what the
+workaround needs to be reliable.
+

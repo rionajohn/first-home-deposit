@@ -42,7 +42,7 @@
  * or derive a deposit-journey figure.
  */
 import { appBarHTML, bindAppBarLeading, pillSegmentsHTML, rerenderInPlace } from '../components/ui.js';
-import { CACHE_VERSION_FALLBACK } from '../cache-version.js';
+import { BUILD_VERSION, SHELL_CACHE_PREFIX } from '../cache-version.js';
 import { applyScenarioClasses } from '../router.js';
 import { stagePatch } from '../stage.js';
 import { chevronRight } from '../icons.js';
@@ -53,14 +53,33 @@ function fill(template, values) {
   return Object.entries(values).reduce((s, [k, v]) => s.replace(`{${k}}`, v), template);
 }
 
-async function readLiveCacheVersion() {
-  if (!('caches' in window)) return null;
+/**
+ * EVERY shell version currently in Cache Storage, not one of them.
+ *
+ * This used to be `readLiveCacheVersion()`, which took `names.find((name) =>
+ * name.startsWith('yfh-shell-'))` and returned whichever key `caches.keys()`
+ * happened to list first. Two keys coexist for exactly the window that matters
+ * - between a new worker caching its shell and its `activate` deleting the old
+ * one - so the one moment the caption had something useful to say was the one
+ * moment it picked arbitrarily between two right answers.
+ *
+ * Returning the whole set removes the choice rather than making it better.
+ * NOTHING HERE RANKS THEM: 'v9' and 'v10' do not compare correctly as strings
+ * and parsing them into numbers would be a second place that knows how sw.js
+ * names a build. The caller only asks which of these is NOT the running
+ * version, which needs equality and nothing else. `sort()` is for a stable
+ * reading order when more than one is waiting, not to choose a winner.
+ */
+async function readCachedVersions() {
+  if (!('caches' in window)) return [];
   try {
     const names = await caches.keys();
-    const shellCache = names.find((name) => name.startsWith('yfh-shell-'));
-    return shellCache ? shellCache.slice('yfh-shell-'.length) : null;
+    return names
+      .filter((name) => name.startsWith(SHELL_CACHE_PREFIX))
+      .map((name) => name.slice(SHELL_CACHE_PREFIX.length))
+      .sort();
   } catch {
-    return null;
+    return [];
   }
 }
 
@@ -121,8 +140,8 @@ export function render(container, ctx) {
         </button>
       </div>
 
-      <div class="settings-footer">
-        <p class="settings-footer__text" data-role="build-caption">${fill(c.buildCaptionTemplate, { version: CACHE_VERSION_FALLBACK })}</p>
+      <div class="settings-footer" data-role="settings-footer">
+        <p class="settings-footer__text" data-role="build-caption">${fill(c.buildCaptionTemplate, { version: BUILD_VERSION })}</p>
       </div>
     </main>
   `;
@@ -165,9 +184,24 @@ export function render(container, ctx) {
     window.location.hash = '#/reset';
   });
 
-  readLiveCacheVersion().then((version) => {
-    if (!version) return;
-    const el = container.querySelector('[data-role="build-caption"]');
-    if (el) el.textContent = fill(c.buildCaptionTemplate, { version });
+  // THE BUILD CAPTION ABOVE IS NEVER TOUCHED FROM HERE (DECISIONS.md D49). It
+  // is rendered from `BUILD_VERSION`, which is compiled into these very
+  // modules and therefore cannot disagree with the code reading it. What
+  // follows only ever ADDS a second, labelled line.
+  //
+  // A cached version that is not the running one means a newer build is
+  // downloaded and will take over on the next document load - the one fact the
+  // old caption was reaching for and got backwards by reporting it as though
+  // it were already running.
+  readCachedVersions().then((versions) => {
+    const waiting = versions.filter((version) => version !== BUILD_VERSION);
+    if (waiting.length === 0) return;
+    const footer = container.querySelector('[data-role="settings-footer"]');
+    if (!footer) return;
+    const line = document.createElement('p');
+    line.className = 'settings-footer__text';
+    line.dataset.role = 'cached-caption';
+    line.textContent = fill(c.cachedBuildTemplate, { versions: waiting.join(', ') });
+    footer.append(line);
   });
 }

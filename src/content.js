@@ -1117,6 +1117,11 @@ const content = {
     resetHeader: 'Reset',
     resetRowLabel: 'Clear all progress and start again',
     buildCaptionTemplate: 'Build {version}. Figures are illustrative throughout.',
+    // Shown only when Cache Storage holds a shell version that is not the one
+    // running. Deliberately says "downloaded", not "running": the whole fault
+    // this replaced was a caption that named a version the page was not
+    // executing. Phrased to read correctly for one waiting version or several.
+    cachedBuildTemplate: 'Downloaded and waiting for a reload: {versions}.',
   },
 };
 

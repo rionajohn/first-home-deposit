@@ -3193,6 +3193,68 @@ overlap, 89 action-bar, 15 sheet-drag, 13 bottom-nav, 11 skip-ahead, 21 stage, p
 
 ---
 
+## D49. The build caption reports the running code, not Cache Storage
+
+**Date.** 28 August 2026.
+
+**Decision.** Frame 33's build caption is rendered from `BUILD_VERSION`, the constant compiled into
+the running modules, and is **never overwritten**. Where Cache Storage holds a shell version that is
+not the running one, that is shown as a **second, labelled line** saying it is downloaded and
+waiting for a reload. `CACHE_VERSION_FALLBACK` is renamed `BUILD_VERSION`: it was never a fallback,
+it was the only honest reading in the file.
+
+**Why. The caption was evidence, and it was wrong.** `readLiveCacheVersion()` read `caches.keys()`
+on the reasoning that the cache holds the version actually running. It does not. Cache Storage is
+rewritten by whichever service worker most recently activated, and `sw.js` uses `skipWaiting()` and
+`clients.claim()`, so on the first load after a deploy the new worker installs, activates, claims
+and deletes the old cache **while the document keeps executing the modules it already had**. The
+caption then named the new version over the old code.
+
+That is worse than showing no version at all. It cost a full investigation: a facilitator read
+"Build v38", typed `#/reset` on the strength of it, and the page was running v37 - whose `#/reset`
+predates D48's `openSession()` and so left an empty session behind. Reproduced end to end before
+this change, five steps, with the caption naming a version the page was not running at two of them.
+
+**A constant compiled into the module graph cannot disagree with the code around it.** Whatever
+build served `cache-version.js` is the build whose value it holds. That is the whole argument for
+making it primary, and it is a stronger guarantee than any runtime lookup can offer.
+
+**The cached version is still worth showing**, and is the fact the old caption was reaching for and
+got backwards: a newer build is downloaded and will take over on the next document load. It is a
+second line, labelled "Downloaded and waiting for a reload", using "downloaded" rather than
+"running" precisely because naming a version as running was the fault.
+
+**`find()` on the cache names is gone rather than corrected.** `names.find((name) =>
+name.startsWith('yfh-shell-'))` returned whichever key `caches.keys()` listed first, and two keys
+coexist for exactly the window that matters - between a new worker caching its shell and its
+`activate` deleting the old one - so the one moment the caption had something useful to say was the
+one moment it chose arbitrarily between two right answers. `readCachedVersions()` returns the whole
+set instead. **Nothing ranks them**: 'v9' and 'v10' do not compare correctly as strings, and parsing
+them into numbers would be a second place that knows how `sw.js` names a build. The caller asks only
+which of them is not the running version, which needs equality and nothing else.
+
+**Verified.** v38 worktree with its worker installed, then the server flipped to v39, five steps
+through reloads and `#/reset`: **zero false version claims**. With caches forced to coexist, the
+primary line stays on the running build and the second line lists every other cached version,
+sorted, for one waiting version and for two.
+
+**What this does NOT fix, deliberately - see GAPS.md G66.** A tab holding a session from before a
+deploy still never applies the opening stage, so Insights keeps redirecting to the calculator. The
+proposed remedy - stamp the build version into the session and treat a mismatch as new - was
+specified in the same pass and **stopped before implementation** on its own stated condition: it
+resets a participant mid-task. The check would run in `load()`, on every document load, and a
+document load can happen during a session (a refresh, a tab restore, a home-screen relaunch). A
+participant who had entered their own figures would lose them and be returned to the opening stage,
+and because `stagePatch()` covers only `STAGE_KEYS` they would land in a mixed state - the opening
+stage's goal figures beside their own `targetMonth`, `solveFor` and `journeyStarted` - which is the
+condition the state rules in CLAUDE.md exist to prevent. Recorded in full in G66 rather than taken.
+
+**Reversal.** Restore `readLiveCacheVersion()` and the `CACHE_VERSION_FALLBACK` name, drop
+`SHELL_CACHE_PREFIX` and `cachedBuildTemplate`, and put the overwrite back in `settings.js`. The
+caption starts lying again on the first load after every deploy.
+
+---
+
 ## D48. A session opens in the saving stage, so the tracker is populated from the first tap
 
 **Date.** 28 August 2026.
@@ -3427,3 +3489,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 27 August 2026 (rule 1A resolved, G61 split) | **D47 recorded.** Rule 1A's 60% clause is a **FLAG, not a FIX** - a heading names a section's dominant action, a clause states its own, and where they differ the clause wins. The reason is not the wording: the clause governs COPY and **no screen states £255 or 67%**, while frame 10 headlines no proposed amount, frames none as a share of what is left, sets no target, and states two facts - which is the remedy the three FIX bullets ask for, already met. The skill is corrected in place so the contradiction does not have to be resolved again; leaving it had already cost one full investigation. **G61 closed and split three ways.** *G61a*, the 67% default: resolved as a documented decision, **no figure changes**, still flagged, the £200-£310 range being fixed by the reference frames which draw both figures and the £0-£380 track exactly. *G61b*, opened as **G63** and deliberately unresolved: the £310 upper handle is **81.6%** of left-over, it is **displayed** twice on frame 10 and again on frame 11 where £255 is displayed nowhere, 81.6% is above the 80% the rule itself names as predictably failing rather than merely above the 60% flag line, and "You could put aside £310 a month" is the rule's own example of a breach - the number in the rule is the number in this build. Both sides recorded in the entry: **for**, it is captioned as a fact about the persona's past saving and the grammar is descriptive throughout; **against**, the slider seeds its upper handle from it and Continue commits the midpoint whether or not a handle moved, so the app does default to it, and the clause is about defaults rather than description. *G61c*, **fixed**: frame 11's `monthlySavingCaption` read "The range you set" unconditionally, telling a participant who accepted the seeded range that they had set it - the one part of rule 1A that genuinely was a copy defect, since the section's own remedy is "hand the choice to the user". The row now picks by provenance following `position.js`'s frame 05 pattern; `read` gives "Read from what you've been putting aside lately", reusing frame 10's own words for the figure behind frame 11's own prefix for a read one, so no new vocabulary. Known limitation logged not fixed: the 10b path lands on `entered` and also reads "The range you set" where a date is what was set. **Two findings logged separately as neither is G61**, both on frame 10b and both reachable in a session: **G64**, the date path has no ceiling where the slider path clamps to `left-over`, so the screen's own default seeded date commits **£331 to £404** against a £380 left-over with no warning; **G65**, the solved amount is computed every render and never displayed - reference PNG 10b checked rather than assumed and draws no readout either, so the build is faithful and the gap is in the design. `CACHE_VERSION` v36. 270 tests passing. |
 | 27 August 2026 (strict alternation on /goals) | **D44 amended a fifth time**: `/goals` now shows exactly **one** bridge card in every state - the calculator while no deposit goal is set, the tracker once one is, at any savings position. `unlocked` is gone from `goals.js` and the condition is `hasGoal ? trackerCardHTML : houseCardHTML`. **The rule has not changed and the third-state reasoning is not superseded - it is outranked, and deliberately left in the entry unedited.** "Do not advertise a door that redirects" still holds and is still why the no-goal state withholds the tracker card; the third state was *correct* under it, both destinations genuinely rendering at or above the checkpoint. What changed is a judgement above the rule: one card in every state is worth more than a second honest door in one state. **The cost is accepted knowingly and recorded in both the entry and `ROUTES.md`**: `tracker.js` draws "Adjust my goal" on the below-checkpoint variant and no other (D25, which governs frame 15 only), so a participant at or above the checkpoint now has **no nearby route to the deposit calculator at all** - it is reachable by typing `#/calculator/property` and in no other way from that state. The obvious repair, drawing the secondary on the unlocked variant too, stays rejected on the fourth amendment's instrument cost: a backwards-pointing action beside the control that opens the Mortgage in Principle flow diverts participants into the calculator and costs the sessions the observation that variant exists to produce. The two amendments are consistent - the fourth refused to add a route to the tracker, the fifth removes one from `/goals`, both paid for by the same participant in the same state. Verified by driving all three journey states through frame 33 and asserting the rendered `data-action` set rather than eyeballing it (`setting-up` -> `["open-deposit-calculator"]`, `saving` and `ready-to-check` -> `["open-deposit-tracker"]`), clicking each card to confirm where it lands, and tapping Insights in all three - unchanged, `#/tracker` in the two goal states and still redirecting in the no-goal state. Shot at 390px light and dark in both states, dark mode unchanged, no layout gap where the second card was. `overlap.test.mjs` loses `goals-below-checkpoint`, now the same shape as the bare `goals` row; `ROUTES.md`'s three-state table becomes two rows and gains the missing-route warning. `CACHE_VERSION` v37. 268 tests passing. |
 | 28 August 2026 (session opens populated) | **D48 recorded.** A new session opens in the **saving stage** rather than empty, so the Insights tab lands on a populated deposit tracker from the first tap - the tracker was previously the one screen a participant could not meet, `/tracker`'s guard redirecting into the calculator until frames 09, 10 and 11 had all run. Same reasoning `state.js` already applies to `money-in`: the accounts are connected, so what follows from them is there rather than waiting on a form. **`router.js` reuses `stagePatch()`**, the same function frame 33 calls, against the same fresh `defaultState()` - a session that opened itself and one a facilitator set to "Saving" are byte-identical, asserted through the very expression `openSession()` runs. **`OPENING_STAGE` is a constant in `stage.js`, not a changed default in `state.js`, and that is load-bearing**: `baseline()` is built from `defaultState()`, so a moved default would have made frame 33's "Setting up" a no-op and put the blank calculator out of reach. It sits in `router.js` because `state.js` cannot import `stage.js` without a cycle that would put `stagePatch` in the temporal dead zone. Gated on `isNewSession()`, so a mid-session refresh restores rather than resets; `resetState()` clears the flag so `#/reset` opens the next participant's session too. **`saved-toward-deposit` untouched at £8,950** - the sum of the four accounts frames 03, 06 and 32 draw, so the session opens BELOW its checkpoint and skip-ahead keeps both positions. Accepted cost: frame 09 arrives pre-filled at £240,000/10% and `/goals` draws the tracker card from the first tap. `CACHE_VERSION` v38. 275 tests passing. |
+| 28 August 2026 (build caption tells the truth) | **D49 recorded.** Frame 33's build caption is rendered from `BUILD_VERSION` - the constant compiled into the running modules - and is **never overwritten**; a cached version that is not the running one appears as a **second, labelled line** saying it is downloaded and waiting for a reload. `CACHE_VERSION_FALLBACK` renamed `BUILD_VERSION`: it was never a fallback. **The caption was being read as evidence and it was wrong** - Cache Storage is rewritten by whichever worker most recently activated, and `sw.js` uses `skipWaiting()`/`clients.claim()`, so after a deploy the new worker claims while the document keeps executing the modules it already had. It cost a full investigation: "Build v38" on screen, v37 executing, and a `#/reset` typed on the strength of it ran the previous build's reset. **`find()` on the cache names is gone rather than corrected** - it picked arbitrarily between two right answers during exactly the window that mattered; `readCachedVersions()` returns the whole set and **nothing ranks them**, since only equality against the running version is needed. Verified across a real v38 to v39 deploy, five steps: **zero false version claims**. **Part two stopped before implementation, on its own condition** - stamping the build version into the session would reset a participant mid-task, because the check runs on every document load and a refresh, tab restore or home-screen relaunch is a document load. Logged as **G66** with the full cost. `CACHE_VERSION` v39. 275 tests passing. |

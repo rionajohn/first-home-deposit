@@ -111,7 +111,7 @@ This is separate from the existing rule that `CACHE_VERSION` is bumped on every 
 same commit as any change to a value in `src/model/rates.js`. Adding a new module or icon to
 `SHELL_ASSETS` counts as a path change.
 
-Keep `src/cache-version.js`'s `CACHE_VERSION_FALLBACK` in step with `sw.js` — a paired hand-edit,
+Keep `src/cache-version.js`'s `BUILD_VERSION` in step with `sw.js` — a paired hand-edit,
 by design; see that file's comment for why the two cannot be derived from one another.
 
 A display-name rename on its own does **not** need a bump: no path changes.

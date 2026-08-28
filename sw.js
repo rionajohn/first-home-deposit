@@ -26,10 +26,10 @@
  * in the same commit as any change to a value in src/model/rates.js — a
  * rate change landed without a cache bump would leave some participants
  * served stale cached figures with no visible sign of it. Keep
- * src/cache-version.js's CACHE_VERSION_FALLBACK in step with the version
+ * src/cache-version.js's BUILD_VERSION in step with the version
  * below; see that file's own comment for why the two are separate.
  */
-const CACHE_VERSION = 'v38';
+const CACHE_VERSION = 'v39';
 const CACHE_NAME = `yfh-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
