@@ -676,7 +676,28 @@ const content = {
     goalCaptionTemplate: 'of your {target} deposit goal',
     checkpointProgressLabel: 'Checkpoint',
 
-    belowCheckpointBodyTemplate: "You're {gap} away from the point where checking a Mortgage in Principle starts to be useful.",
+    // NO FIGURE, AND NO DIRECTION (DECISIONS.md D51). This used to read
+    // "You're {gap} away from the point where checking a Mortgage in Principle
+    // starts to be useful." Its premise was the checkpoint gate, and once the
+    // action bar offers the check at either position that sentence would have
+    // sat directly above a button offering the very thing it says is not yet
+    // useful. It also framed the deposit position as a distance short of a
+    // point, which the copy rules name directly.
+    //
+    // What replaced it glosses the term instead, in a legible slot - which
+    // matters more now that the milestone row below no longer implies the check
+    // is gated. It carries no figure, so nothing here implies a threshold, and
+    // it hints at no direction, so a participant reading the screen aloud is not
+    // told what the result will say before they run it. The checkpoint is not in
+    // this line at all: the progress bar's marker still carries it.
+    //
+    // The rejected alternative was "You can check what a lender might lend you
+    // at any point. The result moves as your deposit grows." - it reads more
+    // easily, but "the result moves as your deposit grows" hints at the
+    // direction of the result, and its first sentence repeats the wording of the
+    // button immediately below it.
+    belowCheckpointBodyTemplate:
+      "A Mortgage in Principle is a lender's estimate, worked out before you choose a property. You can run one at any point.",
     checkpointReachedBodyTemplate:
       "You've passed the {pct} checkpoint. You can now check whether a Mortgage in Principle is likely to be approved.",
     goalMetBody:
@@ -688,43 +709,70 @@ const content = {
     goalSetTitle: 'Deposit goal set',
     goalSetBodyTemplate: "{target}, a {pct} deposit on a {property} home. Now it's just saving.",
     mipTitle: 'Mortgage in Principle',
-    // THE TWO STATES OPEN WITH THE SAME THREE WORDS AND DIVERGE AFTER THE
-    // FIRST SENTENCE, and that is load-bearing rather than incidental
-    // (DECISIONS.md D42). "Available from {checkpoint}" is the same clause on
-    // the same figure in both, so passing the checkpoint reads as one figure
-    // changing state rather than as the row being replaced. Do not tidy these
-    // into two different phrasings.
+    // ONE BODY FOR BOTH ROW STATES (DECISIONS.md D51). This was two keys,
+    // `mipLockedBodyTemplate` and `mipUnlockedBodyTemplate`, and D42 held them
+    // deliberately parallel: both opened "Available from {checkpoint}" on the
+    // same figure in the same slot, so passing the checkpoint read as one
+    // figure changing state rather than as the row being replaced.
     //
-    // NOT "Unlocks at": game language for a mortgage product, and once the
-    // unlocked row stopped saying "Unlocked" this was the only place it
-    // survived.
+    // BOTH HALVES OF THAT ARE GONE, AND NEITHER WAS TIDIED AWAY. The shared
+    // opening clause was a claim that the checkpoint gates the check, and it
+    // does not any more - the action bar offers the check at either position,
+    // so "Available from £18,000" was false on both rows, not just the lower
+    // one. And the pairing has no subject left: both rows now render the same
+    // `available` state, so there is no transition on this row for a parallel
+    // opening to make legible. Two keys carrying one state is one key.
     //
-    // The definition of a Mortgage in Principle is deliberately NOT repeated
-    // here. It sits in the unlocked row, where the text is at full colour and
-    // where a participant has a reason to act on it; this row is greyed, and
-    // is the harder of the two to read.
-    mipLockedBodyTemplate: 'Available from {checkpoint}. {gap} to go.',
-    // NOT "Unlocked. Whenever you're ready." (DECISIONS.md D42). Two faults:
-    // "unlocked" is game language for a mortgage product, and the row carried
-    // no figure while the rows above it carry two, three and two.
+    // WHAT IT SAYS, AND WHY NOT SOMETHING SHORTER. "Not run yet" rather than
+    // "not done": a check is run, and the row reports that it has not been.
+    // The second sentence replaces what the checkpoint figure used to carry -
+    // it is the only thing on this row that explains why running it now and
+    // running it later differ, and it does that without saying which way the
+    // answer moves, so a participant reading the screen aloud is not told the
+    // result before they reach it.
     //
-    // Deliberately the same shape as `mipLockedBodyTemplate` above, on the same
-    // figure in the same slot, so moving between the two states reads as one
-    // figure changing state rather than as a new sentence arriving.
+    // NO FIGURE, deliberately. Rows one to three each carry one, and this row
+    // carried the checkpoint. Any figure here would imply a threshold that no
+    // longer exists; the progress bar's marker still carries the checkpoint.
+    // No borrowing figure either, for D42's original reason: none exists until
+    // /mip/running has written `borrow-low`/`borrow-high`, and quoting one
+    // would need the MCOB 3A warning and would edge into "what you could be
+    // offered".
     //
-    // It says what a Mortgage in Principle IS, which neither state did before.
-    // No borrowing figure is quoted, because none exists until the check has
-    // run - `borrow-low`/`borrow-high` are written by /mip/running - and
-    // quoting one here would need the MCOB 3A warning and would edge into "what
-    // you could be offered", which the copy rules name directly.
-    mipUnlockedBodyTemplate:
-      'Available from {checkpoint}. A lender\'s estimate of how much they might lend, worked out before you choose a property.',
-    unlocksAtTemplate: 'Unlocks at {checkpoint}',
-    // The supporting line for the Mortgage in Principle entry: what the
-    // participant gets, and the two things it is not. "Ready to check" said
-    // only that the door was open, which left the action bar's label as the
-    // sole account of what is behind it.
-    readyToCheckLabel:
+    // Two candidates were rejected and the reasons are worth keeping. "Your
+    // figures are ready for it" makes a readiness claim about the held data,
+    // which is frame 19's job - it is the screen that lists the five figures
+    // and checks them off. "Nothing here is sent to a lender" makes a claim
+    // about the search, and the checked wording for that is
+    // `/mip/pre-check`'s `softSearchWarning`, inside the flow where it applies.
+    //
+    // NOT a `...Template`: it carries no placeholder, and the name says so.
+    mipBody: 'Not run yet. The estimate uses the deposit you have on the day you run it.',
+    // The caption under the milestone list: what the participant gets from a
+    // Mortgage in Principle, and the two things it is not.
+    //
+    // `unlocksAtTemplate` IS DELETED, NOT REWORDED (DECISIONS.md D51). It held
+    // "Unlocks at {checkpoint}" and rendered here on the below-checkpoint
+    // variant, opposite this line. It carried gating information that no longer
+    // exists - the check is offered at either position - and it was the last
+    // survivor of the "unlocks" game language D42 stripped from the milestone
+    // rows and left here for a later decision. This is that decision, and it
+    // closes D42's own deferred change-log line. A net deletion: no new string.
+    //
+    // THIS LINE NOW RENDERS ON BOTH VARIANTS, and it was already true at either
+    // position - it makes no claim about a threshold, only about what the check
+    // returns and what it is not. Rendering it unconditionally is the caption
+    // catching up with the override rather than a workaround for the deletion:
+    // the alternative, dropping the element on the below-checkpoint variant,
+    // would have left that variant with no gloss of the term under the list.
+    //
+    // RENAMED FROM `readyToCheckLabel` (D51). That name asserted a state - the
+    // checkpoint had been reached and the door was open - and the state no
+    // longer exists, so keeping it would have been a key describing a gate its
+    // own string does not mention. `mipCaption` names what the string IS on
+    // screen, beside `mipTitle` and `mipBody` above. D35's copy table in
+    // DECISIONS.md records this line's previous wording under the old key name.
+    mipCaption:
       'An indication of what a lender might lend you. Not a decision, and not an application.',
     ratesCardHeading: 'What rates are like at this Loan-to-Value',
     ratesCaptionTemplate: 'Typical market rates at {ltv} Loan-to-Value',
@@ -733,9 +781,13 @@ const content = {
       "These are typical market ranges, not rates we're offering you. The rate any lender offers depends on their checks and your circumstances.",
     rateBandDepositCaptionTemplate: '{pct} deposit',
     rateBandProvenanceCaption: 'Deposit amounts worked out from the property value you set',
-    // Deliberately the same wording as belowCheckpointCta below: one
-    // destination, one label, whichever side of the checkpoint you are on.
-    // Says what frame 13 explains rather than naming it.
+    // THE ONLY CONTROL CARRYING THIS LABEL ON THIS SCREEN, at either position
+    // (DECISIONS.md D51). It used to be one of two: `belowCheckpointCta` was the
+    // same string in the action bar's primary slot below the checkpoint, which
+    // is why this link was drawn on the unlocked variant only. `check-mip` holds
+    // the primary at both positions now, `belowCheckpointCta` is deleted, and
+    // this link is drawn at both. Says what frame 13 explains rather than naming
+    // it.
     ltvInfoLinkLabel: 'What a bigger deposit changes',
     assumptionsLinkLabel: 'How we worked out these rate figures',
     thisMonthHeading: 'This month',
@@ -747,16 +799,26 @@ const content = {
     onTrackCaption: "Worked out from what you're putting aside each month",
     provenanceKeyLabel: 'How we worked out your monthly saving',
     flagLabel: "Something doesn't look right",
-    // Below the checkpoint the primary action is guidance, not the Mortgage
-    // in Principle route (which is genuinely not open yet) and not a step
-    // backwards into the calculator. "Adjust my goal" stays available as the
-    // secondary. See DECISIONS.md D25.
-    belowCheckpointCta: 'What a bigger deposit changes',
+    // `belowCheckpointCta` IS DELETED (DECISIONS.md D51). It held "What a
+    // bigger deposit changes" for the action bar's primary slot below the
+    // checkpoint, on D25's reasoning that the Mortgage in Principle route was
+    // genuinely not open there. It is open at either position now, so the
+    // primary carries `checkpointReachedCta` on both and this key had no reader.
+    // The label itself is not lost: it is `ltvInfoLinkLabel` above, which is now
+    // drawn at both positions.
+    //
+    // "Adjust my goal" is unchanged and still the secondary, exactly as D25
+    // left it.
     belowCheckpointSecondaryCta: 'Adjust my goal',
     // Says what the participant gets, not that they will be issued one.
     // "Check my Mortgage in Principle" claimed the possessive: it reads as
     // though the prototype produces a decision in principle addressed to
     // them, which it does not and must not imply.
+    //
+    // ONE STRING, BOTH VARIANTS (D51). Named for the state it was written for
+    // and kept under that name rather than renamed: the string is unchanged, and
+    // renaming it would have made a copy-identical key look like new wording in
+    // every diff and every screenshot comparison.
     checkpointReachedCta: 'Check what a lender might lend you',
     lockedRowAriaSuffix: 'locked',
 

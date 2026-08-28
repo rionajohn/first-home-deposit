@@ -114,6 +114,22 @@ same commit as any change to a value in `src/model/rates.js`. Adding a new modul
 Keep `src/cache-version.js`'s `BUILD_VERSION` in step with `sw.js` - a paired hand-edit,
 by design; see that file's comment for why the two cannot be derived from one another.
 
+**A version number covers ONE state of `SHELL_ASSETS`, not one working session.** If the list changes
+again after a build has been served under the current version - including a path being *removed*
+again, and including a build served only from a local `python -m http.server` - bump again. It is not
+enough that the version differs from the last commit; it has to differ from every build a browser
+may already be holding.
+
+This is written down because it happened, on 28 August 2026. `v41` was set in the same edit that
+added `./src/run-check.js` to `SHELL_ASSETS`; that build was served locally; the module was then
+removed in the same session and the version left at `v41`. **Two different shells were served under
+one version number.** `sw.js` serves the shell cache-first with no revalidation and its `activate`
+deletes only caches whose name differs from the current one, so the first `v41` shell was never
+evicted and kept being served in full - old modules, old copy, old screen. Frame 33's build caption
+could not surface it either: both builds honestly reported `v41`, which is a different failure from
+the one D49 fixed and is not caught by anything the caption can do. The fix was `v42`; the rule is
+above.
+
 A display-name rename on its own does **not** need a bump: no path changes.
 
 ### Colours

@@ -1683,3 +1683,52 @@ current workaround and costs nothing to build; or surface the mismatch on frame 
 rather than acting on it. The build caption now makes the mismatch visible, which is what the
 workaround needs to be reliable.
 
+---
+
+**G67. `src/model/anchors.js` is named as the source of truth for the anchor audit and does not
+exist.** `SPEC.md` lines 67-68 list it in the file inventory as "single source of truth for the
+regulatory anchor map (below), as data", and lines 141-150 describe the audit it backs: "`src/model/
+anchors.js` holds this table as data: `{ screenId: [anchorKey, ...] }`. Every screen module in
+`src/screens/` exports its own `export const anchors = [...]` naming the same keys", compared
+mechanically so the audit is "run once across all screens - rather than checked by eye".
+
+Half of that is real. Every screen module does export an `anchors` array, and they are populated -
+`mip-result-not-yet.js` declares `['guidanceNotAdvice', 'adviserScope', 'mcob3aRepossessionWarning',
+'estimateDisclosure']`, matching `SPEC.md`'s own map rows for frame 21. What does not exist is the
+file those arrays are supposed to be compared against, so nothing checks them and a screen whose
+declared anchors drift from the rendered lines would not be caught. `SPEC.md`'s verification step 2
+("Regulatory anchor audit - mechanical, not by eye") cannot currently be run as written.
+
+Found while tracing the anchors on frames 20 and 21 for D51. *Status: open, and deliberately not
+fixed here - it is unrelated to that change, and writing the missing file means deciding whether the
+map's authority sits in `SPEC.md` or in code, which is a decision rather than a repair. `SPEC.md` is
+left describing the intended state rather than edited down to the built one, so the discrepancy
+stays visible.*
+
+---
+
+**G68. The `locked` milestone state now has no occupant, and is kept anyway.** D51 makes the Mortgage
+in Principle row render `available` below the checkpoint as well as above it, because the route is no
+longer blocked there and `available` is D42's "not done, and not blocked". D42 already establishes
+that rows one to three can never take `locked` - the accounts are connected from session start (D28)
+and `/tracker`'s own guard requires `deposit-target` before it will draw - so with row four gone,
+**nothing on this list can take `locked` at all**.
+
+Three things are therefore unreachable and all three are **deliberately kept**:
+
+| What | Where |
+|---|---|
+| `MILESTONE_ICON.locked` | `src/components/ui.js` |
+| `.milestone-row--locked` title and body colour rule | `src/css/components.css` |
+| `lockedRowAriaSuffix` | `src/content.js`, under `/tracker` |
+
+`lockedRowAriaSuffix` is a separate and older case: it has been **unreferenced anywhere in `src/`
+since D35**, which made the milestone row a plain `<div>` rather than a `<button>` and removed the
+only thing that read it. It did not become dead in this pass; this pass is where it was noticed.
+
+*Status: open by choice, not a defect.* D51 is an explicit override of D25 and D35, and the whole
+point of keeping these three is that the override reverts in one word - put the below-checkpoint
+milestone state back to `locked` and the icon, the colour rule and the aria suffix are all still there
+to receive it. Deleting them would make the reversal a multi-file restoration and would remove a state
+D42's own four-state table still describes as meaningful. Revisit only if the override is confirmed
+permanent, and then treat `lockedRowAriaSuffix` separately, since removing it is unrelated to D51.

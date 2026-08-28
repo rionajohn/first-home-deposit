@@ -12,11 +12,16 @@
  * Processing state (build-spec.md section 2): between the handoff
  * tap on frame 19 and the result. build-spec.md section 1 wires only
  * where this screen goes once it completes ("Processing completes, criteria
- * met -> 20", "...not met -> 21"); the destination is decided by frame 33's
- * own resultOutcome scenario toggle (build-spec.md section 7) — no
- * affordability/eligibility model exists anywhere else in this build
- * (real credit check is explicitly out of scope), so resultOutcome is the
- * only lever this prototype has for choosing between the two results.
+ * met -> 20", "...not met -> 21") and never says what the criteria are.
+ *
+ * THE DESTINATION HAS TWO DECIDERS NOW, AND WHICH ONE APPLIES DEPENDS ON THE
+ * SAVINGS POSITION (DECISIONS.md D51). Below the checkpoint the position
+ * decides and the answer is always frame 21; at or above it frame 33's
+ * `resultOutcome` scenario toggle decides, exactly as it always has
+ * (build-spec.md section 7). No affordability or eligibility model exists in
+ * this build and none is added here - the real credit check is explicitly out
+ * of scope, and the checkpoint is a figure the model already holds rather than
+ * a new rule. The reasoning is at the branch itself, below.
  *
  * The app bar's close icon has no destination in build-spec.md's Navigation
  * table (this screen has no drawn back/dismiss trigger) — wired here to
@@ -25,7 +30,7 @@
  * summary as an inferred addition.
  */
 import { appBarHTML, bindAppBarLeading, processingStateHTML } from '../components/ui.js';
-import { borrowRange, maxProperty } from '../model/model.js';
+import { borrowRange, maxProperty, gapToCheckpoint } from '../model/model.js';
 
 export const anchors = [];
 
@@ -50,7 +55,36 @@ export function render(container, ctx) {
   bindAppBarLeading(container);
 
   const timer = window.setTimeout(() => {
-    if (state.resultOutcome === 'not-yet') {
+    // --- WHICH RESULT, AND WHO DECIDES IT (DECISIONS.md D51) ---------------
+    //
+    // BELOW THE CHECKPOINT THE POSITION DECIDES; AT OR ABOVE IT `resultOutcome`
+    // DOES. Running the check with a deposit short of the checkpoint has one
+    // honest answer, and D25 already says why: "The Mortgage in Principle route
+    // is genuinely not open - that is what the checkpoint means." So the
+    // not-yet result follows from the session's own figures there rather than
+    // from a facilitator toggle, and frame 33 governs everywhere else.
+    //
+    // NOTHING NEW IS DERIVED AND NO THRESHOLD IS WRITTEN DOWN. `gapToCheckpoint`
+    // is the model's existing figure, and it reads the STORED `checkpoint-amount`
+    // and `saved-toward-deposit` - the same two keys `/tracker`'s own guard
+    // tests before it will draw the control that gets a participant here. An
+    // affordability or Loan-to-Value rule was considered and rejected: the
+    // comparison frame 21's copy states (needed-to-borrow above what a lender
+    // would typically offer) is false at every position this prototype can
+    // reach, because `borrow-high` is `loan-amount` at 1.1, so wiring it would
+    // render the LIKELY result on the very path this exists to serve. D51
+    // records the figures.
+    //
+    // FAILS SAFE. `gapToCheckpoint` returns a null value when no checkpoint is
+    // committed, and `null > 0` is false, so a session without a goal falls
+    // through to `resultOutcome` exactly as it did before.
+    //
+    // THE COST IS ACCEPTED, NOT OVERLOOKED: frame 33's outcome pill no longer
+    // describes what happens below the checkpoint. One reading of the state
+    // beats two levers that can disagree about it.
+    const belowCheckpoint = gapToCheckpoint(state).value > 0;
+
+    if (belowCheckpoint || state.resultOutcome === 'not-yet') {
       // build-spec.md section 1: "criteria not met -> gap = deposit-target
       // - saved-toward-deposit" — gap has no build-spec.md section 6 state
       // slot (unlike borrow-low/borrow-high/max-property below), so it's

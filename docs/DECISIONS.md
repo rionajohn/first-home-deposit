@@ -762,6 +762,19 @@ Left alone deliberately: the 44px empty spacer cell opposite an action cell, whi
 
 ## D25. The below-checkpoint tracker's forward action is guidance, and the locked row stays inert
 
+> **OVERRIDDEN IN PART, 28 August 2026 (D51).** The action bar's primary below the checkpoint is now
+> `check-mip` carrying `checkpointReachedCta`, not "What a bigger deposit changes". The reasoning
+> below is not withdrawn and is not wrong - it is conditional on a premise the author has since
+> retired. **"The Mortgage in Principle route is genuinely not open - that is what the checkpoint
+> means" was true when this was written and is no longer true**: the checkpoint still decides which
+> result the flow returns, but it no longer decides whether the flow can be entered. D51 records the
+> override and the reason for it.
+>
+> What survives this entry unchanged: "Adjust my goal" is still the secondary; the milestone row is
+> still not a control; and frame 13 is still reachable from this screen under this entry's own label,
+> as the in-content Loan-to-Value info link rather than as the primary. The reversal instruction at
+> the foot of this entry is superseded by D51's.
+
 **Decision.** Frame 15's action bar becomes two controls. The primary, "What a bigger deposit changes", opens frame 13 (Loan-to-Value) with `returnFrame` set to `/tracker`. "Adjust my goal" is kept and demoted to the secondary. The locked "Mortgage in Principle" milestone row is left exactly as it was: a `<button>` that preventDefaults, keyboard-reachable and explanatory only, per `build-spec.md` section 1's "Tap the locked row -> 15 (in place) -> explanatory only".
 
 **The problem.** Below the checkpoint the screen's only action routed to `/calculator/review` - backwards, into step 3 of a calculator the participant had already finished. Every forward-looking control on the screen was either locked or absent, so the state had no onward move at all.
@@ -1399,6 +1412,13 @@ this commit's `build-spec.md` change alone.
 > bar opens the Mortgage in Principle flow, and the X on frames 17, 18, 19b, 20 and 21 returns to
 > the tracker from BOTH routes into it - the Insights tab and the goals card alike. A proposal to
 > have the X follow the route in was considered and dropped on that basis.
+
+> **AMENDED 28 August 2026 (D51).** "One door into the flow, and it is the action bar" still holds,
+> and is still the reason nothing else in the app routes to `/mip`. **What changed is that the door is
+> no longer gated on the checkpoint**: the action bar carries `check-mip` on the below-checkpoint
+> variant too, so the flow is enterable at any savings position. The count of doors is unchanged at
+> one; only the condition on it is gone. This entry's finding that the milestone row is not a live
+> link is untouched and still correct - the row reports, the bar acts.
 
 **Decision.** The Insights tab resolves to `/tracker`, the tracker's action bar is confirmed as the
 single entry into the Mortgage in Principle flow, and that flow now exits back to the tracker rather
@@ -3483,6 +3503,186 @@ its button and chevron back automatically. Move the route back into `SCREENS` in
 
 ---
 
+## D51. The Mortgage in Principle check is offered at any savings position, and the checkpoint decides the result rather than the route
+
+**Date.** 28 August 2026.
+
+**Decision.** The deposit tracker's action bar carries `check-mip` as its primary on **both** variants,
+under one string (`checkpointReachedCta`, "Check what a lender might lend you"). Below the checkpoint
+the flow's result is decided by the savings position and is always frame 21; at or above it, frame
+33's `resultOutcome` decides, exactly as before. **This is an explicit override of D25 and D35**,
+taken by the author, and both entries are amended in place rather than deleted.
+
+**The problem.** Frame 21 was reachable only by typing a URL. The flow's one door was drawn only at or
+above the checkpoint (D35), and the outcome lever is frame 33's `resultOutcome`, on a screen with no
+on-screen route anywhere in the app. So the not-yet result - the one a moderated session most needs to
+put in front of a participant, because it is where the next-step rows and the adviser route actually
+get used - could not be reached in a session at all.
+
+**WHAT THE CHECKPOINT NOW MEANS.** It stops gating the route and keeps deciding the result. D25 said
+"the Mortgage in Principle route is genuinely not open - that is what the checkpoint means"; that
+premise is retired. What the checkpoint means now is which answer the check comes back with, which is
+a statement about the participant's position rather than about what the app will let them do.
+
+**THE OUTCOME IS DERIVED BELOW THE CHECKPOINT AND FORCED NOWHERE.** `mip-running.js` reads
+`gapToCheckpoint(state).value > 0`, the model's existing figure over the STORED `checkpoint-amount`
+and `saved-toward-deposit` - the same two keys `/tracker`'s own guard tests before it will draw the
+button. No new model function, no new constant, no threshold written down in a screen. It fails safe:
+`gapToCheckpoint` returns a null value with no checkpoint committed and `null > 0` is false, so a
+session with no goal falls through to `resultOutcome` as before.
+
+**AN AFFORDABILITY OR LOAN-TO-VALUE RULE WAS CONSIDERED AND REJECTED ON THE FIGURES.** Frame 21's own
+copy states the comparison - "the amount you'd need to borrow is above what a lender would typically
+offer" - and that comparison is **false at every position this prototype can reach**, because
+`borrow-high` is `loan-amount` at 1.1 (D2) while the shortfall moves with what has been saved:
+
+| Position | `neededLoanAmount()` | `borrowRange().high` | needed > high? |
+|---|---|---|---|
+| Below the checkpoint (8,950 saved) | 231,050 | 237,600 | **no** |
+| At the checkpoint (18,000 saved) | 222,000 | 237,600 | **no** |
+| build-spec.md:184's own frame 21 example (14,600 saved) | 175,400 | 188,100 | **no** |
+
+It only becomes true below about 2,400 saved, so wiring it would have rendered the LIKELY result on
+the one path this change exists to serve. A Loan-to-Value threshold would flip correctly (96.37%
+below the checkpoint against 92.96% at it) but only by deciding a lending outcome from
+`LTV_RATE_BANDS_BY_DEPOSIT_PCT`, a rate-illustration table transcribed for a different purpose, whose
+lookup deliberately falls back to the nearest band so a sub-5% deposit does not fall off it. Neither
+is a rule this build has the model to support, and the real credit check is out of scope.
+
+**THE COST, ACCEPTED RATHER THAN OVERLOOKED.** Frame 33's "Mortgage in Principle outcome" pill no
+longer describes what happens below the checkpoint: set it to "Likely", run the check from the
+tracker below the checkpoint, and frame 21 is what appears. That was chosen over the alternative,
+which was to let a participant with a 3.73% deposit be told a lender would likely consider them. One
+reading of the state beats two levers that can disagree about it.
+
+**ONE DOOR, STILL, AND ONE LABEL.** D35's "one door into the flow, and it is the action bar" is
+unchanged and is still why nothing else in the app routes to `/mip`. `checkpointReachedCta` is reused
+on both variants rather than a second key being added, and it keeps its name: the string is
+identical, and renaming it would make a copy-identical key read as new wording in every diff and
+screenshot comparison.
+
+**The displaced control, and a condition that is spent.** The below-checkpoint primary was D25's
+"What a bigger deposit changes". It becomes the in-content Loan-to-Value info link, which is
+`ltvInfoLinkLabel` - **the same string**, already drawn in exactly this way on the checkpoint-reached
+variant and on frames 09 and 12. That link was gated to the unlocked variant for one reason, recorded
+at `tracker.js`: below the checkpoint the primary CTA "already opens frame 13 under this very label,
+and two controls carrying identical wording on one screen is what goal-check.js's 'one link to frame
+29, not two' already ruled out". **That reason is spent** - `check-mip` holds the primary at both
+positions, so there is no second control with this label and no duplication to prevent. The gate is
+removed rather than reworded: this is the arrangement the unlocked variant already had, with an
+obsolete condition taken off it. "Adjust my goal" keeps the secondary slot, exactly as D25 left it,
+and `belowCheckpointCta` is deleted as unused.
+
+**The milestone row takes `available` below the checkpoint, and D42 needs no amendment.** Its
+definitions stay literally true: the route is not blocked, and `available` is "not done, and not
+blocked". D42 anticipates this case in terms - *"If a later milestone is added that can be reachable
+and not yet done, it takes this same treatment."* Two consequences are recorded rather than worked
+around:
+
+- **The two variants now differ at row 3, not row 4.** Below the checkpoint the list is
+  `['done', 'done', 'current', 'available']`; at or above it, `['done', 'done', 'done', 'available']`.
+  The variants remain distinguishable, but the distinction moves up a row.
+- **The checkpoint is no longer legible on the milestone list.** It is still on the progress bar as
+  the marker, and it still decides which result the flow returns, but the list stops reporting it.
+  That is a real loss and it is the price of the row telling the truth about what is blocked.
+
+`locked` therefore has no occupant anywhere: D42 already establishes rows one to three can never take
+it, and row four no longer does. `MILESTONE_ICON.locked`, the `.milestone-row--locked` rule and
+`lockedRowAriaSuffix` are all **kept rather than deleted**, so this override stays reversible in one
+edit. See GAPS.md G68, which also records that `lockedRowAriaSuffix` has been unreferenced since D35.
+
+**The copy, and the three row-and-caption decisions taken with it.**
+
+| Key | String |
+|---|---|
+| `checkpointReachedCta` | "Check what a lender might lend you" - unchanged, now on both variants |
+| `ltvInfoLinkLabel` | "What a bigger deposit changes" - unchanged, now drawn on both variants |
+| `belowCheckpointSecondaryCta` | "Adjust my goal" - unchanged |
+| `belowCheckpointBodyTemplate` | "A Mortgage in Principle is a lender's estimate, worked out before you choose a property. You can run one at any point." |
+| `mipBody` **(new)** | "Not run yet. The estimate uses the deposit you have on the day you run it." |
+| `mipCaption` **(renamed)** | "An indication of what a lender might lend you. Not a decision, and not an application." - wording unchanged |
+| `belowCheckpointCta` | **deleted** |
+| `mipLockedBodyTemplate` | **deleted**, collapsed into `mipBody` |
+| `mipUnlockedBodyTemplate` | **deleted**, collapsed into `mipBody` |
+| `unlocksAtTemplate` | **deleted** |
+
+**1. `belowCheckpointBodyTemplate` had to change.** It read "You're {gap} away from the point where
+checking a Mortgage in Principle starts to be useful", and that sentence would have sat directly above
+a button offering the check it says is not yet useful. It also framed the deposit position as a
+distance short of a point, which the tone and vulnerability rule names directly. **The replacement
+carries no figure and hints at no direction**, so nothing on the screen implies a threshold and a
+participant reading aloud in a think-aloud session is not told what the result will say before they
+run it. It glosses the term in a legible slot, which matters more now that the row below no longer
+implies the check is gated. The checkpoint is not in this line at all; the progress bar's marker still
+carries it. The rejected alternative was "You can check what a lender might lend you at any point. The
+result moves as your deposit grows." - easier to read (FK grade 3.6 against 5.9), but it hints at the
+direction of the result and its first sentence repeats the button immediately below it. The key keeps
+its `...Template` name though it now has no placeholder: it is the same string in the same slot, and a
+rename would make a one-line copy change read as a structural one.
+
+**2. THE TWO MILESTONE-ROW BODIES COLLAPSE INTO ONE, `mipBody`.** Both rows render `available` now, so
+there is one state and one string. D42 held the two deliberately parallel - both opened "Available
+from {checkpoint}" so that passing the checkpoint read as one figure changing state - and **both
+halves of that are gone rather than tidied away**: the shared clause was a gating claim that the
+override falsified on *both* rows, not just the lower one, and the pairing has no subject left because
+there is no longer a transition on this row to make legible. "Not run yet" rather than "not done": a
+check is run. The second sentence replaces what the checkpoint figure used to carry - the only thing
+on the row explaining why running it now and later differ, without saying which way the answer moves.
+No figure, deliberately: any figure here would imply a threshold that no longer exists, and D42's
+original reason against a borrowing figure still stands. Two candidates were rejected and the reasons
+are kept in `content.js`: "Your figures are ready for it" makes a readiness claim that is frame 19's
+job, and "Nothing here is sent to a lender" makes a search claim whose checked wording is
+`/mip/pre-check`'s `softSearchWarning`. It is `mipBody`, not `...Template`, because it carries no
+placeholder.
+
+**3. `unlocksAtTemplate` IS DELETED, AND THAT CLOSES D42's DEFERRED LINE.** It held "Unlocks at
+{checkpoint}" in the caption slot under the milestone list on the below-checkpoint variant. It carried
+gating information that no longer exists, and it was the last survivor of the "unlocks" game language
+D42 stripped from the rows - D42's own change-log entry ends *"`mipLockedBodyTemplate`'s 'Unlocks at'
+is left for a separate decision."* **This is that decision**, and it is a deletion rather than a
+rewording: no new string.
+
+The slot it shared is now unconditional. `mipCaption` - the same wording, renamed from
+`readyToCheckLabel` - renders on **both** variants, where it used to render above the checkpoint only.
+That is the caption catching up with the override rather than a workaround for the deletion: the line
+makes no claim about a threshold, only about what the check returns and what it is not, so it was
+already true at either position. The alternative considered was dropping the element on the
+below-checkpoint variant, which would have left that variant with no gloss of the term under the list,
+and a third option - removing the element for both - would have cost the at-checkpoint variant its
+only gloss once the row bodies collapsed. Measured at 390px, both variants: caption 36px tall, 16px
+above and below, no empty flex child on either. **The rename** is because `readyToCheckLabel` asserted
+a state - the checkpoint reached, the door open - that no longer exists; `mipCaption` names what the
+string IS on screen, beside `mipTitle` and `mipBody`. D35's copy table above records this line's
+previous wording under the old key name.
+
+**A referential loose end, recorded rather than fixed.** On the at-checkpoint variant
+`belowCheckpointBodyTemplate` does not render, so `mipBody`'s "**The** estimate" has no antecedent
+above it and leans on the row title "Mortgage in Principle" instead. It reads, but it is weaker there
+than below the checkpoint, where the body text two blocks above supplies "a lender's estimate"
+directly. Left alone deliberately - the fix is a wording change to one of two strings that were both
+just settled - but whoever next edits either one should know the two are coupled.
+
+**Verification item 2 is superseded, deliberately.** The brief for this change asked that the
+at-checkpoint variant come out byte-identical to before the work, and it did until this pass. It no
+longer does, because "Available from {checkpoint}" was false on that variant too once the override
+landed: correctness beat the identity check. What *is* unchanged on that variant is everything the
+override does not touch - the action bar, the rates card, the risk warnings, the guidance line, and
+the caption's own wording and treatment.
+
+**To reverse.** Restore `belowCheckpointCta` and set the action bar's primary back to
+`unlocked ? checkpointReachedCta : belowCheckpointCta` with `unlocked ? 'check-mip' : 'learn-ltv'`;
+re-gate the Loan-to-Value info link and the `check-mip` handler on `unlocked`; put the
+below-checkpoint milestone state back to `locked`; restore the previous
+`belowCheckpointBodyTemplate`; split `mipBody` back into `mipLockedBodyTemplate` and
+`mipUnlockedBodyTemplate` and restore the ternary that chose between them; restore
+`unlocksAtTemplate` and re-gate the caption slot on `unlocked`, renaming `mipCaption` back to
+`readyToCheckLabel`; and drop the `belowCheckpoint` condition in `mip-running.js`. D25's and D35's
+amendment banners come off in the same pass. Nothing was deleted from `MILESTONE_ICON`,
+`components.css` or the `locked` state's own styling, so the milestone half of that reversal is one
+word.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -3553,3 +3753,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 28 August 2026 (session opens populated) | **D48 recorded.** A new session opens in the **saving stage** rather than empty, so the Insights tab lands on a populated deposit tracker from the first tap - the tracker was previously the one screen a participant could not meet, `/tracker`'s guard redirecting into the calculator until frames 09, 10 and 11 had all run. Same reasoning `state.js` already applies to `money-in`: the accounts are connected, so what follows from them is there rather than waiting on a form. **`router.js` reuses `stagePatch()`**, the same function frame 33 calls, against the same fresh `defaultState()` - a session that opened itself and one a facilitator set to "Saving" are byte-identical, asserted through the very expression `openSession()` runs. **`OPENING_STAGE` is a constant in `stage.js`, not a changed default in `state.js`, and that is load-bearing**: `baseline()` is built from `defaultState()`, so a moved default would have made frame 33's "Setting up" a no-op and put the blank calculator out of reach. It sits in `router.js` because `state.js` cannot import `stage.js` without a cycle that would put `stagePatch` in the temporal dead zone. Gated on `isNewSession()`, so a mid-session refresh restores rather than resets; `resetState()` clears the flag so `#/reset` opens the next participant's session too. **`saved-toward-deposit` untouched at £8,950** - the sum of the four accounts frames 03, 06 and 32 draw, so the session opens BELOW its checkpoint and skip-ahead keeps both positions. Accepted cost: frame 09 arrives pre-filled at £240,000/10% and `/goals` draws the tracker card from the first tap. `CACHE_VERSION` v38. 275 tests passing. |
 | 28 August 2026 (build caption tells the truth) | **D49 recorded.** Frame 33's build caption is rendered from `BUILD_VERSION` - the constant compiled into the running modules - and is **never overwritten**; a cached version that is not the running one appears as a **second, labelled line** saying it is downloaded and waiting for a reload. `CACHE_VERSION_FALLBACK` renamed `BUILD_VERSION`: it was never a fallback. **The caption was being read as evidence and it was wrong** - Cache Storage is rewritten by whichever worker most recently activated, and `sw.js` uses `skipWaiting()`/`clients.claim()`, so after a deploy the new worker claims while the document keeps executing the modules it already had. It cost a full investigation: "Build v38" on screen, v37 executing, and a `#/reset` typed on the strength of it ran the previous build's reset. **`find()` on the cache names is gone rather than corrected** - it picked arbitrarily between two right answers during exactly the window that mattered; `readCachedVersions()` returns the whole set and **nothing ranks them**, since only equality against the running version is needed. Verified across a real v38 to v39 deploy, five steps: **zero false version claims**. **Part two stopped before implementation, on its own condition** - stamping the build version into the session would reset a participant mid-task, because the check runs on every document load and a refresh, tab restore or home-screen relaunch is a document load. Logged as **G66** with the full cost. `CACHE_VERSION` v39. 275 tests passing. |
 | 28 August 2026 (frame 20 ends the flow) | **D50 recorded.** Frame 20 is built as the end of the MIP flow: **no action bar** ("Start my Mortgage in Principle" and "Keep saving for now" removed with their handlers and their `content.js` keys), and its **first next-step row stops being a control** - no action, so no chevron and no focus stop. **The second row is deliberately untouched**, keeping its chevron and its `/mip/adviser` route, because it is the MCOB 4.8A + Consumer Duty adviser route (D10) and `SPEC.md`'s verification step 4 requires it reachable from 20; that step still holds as written, and no `GAPS.md` entry was needed. `nextStepsCardHTML` now draws a `<button>` + chevron when a step declares an `action` and a `<div>` with neither when it does not - **one fact deciding both**, since the chevron is the claim that a row goes somewhere and a button bound to nothing is a dead focus stop (D11's reasoning for `disabled` tabs). **Frame 21 is byte-identical**, asserted by comparing its rendered `.next-steps-card` outerHTML before and after (2,304 characters, strictly equal), and it keeps its bar and all three chevroned rows - the asymmetry is deliberate and must not be propagated. Costs recorded rather than discovered later: `build-spec.md` row 83's *Assumed* "Back or done -> 16 Tracker" is superseded and `/tracker` is now reached from this screen **only via the Insights tab**; the dock's `--more-below` fade goes with the dock, leaving scroll as the only more-below cue; and whether a participant presses "Start my Mortgage in Principle" stops being observable. Layout needed no work - `mountActionBars` already clears the published height for bar-less screens and `var(--action-bar-height, 0px)` falls back, so the scroller reserves `--screen-inset-y` alone. Measured in Chromium: at 375x667 the last element ends 24px above the tab bar, `.screen` padding-bottom `0px` with the inset carried inside `.bottom-nav`, so **the safe area is not doubled**; at 1280x900 framed, `--safe-bottom` resolves to 34px, the nav is 90px tall and its bottom edge is the phone screen's. `scripts/shots.mjs` gains a **`--scroll=top,end`** axis, the screens' bottom edge being the thing under review and the frame itself not being what scrolls. `SPEC.md` gains an eighth screenshot exemption, frame 20 only, and frame 20 leaves the sixth's set. `CACHE_VERSION` v40, with `BUILD_VERSION` bumped in the same commit (D49's paired-edit rule). 271 tests passing - four fewer than 275, being frame 20's four viewport rows moving out of `action-bar.test.mjs`'s `SCREENS` and into its no-bar list. |
+| 28 August 2026 (the check is offered at any position) | **D51 recorded; D25 and D35 amended in place.** The deposit tracker's action bar carries `check-mip` as its primary on **both** variants under one string, so the Mortgage in Principle flow is enterable at any savings position and frame 21 is reachable in a moderated session rather than only by URL. An explicit author override: the checkpoint stops gating the ROUTE and keeps deciding the RESULT - below it the outcome is derived from position through the model's existing `gapToCheckpoint`, at or above it `resultOutcome` governs. An affordability/Loan-to-Value rule was rejected on the figures, the comparison frame 21's own copy states being false at every position this prototype can reach. Frame 33's outcome pill therefore no longer describes what happens below the checkpoint, accepted explicitly. D25's displaced primary becomes the in-content Loan-to-Value info link (the same string, its unlocked-only gate now spent), `belowCheckpointCta` is deleted, and `belowCheckpointBodyTemplate` is rewritten to carry no figure and hint at no direction. The milestone row takes `available` below the checkpoint - **D42 needs no amendment**, it anticipates the case - so the variants now differ at row 3 and the checkpoint leaves the milestone list; `locked` keeps no occupant and is kept rather than deleted (GAPS.md G68). Copy: `mipLockedBodyTemplate` and `mipUnlockedBodyTemplate` **collapse into one `mipBody`** (one row state, one string, and the shared "Available from {checkpoint}" opening was false on both rows); `unlocksAtTemplate` is **deleted**, which closes D42's own deferred "'Unlocks at' is left for a separate decision" line; and `readyToCheckLabel` is renamed `mipCaption` and rendered on both variants, since it was already true at either position. Verification item 2 (at-checkpoint variant byte-identical) is superseded on purpose - correctness beat the identity check. `CACHE_VERSION` v42. |

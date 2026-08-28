@@ -45,7 +45,7 @@ import {
   rateBandRowHTML,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent, formatMonthYearRange } from '../format.js';
-import { gapToCheckpoint, onTrackFor, rateBandForDepositPct } from '../model/model.js';
+import { onTrackFor, rateBandForDepositPct } from '../model/model.js';
 import { RATES, CHART_DEPOSIT_PCTS, CHECKPOINT_FRACTION } from '../model/rates.js';
 import { MOCK_POSITION } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
@@ -81,9 +81,6 @@ export function render(container, ctx) {
       : 'below-checkpoint';
   const unlocked = variant !== 'below-checkpoint';
 
-  // checkpoint-amount less saved-toward-deposit.
-  const gap = gapToCheckpoint(state);
-
   const band = rateBandForDepositPct(depositPct);
   const ltvPct = 1 - depositPct;
 
@@ -103,27 +100,37 @@ export function render(container, ctx) {
   // milestone is 'done' (dark filled star), the milestone just reached is
   // 'current' (light circle, solid border), a milestone that is reachable but
   // not yet done is 'available' (dashed circle, full-colour text), and one that
-  // is not yet reachable is 'locked' (dashed circle, greyed text). Frame 15
-  // (below-checkpoint) puts "Deposit goal set" at 'current' and "Mortgage in
-  // Principle" at 'locked'; frame 16 (checkpoint-reached) promotes "Deposit
-  // goal set" to 'done' and draws "Mortgage in Principle" as 'available' -
-  // the reference PNG draws that row as 'current', and D42 records why this
-  // build does not.
-  // `available`, not `current`, on the unlocked variant's fourth row: the
-  // participant has NOT got a Mortgage in Principle, they can now go and get
-  // one. `current` is reserved for the milestone most recently achieved, which
-  // is what it means on the locked variant's third row. See MILESTONE_ICON in
+  // is not yet reachable is 'locked' (dashed circle, greyed text).
+  //
+  // `available`, not `current`, on the fourth row: the participant has NOT got
+  // a Mortgage in Principle, they can go and get one. `current` is reserved for
+  // the milestone most recently achieved, which is what it means on the
+  // below-checkpoint variant's third row. See MILESTONE_ICON in
   // components/ui.js and DECISIONS.md D42.
   //
-  // ROWS 1 TO 3 CAN NEVER TAKE `available`, checked rather than assumed: the
+  // THE FOURTH ROW IS `available` ON BOTH VARIANTS NOW (DECISIONS.md D51). It
+  // was 'locked' below the checkpoint, which was correct while the checkpoint
+  // gated the route. It no longer does - the action bar offers the check at
+  // either position - so the row is not blocked, and D42's own definitions make
+  // that `available`: "not done, and not blocked". D42 needs no amendment for
+  // this and anticipates it in terms: "If a later milestone is added that can be
+  // reachable and not yet done, it takes this same treatment."
+  //
+  // THE TWO VARIANTS NOW DIFFER AT ROW 3, NOT ROW 4, and the checkpoint is no
+  // longer legible on this list at all. That is a real loss and it is recorded
+  // in D51 rather than worked around: the progress bar's marker still carries
+  // the checkpoint, and the checkpoint still decides which result the flow
+  // returns, but the milestone list stops reporting it.
+  //
+  // `locked` NOW HAS NO OCCUPANT ANYWHERE. Rows 1 to 3 can never take it - the
   // accounts are connected from session start (D28), so linked and sorted are
   // facts by the time any screen renders, and this screen's own guard above
-  // requires `deposit-target`, so the goal is set before it draws. Mortgage in
-  // Principle is the only milestone on this list that can be reachable and not
-  // yet done.
+  // requires `deposit-target`, so the goal is set before it draws. It is kept
+  // rather than deleted, along with its icon entry and its CSS rule, so this
+  // override stays reversible. See GAPS.md G68.
   const milestoneStates = unlocked
     ? ['done', 'done', 'done', 'available']
-    : ['done', 'done', 'current', 'locked'];
+    : ['done', 'done', 'current', 'available'];
 
   const checkpointPctLabel = formatPercent(CHECKPOINT_FRACTION, 0);
 
@@ -158,21 +165,29 @@ export function render(container, ctx) {
     // does not offer the tap at all, and a focusable control with no action
     // is a dead end for a keyboard or screen-reader participant rather than
     // an accessibility gain. Both states are plain rows now.
-    unlocked
-      ? {
-        title: c.mipTitle,
-        body: fill(c.mipUnlockedBodyTemplate, { checkpoint: formatCurrency(checkpointAmountValue) }),
-        state: milestoneStates[3],
-      }
-      : {
-        title: c.mipTitle,
-        body: fill(c.mipLockedBodyTemplate, { checkpoint: formatCurrency(checkpointAmountValue), gap: formatCurrency(gap.value) }),
-        state: milestoneStates[3],
-      },
+    //
+    // ONE BODY, NOT TWO (DECISIONS.md D51). This was a ternary over
+    // `mipUnlockedBodyTemplate` and `mipLockedBodyTemplate`, held parallel by
+    // D42 so that passing the checkpoint read as one figure changing state.
+    // Both rows render the same `available` state now, so there is no
+    // transition for a parallel opening to make legible, and the clause the
+    // pair shared - "Available from {checkpoint}" - was a claim that the
+    // checkpoint gates the check, which it no longer does. One state, one
+    // string, and no `fill()`: `mipBody` carries no placeholder.
+    {
+      title: c.mipTitle,
+      body: c.mipBody,
+      state: milestoneStates[3],
+    },
   ];
 
+  // `belowCheckpointBodyTemplate` carries no placeholder any more (D51), so it
+  // is read directly rather than through `fill()`. It kept its `...Template`
+  // name: `mipBody` was renamed on the same pass because it also changed slot
+  // and meaning, but this key is the same string in the same place, and a
+  // rename here would make a one-line copy change read as a structural one.
   const bodyText = variant === 'below-checkpoint'
-    ? fill(c.belowCheckpointBodyTemplate, { gap: formatCurrency(gap.value) })
+    ? c.belowCheckpointBodyTemplate
     : variant === 'checkpoint-reached'
       ? fill(c.checkpointReachedBodyTemplate, { pct: checkpointPctLabel })
       : c.goalMetBody;
@@ -218,9 +233,13 @@ export function render(container, ctx) {
 
       ${milestoneTrackerHTML(milestones)}
 
-      <p class="provenance-caption">${unlocked
-        ? c.readyToCheckLabel
-        : fill(c.unlocksAtTemplate, { checkpoint: formatCurrency(checkpointAmountValue) })}</p>
+      <!-- UNCONDITIONAL NOW (DECISIONS.md D51). This slot was a ternary: this
+           caption above the checkpoint, "Unlocks at {checkpoint}" below it. The
+           second was a gating claim the override falsified, and it is deleted
+           rather than reworded. What is left is true at either position, so it
+           is drawn at both - one element, one string, no variant branch and no
+           empty flex item on the variant that used to take the other half. -->
+      <p class="provenance-caption">${c.mipCaption}</p>
 
       <div class="card rates-card">
         <p class="rates-card__heading">${c.ratesCardHeading}</p>
@@ -245,7 +264,7 @@ export function render(container, ctx) {
         <p class="provenance-caption">${c.rateBandProvenanceCaption}</p>
       </div>
 
-      ${unlocked ? infoLinkHTML({ label: c.ltvInfoLinkLabel, action: 'open-ltv-info' }) : ''}
+      ${infoLinkHTML({ label: c.ltvInfoLinkLabel, action: 'open-ltv-info' })}
       ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions-deposit' })}
 
       ${riskWarningHTML(c.rateCautionText)}
@@ -273,8 +292,17 @@ export function render(container, ctx) {
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
     </main>
     ${actionBarHTML({
-      primaryLabel: unlocked ? c.checkpointReachedCta : c.belowCheckpointCta,
-      primaryAction: unlocked ? 'check-mip' : 'learn-ltv',
+      // ONE PRIMARY, ONE LABEL, EITHER SIDE OF THE CHECKPOINT (DECISIONS.md
+      // D51, overriding D25 and D35). The primary used to be D25's "What a
+      // bigger deposit changes" below the checkpoint, because the Mortgage in
+      // Principle route was genuinely not open there. It is open now, so the
+      // same control carries the same string in the same slot at either
+      // position - `checkpointReachedCta`, reused rather than duplicated.
+      primaryLabel: c.checkpointReachedCta,
+      primaryAction: 'check-mip',
+      // "Adjust my goal" keeps the secondary slot below the checkpoint, exactly
+      // as D25 left it. The displaced control is D25's old primary, which is now
+      // the in-content Loan-to-Value info link above - see there.
       secondaryLabel: unlocked ? undefined : c.belowCheckpointSecondaryCta,
       secondaryAction: 'adjust-goal',
     })}
@@ -312,17 +340,20 @@ export function render(container, ctx) {
   // is the one thing they must not say now that no rate on this screen is
   // adjustable.
   //
-  // Only in the unlocked variants. Below the checkpoint the primary CTA
-  // ("What a bigger deposit changes", D25) already opens frame 13 under this
-  // very label, and two controls carrying identical wording on one screen is
-  // what goal-check.js's "one link to frame 29, not two" already ruled out.
-  const ltvInfoBtn = container.querySelector('[data-action="open-ltv-info"]');
-  if (ltvInfoBtn) {
-    ltvInfoBtn.addEventListener('click', () => {
-      setState({ returnFrame: '/tracker' });
-      window.location.hash = '#/learn/ltv';
-    });
-  }
+  // DRAWN ON BOTH VARIANTS NOW, AND THE CONDITION THAT USED TO GATE IT IS SPENT
+  // (DECISIONS.md D51). It was unlocked-only for one reason: below the
+  // checkpoint the action bar's primary was D25's "What a bigger deposit
+  // changes", which opens frame 13 under this very label, and two controls
+  // carrying identical wording on one screen is what goal-check.js's "one link
+  // to frame 29, not two" ruled out. `check-mip` holds the primary at both
+  // positions now, so there is no second control with this label and no
+  // duplication to prevent. The gate is removed rather than reworded: this is
+  // the arrangement the unlocked variant already had, with an obsolete
+  // condition taken off it.
+  container.querySelector('[data-action="open-ltv-info"]').addEventListener('click', () => {
+    setState({ returnFrame: '/tracker' });
+    window.location.hash = '#/learn/ltv';
+  });
 
   container.querySelector('[data-action="open-assumptions-deposit"]').addEventListener('click', () => {
     setState({ returnFrame: '/tracker' });
@@ -337,42 +368,35 @@ export function render(container, ctx) {
   // No handler for the locked milestone row any more: it is not a button.
   // See the milestone array above.
 
-  if (unlocked) {
-    container.querySelector('[data-action="check-mip"]').addEventListener('click', () => {
-      // THE ONE WAY INTO THE MORTGAGE IN PRINCIPLE FLOW. Nothing else in the
-      // app routes to /mip: not the tab bar, not /goals, not frame 01. The
-      // milestone row above reports the state, this opens it.
-      //
-      // `journeyEntryPoint` is set to /tracker here so the close X on 17, 18,
-      // 19b, 20 and 21 comes back here rather than to frame 01. Those five
-      // screens exit through `exitFlow()` (DECISIONS.md D30/D32), which goes
-      // back by `history.length` minus the length recorded at entry — so the
-      // pair has to be written on the same click, exactly as home.js and
-      // goals.js write it when the journey itself is entered. Without it a
-      // participant who reached the tracker from the Insights tab would have
-      // a null entry point and be dropped on /home by the fallback.
-      setState({
-        mipUnlocked: true,
-        journeyEntryPoint: '/tracker',
-        flowEntryHistoryLength: window.history.length,
-      });
-      window.location.hash = '#/mip';
+  // BOUND ON BOTH VARIANTS NOW (DECISIONS.md D51, overriding D25 and D35).
+  // D35's "one door into the flow, and it is the action bar" still holds and is
+  // the reason this is the only `check-mip` in the app; what changed is that the
+  // door is no longer gated on the checkpoint.
+  container.querySelector('[data-action="check-mip"]').addEventListener('click', () => {
+    // THE ONE WAY INTO THE MORTGAGE IN PRINCIPLE FLOW. Nothing else in the
+    // app routes to /mip: not the tab bar, not /goals, not frame 01. The
+    // milestone row above reports the state, this opens it.
+    //
+    // `journeyEntryPoint` is set to /tracker here so the close X on 17, 18,
+    // 19b, 20 and 21 comes back here rather than to frame 01. Those five
+    // screens exit through `exitFlow()` (DECISIONS.md D30/D32), which goes
+    // back by `history.length` minus the length recorded at entry — so the
+    // pair has to be written on the same click, exactly as home.js and
+    // goals.js write it when the journey itself is entered. Without it a
+    // participant who reached the tracker from the Insights tab would have
+    // a null entry point and be dropped on /home by the fallback.
+    setState({
+      mipUnlocked: true,
+      journeyEntryPoint: '/tracker',
+      flowEntryHistoryLength: window.history.length,
     });
-  } else {
-    // The below-checkpoint variant's forward action (DECISIONS.md D25).
-    // Frame 13 is the only onward destination that is honest from here: the
-    // Mortgage in Principle route genuinely is not open yet, and frame 11 —
-    // the old primary — is a step backwards into the calculator. Frame 13
-    // explains what a bigger deposit does to the rate bands the card above
-    // is already showing, and returns here rather than continuing anywhere,
-    // so nothing on screen implies progress that has not happened. It is
-    // guidance, not a recommendation to save more.
-    container.querySelector('[data-action="learn-ltv"]').addEventListener('click', () => {
-      setState({ returnFrame: '/tracker' });
-      window.location.hash = '#/learn/ltv';
-    });
-    // Kept, demoted: adjusting the goal is a real thing to want to do here,
-    // it just isn't the way forward.
+    window.location.hash = '#/mip';
+  });
+
+  // The secondary is drawn below the checkpoint only, so its handler is bound
+  // there only. Kept and still demoted (D25): adjusting the goal is a real
+  // thing to want to do here, it just isn't the primary way forward.
+  if (!unlocked) {
     container.querySelector('[data-action="adjust-goal"]').addEventListener('click', () => {
       window.location.hash = '#/calculator/review';
     });
