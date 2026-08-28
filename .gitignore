@@ -12,7 +12,7 @@
 /screening/
 *.consent.pdf
 
-# NVivo project files — these embed coded transcript text, not just analysis
+# NVivo project files - these embed coded transcript text, not just analysis
 *.nvp
 *.nvpx
 
@@ -24,7 +24,7 @@
 /*.xlsx
 /*.xls
 
-# Session artefacts — Teams recordings and transcripts. Deliberately not
+# Session artefacts - Teams recordings and transcripts. Deliberately not
 # root-anchored: a recording is sensitive wherever it lands.
 *.mp4
 *.m4a

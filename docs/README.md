@@ -1,4 +1,4 @@
-# Your first home — repo guide
+# Your first home - repo guide
 
 Mid-fidelity click-through prototype for MSc usability testing. Not production code.
 
@@ -15,8 +15,8 @@ and must not change, the others.
 | # | Name | Current value | Where it lives | Seen by a participant? |
 |---|---|---|---|---|
 | 1 | Repo / folder | `first-home-deposit` | GitHub remote + the folder on disk | No |
-| 2 | Vercel project | `first-home-deposit-ux-prototype` | The Vercel dashboard, **not** the repo | **Yes — it is the URL they type** |
-| 3 | App display name | see the line below | `src/config.js` | Yes — title, icon label, app bar |
+| 2 | Vercel project | `first-home-deposit-ux-prototype` | The Vercel dashboard, **not** the repo | **Yes - it is the URL they type** |
+| 3 | App display name | see the line below | `src/config.js` | Yes - title, icon label, app bar |
 
 <!-- app-display-name --> Current display name: **Your first home** (short name: **First home**)
 
@@ -41,7 +41,7 @@ mv first-home-deposit <new-repo-name>
 ```
 
 Nothing in the tracked source refers to the repo name, so no code change is needed. `CLAUDE.md`
-names it for orientation — update that line if you rename.
+names it for orientation - update that line if you rename.
 
 ## 2. Renaming the Vercel project
 
@@ -51,7 +51,7 @@ It is changed in the Vercel dashboard, not in the repo: **Project → Settings �
 Name**. The production URL becomes `https://<new-project-name>.vercel.app`.
 
 `.vercel/project.json` holds the `projectName` locally, but it is gitignored and is refreshed by
-the Vercel CLI — do not hand-edit it to perform a rename.
+the Vercel CLI - do not hand-edit it to perform a rename.
 
 If a rename is unavoidable once participants have the old URL, add a redirect or reserve the old
 name as a domain alias, and re-check any URL printed on a participant-facing sheet.
@@ -83,7 +83,7 @@ cannot import a module, so it is the one place the name is necessarily written t
 2. **A dev-only drift check** in `src/app.js` fetches the manifest on start and logs a console
    warning if any identity field disagrees with `config.js`. It is gated on hostname
    (`localhost`, `127.0.0.1`, `::1`, `*.local`) because this prototype has no build step and no
-   `NODE_ENV` — the hostname is the only development signal available. It never runs on the
+   `NODE_ENV` - the hostname is the only development signal available. It never runs on the
    deployed URL.
 
 ### What the script does not touch, on purpose
@@ -104,14 +104,14 @@ cannot import a module, so it is the one place the name is necessarily written t
 **Any change to a path in `sw.js`'s `SHELL_ASSETS` requires a `CACHE_VERSION` bump in the same
 commit.** An installed copy is served cache-first, so a renamed or moved shell asset that ships
 without a bump leaves the old path cached and the new one unfetched. When that asset is the
-manifest, PWA install breaks *silently* — the app still runs, and nothing surfaces the fault until
+manifest, PWA install breaks *silently* - the app still runs, and nothing surfaces the fault until
 someone tries to add it to a home screen.
 
 This is separate from the existing rule that `CACHE_VERSION` is bumped on every deploy and in the
 same commit as any change to a value in `src/model/rates.js`. Adding a new module or icon to
 `SHELL_ASSETS` counts as a path change.
 
-Keep `src/cache-version.js`'s `BUILD_VERSION` in step with `sw.js` — a paired hand-edit,
+Keep `src/cache-version.js`'s `BUILD_VERSION` in step with `sw.js` - a paired hand-edit,
 by design; see that file's comment for why the two cannot be derived from one another.
 
 A display-name rename on its own does **not** need a bump: no path changes.
@@ -119,7 +119,7 @@ A display-name rename on its own does **not** need a bump: no path changes.
 ### Colours
 
 `themeColour` and `backgroundColour` in `src/config.js` are the OS-chrome equivalents of
-`--color-label` and `--color-bg` in `src/css/tokens.css`. If you change one, change the other —
+`--color-label` and `--color-bg` in `src/css/tokens.css`. If you change one, change the other -
 a mismatch shows as a visible seam around the status bar on an installed copy.
 
 ---
@@ -159,7 +159,7 @@ Anything committed to `main` by accident should be moved to `build` rather than 
 3. Tag before pushing. Every build a participant sees gets a tag, so the session can be traced to
    a commit.
 4. `git push origin main --tags`.
-5. `git checkout build` to carry on working. **Do not leave the working copy on `main`** — the next
+5. `git checkout build` to carry on working. **Do not leave the working copy on `main`** - the next
    session will otherwise commit to it without noticing.
 
 Vercel deploys `main` automatically. The production URL is `first-home-feature.vercel.app` and a

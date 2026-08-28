@@ -7,32 +7,32 @@ end-to-end verification. Written after `docs/GAPS.md` closed every open gap in `
 
 Screen inventory: 32 buildable screens from the reference set (33 numbered frames minus frame 07,
 excluded per its own "Remove" marking in `build-spec.md`), plus one new screen this session adds
-outside the reference set — a terminal stub for the Mortgage-in-Principle adviser-contact request
-(`/mip/adviser`, no reference PNG, no Figma node — see `DECISIONS.md` D8/D10 and `GAPS.md` G17b).
+outside the reference set - a terminal stub for the Mortgage-in-Principle adviser-contact request
+(`/mip/adviser`, no reference PNG, no Figma node - see `DECISIONS.md` D8/D10 and `GAPS.md` G17b).
 
 ## File and folder structure
 
 ```
-index.html                 — app shell: device-frame wrapper + #app mount point, no status bar element
-manifest.webmanifest       — PWA manifest (installable, standalone display)
-sw.js                      — service worker, cache-first for shell + assets; CACHE_VERSION constant
+index.html                 - app shell: device-frame wrapper + #app mount point, no status bar element
+manifest.webmanifest       - PWA manifest (installable, standalone display)
+sw.js                      - service worker, cache-first for shell + assets; CACHE_VERSION constant
                               bumped on every deploy, non-matching caches deleted on activate, version
                               readable by the app (exposed on the settings screen)
 src/
   css/
-    tokens.css              — HIG-derived tokens: colour, type (-apple-system/SF Pro/Roboto fallback
+    tokens.css              - HIG-derived tokens: colour, type (-apple-system/SF Pro/Roboto fallback
                                stack), spacing, motion durations/easing, 48px touch target,
                                env(safe-area-inset-*)
-    shell.css                — device-frame + the single 768px breakpoint + the scale-to-fit rule
-    components.css           — shared UI: cards, buttons, sliders, steppers, accordions, flag rows,
+    shell.css                - device-frame + the single 768px breakpoint + the scale-to-fit rule
+    components.css           - shared UI: cards, buttons, sliders, steppers, accordions, flag rows,
                                warning boxes, milestone tracker, progress bar, review rows
-    screens.css               — per-screen-family layout rules
-  config.js                  — app identity: display name, short name, description, theme and
+    screens.css               - per-screen-family layout rules
+  config.js                  - app identity: display name, short name, description, theme and
                                background colour, start URL. Single source of truth, read by
                                index.html, content.js and app.js. manifest.webmanifest mirrors it
                                (static JSON cannot import a module) and scripts/set-app-name.mjs
                                changes both together; app.js warns on drift in dev. See docs/README.md.
-  content.js                 — single content module, all on-screen copy keyed by screen id — the one
+  content.js                 - single content module, all on-screen copy keyed by screen id - the one
                                file to edit for copy changes without touching logic.
                                Includes a `shared.regulatory` block with four fixed keys:
                                  - guidanceNotAdvice
@@ -50,33 +50,33 @@ src/
                                copy and the FSCS figure (£120,000 per person per authorised firm).
                                regulatory.js is DELETED (DECISIONS.md D28) - screens read
                                `shared.regulatory.guidanceNotAdvice` directly again
-  state.js                   — central store: every Section 6 state variable + provenance tag, frame
+  state.js                   - central store: every Section 6 state variable + provenance tag, frame
                                33 scenario toggles, returnFrame stack, reset()
-  router.js                  — route table, push/pop + sheet transition orchestration,
+  router.js                  - route table, push/pop + sheet transition orchestration,
                                prefers-reduced-motion handling
-  sheet-drag.js              — drag-to-dismiss on the seven sheets' grabbers; a completed drag
+  sheet-drag.js              - drag-to-dismiss on the seven sheets' grabbers; a completed drag
                                closes by clicking the sheet's own dismiss control, so every
                                on-close state change runs exactly as it does on a tap. Shares
                                that control lookup with router.js's Escape key. See DECISIONS.md
                                D18
   model/
-    model.js                 — pure calculation functions: deposit-target, loan-amount, ltv,
+    model.js                 - pure calculation functions: deposit-target, loan-amount, ltv,
                                checkpoint-amount, left-over, months-to-target, gap
-    rates.js                 — RATES constant + borrow-range central value + LISA cap threshold.
+    rates.js                 - RATES constant + borrow-range central value + LISA cap threshold.
                                See "Maintenance rule" below.
-    anchors.js                — single source of truth for the regulatory anchor map (below), as
+    anchors.js                - single source of truth for the regulatory anchor map (below), as
                                data. See "Mechanical anchor audit" below.
-    format.js                 — currency formatter: round to nearest £1, en-GB, £, thousands
+    format.js                 - currency formatter: round to nearest £1, en-GB, £, thousands
                                separator, no pence
-  screens/                   — one render module per screen id; registered in router.js's route
+  screens/                   - one render module per screen id; registered in router.js's route
                                table; includes the 11 no-frame-drawn fallback variants and the new
                                `/mip/adviser` stub
-  components/                 — shared building blocks, introduced only where 2+ screens need the
+  components/                 - shared building blocks, introduced only where 2+ screens need the
                                same pattern (no speculative abstraction)
-assets/icons/                 — PWA icons, favicon
+assets/icons/                 - PWA icons, favicon
 docs/
-  build-spec.md, DECISIONS.md, figma-links.md  — existing spec documents
-  GAPS.md, SPEC.md             — this pair
+  build-spec.md, DECISIONS.md, figma-links.md  - existing spec documents
+  GAPS.md, SPEC.md             - this pair
 ```
 
 ## Content and model interfaces
@@ -98,7 +98,7 @@ docs/
   frame 33's "Clear all progress and start again" action.
 - **`model.js`** exports pure functions taking state and returning derived figures: `depositTarget`,
   `loanAmount`, `ltv`, `checkpointAmount`, `leftOver`, `monthsToTarget` (and its inverse,
-  `monthlyAmountFromDate`), `gap`. The monthly-rate conversion is `(1 + AER)^(1/12) - 1` — the
+  `monthlyAmountFromDate`), `gap`. The monthly-rate conversion is `(1 + AER)^(1/12) - 1` - the
   effective-monthly conversion of the pinned Bank Rate, not a nominal AER/12 division.
 - **`rates.js`** exports `RATES = { bankRate: 0.0375, source, sourceUrl, asAt: '2026-07-30',
   nextReviewDate: '2026-09-17', rangeSpread: 0.10 }`, plus `borrowRangeCentral = 'loan-amount'` and
@@ -110,12 +110,12 @@ docs/
   participants served stale cached figures with no visible sign of it.
 
 - **`format.js`** exports a single currency formatter: rounds to the nearest whole £, en-GB locale,
-  £ symbol, thousands separator, never shows pence. The model itself always keeps full precision —
+  £ symbol, thousands separator, never shows pence. The model itself always keeps full precision -
   only the formatted display output rounds.
 
 ## Regulatory anchor map
 
-Every screen in the flow was checked directly against its reference PNG for these anchors — no row
+Every screen in the flow was checked directly against its reference PNG for these anchors - no row
 below is inferred or hedged.
 
 **Frames 04 and 05b no longer exist** (DECISIONS.md D28: the account-linking choice, estimate mode
@@ -126,15 +126,15 @@ row is live and unchanged - the anchors on the surviving screens were not touche
 
 | Anchor | Screens | Note |
 |---|---|---|
-| Guidance-not-advice line (FCA PERG 4.6) | 02, 03, 03b, 04, 05, 06, 08, 09, 09a, 09b, 10, 10b, 11, 12, 13, 13b, 15, 16, 17, 18, 19, 20, 21, 29, 30, 31, 32, plus the new `/mip/adviser` | The flow's standard footer disclosure — not a narrow "result screen" line. Confirmed absent from 01, 05b (carries `estimateDisclosure` instead), 10c, 19b, 33 |
+| Guidance-not-advice line (FCA PERG 4.6) | 02, 03, 03b, 04, 05, 06, 08, 09, 09a, 09b, 10, 10b, 11, 12, 13, 13b, 15, 16, 17, 18, 19, 20, 21, 29, 30, 31, 32, plus the new `/mip/adviser` | The flow's standard footer disclosure - not a narrow "result screen" line. Confirmed absent from 01, 05b (carries `estimateDisclosure` instead), 10c, 19b, 33 |
 | Guidance-not-advice line, general-mode variant | 04, 09, 09a, 09b, 10, 10b, 11, 12, 13, 13b, 15, 29, 30, 32 | Same anchor, sourcing clause only. Rendered in place of the line above wherever no account activity was read. NOT YET COPY CHECKED - DECISIONS.md D27, GAPS.md G53 |
-| Adviser-scope line (FCA PERG 4.6) | 20, 21, `/mip/adviser` only | Present on 20/21; deliberately absent from 06, 12, 15, 16 — a scope disclosure about a service only those two screens (and the stub) offer |
+| Adviser-scope line (FCA PERG 4.6) | 20, 21, `/mip/adviser` only | Present on 20/21; deliberately absent from 06, 12, 15, 16 - a scope disclosure about a service only those two screens (and the stub) offer |
 | MCOB 3A repossession warning | 13, 15, 16, 19, 20, 21 | Every screen discussing mortgage borrowing, LTV, or a lending result |
-| DUAA 2025 automated-decision triad (pushback / plain wording / visible sources) | 04, 05, 05b, 06, 08, 09, 09b, 10, 10b, 11, 12, 13, 13b, 15, 16, 20, 21, 32 | The flag row ("something doesn't look right") plus "how we worked this out" links; 32 carries the fullest form via its "If something looks wrong" section. 05b's flag row is a content addition, not present in its reference PNG — see `GAPS.md` G28 |
+| DUAA 2025 automated-decision triad (pushback / plain wording / visible sources) | 04, 05, 05b, 06, 08, 09, 09b, 10, 10b, 11, 12, 13, 13b, 15, 16, 20, 21, 32 | The flag row ("something doesn't look right") plus "how we worked this out" links; 32 carries the fullest form via its "If something looks wrong" section. 05b's flag row is a content addition, not present in its reference PNG - see `GAPS.md` G28 |
 | Estimate-specific disclosure (`estimateDisclosure`) | 04, 05b, 12, 20, 21 | Shown wherever a figure on screen is a modelled estimate rather than a read/derived one |
-| Deposit protection (FSCS, £120,000 per person per authorised firm) | 03 only | Not 06 or 32 — see `GAPS.md` G25 |
+| Deposit protection (FSCS, £120,000 per person per authorised firm) | 03 only | Not 06 or 32 - see `GAPS.md` G25 |
 | Soft search only | 19, 19b | 19's pre-check copy states it explicitly; 19b is the processing screen |
-| Adviser-route obligation (MCOB 4.8A + Consumer Duty consumer support outcome) | 20, 21 → `/mip/adviser` | Not PERG 4.6 — see `DECISIONS.md` D10 |
+| Adviser-route obligation (MCOB 4.8A + Consumer Duty consumer support outcome) | 20, 21 → `/mip/adviser` | Not PERG 4.6 - see `DECISIONS.md` D10 |
 
 ### Mechanical anchor audit
 
@@ -147,13 +147,13 @@ screen actually carries. A Stage 10 script:
 2. For each declared key, confirms the exact `content.shared.regulatory` wording is present,
    unmodified, in the screen's rendered DOM.
 
-This makes the anchor audit mechanical — run once across all screens — rather than checked by eye.
+This makes the anchor audit mechanical - run once across all screens - rather than checked by eye.
 
 ## Router and state design
 
 - `state.js` holds one flat object: the 20 Section 6 variables with provenance, the frame 33
   toggles, and the `returnFrame` value.
-- `router.js` maps every route above — including `/mip/adviser` — to a screen module. Screens are
+- `router.js` maps every route above - including `/mip/adviser` - to a screen module. Screens are
   pure render functions of `(state, content) → DOM`. No screen imports another screen directly; all
   cross-screen navigation goes through the router.
 - Frame 33 mutates `state` directly, re-renders the current route in place, and displays the
@@ -165,11 +165,11 @@ This makes the anchor audit mechanical — run once across all screens — rathe
 - Sheets (03b, 10c, 13b, 29, 30, 31, 32): rise from bottom over a dimmed scrim; dismiss by
   drag-down or scrim tap. The drag is live on the grabber: the card follows the gesture, releases
   past a quarter of its own height (or on a downward flick) to dismiss, and settles back below
-  that. Dismissing by drag runs the sheet's own close control, not a bare route change — see
+  that. Dismissing by drag runs the sheet's own close control, not a bare route change - see
   DECISIONS.md D18 for why that distinction is load-bearing.
 - `/mip/adviser` is a push (full screen), consistent with the result screens it's reached from.
-- `prefers-reduced-motion`: everything drops to a cross-fade. A sheet still follows a drag —
-  that is a response to a gesture, not an animation — but settles and dismisses without motion.
+- `prefers-reduced-motion`: everything drops to a cross-fade. A sheet still follows a drag -
+  that is a response to a gesture, not an animation - but settles and dismisses without motion.
 - No iOS-only-gesture-only routes: edge-swipe back, if implemented, is always paired with a visible
   back control.
 
@@ -178,7 +178,7 @@ This makes the anchor audit mechanical — run once across all screens — rathe
 - `< 768px`: screen fills the viewport, no device frame, no status bar element anywhere.
 - `>= 768px`: mobile screen (393×852) sits inside a phone frame, centred on the page.
 - **Scale-to-fit:** the framed view (phone screen + bezel) scales down as a unit to fit the viewport
-  height, preserving aspect ratio, whenever the viewport is shorter than the frame needs — e.g. a
+  height, preserving aspect ratio, whenever the viewport is shorter than the frame needs - e.g. a
   1366×768 laptop, the resolution most participants will likely be on over Teams. It never scrolls
   or clips. Scaling only ever reduces size; the frame never scales up past its natural 393×852 size
   on very tall viewports.
@@ -190,33 +190,33 @@ This makes the anchor audit mechanical — run once across all screens — rathe
 Each stage's screens are built, then immediately screenshot-diffed per the verification section
 below.
 
-1. **Shell** — `index.html`, manifest, `sw.js` (incl. `CACHE_VERSION` + activate-time cache
+1. **Shell** - `index.html`, manifest, `sw.js` (incl. `CACHE_VERSION` + activate-time cache
    cleanup), `tokens.css`, `shell.css` (incl. scale-to-fit), `router.js` skeleton, `state.js`
-   skeleton, `content.js` skeleton including the `shared.regulatory` block, and frame 01 (`/home`) —
+   skeleton, `content.js` skeleton including the `shared.regulatory` block, and frame 01 (`/home`) -
    built here rather than in stage 3, to prove the whole stack end-to-end (router → state → content
    → a real rendered screen) before the model or any other screen exists.
-2. **Model** — `model.js`, `rates.js`, `anchors.js`, `format.js`. Tests: the compounding round-trip
+2. **Model** - `model.js`, `rates.js`, `anchors.js`, `format.js`. Tests: the compounding round-trip
    inverse (an amount-solved and a date-solved calculation must agree exactly), plus the worked
-   examples from `build-spec.md` section 4 as seeded assertions — property-value 190,000 at 10% ⇒
+   examples from `build-spec.md` section 4 as seeded assertions - property-value 190,000 at 10% ⇒
    deposit-target 19,000; checkpoint-amount ⇒ 14,250; frame 21's gap ⇒ 4,400 (deposit-target 19,000
    less saved-toward-deposit 14,600). The round-trip test alone is necessary but not sufficient;
    these fixed examples pin the model to the spec's own numbers.
-3. **Entry & consent** — frames 02, 03, 03b, 04 (01 already built in stage 1).
-4. **Personalised savings** — frames 05, 05b, 06, 08 (07 excluded).
-5. **Deposit calculator** — frames 09, 09a, 09b, 10, 10b, 10c, 11, 12.
-6. **Understanding & tracking** — frames 13 (diagram row removed), 13b, 15, 16.
-7. **Mortgage in Principle** — frames 17, 18, 19, 19b, 20, 21, and the new `/mip/adviser` stub.
-8. **Assumptions & sources** — frames 29, 30, 31, 32 (32's FSCS note removed).
-9. **Prototype settings** — frame 33, hidden `/settings` route, manual reset, cache-version display.
-10. **Cross-cutting pass** — the 11 no-frame-drawn fallback states; the mechanical regulatory
+3. **Entry & consent** - frames 02, 03, 03b, 04 (01 already built in stage 1).
+4. **Personalised savings** - frames 05, 05b, 06, 08 (07 excluded).
+5. **Deposit calculator** - frames 09, 09a, 09b, 10, 10b, 10c, 11, 12.
+6. **Understanding & tracking** - frames 13 (diagram row removed), 13b, 15, 16.
+7. **Mortgage in Principle** - frames 17, 18, 19, 19b, 20, 21, and the new `/mip/adviser` stub.
+8. **Assumptions & sources** - frames 29, 30, 31, 32 (32's FSCS note removed).
+9. **Prototype settings** - frame 33, hidden `/settings` route, manual reset, cache-version display.
+10. **Cross-cutting pass** - the 11 no-frame-drawn fallback states; the mechanical regulatory
     anchor audit; PWA install check on iOS and Android; `prefers-reduced-motion` check; breakpoint
     check at both sides of 768px and at 1366×768; final human walkthrough.
 
 ## Out of scope
 
 - Frame 07 and the "save for something else" branch.
-- Frame 13's diagram row and frames 14, 22–28 (confirmed skipped — except the adviser stub).
-- Any real backend, API, authentication, or live account data — all data is static/content-driven.
+- Frame 13's diagram row and frames 14, 22–28 (confirmed skipped - except the adviser stub).
+- Any real backend, API, authentication, or live account data - all data is static/content-driven.
 - Real open-banking connection (the "Connect another bank" row is a dead-end stub), real credit
   check, or lender integration.
 - Any framework, bundler, build step, package manager, or TypeScript.
@@ -229,7 +229,7 @@ below.
 **1. Automated, per screen, as it's built.** Render each screen in stages 3–9 at a 390px viewport,
 screenshot it, compare against its reference PNG in `reference/frames/`. Fix any difference that
 would change what a participant sees or does; log purely cosmetic ones. Every screen is diffed
-normally, including 06, 12, 15 and 16 (the adviser-scope line is deliberately absent there — no
+normally, including 06, 12, 15 and 16 (the adviser-scope line is deliberately absent there - no
 addition is made, so nothing exempts them). Exempt, and recorded as intentional deviations rather
 than diffs to fix: frame 13 (diagram row removed), frame 32 (FSCS note removed), and frame 05b (DUAA
 flag row added). Two further exemptions were added in the 20 August 2026 shell pass: the persistent
@@ -237,8 +237,8 @@ bottom navigation bar, on every screen it appears on (`DECISIONS.md` D11, `GAPS.
 closed-on-load state of the disclosures on 05, 05b, 06 and 19 (`DECISIONS.md` D12, `GAPS.md` G30).
 A third was added by the icon-set pass: icon rendering, on every screen, since every icon is redrawn
 from one canvas at one weight (`DECISIONS.md` D15, `GAPS.md` G34). A fourth covers frame 03's
-select-all row only — its count and checkbox state now open at "4 of 5 selected", indeterminate,
-where the PNG draws "4 of 4 selected", checked (`GAPS.md` G36) — a fifth covers frame 03's
+select-all row only - its count and checkbox state now open at "4 of 5 selected", indeterminate,
+where the PNG draws "4 of 4 selected", checked (`GAPS.md` G36) - a fifth covers frame 03's
 per-account checkboxes, which the PNG does not draw at all (`DECISIONS.md` D16, `GAPS.md` G37), and
 a sixth covers the action bar's visibility and the scroll affordance on the 22 screens whose content
 overflows, where the PNGs draw the bar present from the start (`DECISIONS.md` D17, `GAPS.md` G38). A seventh covers the sheet
@@ -246,11 +246,11 @@ header on frames 29, 30, 31 and 32 only: the close control is a plain glyph rath
 sits beside it in the header rather than scrolling with the body (`DECISIONS.md` D19, `GAPS.md` G42). An eighth covers **frame 20
 only**, where the PNG draws a "Start my Mortgage in Principle" / "Keep saving for now" action bar and two chevroned next-step rows:
 the screen is the end of the MIP flow, so it now draws no action bar at all and its first next-step row is a plain row rather than
-a control (`DECISIONS.md` D50). Frame 20 therefore also leaves the sixth exemption's set — it is no longer a screen whose action
+a control (`DECISIONS.md` D50). Frame 20 therefore also leaves the sixth exemption's set - it is no longer a screen whose action
 bar's visibility is diffed, because it has none. Frame 21 is unchanged and keeps all three of its chevroned rows and its bar.
-In every case the exemption covers that difference only, and everything else on those screens is diffed normally. The new `/mip/adviser` screen has no reference PNG — see step 4.
+In every case the exemption covers that difference only, and everything else on those screens is diffed normally. The new `/mip/adviser` screen has no reference PNG - see step 4.
 
-**2. Regulatory anchor audit — mechanical, not by eye.** Run the Stage 10 script comparing every
+**2. Regulatory anchor audit - mechanical, not by eye.** Run the Stage 10 script comparing every
 screen module's declared `anchors` list against `anchors.js`, and confirming the exact
 `content.shared.regulatory` wording for each declared key appears in the rendered DOM.
 
@@ -260,7 +260,7 @@ screen module's declared `anchors` list against `anchors.js`, and confirming the
   require are deleted, and so is the frame 33 Data control that forced them.
 - Not-yet outcome (21) branch.
 - Every one of the 11 no-frame-drawn fallback states, forced via frame 33 toggles / crafted input.
-- Breakpoint check at both sides of 768px, and explicitly at 1366×768 — confirm the framed view
+- Breakpoint check at both sides of 768px, and explicitly at 1366×768 - confirm the framed view
   scales to fit with no vertical overflow or clipping, and that the page *behind* the frame does not
   scroll at any viewport size (`DECISIONS.md` D14).
 - Colour scheme: open the prototype on a device set to dark mode at OS level and confirm it still
@@ -287,11 +287,11 @@ screen module's declared `anchors` list against `anchors.js`, and confirming the
   calculator's step flow it opens 10c rather than discarding draft inputs (`DECISIONS.md` D11).
 - PWA installability: add-to-home-screen on an actual iOS device and an actual Android device.
 - `prefers-reduced-motion` at the OS level, confirming cross-fade replaces all slide/rise motion.
-- `/settings` reachable only by typing the URL — confirmed absent from every visible nav element.
+- `/settings` reachable only by typing the URL - confirmed absent from every visible nav element.
 - The service worker serves the current `CACHE_VERSION` after a fresh deploy, with no stale cache
   from a prior session (open the app, deploy a change, reopen, confirm the new version loads).
 
-**4. `/mip/adviser` — its own verification step** (new screen, no reference PNG to diff against):
+**4. `/mip/adviser` - its own verification step** (new screen, no reference PNG to diff against):
 reachable from both 20 and 21's "Talk to someone about it" row; displays the guidance-not-advice
 line from `content.shared.regulatory`; has a working back route to the result screen it was opened
 from; contains no form fields and no booking calendar.
