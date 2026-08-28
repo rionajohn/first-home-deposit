@@ -86,6 +86,38 @@ import { skipAheadPatch } from './skip-ahead.js';
 export const STAGES = ['setting-up', 'saving', 'ready-to-check'];
 
 /**
+ * THE STAGE A NEW SESSION OPENS IN (DECISIONS.md D48).
+ *
+ * A session used to open at `'setting-up'` - `defaultState()`'s own value - so
+ * tapping Insights on a fresh session redirected into the deposit calculator,
+ * and the tracker could not be met at all until a facilitator had set a stage
+ * on frame 33 or a participant had run all three calculator steps. The tracker
+ * is now a populated screen from the first tap, on the same reasoning
+ * `state.js` gives for seeding `money-in` and `essential-spending`: the
+ * participant's accounts are connected, so the figures that follow from them
+ * are already there rather than waiting on a form.
+ *
+ * IT IS A CONSTANT HERE AND NOT A CHANGED DEFAULT IN `state.js`, and the
+ * distinction is load-bearing twice over:
+ *
+ *   - `defaultState()` stays the EMPTY session in every key, `stage` included.
+ *     It is the floor `baseline()` is built from, and therefore the thing
+ *     frame 33's "Setting up" returns a session to. Had the default moved to
+ *     `'saving'`, `baseline()` would have started returning the saving stage's
+ *     figures and "Setting up" would have become a no-op - the blank calculator
+ *     would have become unreachable.
+ *   - It keeps the deletion list at the top of this file true. The opening
+ *     scenario is one name in this module, applied by `router.js` at the one
+ *     point a session begins, rather than a value spread through `state.js`.
+ *
+ * NOT A SECOND MECHANISM. `router.js` opens a session by calling `stagePatch()`
+ * with this value - the same function, against the same fresh `defaultState()`,
+ * producing byte-identical state to a facilitator selecting "Saving" on frame
+ * 33. There is one stage machine and this names its starting point.
+ */
+export const OPENING_STAGE = 'saving';
+
+/**
  * WHAT THE STAND-IN PARTICIPANT TYPED ON FRAME 09. Not a rate and not a figure
  * the app derives, so it does not belong in `rates.js` - it is one of the two
  * inputs a participant supplies, chosen here on their behalf, and it lives with

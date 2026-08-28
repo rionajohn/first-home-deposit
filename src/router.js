@@ -11,7 +11,8 @@
  * built yet" placeholder rather than a broken screen.
  */
 
-import { getState, setState, resetState, resetCollapsibles } from './state.js';
+import { getState, setState, resetState, resetCollapsibles, isNewSession } from './state.js';
+import { stagePatch, OPENING_STAGE } from './stage.js';
 import content from './content.js';
 import { bottomNavHTML, NAVIGABLE_TABS } from './components/ui.js';
 import { mountActionBars } from './action-bar.js';
@@ -595,6 +596,10 @@ function renderCurrentRoute() {
 
   if (path === '/reset') {
     resetState();
+    // The next participant gets the same opening scenario a first page load
+    // gives, rather than the empty session `resetState()` leaves behind.
+    // `resetState()` clears the restored flag, so this is not a no-op.
+    openSession();
     window.location.replace('#/home');
     return;
   }
@@ -631,7 +636,42 @@ function renderCurrentRoute() {
   }
 }
 
+/**
+ * OPENS A NEW SESSION IN ITS STAGE (DECISIONS.md D48).
+ *
+ * A session used to begin empty, so the Insights tab redirected into the
+ * deposit calculator until a facilitator had set a stage on frame 33. It now
+ * begins in `OPENING_STAGE`, which means the deposit tracker is a populated
+ * screen from the first tap.
+ *
+ * IT REUSES `stagePatch()` AND ADDS NOTHING. The patch is the same function
+ * frame 33's Journey stage control calls, against the same fresh
+ * `defaultState()`, deriving every figure through `src/model/` in the
+ * calculator's own call order. A session opened here and a session a
+ * facilitator set to "Saving" hold identical state; there is one stage
+ * machine, and this is where it starts. `stage` is written alongside the patch
+ * for the same reason `settings.js` writes it - frame 33 reads that key to show
+ * which stage is selected, and a session in the saving stage whose control
+ * still read "Setting up" would be lying to the facilitator.
+ *
+ * ONLY ON A NEW SESSION. `isNewSession()` is false once a stored session has
+ * been read back, so a mid-session refresh restores what the participant had
+ * rather than resetting them to the opening scenario. `resetState()` clears the
+ * flag, so `#/reset` opens the next participant's session here too.
+ *
+ * CALLED BEFORE `seedHistoryRoot()` AND BEFORE THE FIRST RENDER, so no screen
+ * and no history entry can observe the empty state in between.
+ */
+function openSession() {
+  if (!isNewSession()) return;
+  setState({ ...stagePatch(OPENING_STAGE), stage: OPENING_STAGE });
+}
+
 export function startRouter() {
+  // The opening scenario first: every screen below reads the store, and the
+  // history root stamped next describes the route that store resolves to.
+  openSession();
+
   // Before the first render, and before anything can push: see above.
   seedHistoryRoot();
 

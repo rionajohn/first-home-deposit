@@ -258,16 +258,40 @@ export function defaultState() {
   };
 }
 
+/**
+ * WAS THIS STORE BUILT FRESH, OR RESTORED FROM A REFRESH?
+ *
+ * `router.js` opens a new session in a stage rather than empty (DECISIONS.md
+ * D48, `OPENING_STAGE` in src/stage.js), and it has to be able to tell the two
+ * cases apart. A session restored from sessionStorage is a participant part-way
+ * through - re-applying an opening stage to it would discard whatever they had
+ * entered, which is the exact thing persisting the store exists to prevent.
+ *
+ * False from a fresh `defaultState()`, true the moment a stored session is read
+ * back, and false again after `resetState()` - which makes a new session by
+ * definition, and is what `#/reset` runs between participants.
+ */
+let restoredFromStorage = false;
+
 function load() {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
+    restoredFromStorage = true;
     // Merge over defaultState() so a stored value from an older shape never
     // leaves a newly-added key undefined.
     return { ...defaultState(), ...JSON.parse(raw) };
   } catch {
     return defaultState();
   }
+}
+
+/**
+ * True while nothing has been restored into this store - a first page load, or
+ * a session just reset. Read by `router.js` and by nothing else.
+ */
+export function isNewSession() {
+  return !restoredFromStorage;
 }
 
 function persist(state) {
@@ -303,6 +327,10 @@ export function resetCollapsibles() {
 }
 
 export function resetState() {
+  // A reset IS a new session, so the flag goes back with the figures - the
+  // next thing `#/reset` does is hand off to `router.js`, which opens the
+  // session in its stage exactly as it does on a first load.
+  restoredFromStorage = false;
   state = defaultState();
   persist(state);
   return state;

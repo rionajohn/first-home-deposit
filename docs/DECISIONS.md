@@ -3193,6 +3193,83 @@ overlap, 89 action-bar, 15 sheet-drag, 13 bottom-nav, 11 skip-ahead, 21 stage, p
 
 ---
 
+## D48. A session opens in the saving stage, so the tracker is populated from the first tap
+
+**Date.** 28 August 2026.
+
+**Decision.** A new session opens in the **saving stage** rather than empty. The Insights tab lands
+on a populated deposit tracker from the first tap, without a facilitator setting anything on frame
+33 and without a participant running the deposit calculator first.
+
+**Why.** The tracker was the one screen in the app a participant could not meet. `/tracker` guards
+on the stored `checkpoint-amount` and `deposit-target`, and both were null until frames 09, 10 and
+11 had all been through, so tapping Insights on a fresh session redirected into the calculator. That
+is the same problem `state.js` already solved for `money-in` and `essential-spending`: the
+participant's accounts are connected, so the figures that follow from them are there rather than
+waiting on a form. A tracker with a goal on it is a worked example; a redirect is an empty state
+wearing a tab.
+
+**The two are now separate, and participants are told so.** The tracker no longer stands downstream
+of the calculator in a session's own history - it is populated on arrival, and the calculator is a
+thing a participant can go and run. That is a study-design decision taken outside this repo and
+recorded here because the build now depends on it.
+
+**How, and what was deliberately not done.**
+
+`router.js` opens a session by calling `stagePatch(OPENING_STAGE)`, the same function frame 33's
+Journey stage control calls, against the same fresh `defaultState()`. A session that opened itself
+and a session a facilitator set to "Saving" hold **byte-identical** state; `scripts/stage.test.mjs`
+asserts exactly that, through the very expression `openSession()` runs. There is one stage machine
+and this names its starting point. Every figure still comes from `src/model/` in the calculator's
+own call order - D45's rule is untouched, and nothing derived is written by hand anywhere.
+
+**`OPENING_STAGE` is a constant in `stage.js`, NOT a changed default in `state.js`, and that is the
+load-bearing part.** `stage.js`'s `baseline()` is built from `defaultState()`, and `baseline()` is
+what frame 33's "Setting up" returns a session to. Had the default moved to `'saving'`, `baseline()`
+would have started returning the saving stage's own figures, "Setting up" would have become a no-op,
+and the blank calculator would have gone out of reach - the exact affordance a facilitator needs
+when they want one. `defaultState()` therefore stays the empty session in every key, `stage`
+included. It also keeps `stage.js`'s deletion list true: the opening scenario is one name in that
+module, not a value spread through the store.
+
+**It sits in `router.js` rather than in `state.js`** because `state.js` cannot import `stage.js` -
+`stage.js` already imports `defaultState` from it, and the cycle would put `stagePatch` in the
+temporal dead zone on any module order where `stage.js` evaluates first. The router already owns the
+two moments a session begins (`startRouter()` and `#/reset`), so both call `openSession()` and the
+module graph stays a directed acyclic one.
+
+**Only on a new session.** `state.js` now records whether the store was restored from
+sessionStorage, and `isNewSession()` gates the patch. A mid-session refresh restores what the
+participant had - re-applying an opening stage to it would discard their work, which is the thing
+persisting the store exists to prevent. `resetState()` clears the flag, so `#/reset` opens the next
+participant's session the same way a first load does. Verified in a browser: a property value
+entered on frame 09 survives a reload unchanged.
+
+**`saved-toward-deposit` is untouched, at £8,950.** It is the sum of the four accounts frames 03, 06
+and 32 draw, and the tracker captions it "Read from the accounts you assigned to your deposit". The
+opening stage sets up a GOAL; it must not move the position measured against it, and raising it
+would mean inventing balances the account list contradicts - the refusal `skip-ahead.js` already
+records for the same reason. The session therefore opens BELOW its checkpoint, which is what leaves
+the skip-ahead control both of its positions.
+
+**What a participant now meets populated.** Frame 09 arrives pre-filled at £240,000 with the 10%
+chip selected; frames 10, 11 and 12 render against that goal; `/goals` draws the tracker bridge card
+from the first tap instead of the calculator card (D44's fifth amendment - one card in every state,
+chosen by `hasGoal`). A participant who runs the calculator with their own figures simply overwrites
+the stage, and the tracker follows: £300,000 at 5% gives a £15,000 goal and an £11,250 checkpoint on
+the next visit. The stage is a one-shot patch, not a flag re-read at render time.
+
+**Cost, accepted.** The calculator is no longer a blank instrument on first arrival. That is the
+price of the tracker not being an empty state, and it is the trade the study design has taken.
+Frame 33's "Setting up" is the way back to a blank calculator and is verified to still do it.
+
+**Reversal.** Delete `OPENING_STAGE` from `stage.js`, `openSession()` and its two call sites from
+`router.js`, `isNewSession()` and the `restoredFromStorage` flag from `state.js`, and the seven
+opening-stage tests from `scripts/stage.test.mjs`. Nothing else moves; every figure was already
+`stage.js`'s.
+
+---
+
 ## D47. Rule 1A's 60% clause is a flag, and G61 was three findings under one number
 
 **Date.** 27 August 2026.
@@ -3349,3 +3426,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 27 August 2026 (draft state, G62 closed) | **D46 recorded**, closing `GAPS.md` G62 and correcting it. The symptom was `/tracker` reading "You're £0 away" beside an £8,950 headline and a £24,000 goal; the cause was not `gapToCheckpoint()` re-deriving. `calculator-property.js` wrote `property-value: null` on the field's `change` event while `deposit-target`, `loan-amount` and `ltv` are written on Continue, so the store held a half-made edit beside a committed goal - a state no screen expects and no guard tests for. **Three screens were broken, not one**, and two are unmentioned in G62: frame 12's headline read "A deposit on a **£0** home could be **£0** to **£0**", frame 11's property row read £0, and the tracker carried three separate £0s (the gap sentence, "a 10% deposit on a **£0** home", and the rate-band table). `formatCurrency(null)` returns "£0", which is why all three fabricated a figure instead of failing visibly. **G62 was also wrong twice**: `learn-ltv.js` is not a second unhandled case (its own guard redirects - into frame 12, which was the broken screen), and `gapToCheckpoint()` has one caller, not "other callers", which was the only reason given for not applying D38's third-amendment fix to it. **Fixed upstream**: an empty field is now the screen's own draft state (`propertyValueCleared`), the committed figure is left standing, and all four consumers are fixed at once - per-consumer null-handling would have meant inventing "we can't show this" copy on three screens for a state that should not exist. A second route found while verifying and closed with it: `"-"`, `"."` and `"-."` survive the input strip, yield `NaN`, and `JSON.stringify` persists `NaN` as `null`, so a refresh reproduced the whole defect; only a finite number is committed now, and frame 09's error variant (`0`, negatives) is untouched. `gapToCheckpoint()` moved onto the stored `checkpoint-amount` as defence in depth. Rejected: clearing the downstream commits too, which would make the tracker redirect honestly but destroys a participant's goal as a side effect of clearing a text field. `CLAUDE.md` gains a **State rules** section - screen-local draft state never writes to a section 6 figure, and a screen may only display a figure derived from a key its own guard tested - because this is the rule the next screen that takes an input will break. New `scripts/g62.test.mjs` asserting the invariant rather than the symptom, 10 assertions; `shots.mjs` gains `--draft=property-cleared`. Verified in Chromium across the six-step reproduction (six, not five - "Adjust my goal" lands on frame 11), every input path, and 10 screenshots in light and dark. `CACHE_VERSION` v35. 270 tests passing. |
 | 27 August 2026 (rule 1A resolved, G61 split) | **D47 recorded.** Rule 1A's 60% clause is a **FLAG, not a FIX** - a heading names a section's dominant action, a clause states its own, and where they differ the clause wins. The reason is not the wording: the clause governs COPY and **no screen states £255 or 67%**, while frame 10 headlines no proposed amount, frames none as a share of what is left, sets no target, and states two facts - which is the remedy the three FIX bullets ask for, already met. The skill is corrected in place so the contradiction does not have to be resolved again; leaving it had already cost one full investigation. **G61 closed and split three ways.** *G61a*, the 67% default: resolved as a documented decision, **no figure changes**, still flagged, the £200-£310 range being fixed by the reference frames which draw both figures and the £0-£380 track exactly. *G61b*, opened as **G63** and deliberately unresolved: the £310 upper handle is **81.6%** of left-over, it is **displayed** twice on frame 10 and again on frame 11 where £255 is displayed nowhere, 81.6% is above the 80% the rule itself names as predictably failing rather than merely above the 60% flag line, and "You could put aside £310 a month" is the rule's own example of a breach - the number in the rule is the number in this build. Both sides recorded in the entry: **for**, it is captioned as a fact about the persona's past saving and the grammar is descriptive throughout; **against**, the slider seeds its upper handle from it and Continue commits the midpoint whether or not a handle moved, so the app does default to it, and the clause is about defaults rather than description. *G61c*, **fixed**: frame 11's `monthlySavingCaption` read "The range you set" unconditionally, telling a participant who accepted the seeded range that they had set it - the one part of rule 1A that genuinely was a copy defect, since the section's own remedy is "hand the choice to the user". The row now picks by provenance following `position.js`'s frame 05 pattern; `read` gives "Read from what you've been putting aside lately", reusing frame 10's own words for the figure behind frame 11's own prefix for a read one, so no new vocabulary. Known limitation logged not fixed: the 10b path lands on `entered` and also reads "The range you set" where a date is what was set. **Two findings logged separately as neither is G61**, both on frame 10b and both reachable in a session: **G64**, the date path has no ceiling where the slider path clamps to `left-over`, so the screen's own default seeded date commits **£331 to £404** against a £380 left-over with no warning; **G65**, the solved amount is computed every render and never displayed - reference PNG 10b checked rather than assumed and draws no readout either, so the build is faithful and the gap is in the design. `CACHE_VERSION` v36. 270 tests passing. |
 | 27 August 2026 (strict alternation on /goals) | **D44 amended a fifth time**: `/goals` now shows exactly **one** bridge card in every state - the calculator while no deposit goal is set, the tracker once one is, at any savings position. `unlocked` is gone from `goals.js` and the condition is `hasGoal ? trackerCardHTML : houseCardHTML`. **The rule has not changed and the third-state reasoning is not superseded - it is outranked, and deliberately left in the entry unedited.** "Do not advertise a door that redirects" still holds and is still why the no-goal state withholds the tracker card; the third state was *correct* under it, both destinations genuinely rendering at or above the checkpoint. What changed is a judgement above the rule: one card in every state is worth more than a second honest door in one state. **The cost is accepted knowingly and recorded in both the entry and `ROUTES.md`**: `tracker.js` draws "Adjust my goal" on the below-checkpoint variant and no other (D25, which governs frame 15 only), so a participant at or above the checkpoint now has **no nearby route to the deposit calculator at all** - it is reachable by typing `#/calculator/property` and in no other way from that state. The obvious repair, drawing the secondary on the unlocked variant too, stays rejected on the fourth amendment's instrument cost: a backwards-pointing action beside the control that opens the Mortgage in Principle flow diverts participants into the calculator and costs the sessions the observation that variant exists to produce. The two amendments are consistent - the fourth refused to add a route to the tracker, the fifth removes one from `/goals`, both paid for by the same participant in the same state. Verified by driving all three journey states through frame 33 and asserting the rendered `data-action` set rather than eyeballing it (`setting-up` -> `["open-deposit-calculator"]`, `saving` and `ready-to-check` -> `["open-deposit-tracker"]`), clicking each card to confirm where it lands, and tapping Insights in all three - unchanged, `#/tracker` in the two goal states and still redirecting in the no-goal state. Shot at 390px light and dark in both states, dark mode unchanged, no layout gap where the second card was. `overlap.test.mjs` loses `goals-below-checkpoint`, now the same shape as the bare `goals` row; `ROUTES.md`'s three-state table becomes two rows and gains the missing-route warning. `CACHE_VERSION` v37. 268 tests passing. |
+| 28 August 2026 (session opens populated) | **D48 recorded.** A new session opens in the **saving stage** rather than empty, so the Insights tab lands on a populated deposit tracker from the first tap - the tracker was previously the one screen a participant could not meet, `/tracker`'s guard redirecting into the calculator until frames 09, 10 and 11 had all run. Same reasoning `state.js` already applies to `money-in`: the accounts are connected, so what follows from them is there rather than waiting on a form. **`router.js` reuses `stagePatch()`**, the same function frame 33 calls, against the same fresh `defaultState()` - a session that opened itself and one a facilitator set to "Saving" are byte-identical, asserted through the very expression `openSession()` runs. **`OPENING_STAGE` is a constant in `stage.js`, not a changed default in `state.js`, and that is load-bearing**: `baseline()` is built from `defaultState()`, so a moved default would have made frame 33's "Setting up" a no-op and put the blank calculator out of reach. It sits in `router.js` because `state.js` cannot import `stage.js` without a cycle that would put `stagePatch` in the temporal dead zone. Gated on `isNewSession()`, so a mid-session refresh restores rather than resets; `resetState()` clears the flag so `#/reset` opens the next participant's session too. **`saved-toward-deposit` untouched at £8,950** - the sum of the four accounts frames 03, 06 and 32 draw, so the session opens BELOW its checkpoint and skip-ahead keeps both positions. Accepted cost: frame 09 arrives pre-filled at £240,000/10% and `/goals` draws the tracker card from the first tap. `CACHE_VERSION` v38. 275 tests passing. |

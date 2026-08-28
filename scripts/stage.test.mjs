@@ -22,7 +22,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { stagePatch, STAGES, STAGE_PROPERTY_VALUE, STAGE_DEPOSIT_PCT } from '../src/stage.js';
+import { stagePatch, STAGES, STAGE_PROPERTY_VALUE, STAGE_DEPOSIT_PCT, OPENING_STAGE } from '../src/stage.js';
 import { defaultState } from '../src/state.js';
 import { skipAheadPatch, skipBackPatch, isSkippedAhead } from '../src/skip-ahead.js';
 import { CHECKPOINT_FRACTION, CHART_WINDOW_MONTHS } from '../src/model/rates.js';
@@ -361,4 +361,70 @@ test('a calculator run after a stage overwrites the stage, not the other way rou
   // 8,950 saved against a 6,750 checkpoint: the tracker follows the
   // participant's entries and unlocks, while `stage` still reads "Saving".
   assert.ok(run['saved-toward-deposit'].value >= run['checkpoint-amount'].value);
+});
+
+// ---------------------------------------------------------------------------
+// The stage a new session opens in (DECISIONS.md D48)
+// ---------------------------------------------------------------------------
+//
+// `router.js`'s `openSession()` is one line - `setState({ ...stagePatch(
+// OPENING_STAGE), stage: OPENING_STAGE })` - and `select()` above is that same
+// line. So these assert the opening scenario through the very expression the
+// router runs, rather than through a second description of it.
+
+/** What `router.js` does when a session begins. */
+const opened = () => select(defaultState(), OPENING_STAGE);
+
+test('the opening stage is one of the three frame 33 draws', () => {
+  assert.ok(STAGES.includes(OPENING_STAGE));
+});
+
+test('opening a session is identical to selecting that stage on frame 33', () => {
+  // THE WHOLE CLAIM THAT THERE IS ONE STAGE MACHINE. If these ever differ, a
+  // session that opened itself and a session a facilitator set up are two
+  // different scenarios wearing one name.
+  assert.deepEqual(opened(), select(defaultState(), 'saving'));
+});
+
+test('a session opens with the two figures /tracker\'s guard tests', () => {
+  // `tracker.js` redirects to /calculator/result unless both are non-null, so
+  // this is the assertion that the Insights tab lands rather than bounces.
+  assert.equal(hasGoal(opened()), true);
+});
+
+test('opening a session does not raise saved-toward-deposit', () => {
+  // It is the sum of the four accounts frames 03, 06 and 32 draw, and the
+  // tracker captions it as read from them. The opening stage sets up a GOAL;
+  // it must not touch the position measured against it.
+  const fresh = defaultState();
+  assert.deepEqual(opened()['saved-toward-deposit'], fresh['saved-toward-deposit']);
+  assert.equal(opened()['saved-toward-deposit'].provenance, 'read');
+});
+
+test('a session opens below its checkpoint, so both skip-ahead positions exist', () => {
+  const session = opened();
+  assert.ok(session['saved-toward-deposit'].value < session['checkpoint-amount'].value);
+  assert.ok(isSkippedAhead({ ...session, ...skipAheadPatch(session) }));
+});
+
+test('"Setting up" still empties a session that opened populated', () => {
+  // THE REQUIREMENT THAT KEPT `OPENING_STAGE` OUT OF `defaultState()`. The
+  // stage patches are built from `defaultState()`, so a default that had moved
+  // to the saving stage would have made "Setting up" a no-op and put the blank
+  // calculator out of reach.
+  const fresh = defaultState();
+  const settingUp = select(opened(), 'setting-up');
+
+  assert.deepEqual(settingUp, { ...fresh, stage: 'setting-up' });
+  assert.equal(hasGoal(settingUp), false);
+});
+
+test('three skip-ahead round trips from an opened session land identical', () => {
+  const start = opened();
+  let session = start;
+  for (let i = 0; i < 3; i += 1) {
+    session = { ...session, ...skipAheadPatch(session) };
+    session = { ...session, ...skipBackPatch(session) };
+  }
+  assert.deepEqual(session, start);
 });
