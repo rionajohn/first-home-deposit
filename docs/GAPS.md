@@ -1739,3 +1739,40 @@ milestone state back to `locked` and the icon, the colour rule and the aria suff
 to receive it. Deleting them would make the reversal a multi-file restoration and would remove a state
 D42's own four-state table still describes as meaningful. Revisit only if the override is confirmed
 permanent, and then treat `lockedRowAriaSuffix` separately, since removing it is unrelated to D51.
+---
+
+**G69. Frame 21 says the amount needed is above what a lender would offer, while its own two rows
+show the opposite.** Noticed while verifying D55's raised seed, and **not caused by it** - the
+condition holds at every property value below £895,000, so it was equally true at D45's £240,000.
+
+At the D55 seed the screen reads:
+
+| Row | Figure |
+|---|---|
+| Headline copy | "the amount you'd need to borrow is **above** what a lender would typically offer" |
+| What you'd need to borrow | £641,050 |
+| What a lender would typically offer | around £643,500 |
+
+£641,050 is **below** £643,500, so the two rows contradict the sentence above them. The same
+comparison at £240,000 gives £231,050 against £237,600 - contradictory in the same direction.
+
+**Why it is structural rather than a bad number.** `neededLoanAmount` is `P - S`, and `borrowRange`
+is `rangeFromCentral(loanAmount)`, so its high is `1.1 x P x (1 - depositPct)` = `0.99P` at a 10%
+deposit. `P - S < 0.99P` reduces to `P < 100 x S`, and S is the fixed £8,950 mock balance - so the
+sentence is false for every property under £895,000 and true only above it. The same relationship
+makes `max-property` (£652,450) exceed the property value itself, which is why step 2 of "What you
+could do next" invites the participant to "look at a property target closer to £652,450" when their
+current target is £650,000 - a higher one.
+
+**Why the screen is shown at all is a separate and correct thing.** Under D51 the CHECKPOINT decides
+the result, not this comparison, so a below-checkpoint session lands on frame 21 whatever these two
+rows say. The routing is right; the copy asserts a reason that its own figures do not support.
+
+*Status: open, and deliberately not fixed in the D55 pass.* Three candidate readings, and the spec
+does not settle which is meant: the copy is generic and should not name a comparison it does not
+make; or `borrowRange` should be income-derived (the mock salary is £2,240 a month, which no
+plausible multiple takes to £643,500) rather than derived from the loan the participant's own
+property value implies; or frame 21's rows should compare against the checkpoint that actually chose
+the screen. The third is closest to D51 but the widest change. **Asked rather than guessed** -
+picking one silently would move a figure on frames 20 and 21 and change what the MIP flow tells a
+participant.

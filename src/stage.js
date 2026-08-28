@@ -140,8 +140,38 @@ export const OPENING_STAGE = 'saving';
  * 8,950 against a 18,000 checkpoint. `scripts/stage.test.mjs` asserts both
  * properties rather than asserting the numbers, so a change here is caught by
  * the thing it would break rather than by a stale constant.
+ *
+ * 28 AUGUST 2026: RAISED TO 650,000, AND THE FIRST PROPERTY ABOVE IS
+ * DELIBERATELY GIVEN UP (DECISIONS.md D55). The reasoning above is still the
+ * reasoning - it is why 240,000 was right for what the stage demonstrated
+ * then. What the stage demonstrates changed: the opening session now has to
+ * meet the Lifetime ISA cap warning as part of its opening state, and that
+ * warning renders only above `LISA_CAP_PROPERTY_VALUE` (450,000).
+ *
+ * THE TWO REQUIREMENTS CANNOT BOTH HOLD. Against the same mock seeds the
+ * projection window closes at about 275,800, and the warning needs more than
+ * 450,000 - there is no value in between, and no savings rate reaches one
+ * either: at the `left-over` ceiling of 380 a month, the most a session can
+ * reach inside 60 months is a 358,300 property, still below the cap. So this
+ * is a trade, not an oversight.
+ *
+ * WHAT IT COSTS. 650,000 lands `months-to-target` at 154.8 months, so
+ * `monthsToTarget()` returns `beyond-window` and `onTrackFor()` has no range:
+ * the tracker's "On track for" row renders its beyond-window variant from the
+ * opening session. That variant is built and correct; it is simply no longer
+ * the ordinary screen a facilitator meets first.
+ *
+ * WHAT IT KEEPS. The second property is untouched and still asserted: 8,950
+ * against a 48,750 checkpoint, so the tracker still opens locked and both
+ * skip-ahead positions still exist. `scripts/stage.test.mjs` now asserts the
+ * beyond-window consequence explicitly rather than the window property, so
+ * the cost is recorded by the test rather than discovered on a screen.
+ *
+ * TO REVERSE IT: put 240,000 back here and the window property returns
+ * untouched, since nothing else was moved to accommodate this. The test named
+ * above is the other half of the reversal.
  */
-export const STAGE_PROPERTY_VALUE = 240000;
+export const STAGE_PROPERTY_VALUE = 650000;
 
 /**
  * The deposit percentage the stand-in participant tapped. Written here rather

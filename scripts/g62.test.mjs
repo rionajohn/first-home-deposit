@@ -107,14 +107,25 @@ test('every figure the tracker shows survives the cleared draft', () => {
 });
 
 test('every figure frames 11 and 12 show survives it too', () => {
-  const after = clearTheField(committed());
+  const before = committed();
+  const after = clearTheField(before);
 
   // Frame 11's property row, and frame 12's headline and every threshold label,
   // are `property-value` multiplied by a percentage. A null here is what
   // produced "A deposit on a £0 home could be £0 to £0".
   assert.equal(typeof after['property-value'].value, 'number');
   assert.equal(depositTarget(after).error, null);
-  assert.equal(monthsToTarget(after).error, null);
+
+  // COMPARED BEFORE-TO-AFTER, NOT PINNED TO null. The invariant this file
+  // exists for is that abandoning a draft moves nothing, so what matters is
+  // that the projection answers the SAME thing either side of the clear -
+  // whatever that answer is. Pinned to null it also asserted that the stage
+  // seed sits inside the projection window, which is a fact about
+  // `STAGE_PROPERTY_VALUE` and belongs to `stage.test.mjs`; D55 raised that
+  // seed past the window deliberately and this test failed for a reason that
+  // had nothing to do with drafts.
+  assert.equal(monthsToTarget(after).error, monthsToTarget(before).error);
+  assert.equal(monthsToTarget(after).value, monthsToTarget(before).value);
 });
 
 test('frame 13 no longer has to redirect', () => {

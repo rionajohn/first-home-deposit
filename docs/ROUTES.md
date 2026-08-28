@@ -55,8 +55,22 @@ what the calculator would have committed, it does not invent anything (`DECISION
 | Stage | Property / deposit | Target | Checkpoint | Saved | Tap Insights and you land on |
 |---|---|---|---|---|---|
 | **Setting up** | - | - | - | £8,950 | **09** `#/calculator/property` - the empty state, unchanged |
-| **Saving** | £240,000 @ 10% | £24,000 | £18,000 | £8,950 | **15** `#/tracker`, below checkpoint, MIP milestone locked |
-| **Ready to check** | £240,000 @ 10% | £24,000 | £18,000 | £18,000 | **16** `#/tracker`, checkpoint reached, MIP milestone available |
+| **Saving** | £650,000 @ 10% | £65,000 | £48,750 | £8,950 | **15** `#/tracker`, below checkpoint, MIP milestone locked |
+| **Ready to check** | £650,000 @ 10% | £65,000 | £48,750 | £48,750 | **16** `#/tracker`, checkpoint reached, MIP milestone available |
+
+**The seed is above the Lifetime ISA cap on purpose, and frame 09 shows the warning from the first
+tap.** £650,000 is over `LISA_CAP_PROPERTY_VALUE` (£450,000), so a session that opens in the saving
+stage arrives on frame 09 with the cap banner already rendered. That is the point of the figure
+(`DECISIONS.md` D55).
+
+**What it costs: the Saving stage's "On track for" row is the beyond-window variant.** At £65,000 the
+projection runs to 154.8 months, past the 60-month chart window, so `months-to-target` has no range
+to show and frames 11, 12 and 15 render their beyond-window variant. This is expected, not a broken
+screen. D45 originally chose £240,000 to avoid it; the two cannot both hold, because the window
+closes at about £275,800 and the cap starts above £450,000. **Ready to check is unaffected** - at
+£48,750 saved the projection is 37.8 months, on track for 35 to 42, well inside the window. If you
+need a Saving-stage tracker with an ordinary "On track for" row, use a recipe below instead of a
+stage.
 
 **Ready to check is the Saving stage moved forward, not a different goal.** It is Saving with the
 tracker's own skip-ahead control applied, so the goal figures are identical and only the savings
@@ -184,7 +198,7 @@ Set at frame 09. Checkpoint is 75% of target; target is property × deposit %.
 | **15** below checkpoint | £280,000 @ 5% | £14,000 | £10,500 | 8,950 < 10,500 → locked |
 | **16** checkpoint reached | £200,000 @ 5% | £10,000 | £7,500 | 8,950 ≥ 7,500 → MIP unlocks |
 | **goal met** fallback | £150,000 @ 5% | £7,500 | £5,625 | 8,950 ≥ 7,500 → goal met |
-| - *(for comparison)* | **Journey stage: Saving / Ready to check** | £24,000 | £18,000 | 8,950 → **15**; 18,000 → **16** |
+| - *(for comparison)* | **Journey stage: Saving / Ready to check** | £65,000 | £48,750 | 8,950 → **15**; 48,750 → **16** |
 
 ## The eleven no-frame-drawn states
 

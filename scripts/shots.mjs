@@ -25,9 +25,16 @@
  *   --routes   App routes, without the `#`.            default /tracker
  *   --entry    How the screen is REACHED. `direct` sets the hash; `goals`
  *              taps the tracker card on /goals; `insights` taps the Insights
- *              tab. The three differ in what the app bar draws (D41) and in
+ *              tab. Those three differ in what the app bar draws (D41) and in
  *              whether the entry is a root or a descent (D40), so a screenshot
  *              that only ever loads the hash misses two of the three.
+ *
+ *              `mip` is a fourth, and a different kind: it walks the real
+ *              Mortgage in Principle flow from the tracker and shoots
+ *              whichever result 19b resolves to. It is the ONLY way frames 20
+ *              and 21 are reachable at all - both are guarded on figures only
+ *              a real 19b run commits, so setting their hash lands on /mip
+ *              instead. Frame 33's MIP outcome setting chooses which result.
  *                                                       default direct
  *   --state    `now` or `ahead` - the skip-ahead control's position
  *              (DECISIONS.md D38). `ahead` is applied by pressing the real
@@ -57,6 +64,15 @@
  *              own flag moves (DECISIONS.md D46). Use it to shoot the screens
  *              that read `property-value` live while a goal is committed.
  *                                                       default none
+ *   --session  `seeded` or `opening`. `seeded` writes the shared seed into
+ *              sessionStorage before the first paint, which is what every
+ *              option above is described against. `opening` writes NOTHING and
+ *              lets the app open its own session - `router.js` applying
+ *              `OPENING_STAGE` through `stagePatch()` (D48), which is the only
+ *              way to see the figures a participant actually meets on a first
+ *              load. `--saved`, `--goal` and `--draft` all seed, so they are
+ *              refused with `opening` rather than silently ignored.
+ *                                                    default seeded
  *   --scroll   `top` or `end` - where the screen's scroller is left before the
  *              shot. An axis like the others, so `--scroll=top,end` shoots
  *              both. Added for the screens whose bottom edge is the thing
@@ -102,6 +118,7 @@ const MIME = {
 const DEFAULTS = {
   routes: '/tracker',
   entry: 'direct',
+  session: 'seeded',
   state: 'now',
   theme: 'light',
   text: 'default',
@@ -219,7 +236,7 @@ const HEIGHT = Number(args.height);
 const SCALE = Number(args.scale);
 const OUT = path.resolve(args.out);
 
-const ENTRY_KINDS = ['direct', 'goals', 'insights'];
+const ENTRY_KINDS = ['direct', 'goals', 'insights', 'mip'];
 for (const entry of ENTRIES) {
   if (!ENTRY_KINDS.includes(entry)) {
     console.error(`Unknown --entry "${entry}". One of: ${ENTRY_KINDS.join(', ')}.`);
@@ -271,7 +288,45 @@ function startServer() {
  * (D41). Seeding the hash directly would give a third result that no
  * participant ever sees.
  */
-async function navigate(page, base, route, entry) {
+async function navigate(page, base, route, entry, state) {
+  // THE ONLY HONEST WAY TO REACH FRAMES 20 AND 21. Both results are guarded on
+  // figures that ONLY a real `/mip/running` pass commits (`ROUTES.md`: frame 20
+  // "still redirects - it needs `borrow-high`, which only a real 19b run
+  // commits"), so setting the hash lands on `/mip` instead. This walks the four
+  // taps a participant takes and lets 19b self-resolve, which is also what
+  // makes the result read against whatever goal the session actually holds
+  // rather than against a seeded one.
+  if (entry === 'mip') {
+    await page.goto(`${base}/#/tracker`);
+    await page.waitForTimeout(300);
+    // WHICH RESULT IS DECIDED BEFORE THE FLOW STARTS, NOT AFTER IT. Under D51
+    // the check is offered at any savings position and the CHECKPOINT decides
+    // the outcome, so a session below it resolves to frame 21 whatever happens
+    // downstream. `--state=ahead` therefore has to be applied here, on the
+    // tracker, rather than by the post-navigate step every other entry uses -
+    // by the time the flow lands on a result there is no control left to press.
+    if (state === 'ahead') {
+      const control = await page.$('[data-action="set-skip-ahead"][data-value="ahead"]');
+      if (control) {
+        await control.click();
+        await page.waitForTimeout(350);
+      }
+    }
+    await page.click('[data-action="check-mip"]');
+    await page.waitForTimeout(300);
+    await page.click('[data-action="start-check"]');   // frame 17
+    await page.waitForTimeout(300);
+    await page.click('[data-action="start-check"]');   // frame 19
+    // 19b self-resolves in ~3s. Waited on the hash rather than on a fixed
+    // sleep, so a change to that timing does not silently shoot the spinner.
+    await page.waitForFunction(
+      () => window.location.hash.startsWith('#/mip/result/'),
+      null,
+      { timeout: 15000 },
+    );
+    await page.waitForTimeout(350);
+    return;
+  }
   if (entry === 'direct' || route !== '/tracker') {
     await page.goto(`${base}/#${route}`);
     await page.waitForTimeout(300);
@@ -306,10 +361,34 @@ function shotName({ route, entry, state, theme, text, scroll }) {
 // ---------------------------------------------------------------------------
 fs.mkdirSync(OUT, { recursive: true });
 
+// `opening` and the seeding options are mutually exclusive by definition - the
+// whole point of `opening` is that nothing is written - so a run that asks for
+// both is refused rather than quietly resolved in one direction.
+const OPENING = args.session === 'opening';
+if (!['seeded', 'opening'].includes(args.session)) {
+  console.error(`--session must be 'seeded' or 'opening', got '${args.session}'`);
+  process.exit(1);
+}
+if (OPENING) {
+  const seeding = [
+    SAVED !== null && '--saved',
+    args.goal !== 'set' && '--goal',
+    args.draft !== 'none' && '--draft',
+  ].filter(Boolean);
+  if (seeding.length) {
+    console.error(
+      `--session=opening writes no state, so ${seeding.join(', ')} cannot apply.
+` +
+      'Drop it, or use --session=seeded.',
+    );
+    process.exit(1);
+  }
+}
+
 // Say so rather than let it look like a bug in the control: with the session
 // already at the checkpoint, both skip-ahead positions carry the same figure.
 const savedNow = SAVED ?? FULL['saved-toward-deposit'].value;
-if (STATES.includes('now') && STATES.includes('ahead') && savedNow >= FULL['checkpoint-amount'].value) {
+if (!OPENING && STATES.includes('now') && STATES.includes('ahead') && savedNow >= FULL['checkpoint-amount'].value) {
   console.log(
     `note: the session is at or past the checkpoint (${savedNow} vs ${FULL['checkpoint-amount'].value}),\n` +
     '      so "now" and "ahead" will show the same figure and differ only in which\n' +
@@ -328,8 +407,12 @@ try {
       // /tracker is the only screen with two doors into it; asking for a
       // `goals` or `insights` entry anywhere else would silently shoot the
       // same thing twice under two names.
-      if (entry !== 'direct' && route !== '/tracker') {
+      if (entry !== 'direct' && entry !== 'mip' && route !== '/tracker') {
         skipped.push(`${route} via ${entry} - only /tracker has more than one entry`);
+        continue;
+      }
+      if (entry === 'mip' && !route.startsWith('/mip/result/')) {
+        skipped.push(`${route} via mip - the flow ends on a result, not on ${route}`);
         continue;
       }
       for (const theme of THEMES) {
@@ -340,20 +423,64 @@ try {
               deviceScaleFactor: SCALE,
               serviceWorkers: 'block',
             });
-            const seed = { ...FULL, theme: theme === 'dark' ? 'dark' : 'greyscale', textSize: text };
-            if (SAVED !== null) {
-              seed['saved-toward-deposit'] = { ...FULL['saved-toward-deposit'], value: SAVED };
+            if (OPENING) {
+              // NOTHING IS SEEDED, AND NOTHING MAY BE WRITTEN BEFORE THE FIRST
+              // LOAD. `isNewSession()` is just `!restoredFromStorage`, which
+              // `load()` sets from the mere PRESENCE of the storage key - so a
+              // pre-write of any kind, theme included, makes the app treat the
+              // tab as a restored session and skip `OPENING_STAGE` entirely
+              // (D48). An earlier version of this branch wrote theme and text
+              // size up front and silently shot the empty calculator instead
+              // of the opening one.
+              //
+              // So the session is opened FIRST, on its own, and the two frame
+              // 33 settings are merged into what the app itself persisted. The
+              // load that follows is a restored session by then, which is
+              // correct: the stage has already been applied and written.
+              //
+              // THE WARM-UP RUNS ON THE SHOT'S OWN PAGE, NOT A SECOND ONE.
+              // `sessionStorage` is per-TAB, not per-context, so a warm-up in
+              // a separate page is thrown away when that page closes - the
+              // first version of this did exactly that, and every `--theme=dark`
+              // opening shot came out light while still looking plausible.
+              // Deferred to `openSession` below, after the page exists.
+            } else {
+              const seed = { ...FULL, theme: theme === 'dark' ? 'dark' : 'greyscale', textSize: text };
+              if (SAVED !== null) {
+                seed['saved-toward-deposit'] = { ...FULL['saved-toward-deposit'], value: SAVED };
+              }
+              if (args.goal === 'none') {
+                for (const key of NO_GOAL_KEYS) seed[key] = { value: null, provenance: null };
+              }
+              if (args.draft === 'property-cleared') seed.propertyValueCleared = true;
+              await context.addInitScript((v) => {
+                try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {}
+              }, seed);
             }
-            if (args.goal === 'none') {
-              for (const key of NO_GOAL_KEYS) seed[key] = { value: null, provenance: null };
-            }
-            if (args.draft === 'property-cleared') seed.propertyValueCleared = true;
-            await context.addInitScript((v) => {
-              try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {}
-            }, seed);
             const page = await context.newPage();
             try {
-              await navigate(page, base, route, entry);
+              if (OPENING) {
+                // One load with empty storage: the app applies OPENING_STAGE
+                // and persists it. Then the two frame 33 settings go in on top,
+                // in this same tab, and `navigate` reloads onto them.
+                await page.goto(base, { waitUntil: 'networkidle' });
+                await page.waitForFunction(() => {
+                  try { return sessionStorage.getItem('yfh-state') !== null; } catch { return false; }
+                }, null, { timeout: 5000 });
+                await page.evaluate((v) => {
+                  const stored = JSON.parse(sessionStorage.getItem('yfh-state'));
+                  sessionStorage.setItem('yfh-state', JSON.stringify({ ...stored, ...v }));
+                }, { theme: theme === 'dark' ? 'dark' : 'greyscale', textSize: text });
+                // AND RELOAD, or the patch is invisible. `state.js` reads
+                // storage once at module load, so writing to sessionStorage
+                // under a running app changes nothing the app will ever read -
+                // and `navigate` only sets a hash, which the router handles
+                // in-document without re-reading state. Without this reload
+                // every opening shot rendered light and default while the
+                // stored theme said otherwise.
+                await page.reload({ waitUntil: 'networkidle' });
+              }
+              await navigate(page, base, route, entry, state);
 
               const landed = await page.evaluate(() => window.location.hash);
               if (landed !== `#${route}`) {
@@ -361,7 +488,7 @@ try {
                 continue;
               }
 
-              if (state === 'ahead') {
+              if (state === 'ahead' && entry !== 'mip') {
                 const control = await page.$('[data-action="set-skip-ahead"][data-value="ahead"]');
                 if (!control) {
                   skipped.push(`${route} - no skip-ahead control, so "ahead" is not a state it has`);

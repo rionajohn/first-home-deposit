@@ -3117,6 +3117,20 @@ new in `scripts/stage.test.mjs`. `CACHE_VERSION` v34.
 the `stagePatch` import and the third argument to `settings.js`'s `bindGroup('set-stage', ...)`, and
 the `defaultState` export in `state.js`. The control returns to inert; nothing else changes.
 
+**Amended 28 August 2026 (D55): the property value is now 650,000, and the window property above is
+deliberately given up.** Everything above stands as the reasoning for 240,000 - it was the right
+number for what the stage demonstrated then, and the two-numbers-only discipline, the replay order
+and the provenance rules are all unchanged. What changed is what the stage has to demonstrate: the
+opening session must now meet the Lifetime ISA cap warning as part of its opening state, and that
+warning renders only above 450,000. **The two requirements cannot both be satisfied** - the
+projection window closes at about 275,800 and the cap starts above 450,000, with no value in
+between - so the window property was traded away rather than missed. `months-to-target` is now
+154.8 months and the tracker's "On track for" row renders its beyond-window variant from the
+opening session. The second property is untouched and still asserted: 8,950 against a 48,750
+checkpoint. `scripts/stage.test.mjs` no longer asserts the window property; it asserts the seed is
+above the cap, and asserts the beyond-window consequence explicitly so the cost stays visible. See
+D55 for the full trade and its reversal.
+
 ---
 
 ## D46. A draft is not a figure: frame 09 stops writing null, and the fix is upstream of every consumer
@@ -3960,6 +3974,82 @@ line in `src/router.js`, and remove the `user-select` / `-webkit-touch-callout` 
 
 ---
 
+## D55. The opening session meets the Lifetime ISA cap, and the projection window is what it costs
+
+**Date.** 28 August 2026.
+
+**Decision.** `STAGE_PROPERTY_VALUE` in `src/stage.js` is raised from **240,000 to 650,000**, so a
+session that opens in the saving stage (D48) arrives on frame 09 already above the Lifetime ISA cap
+and renders the cap warning as part of its opening state. D45's projection-window property is given
+up to do it. D45 is amended in place rather than rewritten: its reasoning for 240,000 is still the
+reasoning for 240,000.
+
+**Why the field is not left blank, and why this is the only lever.** `OPENING_STAGE` is `'saving'`
+(D48), so a new session runs `savingPatch()` and frame 09 arrives pre-filled. `STAGE_PROPERTY_VALUE`
+is the single definition of that figure - the only other property value in the repo is
+`scripts/session-seed.mjs`'s 280,000, which is deliberately separate (D43) and drives screenshots
+and browser tests rather than the app.
+
+**The two requirements are mutually exclusive, and that is the whole decision.** Against the mock
+accounts as they stand - an 8,950 starting balance and a 255 a month savings rate - the 60-month
+projection window closes at a **275,832** property, and `LISA_CAP_PROPERTY_VALUE` is 450,000, so the
+warning needs **more than 450,000**. There is no value in between. Nor can a savings rate bridge it:
+reaching a 65,000 target inside 60 months needs **822.11 a month**, which `monthsToTarget()` rejects
+outright as `exceeds-left-over` against the 380 `left-over` ceiling, and even at that ceiling the
+largest property reachable inside the window is **358,305** - still below the cap. Raising
+`saved-toward-deposit` to 40,076 would satisfy both, and was rejected: 8,950 is the sum of the four
+mock accounts frames 03, 06 and 32 draw, so moving it would desynchronise three screens to fix one.
+
+**What it costs, stated rather than discovered.** At 650,000 the target is 65,000 and the checkpoint
+48,750. `months-to-target` is **154.8 months**, so `monthsToTarget()` returns `beyond-window`,
+`onTrackFor()` has no range, and the tracker's "On track for" row renders its **beyond-window
+variant from the opening session**. That variant is built, correct and already reachable by recipe
+(`ROUTES.md` no-frame-drawn state 7); it is simply no longer the ordinary screen a facilitator meets
+first. Frames 11 and 12 show the same variant on the same figures.
+
+**What it keeps.** D45's second property is untouched and still asserted: **8,950 < 48,750**, so the
+tracker still opens locked, the Mortgage in Principle milestone is still the thing out of reach, and
+**both skip-ahead positions still exist**. `readyToCheckPatch()` still composes `skipAheadPatch()`,
+so "Ready to check" is still the same goal seen later rather than a second goal.
+
+**And the cost is confined to one stage.** "Ready to check" moves `saved-toward-deposit` to the
+48,750 checkpoint, which puts the remaining projection at **37.8 months, on track for 35 to 42** -
+inside the window. So only the **saving** stage, and therefore the opening session, meets the
+beyond-window variant; the later position renders an ordinary "On track for" row. This was measured
+rather than assumed, and it is why the trade is acceptable: the boundary variant is what a
+facilitator meets first, not what the whole demonstration is stuck in.
+
+**The tests assert the trade, not the numbers.** `scripts/stage.test.mjs` drops the window assertion
+and gains two in its place: the seed is above `LISA_CAP_PROPERTY_VALUE` and `lisaCapBreached` is
+true, and `months-to-target` is beyond `CHART_WINDOW_MONTHS` with `monthsToTarget()` returning
+`beyond-window`. The second is the point - a later change that silently restored the window now
+fails a test that names D55, instead of looking like a fix. `scripts/g62.test.mjs` had one
+assertion coupled to the seed (`monthsToTarget(after).error === null`); it asserted the draft
+invariant *and*, accidentally, that the seed sat inside the window. It now compares the projection
+before and after the clear, which is the invariant that file exists for and is seed-independent.
+
+**Frame 09's banner is derived live, not read from the flag.** `calculator-property.js` computes
+`propertyValue.value > LISA_CAP_PROPERTY_VALUE` at render (line 78) rather than reading
+`lisaCapBreached`, so the banner follows the seed without the flag being consulted. The flag is
+still written by `savingPatch()` because it is true of the session. `position-summary.js`'s
+`lisaCaption` is unconditional and unaffected.
+
+**Verified.** Chromium at 390px, fresh session in light and dark: frame 09 opens pre-filled at
+**£650,000** with the cap banner rendered above the deposit chips; the derived target reads
+**£65,000** and the checkpoint **£48,750**; the tracker opens below its checkpoint with the
+Mortgage in Principle milestone locked, and both skip-ahead positions round-trip. Frames 20 and 21
+render in range on the new seed, with no em dash standing where a number belongs. All four tracker
+recipes re-driven and unchanged - they are participant-entered and independent of the seed. 264
+tests passing, 0 failing. `CACHE_VERSION` v46.
+
+**Reversal.** Put `240000` back in `src/stage.js` and the window property returns untouched, since
+nothing else was moved to accommodate this - no rate, no mock balance and no ceiling changed. The
+two `stage.test.mjs` assertions are the other half: swap the beyond-window pair back for
+`months-to-target <= CHART_WINDOW_MONTHS`, and drop the cap assertion. `g62.test.mjs`'s
+before-and-after comparison is an improvement either way and should stay.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -4034,3 +4124,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 28 August 2026 (frame 21 ends the flow too) | **D52 recorded; D50 amended in place.** Frame 21 takes D50's frame 20 treatment: **no action bar**, and rows 1 and 2 of its next-steps card stop being controls, through the same A2 mechanism (a row that declares no `action` renders as a plain `<div>` with no chevron and no focus stop) - no flag and no second mechanism. **Row 3 is untouched**: the adviser route rests on MCOB 4.8A and the Consumer Duty support outcome (D10, SPEC.md's anchor map), and SPEC.md's verification step 4 requires it reachable from both 20 and 21, confirmed still true as written. D50's live instruction that "the asymmetry must not be propagated to 21" is **withdrawn** by a dated banner: both screens end the same flow, and what differs is the answer, not whether the flow has finished. Lost and recorded: the in-content routes to `/tracker` and `/calculator/property` from this screen (neither orphaned - both reachable elsewhere, and the borrowing sheet keeps this screen's own card nav row), and the `--more-below` fade, which is drawn by the dock and goes with it on the longest screen in the flow. `primaryCta` and `secondaryCta` deleted; no wording changed. A **ninth** screenshot exemption in SPEC.md, and frame 21 leaves the sixth exemption's set, so both result screens are now out of it. `action-bar.test.mjs` moves the route into the no-bar test. `CACHE_VERSION` v43. |
 | 28 August 2026 (one forward route from frame 08) | **D53 recorded.** Frame 08 draws **no action bar**: "Not now, just track my goal" is removed with its content key, and the deposit calculator becomes the only forward route from the screen. The removed button wrote no state and offered a shortcut past the one thing the screen introduces, from the more prominent of two unequal slots; `build-spec.md` section 1 names the card's checkpoint button from here and **no row for this one at all**. `/tracker` stays reachable from the Insights tab, `/goals`'s bridge card, frame 12's primary and the MIP exits, and no journey state is lost - nothing in `src/` reads `calculatorEntered`, and frame 33's Journey stage builds a populated tracker more completely than the button did (D45). The **DUAA pushback affordance is untouched**: SPEC.md's anchor map satisfies it on this screen with the flag row plus the "how we worked this out" link, both of which stay - the removed control was a decline route, not pushback. Lost and recorded: the screen's only decline route, and the `--more-below` fade, which the dock draws and which goes with it on a screen that needs scrolling. The guidance-not-advice line keeps its place as the last element in the content. A **tenth** screenshot exemption in SPEC.md; frame 08 leaves the sixth exemption's set; `action-bar.test.mjs` moves the route into the no-bar test and all three no-bar enumerations now read "01, 08, 12, 19b, 20, 21 and 33". `CACHE_VERSION` v44. |
 | 28 August 2026 (a second, invisible path to frame 33) | **D54 recorded.** A **~700ms long press on the DISABLED Profile tab** opens `/settings`, so a session reaches frame 33 and its reset without a hash typed in front of a participant. Nothing renders, nothing is labelled, nothing enters the accessibility tree, and the tab stays visually and semantically disabled. A visible block on frame 01 was rejected as the worst possible placement for a control that can flip the scenario mid-session; a `/profile` screen was rejected as a large change - new route, new screen outside the 32-frame set, a focusable tab - in service of a small need. The tab beat the app bar the Figma node annotates on **coverage** (20 routes to 19, including the three calculator steps the app bar cannot reach) and **blast radius** (the tab is inert; the app bar holds the back control). Built on the measured fact that a disabled button fires `pointerdown` but **not** `click` - load-bearing, since it is what keeps the tab inert to a tap, and the condition under which this must be revisited if `profile` ever joins `NAVIGABLE_TABS`. `user-select: none` added to the shared `.bottom-nav__tab` rule for the gesture's sake, not as a styling tweak; a required maintainer comment at `bottomNavHTML`; `GAPS.md` G23 stays **resolved** with a dated note, its "never linked from any on-screen element" still literally true; and `skip-ahead.js`'s citation of a "facilitator gesture on frame 10" that never existed is corrected. **No copy and no accessible name** - the one prototype affordance in this build that does not carry the "Prototype control" framing, because there is no name to carry it in. Owns no state. Six "typing the URL" records amended in place. `CACHE_VERSION` v45. |
+| 28 August 2026 (opening session meets the LISA cap) | **D55 recorded; D45 amended in place.** `STAGE_PROPERTY_VALUE` raised **240,000 to 650,000**, so a session opening in the saving stage (D48) arrives on frame 09 above the Lifetime ISA cap with the warning already rendered. **D45's projection-window property is deliberately given up**, because the two cannot both hold: the window closes at a **275,832** property and the cap starts above **450,000**, with no value in between, and no savings rate bridges it - 822.11 a month would be needed and `monthsToTarget()` rejects it as `exceeds-left-over` against the 380 ceiling, while even at that ceiling the largest property reachable inside 60 months is 358,305. Raising `saved-toward-deposit` to 40,076 would satisfy both and was rejected: 8,950 is the sum of the four mock accounts frames 03, 06 and 32 draw. **Cost:** `months-to-target` 154.8 months, so the tracker's "On track for" row renders its beyond-window variant from the opening session. **Kept:** 8,950 < 48,750, so the tracker still opens locked and both skip-ahead positions still exist. `stage.test.mjs` swaps the window assertion for two that assert the trade - the seed is above the cap, and the beyond-window consequence is explicit - so a later change that silently restored the window fails a test naming D55 rather than looking like a fix. `g62.test.mjs` had one assertion accidentally coupled to the seed and now compares the projection before and after the clear. Frame 09's banner was confirmed to derive live from `property-value` rather than read `lisaCapBreached`. `ROUTES.md` stage table and recipe comparison row updated. `CACHE_VERSION` v46. 264 tests passing. |

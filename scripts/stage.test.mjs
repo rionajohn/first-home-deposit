@@ -25,7 +25,7 @@ import assert from 'node:assert/strict';
 import { stagePatch, STAGES, STAGE_PROPERTY_VALUE, STAGE_DEPOSIT_PCT, OPENING_STAGE } from '../src/stage.js';
 import { defaultState } from '../src/state.js';
 import { skipAheadPatch, skipBackPatch, isSkippedAhead } from '../src/skip-ahead.js';
-import { CHECKPOINT_FRACTION, CHART_WINDOW_MONTHS } from '../src/model/rates.js';
+import { CHECKPOINT_FRACTION, CHART_WINDOW_MONTHS, LISA_CAP_PROPERTY_VALUE } from '../src/model/rates.js';
 import { depositTarget, monthsToTarget, onTrackFor, checkpointAmount } from '../src/model/model.js';
 
 /** What `settings.js` does on a tap: the stage value plus the stage's patch. */
@@ -70,21 +70,37 @@ test('"Saving" leaves the savings position below the checkpoint', () => {
   assert.ok(saving['saved-toward-deposit'].value < saving['deposit-target'].value);
 });
 
-test('"Saving" lands months-to-target inside the projection window', () => {
+test('"Saving" seeds a property above the Lifetime ISA cap', () => {
   const saving = select(defaultState(), 'saving');
 
-  // NOT AN ASSERTION ABOUT 49.3 MONTHS. Above the window `monthsToTarget()`
-  // returns the `beyond-window` error and `onTrackFor()` has no range to give,
-  // so the tracker's "On track for" row falls to a boundary variant instead of
-  // the ordinary screen this stage exists to demonstrate. This asserts the
-  // property the property value was chosen for.
-  assert.ok(saving['months-to-target'].value <= CHART_WINDOW_MONTHS);
-  assert.equal(monthsToTarget(saving).error, null);
+  // THE PROPERTY THE SEED IS NOW CHOSEN FOR (DECISIONS.md D55). The opening
+  // session has to meet the Lifetime ISA cap warning as part of its opening
+  // state, and frame 09 renders that banner by re-deriving the comparison
+  // live from `property-value` rather than by reading the stored flag - so
+  // this asserts the figure the screen actually tests, and the flag beside it.
+  assert.ok(saving['property-value'].value > LISA_CAP_PROPERTY_VALUE);
+  assert.equal(saving.lisaCapBreached, true);
+});
 
-  const onTrack = saving['on-track-for'].value;
-  assert.equal(typeof onTrack.low, 'number');
-  assert.equal(typeof onTrack.high, 'number');
-  assert.ok(onTrack.low < onTrack.high);
+test('"Saving" gives up the projection window, and does so knowingly', () => {
+  const saving = select(defaultState(), 'saving');
+
+  // NOT A NUMBER, AND NOT AN ACCIDENT. D45 chose 240,000 to keep
+  // `months-to-target` inside the window; D55 raised the seed past the
+  // Lifetime ISA cap knowing the two cannot both hold - the window closes at
+  // about 275,800 and the warning starts above 450,000, so there is no value
+  // that satisfies both. This asserts the COST, so that a later change which
+  // silently restored the window would fail here and be read alongside D55
+  // rather than looking like a fix.
+  assert.ok(saving['months-to-target'].value > CHART_WINDOW_MONTHS);
+  assert.equal(monthsToTarget(saving).error, 'beyond-window');
+
+  // `onTrackFor()` has no range above the window, so the tracker's "On track
+  // for" row renders its beyond-window variant. Null is the correct stored
+  // value here, not a missing one: `fail()` carries the provenance through,
+  // which the provenance test below still asserts.
+  assert.equal(saving['on-track-for'].value, null);
+  assert.equal(onTrackFor(saving).error, 'beyond-window');
 });
 
 test('every derived figure matches what the model returns for the same state', () => {
