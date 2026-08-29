@@ -324,7 +324,7 @@ const content = {
       ofWhatComesIn: 'of what comes in',
     },
     moneyInLabel: 'Money in',
-    moneyInCaption: 'Read from your salary payments over the last 12 months',
+    moneyInCaption: 'Taken from the salary paid in over the last 12 months',
     essentialSpendingLabel: 'Essential spending',
     leftOverEachMonthLabel: 'Left over each month',
     calculatorNote:
@@ -464,7 +464,7 @@ const content = {
     body: "How much you'll need depends on the sort of place you're after, and on how much of it you want to put down.",
     alreadyKnowHeading: 'What we already know',
     savedTowardDepositLabel: 'Saved toward a deposit',
-    savedTowardDepositCaption: 'Read from the accounts you assigned to your deposit',
+    savedTowardDepositCaption: 'Added up across the accounts you chose for your deposit',
     leftOverEachMonthLabel: 'Left over each month',
     savingsInterestLabel: 'Savings interest',
     savingsInterestSuffix: 'AER',
@@ -583,7 +583,7 @@ const content = {
     enteredCaption: 'You entered this',
     depositPctLabel: 'Deposit %age',
     savedSoFarLabel: 'Saved so far',
-    savedSoFarCaption: 'Read from the accounts you assigned to your deposit',
+    savedSoFarCaption: 'The total sitting in the accounts you picked for your deposit',
     monthlySavingLabel: 'Monthly saving',
     // THE MONTHLY RANGE'S TWO CAPTIONS ARE GONE, and so is the property value's
     // "You entered this". Both rows are now permanently editable fields, so a
@@ -598,7 +598,7 @@ const content = {
     savingsInterestLabel: 'Savings interest rate',
     taxRateLabel: 'Tax rate',
     taxRateValue: 'Basic rate',
-    taxRateCaption: 'Worked out from your salary',
+    taxRateCaption: 'Based on what you earn',
     // Two-sided because the bound is two-sided. `errorNonNumeric` on
     // /calculator/property is the string this is shaped from - same two-part
     // form, same "Enter a whole number..." second clause - but it describes
@@ -659,7 +659,7 @@ const content = {
     ltvInfoLinkLabel: 'What is Loan-to-Value?',
     assumptionsBannerText: "These figures assume your saving stays the same and rates don't change.",
     howWeWorkedTitle: 'How we worked this out',
-    howWeWorkedIntro: "We worked this out from what's already in your accounts, so you didn't have to fill anything in.",
+    howWeWorkedIntro: "These figures come from your accounts. You didn't have to type anything in.",
     seeHowWeWorkedLabel: 'How we worked out your monthly saving',
     flagLabel: "Something doesn't look right",
     primaryCta: 'See what this means for borrowing',
@@ -706,7 +706,7 @@ const content = {
     explainerDiagramTitle: 'See it as a diagram',
     explainerDiagramDurationTemplate: 'The same {property} home at 95%, 90% and 85%',
     howWeWorkedTitle: 'How we worked this out',
-    howWeWorkedIntro: "We worked this out from what's already in your accounts, so you didn't have to fill anything in.",
+    howWeWorkedIntro: "We read all of this from your accounts. There was nothing for you to fill in.",
     seeHowWeWorkedLabel: 'How we worked out your monthly saving',
     flagLabel: "Something doesn't look right",
     primaryCta: 'Got it',
@@ -730,7 +730,7 @@ const content = {
 
   '/tracker': {
     appBarTitle: 'Your deposit',
-    savedCaption: 'Read from the accounts you assigned to your deposit',
+    savedCaption: 'From the accounts you said are for your deposit',
     goalCaptionTemplate: 'of your {target} deposit goal',
     checkpointProgressLabel: 'Checkpoint',
 
@@ -836,7 +836,7 @@ const content = {
     ratesCaptionTemplate: 'Typical market rates at {ltv} Loan-to-Value',
     ratesDisclosureText: 'Subject to further checks and your individual circumstances. Not an offer.',
     rateCautionText:
-      "These are typical market ranges, not rates we're offering you. The rate any lender offers depends on their checks and your circumstances.",
+      "These show what the wider market charges. They are not rates we're offering you. What a lender charges you depends on their own checks and your situation.",
     rateBandDepositCaptionTemplate: '{pct} deposit',
     rateBandProvenanceCaption: 'Deposit amounts worked out from the property value you set',
     // THE ONLY CONTROL CARRYING THIS LABEL ON THIS SCREEN, at either position
@@ -971,7 +971,7 @@ const content = {
       { title: 'Not a guarantee', caption: 'A lender can still say no after a full application and credit check' },
       { title: 'Not a credit agreement', caption: 'No money changes hands and no contract is created' },
     ],
-    infoBannerText: 'This stays in your Explainers list, so you can come back to it.',
+    infoBannerText: "You'll find this again in your Explainers list whenever you want it.",
     primaryCta: 'Got it',
   },
 
@@ -1083,17 +1083,17 @@ const content = {
     lenderOfferCaption: 'Worked out from the property value you set and your deposit goal',
     basedOnLabel: 'Based on',
     basedOnValue: 'salary, deposit and commitments',
-    nextStepsTitle: 'What you could do next',
+    nextStepsTitle: 'Some things you could do next',
     step1TitleTemplate: 'Save around {amount} more toward your deposit',
     step1CaptionTemplate: "Around {months} at what you're putting aside each month",
     step2TitleTemplate: 'Look at a property target closer to {amount}',
     step2Caption: 'Would close the gap now',
-    step3Title: 'Talk to someone about it',
-    step3Caption: "Message us in the app and we'll connect you with a mortgage adviser today",
+    step3Title: 'Speak to an adviser',
+    step3Caption: "Send us a message in the app. We'll put you in touch with a mortgage adviser the same day.",
     howWeWorkedTitle: 'How we worked this out',
     seeHowWeWorkedLabel: 'See how we worked this out',
     automatedNote:
-      'This estimate was worked out automatically. You can tell us if you disagree with it, and you can ask us to have a person review it.',
+      "A computer worked this estimate out, not a person. If you think it's wrong, tell us. You can also ask for a person to look at it again.",
     flagLabel: "Something doesn't look right",
     // `primaryCta` ("Update my savings goal") and `secondaryCta` ("See what
     // changes this") are DELETED (DECISIONS.md D52). Frame 21 ends the flow and
@@ -1116,7 +1116,7 @@ const content = {
 
   '/assumptions/saving': {
     heading: 'How we worked this out',
-    intro: 'These figures are illustrative. They show what could happen if the assumptions below hold, not what will happen.',
+    intro: 'These figures are an example, not a promise. They show what could happen if everything below stays true.',
     assumptionsHeading: 'What we assumed',
     assumptionsRowsBeforeInterest: [
       'You keep saving the same amount each month',
@@ -1126,7 +1126,7 @@ const content = {
     interestAssumptionTemplate:
       'Interest is paid at {rate} a year, based on the {source}, and each month you earn interest on the interest already added',
     assumptionsRowsAfterInterest: ["We've used the last 12 months of your account activity as the starting point"],
-    exclusionsHeading: "What these figures don't include",
+    exclusionsHeading: "What these figures leave out",
     inflationExclusionTemplate: 'Inflation, so {amount} will not buy the same in five years as it does today',
     inflationExclusionFallbackAmount: 'your deposit target',
     exclusionsRowsAfterInflation: [
@@ -1140,7 +1140,7 @@ const content = {
 
   '/assumptions/deposit': {
     heading: 'How we worked this out',
-    intro: 'These figures are illustrative. They show what could happen if the assumptions below hold, not what will happen.',
+    intro: 'These are a picture of what might happen, not what will. They only hold if the things below stay as they are.',
     assumptionsHeading: 'What we assumed',
     assumptionsRowsBeforeInterest: [
       'The property value is the figure you entered, not a valuation',
@@ -1150,7 +1150,7 @@ const content = {
       'Loan-to-Value is the mortgage amount as a share of the property value',
     ],
     interestAssumptionTemplate: 'Your savings keep earning {rate} a year while you save, based on the {source}',
-    exclusionsHeading: "What these figures don't include",
+    exclusionsHeading: "What's not counted here",
     exclusionsRows: [
       "Stamp duty, which depends on the property price and whether you're a first-time buyer",
       'Solicitor fees for the legal work of buying',
@@ -1195,7 +1195,7 @@ const content = {
     intro: 'Everything here is read from accounts you hold with us. Nothing was entered by you unless it says so.',
     readHeading: 'Read directly from your accounts',
     moneyInLabel: 'Monthly income after tax',
-    moneyInCaption: 'Read from your salary payments over the last 12 months',
+    moneyInCaption: 'We read this from a year of your salary payments',
     essentialSpendingLabel: 'Essential monthly outgoings',
     savingsInterestLabel: 'Savings interest rate',
     savingsInterestSuffix: 'AER',

@@ -4577,6 +4577,8 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 29 August 2026 (frame 05 leads with the definition) | **D63 recorded; G78 raised, open.** Frame 05's heading goes `"Here's what we worked out"` to **`"What's left over each month"`** and its body to **"This is roughly what you have left after your usual spending. Anything you save comes out of this. You can change any of it below."**, so the definition of the headline figure arrives in the first line rather than in the provenance caption below the input. **One correction of fact carried in:** the change was requested as "left after their usual spending **and the money they already save**", which the model does not do - `build-spec.md` section 6 defines `left-over` as `money-in - essential-spending` with no saving term, `model.js` computes exactly that, and frame 10 errors when `savings-rate > left-over`, a bound that only holds if saving comes OUT of this figure downstream. Shipping the requested clause would have overstated the deduction by the 200-310 a month frame 10 seeds and failed `fca-copy-check` rule 6A. The wording states the relationship in the same direction the code implements it, and its tense is unscoped on purpose: existing saving and whatever is chosen on frame 10 both come out of the same figure. `figureCaption` shortened **'Left over each month' to 'Each month'**, the heading now saying the long form two elements earlier; `figureAriaLabel` keeps the full label. **Nothing required was touched**: `shared.leftOverCaption`, `enteredCaption`, both error strings, the sources and assumptions routes and `guidanceNotAdvice` are all unchanged, and "roughly" strengthens the estimate framing on a figure modelled from 12 months of activity. Copy-checked over `/position`, all nine rules: **0 fixed, 1 flagged** (`report-issue` unbound, pre-existing and already recorded at `ui.js:1207`). **G78 raised**: dropping "This all comes from your accounts" leaves the provenance caption as the first sourcing statement, and it renders below the figure - recorded for observation in the first session, not fixed. `CACHE_VERSION` v56, `BUILD_VERSION` v56. |
 | 29 August 2026 (frame 03 drops "earmark") | **D64 recorded.** `'/consent'.accountCaptions.stocksIsaCaption` goes "Some people **earmark** this for a home, some don't." to **"Some people are saving this towards a home, some aren't."** One string, one screen - a whole-repo grep for "earmark" returned exactly one hit, so there was no second copy to correct under the correct-everywhere rule. **The longer of two candidate replacements was taken** because the row is not tight: the Lifetime ISA caption directly beneath it is 100 characters in the same slot against this one's 72, and the shorter candidate ("Is any of this for your home?") would have bought nothing the layout needed. Verified rendered at large text, where it wraps to two lines and nothing truncates. **Not changed, and noted:** the string uses "towards" as specified, where the rest of the build uses "toward" - including two strings on this same screen. Both are British English; the inconsistency is flagged rather than silently resolved. A jargon scan over all 615 user-facing strings was run alongside and is reported separately: no `allocate`, `contribute`, `deploy`, `ring-fence`, `disposable`, `principal`, `equity`, `vehicle` or `instrument` anywhere, and the literal `LTV` never reaches the screen. `CACHE_VERSION` v57, `BUILD_VERSION` v57. 270 tests passing. |
 | 29 August 2026 (AER leaves the screen, and five terms with it) | **D65 recorded; G79 raised, open by decision.** `fca-copy-check` rule 5's acronym rule was breached on three screens: frames 12, 29 and 30 used **AER** with no expansion on them, the gloss (`shared.bankRateCaptionTemplate`) rendering only on 08, 10, 11 and 32. **Remedy chosen was removal, not explanation** - all three become "a year", so the acronym is gone rather than glossed a fourth time, and `bankRateCaptionTemplate` and the four screens carrying it are untouched. Rate basis verified per screen: same `RATES.bankRate`, same annual period, source attribution kept verbatim on 29 and 30. **Stated rather than glossed over:** AER also encodes compounding, and only frame 29 keeps that - its "compounds monthly" becomes "each month you earn interest on the interest already added", so 29 says MORE than before, while 12 and 30 lose the implied signal. 12 recovers it through 29, one tap away; 30 does not, and a one-clause fix was offered and not taken because the brief specified the "a year" remedy and nothing more. Five further plain-wording swaps applied, all single-clause and none regulatory: "product fees", "provider", "conveyancing", "net of it" and frame 19's bare "A soft search only". **Two could not be applied literally** - the conveyancing row read "Solicitor **and conveyancing** fees" so a word swap produced nonsense, and the student-loan clause substituted directly would have repeated the noun and attached "which" to the wrong referent; both rewritten whole, with rule 6A's double-counting point preserved exactly. Frame 03's "towards" reverted to "toward" for consistency with two strings on its own screen. Copy-checked over all six routes: **3 fixed, 1 flagged** (`report-issue`, pre-existing). Six terms deliberately NOT changed and recorded as **G79**, with the rejected alternative beside each. `CACHE_VERSION` v58, `BUILD_VERSION` v58. 270 tests passing. |
+| 29 August 2026 (regulatory lines stay identical) | **D66 recorded.** A copy-variation pass asked that repeated wording be varied screen to screen so the same meaning is met differently each time. Applied to the twelve genuinely duplicated explanatory clusters (**D67**); **refused for the nine shared keys**, and refused as a position rather than only as a constraint. **Architecturally** these are not duplicated strings but ONE key rendered on many render sites - `guidanceNotAdvice` on 23 screens, `mcob3aRepossessionWarning` on 7 - so "varying" them means splitting one key into N, which is the shape **D34** removed after three captions had drifted into being wrong rather than merely different: the savings rate naming two incompatible origins, essential spending described three ways including an averaging window nothing in the code performs, and frame 12 using one key for two derivations. That drift happened at two to four copies; the guidance line has 23. **For research**, identical wording lets a participant recognise a recurring line as the standard note and move past it, where varied wording obliges them to work out whether the MEANING changed - a new comprehension task, not a removed one, falling hardest on the lower-literacy participants the variation was meant to serve, and sitting badly with the Consumer Duty consumer understanding outcome. `CLAUDE.md`'s fixed-wording rule and `fca-copy-check` rule 9 both point the same way on A1-A4, rule 9 on process grounds: that object holds CHECKED wording, and rewriting it returns 36 regulatory strings to an unchecked state. **The position is about which copy, not about repetition as such** - twelve explanatory clusters were varied the same day. No code or copy changed by this entry. |
+| 29 August 2026 (twelve duplicated clusters varied) | **D67 recorded.** The counterpart to **D66**: where that entry refuses to vary the nine shared keys, this one varies the twelve clusters that are genuinely duplicated - separate keys holding byte-identical wording. 18 string values across frames 06, 08, 11, 12, 13, 13b, 15/16, 18, 21, 29, 30 and 32. **Detection was mechanical, not by eye**: all 615 string leaves flattened and clustered by token-set overlap, which found 29 candidate clusters and, critically, CANNOT see a shared key (one leaf, many render sites) - the distinction D66 turns on. **One inventory error corrected on the way**: `howWeWorkedIntro` was filed as three keys on three screens, but frames 20 and 21 read frame 06's, so it is three keys across FIVE render sites and 06's is itself shared; 06's was therefore left alone and only 12 and 13 varied. **Where a third instance already varied** (frames 31 and 19 on four clusters) the existing variant was read first and the new wording pitched as a third distinct phrasing rather than converging on either. **B8's five phrasings were read as a set**, being the cluster most able to drift: all five name the same frame 03 assignment through four verbs, none names a different account set, none adds a window or averaging claim, and none shifts the `read` provenance sense. B2, B5 and B12 carry regulatory or scope content and were checked element by element; none required softening, so none was left identical on those grounds. **Recorded as a limit on the value**: frames 20 and 21 are mutually exclusive (`mip-running.js` replaces the hash with one), so B2, B10, B11 and B12 vary copy no single participant can compare. Copy-checked over all twelve routes: **0 fixed, 1 flagged** (`report-issue`, pre-existing). `CACHE_VERSION` v59, `BUILD_VERSION` v59. 270 tests passing. |
 
 ---
 
@@ -4866,4 +4868,175 @@ Each is recorded in **G79** with the alternative that was considered, so the pos
 rather than waiting to be rediscovered.
 
 **To reverse.** Ten string values in `content.js`. No other file carries any of them.
+
+---
+
+## D66. The regulatory lines stay word for word the same, and that is a design position
+
+**Date.** 29 August 2026.
+
+**Decision.** The nine shared keys are not varied screen to screen. They stay as one key with one
+wording, rendered wherever the rule requires them. Nothing in this entry changes code or copy; it
+records a refusal and the reasoning behind it, because the refusal is the interesting part.
+
+| Key | Render sites |
+|---|---|
+| `shared.regulatory.guidanceNotAdvice` | 23 screens |
+| `shared.regulatory.mcob3aRepossessionWarning` | 7 |
+| `shared.regulatory.estimateDisclosure` | 3 |
+| `shared.regulatory.adviserScope` | 3 |
+| `shared.mipAgreementNotOffer` | 3 |
+| `shared.dataSource` | 2 |
+| `shared.essentialSpendingCaption` | 3 |
+| `shared.leftOverCaption` | 3 |
+| `shared.bankRateCaptionTemplate` | 4 |
+
+**The request this answers.** A copy pass asked that repeated wording be varied, so the same meaning
+arrives differently each time and the feature works for participants across a range of financial
+literacy. That is a good instinct and it was acted on: twelve clusters of genuinely duplicated
+explanatory copy were rewritten the same day (D67). This entry is about the copy where the instinct
+does not hold, and why the line falls where it does.
+
+### The architectural argument
+
+These are not repeated strings. They are one string with many render sites. "Varying" the guidance
+line does not mean rewriting a sentence; it means splitting one key into twenty-three, each free to
+move independently from then on.
+
+**D34 is the record of what that costs, and it is not hypothetical.** That pass found three shared
+figures whose captions had been written per screen, and the finding was not that they had merely
+diverged in style:
+
+- The savings interest rate was captioned "Read from your instant saver" on four screens while the
+  value was `RATES.bankRate`, a dated constant. The app stated two incompatible origins for one
+  figure.
+- Essential spending was described three ways, and frame 32 - the screen a participant opens
+  specifically to settle where a figure came from - named a different set of sources and an averaging
+  window that nothing in the code performs.
+- Frame 12 used one caption key across two different derivations, so the string was true under one
+  figure and false under the other.
+
+A caption naming the wrong source is a false statement about a participant's own money, and it is
+believed. That drift arose across two to four copies, maintained by people who knew the codebase. The
+guidance line has twenty-three render sites. The proposal is to do deliberately, at ten times the
+scale, the thing that produced those three defects by accident.
+
+### The research argument
+
+The stronger reason is about the participant, not the repository.
+
+A recurring regulatory line is not read afresh each time. A participant meets it on frame 05, works
+out what it is, and on frames 06, 08 and 09 recognises it as the same note and moves past it.
+Recognition is cheap. It is what lets someone give their attention to the figure the screen is
+actually about.
+
+Varied wording removes that. Four differently-worded guidance lines across four screens present the
+participant with a question they did not have before: **has the meaning changed, or only the words?**
+Answering it means reading the new line closely, holding the old one in mind, and comparing. That is
+a comprehension task added, not a comprehension task removed - and it is added precisely where the
+copy pass was trying to help, because deciding whether two differently-worded legal statements say
+the same thing is harder for a participant with lower financial literacy than reading either one.
+
+This is also the better reading of the Consumer Duty consumer understanding outcome. That outcome
+asks whether a communication actually equips someone to understand and act, not whether it avoids
+looking repetitive. A line a participant can recognise and set aside supports understanding. A line
+that shifts under them each time invites the suspicion that something has quietly changed, which is
+the opposite of the confidence the outcome is asking for.
+
+**Stated as a position rather than a constraint:** in an instrument measuring comprehension, the
+consistency of a recurring regulatory statement is a property worth protecting, not boilerplate to be
+disguised. Sameness is what makes it recognisable, and recognisable is what makes it cheap to read.
+
+### Where the rules already said so
+
+Two existing records point the same way for `shared.regulatory` specifically, and neither is the
+reason for this decision so much as a confirmation of it.
+
+- **`CLAUDE.md`'s fixed-wording rule**: those lines "are fixed wording. Do not reword, shorten or
+  remove them, or remove them from a screen that carries them."
+- **`fca-copy-check` rule 9**, on process rather than wording: that object holds copy that has been
+  through check, and wording that has not is deliberately held apart from it. Rewriting the four
+  lines into thirty-six per-screen variants returns every one of them to an unchecked state, and a
+  required line resolved from unchecked wording does not satisfy the rule that required it.
+
+### The boundary this draws
+
+Not "repetition is fine". Twelve explanatory clusters were varied the same day, including copy on
+frames 29 and 30 that had been byte-identical. The distinction is what the copy is doing:
+
+- **Explanatory copy** tells a participant something about their own figures. Meeting it twice in
+  identical words reads as boilerplate and gets skipped. Vary it.
+- **A recurring regulatory statement** is a fixed point a participant learns to recognise. Its value
+  is that it does not move. Leave it.
+
+**To reverse.** Nothing to reverse; no code changed. Reversing the position means splitting the keys
+in `content.js`'s `shared` block per render site, and, for A1 to A4, overriding `CLAUDE.md` and
+re-running copy check across every screen that carries them.
+
+---
+
+## D67. The duplicated explanatory copy is varied, which is the other half of D66
+
+**Date.** 29 August 2026.
+
+**Decision.** Twelve clusters of byte-identical explanatory copy are rewritten so each instance is
+worded differently. 18 string values in `src/content.js`, across frames 06, 08, 11, 12, 13, 13b,
+15/16, 18, 21, 29, 30 and 32. No screen module, no component, no figure, no derivation.
+
+**Read this with D66.** The two entries answer the same request and split it. D66 refuses the nine
+shared keys and says why. This one takes everything else. The boundary is what the copy does: a
+recurring regulatory statement is a fixed point a participant learns to recognise, and explanatory
+copy met twice in identical words reads as boilerplate and gets skipped.
+
+### The clusters were found mechanically, and that mattered
+
+All 615 string leaves in `content.js` were flattened and clustered by token-set overlap on the 308
+strings of five words or more. That found 29 candidate clusters.
+
+**The method's blind spot is the important part.** A single key rendered on twenty-three screens is
+ONE leaf, so the detector cannot see it at all. Those had to be traced by call site instead - and
+they turned out to be the largest category by render count and the one that must not be touched.
+A pass done by eye, reading the rendered journey, would have found the repetition and had no way to
+tell the two kinds apart.
+
+**One inventory error this exposed.** `howWeWorkedIntro` was first recorded as three keys on three
+screens. Frames 20 and 21 do not have their own: they read frame 06's, through
+`summaryContent.howWeWorkedIntro`. So it is three keys across five render sites, and 06's key is
+itself shared. Frame 06's was left unchanged for that reason and only 12 and 13 varied, giving three
+distinct phrasings across the five sites.
+
+### Where a variant already existed
+
+Four clusters (B3, B4, B7, B8) already had a third instance worded differently, on frames 31 and 19.
+In each case the existing variant was read first and the new wording pitched as a third distinct
+phrasing rather than converging on either. Frame 31 keeps "illustrative" and its not-an-offer clause;
+frames 29 and 30 drop the word in two different directions.
+
+**B8 was read as a set of five rather than one at a time**, being the cluster most able to drift in
+meaning. All five name the same act - the frame 03 assignment - through four verbs ("assigned",
+"chose", "picked", "said are for"). None names a different set of accounts, none adds a window or an
+averaging claim of the kind D34 found, and none shifts the provenance sense away from `read`
+(`state.js`). Two of the five additionally assert the figure is a total, which is true and which the
+other three neither state nor contradict.
+
+### The three carrying regulatory or scope content
+
+B2 (the automated-decision note), B5 (the rate caution) and B12 (the adviser route) were checked
+element by element against their originals. Every element survives in each: automated processing plus
+the right to disagree plus the right to human review; market-ranges-not-our-offer plus the lender's
+checks plus the participant's circumstances; the route in plus the mortgage adviser plus the timing.
+None required an element to be dropped or softened, so none was left identical on those grounds.
+
+B5 is worth naming: on the tracker it renders through `riskWarningHTML()`, a risk-warning slot rather
+than body copy, which is why the element check was done before the wording was chosen and not after.
+
+### A limit on what this buys, recorded rather than glossed
+
+Frames 20 and 21 are mutually exclusive - `mip-running.js` replaces the hash with one or the other -
+so no participant sees both in a run. Four of the twelve clusters (B2, B10, B11, B12) therefore vary
+copy that nobody in a session can compare. The variation is real in the source and invisible in the
+study, except where a moderator flips the outcome on frame 33. It was applied as asked, and the
+limitation is written here so it is not later mistaken for an effect.
+
+**To reverse.** 18 string values in `content.js`. The keys are listed by frame in the commit.
 
