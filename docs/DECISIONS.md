@@ -103,6 +103,16 @@ Contributions are paid at the start of each month, per `build-spec.md` section 4
 
 **Why.** The provenance caption is a designed feature of the interface, not a technical detail, and it is one of the things usability testing is meant to evaluate. It cannot be approximated.
 
+**Refinement, 29 August 2026: where the caption is REQUIRED, and where it says nothing.** Added with D62, and drawn from this decision's own rationale rather than as an exception to it.
+
+A provenance caption is required wherever the figure did not originate with the participant. It is omitted where the figure sits in a permanently editable field they typed into directly, because there the caption states only what the control already shows: "You entered this", under a field holding what they entered, is a tautology rather than a disclosure.
+
+**This narrows the caption, not the provenance.** The Decision above is untouched and is about what a figure CARRIES: every figure still holds one of the four values, and propagation is unchanged. What changes is where that value is surfaced. The Why is untouched too - it forbids approximating a caption, and a row with no caption approximates nothing.
+
+**Frames affected: 11 only.** Its property-value and monthly-saving rows lose their captions; its "Saved so far" row keeps one, because that figure is read from the accounts rather than typed, and it is the only row on the screen where a typed figure and an account-derived one would otherwise be indistinguishable. That row switches to "You entered this" on a typed edit and back to its account caption when the assigned accounts next recompute, so the change of provenance stays visible. The screen's two explanatory rows - the savings interest rate and the tax rate - keep their captions unchanged; neither is editable and neither figure is the participant's.
+
+No other frame changes. Frame 05's figure is editable but carries a caption that distinguishes two real sources ("Amount you set" versus the read left-over), which is a disclosure rather than a tautology, and frames 09 and 10b's fields carry hints rather than provenance captions.
+
 ---
 
 ## D6. Lifetime ISA cap trigger - property value, not annual contribution
@@ -4564,3 +4574,120 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 29 August 2026 (stale sessions self-clear) | **D59 recorded; G66 RESOLVED, both halves.** `defaultState()` gains `buildVersion: BUILD_VERSION`, and `load()` **discards a stored session whose stamp is not the running build's** - unstamped included - falling through to `defaultState()` rather than merging over it, warning on the console with both versions, and re-persisting so the discard fires once. A matching stamp restores exactly as before; `persist()` and `setState()` are untouched. **This is not the fix G66 rejected, and the difference is one word:** that one re-applied the opening stage OVER a restored store, and `stagePatch()` writes only `STAGE_KEYS`, leaving a real session's flags beside a fresh goal - the mixed state D46 and `CLAUDE.md`'s state rules exist to prevent. Discarding WHOLE cannot produce it: what returns is a first load. **The routing half closes for free** - `restoredFromStorage` stays false, so `openSession()` applies the opening stage to the fresh store and Insights stops redirecting. **Stamp inside the store, not an envelope around it**, on blast radius: ten call sites across six harnesses touch the stored object and two read it back (`sheet-drag` asserts `state.ltvVideoSeen`, `shots` spreads over a stored session). **All ten harness seeds now stamped** - an unstamped seed is discarded by the check itself, so every browser suite would have silently measured a default session instead of its own. Residual risk kept deliberately: a deploy landing mid-session costs that participant their progress, to a clean opening session. Frame 33's build line (D49) already satisfied the surfacing requirement; verified at v51. `CACHE_VERSION` v51, `BUILD_VERSION` v51. **269 tests passing** (5 new in `scripts/stale-session.test.mjs`). |
 | 29 August 2026 (the seeded property becomes relatable) | **D60 recorded; D55 reversed in effect, D45's window still not recovered.** `STAGE_PROPERTY_VALUE` lowered **650,000 to 450,000**, so the case study is one an early-career participant reads as theirs rather than as a comment on the London market. **The Lifetime ISA cap warning is the cost:** 450,000 IS `LISA_CAP_PROPERTY_VALUE` and the comparison is strictly greater-than, so `lisaCapBreached` is false and frame 09b's banner is no longer an opening state - still reachable by typing a higher value, since frame 09 derives it live, but not without typing. Logged as **G70**. **The window is not bought back:** `months-to-target` is 107.6 months, still `beyond-window`, because the window closes at a 275,832 property - so both of the properties D45 and D55 traded between are now given up, on purpose, for a third axis neither was about. **Kept:** 8,950 < 33,750, so the tracker still opens locked and both skip-ahead positions still exist; "Ready to check" is 29.9 months, on track for 27 to 33. Every dependent figure follows through `src/model/` and **not one was edited** - a full grep of all seven written forms of 650,000 and of every figure derived from it found code hits in `src/stage.js` alone. `stage.test.mjs`'s cap assertion rewritten to the new intent as a RELATIONSHIP to the cap constant rather than as `450000`; the beyond-window test kept its assertions and gained a comment. Borrowing against the seeded salary (`MOCK_MIP_DATA.annualSalaryBeforeTax`, 38,000 - not `money-in`, which is monthly after tax) is still implausible at 10.7x - flagged as **G71**, not fixed, because it needs G69's unanswered question settled first. `SPEC.md`, `ROUTES.md` and `GAPS.md` G69's figures updated. `CACHE_VERSION` v52. 93 pure-Node tests passing. |
 | 29 August 2026 (step 2's year becomes typeable) | **D61 recorded; G73 raised, open.** The target year on frame 10b is an `<input>` rather than a `<p>`, carrying `.date-stepper__value` plus a modifier that undoes only what a user-agent stylesheet puts on a form control - so frame 10b is **byte-for-byte identical** before and after in both themes and at both text sizes, verified by shooting it rather than by asserting it. The attributes and the two listeners are frame 05's `figureInputHTML` and frame 09's `currencyInputHTML` verbatim: `type="text"` with `inputmode="numeric"` (not `type="number"`), `focus -> select()`, and `change` as the commit. `dateStepperHTML` gains a `yearRole` parameter - pass it and the readout becomes a field, leave it out and the control renders as it always has; the month stays stepped-only, being a closed set of twelve. **The empty case is D46's draft rule, applied to the second typeable field in this build:** `state.js` gains `targetYearCleared`, an empty or unparseable field writes it instead of `targetYear`, the render guards on it before deriving anything, and Continue is disabled with no error banner - which matters here because `savings-rate`, `monthly-low` and `monthly-high` are all SOLVED from this date (D2). Both year chevrons resolve the draft, and `stepMonth()` resolves it on exactly the month rolls that cross a year boundary. `targetYearCleared` is deliberately kept OUT of `STAGE_KEYS`, for the reason `targetYear` is. **Bounds: the existing `errorPastDate` minimum only.** No maximum exists anywhere, the stepper handlers stay unbounded, and none was invented - `maxlength="4"` is a format constraint, not a bound, so five-digit years are unreachable by typing while four-digit ones beyond a plausible range still degrade into a pennies-level figure and frame 12's existing `beyondWindowNote`. Asked before building, logged as **G73**, open. No copy changed - the input reuses `dateStepperYearAriaLabel`. `shots.mjs` gains a `--solve` axis, which is what made frame 10b shootable at all. `stale-session.test.mjs` gains a sixth test: the attribute contract, the typed year across a reload and a back navigation, the empty field writing nothing, and `savings-rate` matching `monthlyAmountFromDate()` asserted against the model rather than a literal. `CACHE_VERSION` v53. 270 tests passing. |
+
+---
+
+## D62. Step 3 of 3's figures are fields, and every bound it enforces already existed
+
+**Date.** 29 August 2026.
+
+**Decision.** Frame 11's four editable rows - property value, deposit %age, saved so far and the
+monthly saving range - no longer navigate, and no longer carry a control of any kind. The five
+figures a participant may change are rendered as fields, permanently, using frame 05's inline-edit
+pattern. The savings interest rate and tax rate rows are unchanged and carry no field, because a row
+is either editable or explanatory, never both.
+
+**Why.** These are moderated think-aloud sessions. Every correction to a single number cost the
+participant a screen change, a screen change back, and their train of thought about the figure they
+were checking. The navigation was measuring the prototype's routing rather than the thing under test.
+
+**Why no control, not even a reveal.** An intermediate version renamed the link "Change" to "Edit"
+and had it open the row's field on tap. That was discarded: a control whose only job is to reveal a
+field is a step between the participant and the correction, and on a screen headed "Check these
+before we work it out" the figures that can be checked are exactly the figures that can be changed.
+Making them fields says so without a label. It is also frame 05's arrangement, where the figure has
+always been a field with no control to reveal it.
+
+**Each field is frame 05's `figureInputHTML` at the row's own type scale.** Structure and mechanics
+are carried over exactly: the £ or % is a sibling `<span>` with `aria-hidden`, outside the input, so
+it cannot be selected or typed over; `type="text"` with `inputmode="numeric"` rather than
+`type="number"`, for the reasons already recorded on the frame 10b year field; width set inline from
+the digit count; `focus` selects the whole value; `change`, never `input`, is the commit.
+
+**The field hugs its text, and 1px of padding is why it still passes 2.5.8.** `min-height:
+var(--touch-target-min)` is dropped - the same departure `.date-stepper__value--input` already makes,
+and for the same reason: 44px on a readout inside a row inflates the row well past the value it
+holds. Measured in Chromium at 390px, the field is a 22px line box at the default text size and
+25.3px at large. Stripped of all padding that is 23px and 26.3px once the 1px bottom rule is counted,
+so **the default text size falls 1px short of WCAG 2.5.8's 24px minimum**. `padding: 1px 0` takes it
+to 25px and 28.3px, the smallest value clearing the minimum at both sizes. 2.5.8's "inline" exception
+does not rescue the stripped version: these are standalone controls in a row, not targets inside a
+sentence. `.review-row`'s own 44px min-height is untouched, so the row remains a full touch target
+regardless.
+
+**The `aria-label` is now each field's only accessible name.** `.review-row__label` is a sibling
+paragraph, not a `<label>`, so it is not programmatically associated with the input, and with the
+"Edit" control gone there is nothing else on the row supplying a name. All five fields carry one, all
+five are distinct, and `reviewRowHTML` documents the requirement for any future caller.
+
+### The captions
+
+Two of the three go, and the reasoning is D5's own rather than an exception to it - see the
+refinement recorded under D5.
+
+- **Property value** and **monthly saving** lose theirs. "You entered this" and "The range you set"
+  sat under fields holding what the participant entered, so they restated the control.
+- **D47's problem goes with them.** That decision existed because frame 10 commits the monthly range
+  whether or not a handle was moved, so "The range you set" was told to participants who set nothing,
+  and the row picked between two captions by provenance to avoid it. With no caption there is no line
+  that can make the claim, and both keys are removed from `content.js`.
+- **Saved so far keeps its caption**, and is the reason the other two could lose theirs. It is the
+  only figure on the screen the participant did not type, so it is the only one where provenance
+  carries information rather than restating the control - and the only one where a typed figure and
+  an account-derived one would otherwise be indistinguishable. A typed edit switches it to "You
+  entered this"; when the assigned accounts next recompute, the figure and its original caption
+  return together. Neither string is new.
+- **The two explanatory rows are untouched.** Their captions state where a figure the participant
+  never touched came from, which is the case the caption exists for, and the Bank Rate attribution is
+  required by the FCA traceability rule as well as by D5.
+
+### The bounds
+
+**None of them is new, and that is the point.**
+
+- **Property value** reuses `depositTarget()`'s own rejection and frame 09's `errorNonNumeric`, read
+  from that screen's content block rather than copied into this one.
+- **Deposit %age** is typed as a whole percent between 5 and 25. **These are the chip set's own ends,
+  made explicit, not a new rule.** Frame 09 offers `DEPOSIT_PCT_OPTIONS` and nothing else, so its
+  first and last members are what a typed percentage may hold; the screen reads them off the array
+  (`Math.min(...)` / `Math.max(...)`) rather than writing 5 and 25 as literals, so the two controls
+  cannot come to disagree if the option set is ever changed. The one new string, `errorDepositPct`,
+  keeps `errorNonNumeric`'s two-part shape but describes RANGE rather than FORMAT, because 40 is a
+  well-formed percentage and wrong only because the chip set does not offer it.
+- **Monthly saving** reuses frame 10's left-over ceiling and its `errorExceedsLeftOver`. Low
+  exceeding high **clamps**, using frame 10's identical expressions, rather than raising an error:
+  the owning screen has never raised one for this case, so raising one here would have been a new
+  error pattern and a second behaviour for the same edit. See GAPS.md G74.
+- **Saved so far** has no bound, because none exists anywhere in this build to reuse. See GAPS.md G76.
+
+**Empty is a draft on all five fields,** which is D46 and GAPS.md G62 applied to four more of them.
+The property value reuses frame 09's own `propertyValueCleared` rather than adding a twin that could
+disagree with it; the other three keys sit beside it in `state.js`. A draft leaves the committed
+figure standing and disables "See what this means" without raising an error, exactly as an empty
+property value does on frame 09 and an empty year on 10b. With every row a field, that guard is the
+only thing standing between a cleared row and `formatCurrency(null)` rendering £0 on frames 12, 15
+and 16.
+
+### What an edit writes
+
+Frame 09's split, with one difference forced by this screen's back button. The `change` handler
+commits the base figure; `deposit-target`, `loan-amount`, `ltv` and `lisaCapBreached` are recomputed
+beside it rather than being left to Continue. Frame 09 can leave its recompute to Continue because
+Continue is the only way off that screen. Frame 11 has a back button to frame 10, so a
+`property-value` committed here without its `deposit-target` would leave frame 10 measuring against a
+target the participant had already replaced - the D38 and D46 disagreement arriving by a third route.
+The recompute is guarded on the row being valid, so an out-of-range percentage writes its own base
+figure and stops there.
+
+Editing the monthly range commits the midpoint to `savings-rate`, as frame 10's Continue does, and
+sets `solveFor: 'date'`. **That value is not a guess:** frame 10 calls the slider variant - the one
+where a monthly amount is entered and the date is solved - `solveFor: 'date'`, so an edit here puts
+the calculator in the same mode as typing an amount on frame 10. `targetMonth` and `targetYear` are
+left standing, which is also what frame 10's own segmented control does, so a previously set target
+date is not destroyed; it stops being what the result is built from, which is the point of the edit.
+
+**To reverse.** The four draft keys beside `propertyValueCleared` in `src/state.js`, the `fields`
+branch in `reviewRowHTML`, its CSS block in `components.css`, and the bindings in
+`src/screens/calculator-review.js`. Restoring the navigation means putting a `changeLabel` back on
+the component and re-pointing four actions at frames 09, 06 and 10; no route was removed, so all four
+destinations are still live.

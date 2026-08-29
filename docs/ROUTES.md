@@ -128,7 +128,7 @@ Click path is from `#/home`. "Cold" = type the URL with an empty session.
 | 10 | How you'll save | `#/calculator/saving` | ❌ → 09 | 09 → value + deposit % → "Continue" | `deposit-target` |
 | 10b | …date stepper variant | `#/calculator/saving` | ❌ → 09 | 10 → segmented control → "Set a target date" | as 10 + `solveFor` = amount |
 | 10c | Leave this for now? | `#/calculator/exit` | ✅ | 09 → "Save and exit" | none |
-| 11 | Check your figures | `#/calculator/review` | ❌ → 09 | 10 → "Continue" | `savings-rate` (**needs journey**) |
+| 11 | Check your figures | `#/calculator/review` | ❌ → 09 | 10 → "Continue" | `savings-rate` (**needs journey**); figures are fields, see below |
 | 12 | Your deposit range | `#/calculator/result` | ❌ → 09 | 11 → "See what this means" | `deposit-target` + `months-to-target` (**needs journey**) |
 | 13 | Loan-to-Value | `#/learn/ltv` | ❌ → 09 | 12 → "What is Loan-to-Value?" · or 15/16 → "What rates are like…" | `property-value` + `deposit-pct` (**needs journey**) |
 | 13b | LTV video and diagram | `#/learn/ltv/video` | ✅ | 13 → "Watch: what Loan-to-Value means" | none |
@@ -244,10 +244,52 @@ only one the D28 removal cost a recipe for.
 **#8 handle order matters.** Each handle is clamped against the other, so dragging the upper one to
 £0 first does nothing. Lower handle first.
 
-**#5 is effectively unreachable in a session.** Frame 10's slider `max` *is* left-over, and the typed
-figure box clamps to the same value - no participant input can push the monthly amount above what's
-left over. The only route is: commit the range at its maximum, go back to 05 via 11's "Change" link,
-lower the left-over figure, then return to 10. Don't plan a task around this one.
+**#5 is effectively unreachable in a session, and D62 removed the one route there was.** Frame 10's
+slider `max` *is* left-over, and the typed figure box clamps to the same value - no participant input
+can push the monthly amount above what's left over. Frame 11's own monthly fields clamp to the same
+ceiling, so editing there does not reach it either. The route this note used to give - commit the
+range at its maximum, then jump back from 11 by its "Change" link and lower the left-over figure - no
+longer exists: frame 11 is all fields and navigates nowhere (`DECISIONS.md` D62). What remains is the
+back control: 11 → 10 → 09 → 08 → 06 → 05, lower the figure, then forward again. **Not re-driven since
+D62** - the previous route was, this one is inferred from `goBack` being history-based. Don't plan a
+task around this one.
+
+## Frame 11's figures are fields - what a facilitator sees (D62)
+
+Its four figure rows no longer navigate, and there is **no control to tap**: the five figures a
+participant may change are text fields from the moment the screen paints. The savings interest rate
+and tax rate rows are not editable and never were.
+
+| Row | Field | Bound it enforces | Where that bound comes from |
+|---|---|---|---|
+| Property value | £ + digits | must be a positive number | the model's own rejection, as frame 09 |
+| Deposit %age | digits + % | whole number 5 to 25 | the ends of frame 09's chip set |
+| Saved so far | £ + digits | none | none exists to reuse - `GAPS.md` G76 |
+| Monthly saving | two £ fields | upper ≤ left over; low ≤ high | frame 10's ceiling; **clamps, does not error** |
+
+**Only "Saved so far" carries a provenance caption**, and that is deliberate (`DECISIONS.md` D5's
+refinement). It is the one figure on the screen the participant did not type, so it is the only row
+where the caption says something the field does not. Type into it and the caption changes from "Read
+from the accounts you assigned to your deposit" to "You entered this" - **that switch is the only
+on-screen signal that the figure is no longer the account total**, so it is worth watching for in a
+session. The property value and monthly saving rows have no caption: under a field holding what the
+participant typed, "You entered this" only restated the control.
+
+**Three things that surprise people in a session.** A monthly figure typed past a bound snaps to that
+bound with no message - frame 10 has always done this, `GAPS.md` G74. A typed **Saved so far** reverts
+to the account total, and its caption reverts with it, the next time frame 06 is opened, whether or
+not any account was changed - `GAPS.md` G75. And every figure being a field means a participant can
+leave one empty: the screen does not complain, but "See what this means" stays disabled until a
+number goes back in.
+
+**To produce frame 11's deposit-% error:** type any whole number outside 5 to 25 into the Deposit
+%age field - `40` will do - and tap elsewhere to commit it. The banner appears under the row and "See
+what this means" is disabled. **To produce a draft:** clear any of the five fields entirely. No
+banner, but the button is disabled until a number goes back in - the same treatment an empty property
+value gets on 09.
+
+**Nothing on this screen navigates any more**, so a facilitator moving a participant back to an
+earlier step uses the back arrow in the step header, not a row.
 
 ## If a screen won't load
 

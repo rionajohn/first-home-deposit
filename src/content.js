@@ -557,18 +557,34 @@ const content = {
     savedSoFarLabel: 'Saved so far',
     savedSoFarCaption: 'Read from the accounts you assigned to your deposit',
     monthlySavingLabel: 'Monthly saving',
-    // TWO CAPTIONS, BECAUSE THERE ARE TWO WAYS TO ARRIVE AT THIS ROW. Frame 10
-    // seeds the range from the accounts and commits it on Continue whether or
-    // not a handle was moved, so "The range you set" was told to every
-    // participant who set nothing. See DECISIONS.md D47. The screen picks by
-    // provenance, the same way frame 05 picks between its own two captions.
-    monthlySavingCaption: 'The range you set',
-    monthlySavingReadCaption: "Read from what you've been putting aside lately",
+    // THE MONTHLY RANGE'S TWO CAPTIONS ARE GONE, and so is the property value's
+    // "You entered this". Both rows are now permanently editable fields, so a
+    // caption saying the participant set the figure only restated what the
+    // control itself shows. D47's two-caption problem goes with them: there is
+    // no longer a caption that can tell someone who set nothing that they chose
+    // it. See DECISIONS.md D5's refinement and D62.
+    //
+    // `enteredCaption` below stays, because "Saved so far" still uses it: that
+    // row is the one figure on the screen a participant did not type, so it is
+    // the one place provenance still carries information.
     savingsInterestLabel: 'Savings interest rate',
     taxRateLabel: 'Tax rate',
     taxRateValue: 'Basic rate',
     taxRateCaption: 'Worked out from your salary',
-    changeLabel: 'Change',
+    // Two-sided because the bound is two-sided. `errorNonNumeric` on
+    // /calculator/property is the string this is shaped from - same two-part
+    // form, same "Enter a whole number..." second clause - but it describes
+    // RANGE rather than FORMAT, because 40 is a well-formed percentage and
+    // wrong only because the chip set does not offer it. See DECISIONS.md D62.
+    errorDepositPct: "That's outside the range we can show. Enter a whole number between 5 and 25.",
+    // ", editable" follows frame 05's `figureAriaLabel`, which is the field
+    // these are the same pattern as.
+    propertyValueAriaLabel: 'Property value, editable',
+    depositPctAriaLabel: 'Deposit percentage, editable',
+    savedSoFarAriaLabel: 'Saved so far, editable',
+    monthlyLowAriaLabel: 'Monthly saving, lower amount, editable',
+    monthlyHighAriaLabel: 'Monthly saving, upper amount, editable',
+    monthlySavingJoin: 'to',
     provenanceKeyLabel: 'How we worked these out',
     noteBannerText: "Changing anything here won't change your savings goal until you choose to update it.",
     flagLabel: "Something doesn't look right",

@@ -2075,6 +2075,90 @@
   color: var(--color-label-secondary);
 }
 
+/* --- The row's editable mode (frame 11, DECISIONS.md D62) ---
+   Frame 05's .figure-input treatment at this row's own type scale: the
+   underline on the field is the whole affordance, the input itself carries no
+   border and no background, and the affix sits outside it. Sizes inherit
+   .review-row__value so a row that is being edited occupies the same line box
+   as the same row at rest. */
+.review-row__value--fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-xs);
+}
+
+/* NO 44px min-height, which is the one place this departs from
+   `.figure-input__value`, and the same departure `.date-stepper__value--input`
+   above already makes for the same reason: that rule sets
+   `min-height: var(--touch-target-min)` on a readout standing alone on the
+   screen, and the same 44px here would inflate every row on frame 11 well past
+   the value it contains. `.review-row`'s own 44px min-height is untouched, so
+   the ROW is still a full touch target.
+
+   THE 1px PADDING IS THE WCAG 2.5.8 MINIMUM, MEASURED, NOT A GUESS. Stripping
+   the padding entirely leaves the field at its 22px line box plus the 1px rule
+   = 23px at the default text size, which is 1px under 2.5.8's 24px target
+   minimum. (Large text is 25.3px + 1px = 26.3px and passes either way, so the
+   default size is the binding case.) 1px top and bottom takes it to 25px, the
+   smallest value that clears the minimum at both text sizes while still
+   hugging the text. 2.5.8's "inline" exception does not apply: these are
+   standalone controls in a row, not targets inside a sentence. */
+.review-row__field {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  padding: 1px 0;
+  border-bottom: 1px solid var(--color-border-control);
+}
+
+/* THE RING GOES ROUND THE WHOLE FIELD, NOT ROUND THE INPUT INSIDE IT.
+   `shell.css`'s global `:focus-visible` ring sits 2px outside whatever it
+   rings, and the £ sits 2px to the left of the input - so the default ring
+   crossed straight through the currency symbol. Ringing the wrapper instead
+   puts the affix and the digits inside one ring, which is also what frame 05
+   means by the £ sitting "inside the same underline as the digits".
+
+   Same colour, same width, same offset as the global rule: this changes where
+   the ring is drawn, not what it looks like. `:has(:focus-visible)` rather than
+   `:focus-within` so it stays keyboard-only, matching the global rule - a
+   mouse or touch tap shows no ring anywhere else in this app either. */
+.review-row__field:has(.review-row__input:focus-visible) {
+  outline: 2px solid var(--color-accent-neutral);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.review-row__input:focus-visible {
+  outline: none;
+}
+
+.review-row__affix {
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 500;
+  color: var(--color-label);
+}
+
+.review-row__input {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 500;
+  color: var(--color-label);
+  min-width: 2ch;
+  padding: 0;
+}
+
+.review-row__join {
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 500;
+  color: var(--color-label-secondary);
+}
+
 .review-row__change {
   appearance: none;
   flex: 0 0 auto;

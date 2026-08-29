@@ -359,10 +359,20 @@ test('a typed target year survives a reload and a back navigation, and drives st
       `savings-rate ${stored['savings-rate'].value} should be the model's ${expected.value}`);
     // And step 3 renders it, so the figure reached the screen and not just the
     // store. `monthly-low` is the range's lower bound, drawn by the review row.
-    const reviewText = await page.evaluate(() => document.getElementById('app').textContent);
-    const lowShown = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 })
+    //
+    // READ OFF THE FIELD, NOT OFF `textContent`. Step 3's figures are inputs
+    // (DECISIONS.md D62), and an input's value is not in `textContent` - the
+    // same trap `shots.mjs --figures` documents. Asserting against the text
+    // would report the figure as absent from a screen that is displaying it.
+    // The £ is a sibling span outside the field, so the value is compared
+    // against grouped digits rather than a formatted currency string.
+    const lowShown = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 })
       .format(Math.round(stored['monthly-low'].value));
-    assert.ok(reviewText.includes(lowShown), `step 3 should show ${lowShown}`);
+    assert.equal(
+      await page.evaluate(() => document.querySelector('[data-role="edit-monthly-low"]').value),
+      lowShown,
+      `step 3 should show ${lowShown}`,
+    );
 
     // 4. Going back to step 2 still shows the typed year - the history path,
     // which is the one a participant uses to change their mind.

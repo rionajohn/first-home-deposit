@@ -660,20 +660,67 @@ export function optionComparisonCardHTML({ headerText, rows, infoLinkLabel, info
 }
 
 /**
- * Inputs / Review row (frames 10, 10b, 11): a label, a value, a provenance
- * caption, and a "Change" link. Reused both inside the small "filled-in
- * details" card (10, 10b) and the full-width review list (11) — same shape
- * in both places, just a different container around it.
+ * Inputs / Review row (frames 10, 10b, 11): a label, a value, and an optional
+ * provenance caption. Reused both inside the small "filled-in details" card
+ * (10, 10b) and the full-width review list (11) — same shape in both places,
+ * just a different container around it.
+ *
+ * NO CONTROL. The row used to carry a "Change" link that navigated to the
+ * screen owning its figure. D62 replaced that with an "Edit" link that opened
+ * a field, and then removed the link too: on frame 11 the figures a
+ * participant may change are simply fields, all the time, so there is nothing
+ * for a control to reveal. A row is either a field or a readout.
+ *
+ * PASS `fields` AND THE ROW IS A FIELD; leave it out and the row renders the
+ * markup it always has, byte for byte. Frames 10 and 10b pass nothing and are
+ * untouched.
+ *
+ * EACH FIELD IS FRAME 05's `figureInputHTML` AT THIS ROW'S TYPE SCALE. Same
+ * structure and the same three mechanics: the £ (or the %) is a sibling span
+ * carrying `aria-hidden`, OUTSIDE the input, so it cannot be selected or typed
+ * over; the input is `type="text"` with `inputmode="numeric"` rather than
+ * `type="number"`, for the reasons set out on `dateStepperHTML` above; and the
+ * width is set inline from the digit count, as frame 05 sets its own.
+ *
+ * THE CARET ALLOWANCE IS 4px, NOT FRAME 05's WHOLE EXTRA CHARACTER. `1ch` is
+ * the width of a "0", and on a field carrying a SUFFIX that whole character
+ * lands between the digits and the affix — "10" and "%" ended up visibly adrift
+ * from one another. 4px is enough for the caret and leaves the affix against
+ * its number. Frame 05 has no suffix and no neighbour to crowd, so its own
+ * `+ 1` stays as it is. What is
+ * NOT carried over is frame 05's 40px headline size — `currencyInputHTML` is
+ * already the same pattern at a third size, so scale is not what identifies it.
+ *
+ * THE FIELD'S `aria-label` IS ITS ONLY ACCESSIBLE NAME. `.review-row__label`
+ * is a sibling paragraph, not a `<label>`, so it is not programmatically
+ * associated with the input; every caller must pass an `ariaLabel` that names
+ * the figure. Nothing else on the row supplies one.
+ *
+ * `fields` is `[{ role, prefix, suffix, digits, ariaLabel }]`. Two entries with
+ * a `join` between them is the monthly-saving range; one entry is every other
+ * row.
  */
-export function reviewRowHTML({ label, value, caption, changeLabel, changeAction }) {
+export function reviewRowHTML({ label, value, caption, fields, join }) {
+  const fieldHTML = (f) => {
+    const affix = (text) => `<span class="review-row__affix" aria-hidden="true">${text}</span>`;
+    return `
+      <span class="review-row__field">
+        ${f.prefix ? affix(f.prefix) : ''}
+        <input class="review-row__input" type="text" inputmode="numeric" data-role="${f.role}" value="${f.digits}" style="width:calc(${f.digits.length}ch + 4px)" aria-label="${f.ariaLabel}" />
+        ${f.suffix ? affix(f.suffix) : ''}
+      </span>
+    `;
+  };
+  const readout = fields
+    ? `<div class="review-row__value review-row__value--fields">${fields.map(fieldHTML).join(join ? `<span class="review-row__join">${join}</span>` : '')}</div>`
+    : `<p class="review-row__value">${value}</p>`;
   return `
     <div class="review-row">
       <div class="review-row__content">
         <p class="review-row__label">${label}</p>
-        <p class="review-row__value">${value}</p>
+        ${readout}
         ${caption ? `<p class="review-row__caption">${caption}</p>` : ''}
       </div>
-      ${changeLabel ? `<button type="button" class="review-row__change" data-action="${changeAction}">${changeLabel}</button>` : ''}
     </div>
   `;
 }

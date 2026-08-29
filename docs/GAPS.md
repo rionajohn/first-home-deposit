@@ -2025,3 +2025,114 @@ how far ahead this feature lets someone plan, it is not derivable from anything 
 the Bank Rate the other figures anchor to, and inventing one would have put a figure in the codebase
 that no source backs. Settling it needs a stated horizon; whatever is chosen must be applied to the
 stepper handlers as well as the field, or the two routes start disagreeing.
+
+---
+
+**G74. Frame 11's monthly range clamps a typed value away without saying so.** Raised while building
+D62's in-place editing. Typing a lower amount above the upper one, or an upper amount above what is
+left over each month, does not error: the value snaps to the bound and the field re-renders holding a
+number the participant did not type.
+
+**This is frame 10's behaviour, not a new one.** `calculator-saving.js`'s own figure inputs already
+clamp with the identical expressions - `clamp(Number(figureLow.value) || 0, 0, Number(figureHigh.value))`
+and its upper twin - and have since the slider was built. Frame 11 reuses them verbatim rather than
+raising an error, which is what keeps the same edit behaving the same way on both screens and is why
+no new error string was written. Confirmed as the preferred option before it was applied.
+
+**What it costs.** A silent correction is a silent correction wherever it happens, and frame 11 makes
+it more likely to be noticed because the row sits in a list of figures a participant is being asked to
+check. Two mitigations are already in place and neither is a fix: the snapped value is visible in the
+field immediately, and it snaps to **a bound the participant themselves set** - the other end of their
+own range, or their own left-over figure - rather than to a seeded constant, so the number it lands on
+is one they have seen before.
+
+*Status: open, matching frame 10 deliberately.* Closing it means giving both screens the same
+explanation, not giving frame 11 one of its own.
+
+---
+
+**G75. A typed "Saved so far" is reverted by opening frame 06, whether or not the accounts changed.**
+Raised while building D62. The rule D62 implements is that a typed figure holds until the participant
+returns to account assignment and changes which accounts count. The code is broader than the rule.
+
+`position-summary.js` re-derives the account totals on **every render** and writes them back whenever
+they differ from what is stored:
+
+```js
+if (startingSavedTowardDeposit(state).value !== totals.deposit || ...) {
+  state = setState(accountFiguresPatch(state, {
+    'saved-toward-deposit': { value: totals.deposit, provenance: 'read' }, ...
+  }));
+}
+```
+
+A typed £20,000 differs from the £8,950 the seeded accounts total, so **merely opening "Where you
+stand" reverts it**, with no account having been touched. `consent.js` does the same on a checkbox
+change, which is the case the rule describes and is correct.
+
+**What holds and what does not.** The typed figure survives the calculator, the back navigation to
+frame 10, a reload, and the result screen - none of those render frame 06. It dies on the next tap of
+the journey spine that lands on frame 06, **and its caption dies with it**: the row returns to "Read
+from the accounts you assigned to your deposit", which is correct for the figure now showing but
+gives the participant no account of where their own number went. `skip-ahead.js`'s own comment states the assumption the
+whole arrangement rests on: "`saved-toward-deposit` is a sum of account balances".
+
+*Status: open, flagged rather than fixed on instruction.* Closing it means deciding which of the two
+owns the figure when they disagree - a typed override that survives frame 06 needs a key saying it was
+typed, and frame 06 needs to consult it before recomputing.
+
+---
+
+**G76. Frame 11's "Saved so far" field has no bound, because there is none to reuse.** Raised with
+D62. The other three editable rows each reuse a bound that already existed - the model's own rejection
+of a non-positive property value, the chip set's 5-25% range, and frame 10's left-over ceiling. Saved
+so far has none: the figure is ordinarily a sum of account balances, which cannot be out of range, so
+no screen in this build has ever had to check it.
+
+The field therefore accepts any non-negative number a participant types. Negatives are unreachable -
+the strip is `[^0-9.]`, a format constraint following frame 10b's year field, not a validation rule -
+and the empty-value draft state applies as it does everywhere else, so the field cannot write a null.
+A very large figure produces a `gap()` of zero and a `months-to-target` of zero rather than an error,
+so the screens downstream stay legible.
+
+*Status: open, not guessed.* A bound here is a content rule about the largest deposit this feature
+entertains. Nothing in the spec, in `rates.js` or in the Bank Rate the other figures anchor to implies
+one, so none was invented.
+
+
+---
+
+**G77. `fca-copy-check` rule 8 and D5's refinement now disagree, and the skill has not been
+narrowed to match.** Raised by the copy check re-run D62 required, 29 August 2026. **Open, and
+deliberately not resolved here.**
+
+D5 was refined with D62 to say that a provenance caption is required where the figure did not
+originate with the participant, and omitted where the figure sits in a permanently editable field
+they typed into directly. `.claude/skills/fca-copy-check/SKILL.md` rule 8 still reads, verbatim and
+without qualification:
+
+> Any figure missing a provenance caption (`provenanceCaptionHTML()`; this repo carries provenance as
+> a caption, never as a Source badge), or carrying the wrong provenance value in `src/state.js` ...
+
+Applied literally, that reports four FIX-class breaches on frame 11: the property value, the deposit
+%age, and both ends of the monthly saving range. Applied to D5 as refined, it reports none. The two
+documents cannot both be followed.
+
+**The evidence that the refinement describes existing practice rather than creating an exemption.**
+Rule 8 taken literally already flags two screens that predate D62 and have never been reported:
+frame 09's property-value field carries a `hint` ("Likely property value"), not a provenance caption
+- its one `provenanceCaptionHTML()` call describes the AREA AVERAGE beside the field, not the
+participant's own figure - and frame 10b's date stepper carries a hint too. Every editable figure in
+this build has carried a hint rather than a provenance caption since it was built. Frame 11's fields
+join that class; they do not create it.
+
+**What is NOT in doubt.** Provenance itself is untouched: all four values are still carried and still
+propagate, which is what D5's Decision governs. "Saved so far" still renders its caption and still
+switches it on a typed edit. The two explanatory rows still render theirs. This gap is about one
+sentence in an audit skill, not about the interface.
+
+*Status: open, referred rather than resolved.* Resolving it means either narrowing rule 8's wording
+to match D5's refinement, or reversing the refinement and restoring the two captions. Both are
+decisions about the audit standard itself, so neither was taken here. Until it is settled, a
+`fca-copy-check` run over `/calculator/review` will report those four rows, and the report should be
+read against this entry.

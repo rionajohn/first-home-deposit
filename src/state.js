@@ -259,6 +259,27 @@ export function defaultState() {
     // never committable; it is now not recordable either.
     propertyValueCleared: false,
 
+    // Frame 11 (Check your figures) - THE SAME DRAFT RULE, ON THE THREE OTHER
+    // FIELDS THAT SCREEN CAN NOW CLEAR (DECISIONS.md D62).
+    //
+    // Frame 11's rows edit in place, so each of them has the two ways of being
+    // empty that `propertyValueCleared` above describes, and each takes the
+    // same answer: the committed figure is left standing, the emptiness is
+    // recorded here, and "See what this means" is disabled until the field
+    // holds a number again. Without these, `formatCurrency(null)` would render
+    // a cleared row as £0 on frames 12, 15 and 16 - GAPS.md G62's defect
+    // arriving by a fourth route.
+    //
+    // THERE IS NO `propertyValueCleared` TWIN HERE. Frame 11's property-value
+    // field is the same figure frame 09's field writes, so it reuses frame 09's
+    // key rather than adding a second one that could disagree with it: a row
+    // left empty on 11 is the same draft frame 09 would show as its 09a empty
+    // variant, and either screen's commit resolves it.
+    depositPctCleared: false,
+    savedSoFarCleared: false,
+    monthlyLowCleared: false,
+    monthlyHighCleared: false,
+
     // --- The skip-ahead control (src/skip-ahead.js, DECISIONS.md D38) ------
     //
     // A RESEARCH AFFORDANCE. Not a build-spec.md variable, not a feature, and
