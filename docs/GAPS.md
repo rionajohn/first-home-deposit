@@ -1891,6 +1891,12 @@ value; the question is whether an opening session that meets the cap warning is 
 study than an opening property a participant recognises. **Asked rather than guessed** - D55 and D60
 each answered it one way, and the answer belongs to whoever is running the sessions.
 
+**Read alongside G72**, which is the reason this one matters beyond convenience. The Mortgage in
+Principle result screens invite the participant toward a property ABOVE the cap and say nothing about
+it, so frame 09b's banner was the second of only two places the cap is stated. With it gone from the
+opening session, the cap is stated exactly once - frame 06's Lifetime ISA account caption - and never
+again in the flow that contradicts it.
+
 ---
 
 **G71. The seeded income does not support the borrowing the Mortgage in Principle screens show.**
@@ -1928,3 +1934,57 @@ argument, and £2,500 was itself a decision (D57).
 
 *Status: open, and coupled to G69.* Whichever reading settles G69 settles this. **Asked rather than
 guessed** - it moves figures on frames 20 and 21 and changes what the flow tells a participant.
+
+---
+
+**G72. Frames 20 and 21 invite the participant toward a property above the Lifetime ISA cap, and no
+screen in the flow reconciles the two.** Raised in the D60 follow-up. **Coupled to G70**, which
+records that the cap banner is no longer an opening state - that is what leaves this without a
+counterweight.
+
+**The figures, and where they come from.** `maxProperty()` in `src/model/model.js` is
+`borrow-high + saved-toward-deposit`, and `borrow-high` is D2's range rule on `loan-amount`, so at a
+10% deposit the whole expression is `1.1 x 0.9 x P + S` = `0.99P + S`. Committed to state by
+`/mip/running` and read back by both result screens:
+
+| Screen | Row | Opening session | Ready to check |
+|---|---|---|---|
+| **20** likely | "With your {deposit} deposit, that's a property up to" | - | **£479,250** |
+| **21** not yet | "Look at a property target closer to {amount}" | **£454,450** | - |
+
+Both exceed `LISA_CAP_PROPERTY_VALUE` (£450,000). Both also exceed the participant's own £450,000
+target, which is G69's separate finding about the same relationship - `0.99P + S > P` whenever
+`P < 100 x S`, and S is the fixed £8,950 mock balance.
+
+**No cap check applies to either.** `LISA_CAP_PROPERTY_VALUE` is imported in exactly two screens:
+`calculator-property.js`, for frame 09b's banner, and `position-summary.js`, for frame 06's account
+caption. Neither `mip-result-likely.js` nor `mip-result-not-yet.js` imports it, reads
+`lisaCapBreached`, or compares `max-property` to anything. The figure is rendered as a plain
+`figureRowHTML` trailing value on 20 and as a next-step title on 21.
+
+**And no copy reconciles them.** Every string on frames 20 and 21 was read: neither screen mentions
+the Lifetime ISA, a cap, a ceiling or a withdrawal charge. Frame 20's captions attribute the figure
+("Worked out from the most you could borrow and what you have saved so far") without qualifying it.
+
+**Why this is a finding and not just an unlucky number.** The participant holds a Lifetime ISA - it
+is £2,750 of the £8,950 that `saved-toward-deposit` sums, drawn on frames 03, 06 and 32 - and the app
+tells them what that means on **frame 06**, in `lisaCaption`: "Usable for a home costing £450,000 or
+less, once the account has been open 12 months." So within one session the app states the cap against
+their own account, then later invites them toward £454,450 or £479,250 with nothing said. Frame 09b's
+banner is the screen that would have restated it, and G70 records that it no longer renders on an
+opening session - so in the D60 seed the participant meets the cap ONCE, early, on an account
+caption, and never again.
+
+**Not caused by D60, and made harder to notice by it.** The relationship is structural: `0.99P + S`
+exceeds the cap for every P above about £445,500, so D55's £650,000 produced £652,450 and had the
+same defect. What D60 changed is the counterweight - at £650,000 the cap banner was on screen from
+the first tap, and at £450,000 it is not on screen at all unless the participant types a higher value.
+
+*Status: open, reported not fixed, and the figures deliberately left alone.* At least four readings,
+and the spec settles none: frames 20/21 could carry the cap warning when `max-property` exceeds it;
+`max-property` could be clamped to the cap for a participant holding a Lifetime ISA; frame 21's step 2
+could stop naming a higher property than the one already set (which is G69's territory, not this
+one); or the whole thing is out of scope because these screens are about borrowing rather than about
+which account funds the deposit. **Asked rather than guessed** - the first two add a regulated-product
+statement to a result screen, which is an FCA copy question and not a layout one, and the third is
+already waiting on G69.
