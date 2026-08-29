@@ -13,6 +13,7 @@
 
 import { MOCK_POSITION, accountFigures } from './model/accounts.js';
 import { leftOver } from './model/model.js';
+import { BUILD_VERSION } from './cache-version.js';
 
 const SECTION_6_KEYS = [
   'saved-toward-deposit',
@@ -37,7 +38,7 @@ const SECTION_6_KEYS = [
   'max-property',
 ];
 
-const STORAGE_KEY = 'yfh-state';
+export const STORAGE_KEY = 'yfh-state';
 
 /**
  * Every accordion / disclosure / expandable section in the app, and the one
@@ -148,6 +149,16 @@ export function defaultState() {
   return {
     ...figures,
     ...seededFigures(),
+
+    // THE BUILD THAT WROTE THIS SESSION (DECISIONS.md D59).
+    //
+    // Not a figure, not a scenario control and not read by any screen. It is
+    // the stamp `load()` compares to decide whether a restored session belongs
+    // to the build now running. It lives INSIDE the store rather than wrapping
+    // it so that everything which already reads the stored object - the six
+    // browser harnesses, and `shots.mjs`'s spread over a stored session -
+    // keeps working on the same shape.
+    buildVersion: BUILD_VERSION,
 
     // Navigation / journey flags (build-spec.md section 1 and 2)
     journeyStarted: false,
@@ -277,10 +288,50 @@ function load() {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
+    const stored = JSON.parse(raw);
+
+    // A SESSION FROM ANOTHER BUILD IS DISCARDED WHOLE, NOT MERGED
+    // (DECISIONS.md D59, GAPS.md G66).
+    //
+    // The merge below is what made this necessary: a STORED value wins over a
+    // freshly seeded one, so a session carried across a deploy kept rendering
+    // whatever figures the previous build seeded, indefinitely, with nothing
+    // on screen to say so. `money-in` was the one that surfaced it; every
+    // seeded figure had the same exposure.
+    //
+    // DISCARDED WHOLE is the load-bearing word, and it is what makes this
+    // acceptable where the version check G66 rejected was not. That one would
+    // have re-applied the opening stage OVER a restored store, and
+    // `stagePatch()` writes only `STAGE_KEYS` - leaving `targetMonth`,
+    // `solveFor`, `journeyStarted` and the rest of a real session sitting
+    // beside a fresh goal, a combination no screen expects. Replacing the
+    // store entirely cannot produce that: what comes back is exactly a first
+    // load, which every screen already handles.
+    //
+    // `restoredFromStorage` deliberately stays false here, so `isNewSession()`
+    // is true and `router.js`'s `openSession()` applies the opening stage to
+    // the fresh store - the same path a genuine first load takes. That also
+    // closes G66's original half: the Insights tab stops redirecting.
+    //
+    // An UNSTAMPED session takes this branch too (`undefined !== 'vNN'`),
+    // which is what retires every session written before this change.
+    if (stored.buildVersion !== BUILD_VERSION) {
+      console.warn(
+        `[yfh] Stored session was written by build ${stored.buildVersion ?? '(unstamped)'}; ` +
+        `this build is ${BUILD_VERSION}. Discarding it and starting a new session.`,
+      );
+      const fresh = defaultState();
+      // Written back immediately so the discard happens once rather than on
+      // every subsequent load in this tab.
+      persist(fresh);
+      return fresh;
+    }
+
     restoredFromStorage = true;
     // Merge over defaultState() so a stored value from an older shape never
-    // leaves a newly-added key undefined.
-    return { ...defaultState(), ...JSON.parse(raw) };
+    // leaves a newly-added key undefined. Unchanged: a same-build restore
+    // behaves exactly as it did before this check existed.
+    return { ...defaultState(), ...stored };
   } catch {
     return defaultState();
   }

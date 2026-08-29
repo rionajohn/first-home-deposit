@@ -44,6 +44,11 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
+import { BUILD_VERSION } from '../src/cache-version.js';
+// Every seed below carries `buildVersion` (DECISIONS.md D59). `state.js` now
+// DISCARDS a stored session whose stamp is not the running build's, so an
+// unstamped seed would be thrown away and the harness would silently measure
+// a default session instead of the one it set up.
 
 const ROOT = path.resolve('.');
 const MIME = { '.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png' };
@@ -121,7 +126,7 @@ async function navAt(route, seed = null) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
   try {
     if (seed) {
-      await ctx.addInitScript((v) => { try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {} }, seed);
+      await ctx.addInitScript((v) => { try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {} }, { ...seed, buildVersion: BUILD_VERSION });
     }
     const page = await ctx.newPage();
     await page.goto(`${base}/#${route}`);
@@ -275,7 +280,7 @@ test('Insights is tappable everywhere; Payments and Profile never are', async ()
 /** A page parked on a route, with the journey figures seeded. */
 async function session(route = '/home') {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
-  await ctx.addInitScript((v) => { try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {} }, TRACKER_SEED);
+  await ctx.addInitScript((v) => { try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {} }, { ...TRACKER_SEED, buildVersion: BUILD_VERSION });
   const page = await ctx.newPage();
   await page.goto(`${base}/#${route}`);
   await page.waitForSelector('.bottom-nav__tab');

@@ -20,6 +20,11 @@ import { chromium } from 'playwright';
 // to it: a key that selects the variant THIS script looks at belongs in this
 // file's own override list, not in the shared one.
 import { FULL, f } from './session-seed.mjs';
+import { BUILD_VERSION } from '../src/cache-version.js';
+// Every seed below carries `buildVersion` (DECISIONS.md D59). `state.js` now
+// DISCARDS a stored session whose stamp is not the running build's, so an
+// unstamped seed would be thrown away and the harness would silently measure
+// a default session instead of the one it set up.
 
 const ROOT = path.resolve('.');
 const OUT = path.resolve(process.argv[2] || '.screenshots/insets');
@@ -135,7 +140,7 @@ for (const [name, route, overrides, scrollToEnd] of VIEWS) {
       });
       await ctx.addInitScript((v) => {
         try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {}
-      }, { ...FULL, ...overrides });
+      }, { ...FULL, ...overrides, buildVersion: BUILD_VERSION });
       const page = await ctx.newPage();
       await page.goto(`${base}/#${route}`);
       await page.waitForTimeout(300);
@@ -167,7 +172,7 @@ for (const width of [320, 375, 414, 768, 1280]) {
     const ctx = await browser.newContext({ viewport: { width, height: 812 }, serviceWorkers: 'block' });
     await ctx.addInitScript((v) => {
       try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {}
-    }, { ...FULL, ...overrides });
+    }, { ...FULL, ...overrides, buildVersion: BUILD_VERSION });
     const page = await ctx.newPage();
     await page.goto(`${base}/#${route}`);
     await page.waitForTimeout(250);

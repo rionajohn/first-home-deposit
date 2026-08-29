@@ -4239,6 +4239,75 @@ shows £26,880 or any other figure implying the old net.
 
 ---
 
+## D59. A stored session is stamped with its build, and a session from another build is discarded whole
+
+**Date.** 29 August 2026.
+
+**Decision.** `defaultState()` gains a `buildVersion` key holding `BUILD_VERSION`. `load()` compares
+the stored stamp with the running one and, on any mismatch - including a session with no stamp at
+all - discards the stored session entirely, falls through to `defaultState()`, warns on the console
+with both versions, and re-persists so the discard happens once rather than on every load. A
+matching stamp restores exactly as before. `persist()`, `setState()` and every other write path are
+untouched.
+
+**What this fixes.** `load()` returned `{ ...defaultState(), ...stored }`, so a STORED value beat a
+freshly seeded one. A tab carried across a deploy kept rendering the previous build's seeded figures
+indefinitely. `money-in` is the one that surfaced it, over three sessions of investigation, and the
+symptom is what made it expensive: the screen is fully rendered and internally consistent, so it
+reads as a defect in whichever figure just changed. It also survives both things anyone tries first
+- a hard refresh clears the HTTP cache and the service worker but not `sessionStorage`, and a
+`CACHE_VERSION` bump invalidates assets where this is stored state.
+
+**WHY THIS IS NOT THE FIX G66 REJECTED, WHICH MATTERS BECAUSE THAT REJECTION WAS CORRECT.** G66
+specified stamping the session and, on a mismatch, *treating it as new and applying the opening
+stage*. It was stopped because `stagePatch()` writes only `STAGE_KEYS`, so the result was a store
+holding `targetMonth`, `solveFor`, `journeyStarted`, `returnFrame` and `ltvVideoSeen` from a real
+session beside an opening stage's fresh goal - **a combination no screen expects**, which is the
+exact condition `CLAUDE.md`'s state rules and D46 exist to prevent. **Discarding the store whole
+cannot produce that.** What comes back is a first load, and every screen already handles a first
+load. The difference is one word in the specification and it is the whole of why this is safe.
+
+**The routing half closes for free.** `restoredFromStorage` stays false on a discard, so
+`isNewSession()` is true and `openSession()` applies the opening stage to a *fresh* store - the same
+path a genuine first load takes. G66's original symptom, the Insights tab redirecting to
+`/calculator/property` forever, goes with it, with no second mechanism added.
+
+**THE STAMP LIVES INSIDE THE STORE, NOT IN AN ENVELOPE AROUND IT.** `{ build, state }` was the
+tidier shape and was rejected on blast radius: **ten call sites across six browser harnesses** read
+or write the stored object directly, and two of them read it back - `sheet-drag.test.mjs` asserts
+`state.ltvVideoSeen`, and `shots.mjs` spreads its frame 33 settings over a stored session. An
+envelope breaks every one of those reads. A key inside the store breaks none.
+
+**Every harness seed is now stamped, and it had to be.** An unstamped seed is discarded by the very
+check being added, so `overlap`, `action-bar`, `bottom-nav`, `sheet-drag`, `inset-shots` and `shots`
+would each have silently measured a DEFAULT session instead of the one they set up - green tests
+asserting nothing. Ten seed sites carry `buildVersion: BUILD_VERSION` with a comment saying why.
+This is the change's real risk and it is why the full suite, not just the new file, is the check.
+
+**WHAT REMAINS, AND IT IS DELIBERATE.** A participant whose session spans a deploy and who then
+causes a document load loses their progress - to a clean opening session rather than to a mixed one.
+`BUILD_VERSION` is constant within a deploy, so every ordinary mid-session refresh matches and
+restores untouched; only a deploy landing mid-session triggers it. That is the price of the figures
+never disagreeing with the build, and it is the trade G66 could not make while the fix produced
+mixed state.
+
+**Frame 33 already surfaced the build and still does** (D49): the footer reads "Build v51. Figures
+are illustrative throughout." from the constant compiled into the running modules, with a second
+line if a newer build is cached and waiting. Verified rendering v51; no change was needed.
+
+**Every seeded figure had this exposure, not only `money-in`:** `money-in`, `essential-spending`,
+`left-over`, `saved-toward-deposit`, `emergency-fund` and `unassigned`, plus the scenario defaults
+`theme`, `textSize`, `stage` and `resultOutcome`, plus every `COLLAPSIBLE_DEFAULTS` key, plus the
+fifteen `STAGE_KEYS` the opening stage writes - those doubly so, since a restored session never
+received them at all. Any future change to a default had the same exposure; that is what closes
+here.
+
+**Reversal.** Drop the `buildVersion` key from `defaultState()`, restore `load()`'s three-line body,
+delete `scripts/stale-session.test.mjs` and its `CLAUDE.md` line, and remove `buildVersion` from the
+ten harness seed sites.
+
+---
+
 
 ## Open questions
 
@@ -4319,3 +4388,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 29 August 2026 (seeded salary rounded) | **D57 recorded; D55's reasoning amended in place.** `MOCK_POSITION.moneyIn` goes **2,240 to 2,500** with frame 01's matching salary credit, unit unchanged (**monthly income after tax**; gross annual stays `MOCK_MIP_DATA.annualSalaryBeforeTax` at 38,000). The old figure was not just awkward but **incoherent**: 2,240 net a month is 26,880 a year, which 38,000 gross cannot produce, where 2,500 is about what 38,000 nets after tax and Plan 2. **One derived figure moves**: `left-over` 380 to 640, so frames 05/06's proportions go 83%/17% to 74%/26%. **Nothing in the projection chain moves** - frame 10's ceiling rises but the seeded handles `min(200, c)` and `min(310, c)` were not clamped at 380 and are not at 640, so `savings-rate` stays 255 and `months-to-target`, `checkpoint-amount`, `borrow-low/high` and `max-property` are unchanged. No formula touched. **The side effect is the headline**: G61a's 67% default becomes **39.8%** and G63's 81.6% handle becomes **48.4%**, both now under rule 1A's 60% flag and 80% failure lines, with 310 itself untouched - G63's own named trade taken from the other side. **G64 stays open**: its 331-404 range now sits inside the ceiling, so the defect is unfound rather than fixed, and the gap says so. **Flagged not fixed**: the 0-640 track no longer matches frame 10's 0-380 PNG, a screenshot exemption belonging to whoever owns the reference set, so G63 is left open. D55's "no savings rate reaches one either" is now false (640 a month reaches a 529,848 property) but its decision stands - the stage does not drag the handles. `model.test.js` and `skip-ahead.test.mjs` fixtures deliberately left at 2,240 as self-contained hypotheticals. `CACHE_VERSION` v48, `BUILD_VERSION` v48. |
 | 29 August 2026 (frame 01 reads its figures) | **D58 recorded.** `content.js`'s `'/home'` block loses both typed money strings: `balanceAmount: '£1,042.16'` is deleted and `home.js` renders `formatAccountBalance` over `MOCK_ACCOUNTS['current-account'].balance`, and the salary row's `amount: '+£2,500.00'` becomes `amountTemplate: '+{amount}'` filled with `formatTransactionAmount(MOCK_POSITION.moneyIn)`. **Nothing on screen changes.** The reason is D57: the seeded salary existed twice, so rounding it needed a second hand-edit, and a pass that missed the second copy would leave the store at 2,500 and the study's first screen at 2,240 with **no test failing** - the three browser suites measure geometry, not figures. The balance is the same defect one row up and is fixed under the standing correct-everywhere rule; `format.js`'s comment already asserted frames 01 and 03 must show the same balance, which was true only by hand. Third formatter added because neither existing one fits: `formatCurrency` is D9's whole-pound rule and `formatAccountBalance` drops pence on a round number, either of which would draw "£2,500" in a list where every other row shows pence. The other three transaction rows stay literal - no model figure exists behind them. **Audit, not assumption:** all 29 routes walked in a browser on a fresh session, frames 20 and 21 reached through the real MIP flow; **no screen renders £2,240, £380, 83% or 17%**, gross pay is £38,000 on both screens showing it, and £26,880 appears nowhere. Root cause of the reported sighting was **deployment, not code**: commit 8d87578 was never pushed, so `origin/build` and the Vercel build were two commits behind. `CACHE_VERSION` v49, `BUILD_VERSION` v49. |
 | 29 August 2026 (G66 widened to seeded figures) | **No decision reversed; G66's SCOPE corrected and `ROUTES.md`'s deploy procedure with it.** Frame 19 was reported as still rendering £2,240 after D57. **It was not a code defect.** `mip-pre-check.js:80` renders `formatCurrency(state['money-in'].value)` with no literal anywhere in the file, no bundler or dist output exists in this repo, and the whole MIP flow was re-audited: **zero hard-coded monetary figures** across frames 17, 18, 19, 19b, 20, 21, the adviser stub and the borrowing sheet - every figure goes through `formatCurrency`/`formatPercent` over a store key or a `MOCK_MIP_DATA` constant. The cause is `state.js`'s `load()`, which returns `{ ...defaultState(), ...JSON.parse(raw) }`: **a stored figure overrides a freshly seeded one**, so a tab holding a pre-change session renders the old figure indefinitely on correct code. `isNewSession()` gates `openSession()`; **nothing gates the figures**, which is the half G66 did not say. Reproduced against v49: stored `money-in` at 2240, two reloads, £2,240 both times; `#/reset` or a new tab returns £2,500. **This symptom is worse than G66's routing one** - a stale figure is fully rendered and internally consistent, so it reads as a bug in the code that just changed and survives both a hard refresh (which clears the HTTP cache and the service worker, not `sessionStorage`) and a `CACHE_VERSION` bump (assets, not state). The version-stamp fix stays rejected for its original reason: it would reset a participant mid-task. `CACHE_VERSION` v50, `BUILD_VERSION` v50. 264 tests passing. |
+| 29 August 2026 (stale sessions self-clear) | **D59 recorded; G66 RESOLVED, both halves.** `defaultState()` gains `buildVersion: BUILD_VERSION`, and `load()` **discards a stored session whose stamp is not the running build's** - unstamped included - falling through to `defaultState()` rather than merging over it, warning on the console with both versions, and re-persisting so the discard fires once. A matching stamp restores exactly as before; `persist()` and `setState()` are untouched. **This is not the fix G66 rejected, and the difference is one word:** that one re-applied the opening stage OVER a restored store, and `stagePatch()` writes only `STAGE_KEYS`, leaving a real session's flags beside a fresh goal - the mixed state D46 and `CLAUDE.md`'s state rules exist to prevent. Discarding WHOLE cannot produce it: what returns is a first load. **The routing half closes for free** - `restoredFromStorage` stays false, so `openSession()` applies the opening stage to the fresh store and Insights stops redirecting. **Stamp inside the store, not an envelope around it**, on blast radius: ten call sites across six harnesses touch the stored object and two read it back (`sheet-drag` asserts `state.ltvVideoSeen`, `shots` spreads over a stored session). **All ten harness seeds now stamped** - an unstamped seed is discarded by the check itself, so every browser suite would have silently measured a default session instead of its own. Residual risk kept deliberately: a deploy landing mid-session costs that participant their progress, to a clean opening session. Frame 33's build line (D49) already satisfied the surfacing requirement; verified at v51. `CACHE_VERSION` v51, `BUILD_VERSION` v51. **269 tests passing** (5 new in `scripts/stale-session.test.mjs`). |

@@ -1650,8 +1650,9 @@ under "State rules" and asserted by `scripts/g62.test.mjs`.
 ---
 
 **G66. A session from before a deploy never applies the opening stage, so Insights keeps
-redirecting. OPEN, and the fix was specified and deliberately not taken. A facilitator procedure
-stands in its place - see the end of this entry and `ROUTES.md`.**
+redirecting - and, the half this entry originally missed, it renders that build's seeded figures
+indefinitely. THE FIGURES HALF IS RESOLVED (29 August 2026, D59). The routing half is resolved as a
+consequence. The facilitator procedure in `ROUTES.md` stands as a second line of defence.**
 
 Raised while fixing the build caption (DECISIONS.md D49); the two share a root and only one of them
 was safe to close.
@@ -1685,10 +1686,36 @@ also survives the two things anyone would try first - a hard refresh (which clea
 and the service worker, not `sessionStorage`) and a `CACHE_VERSION` bump (which invalidates cached
 ASSETS, where this is stored STATE).
 
-**This does not change the decision below.** The version-stamp fix is still rejected for the same
-reason - it would reset a participant mid-task - and the facilitator procedure is still the standing
-answer. What changes is what the procedure has to warn about, and `ROUTES.md` now names the figure
-symptom alongside the routing one.
+**RESOLVED 29 AUGUST 2026 (D59), AND THE EARLIER REJECTION BELOW IS SUPERSEDED RATHER THAN
+OVERRULED.** The store is now stamped with `BUILD_VERSION`, and `load()` DISCARDS a stored session
+whose stamp is not the running build's - falling through to `defaultState()` instead of merging over
+it. An unstamped session takes the same branch, which retires every session written before this
+change. The discard is announced on the console with both versions.
+
+**WHY THIS IS NOT THE FIX THIS ENTRY REJECTED.** The rejected one re-applied the opening stage OVER
+a restored store, and `stagePatch()` writes only `STAGE_KEYS` - leaving `targetMonth`, `solveFor`,
+`journeyStarted`, `returnFrame` and `ltvVideoSeen` sitting beside a fresh goal. That mixed state was
+the objection, and it was the right one: it is exactly the condition `CLAUDE.md`'s state rules and
+D46 exist to prevent. **Discarding the store whole cannot produce it.** What comes back is
+byte-for-byte a first load, which every screen already handles because every screen already handles
+a first load.
+
+**The routing half falls out of it.** `restoredFromStorage` stays false on a discard, so
+`isNewSession()` is true and `openSession()` applies the opening stage to the fresh store - the same
+path a genuine first load takes. The Insights tab stops redirecting, without a second mechanism.
+
+**WHAT REMAINS, HONESTLY.** A participant whose session is open across a deploy AND who then causes
+a document load (a refresh, a tab restore, an installed copy relaunched after the OS reclaimed it)
+still loses their progress - now deliberately, and to a clean opening session rather than to a mixed
+one. That residual risk is the price of the figures never lying, and it is narrower than it looks:
+`BUILD_VERSION` is constant within a deploy, so every ordinary mid-session refresh matches its stamp
+and restores untouched. `scripts/stale-session.test.mjs` asserts that same-stamp case explicitly,
+alongside the two discards and the calculator's typed value surviving a reload and a back
+navigation.
+
+**The `ROUTES.md` procedure is kept**, demoted from the only defence to a second one. It costs
+nothing, and it still covers the case this fix cannot: a facilitator who wants to know which build
+is running before a session starts.
 
 **The proposed fix, and why it is not here.** Stamp `BUILD_VERSION` into the stored session; if the
 stored stamp does not match the running one, treat the session as new and apply the opening stage.

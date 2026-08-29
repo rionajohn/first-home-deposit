@@ -27,6 +27,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { BUILD_VERSION } from '../src/cache-version.js';
+// Every seed below carries `buildVersion` (DECISIONS.md D59). `state.js` now
+// DISCARDS a stored session whose stamp is not the running build's, so an
+// unstamped seed would be thrown away and the harness would silently measure
+// a default session instead of the one it set up.
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -185,7 +190,7 @@ async function newSession({ reducedMotion = 'no-preference', seed = null } = {})
         // storage unavailable — the app falls back to defaults and the
         // affected test will fail visibly on its own precondition
       }
-    }, [STORAGE_KEY, seed]);
+    }, [STORAGE_KEY, { ...seed, buildVersion: BUILD_VERSION }]);
   }
   return context;
 }

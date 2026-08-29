@@ -104,6 +104,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
 import { FULL } from './session-seed.mjs';
+import { BUILD_VERSION } from '../src/cache-version.js';
+// Every seed below carries `buildVersion` (DECISIONS.md D59). `state.js` now
+// DISCARDS a stored session whose stamp is not the running build's, so an
+// unstamped seed would be thrown away and the harness would silently measure
+// a default session instead of the one it set up.
 
 const ROOT = path.resolve('.');
 const MIME = {
@@ -455,7 +460,7 @@ try {
               if (args.draft === 'property-cleared') seed.propertyValueCleared = true;
               await context.addInitScript((v) => {
                 try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {}
-              }, seed);
+              }, { ...seed, buildVersion: BUILD_VERSION });
             }
             const page = await context.newPage();
             try {
