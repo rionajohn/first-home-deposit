@@ -2177,3 +2177,33 @@ signal that sourcing is now too low. If it appears, the fix is a sourcing clause
 caption promoted above the figure, and both are copy changes, not layout ones.
 
 *Status: open, recorded for observation. No change made.*
+
+---
+
+**G79. Six plain-language terms are left in place on purpose, and two more were found while doing
+it.** Raised with D65's jargon pass, 29 August 2026. **Open by decision, not by oversight.** Logged
+so a later reader finds a reasoned position rather than rediscovering the words and assuming nobody
+looked.
+
+A scan of all 615 user-facing strings in `content.js` produced eleven candidates. Five were rewritten
+under D65. The six below were not, each for its own reason, and each is recorded here with the
+alternative that was considered and rejected so the trade is visible.
+
+| Term | Where | Why it stays | Alternative considered |
+|---|---|---|---|
+| `ISA` | `accounts.js` account names: "Stocks and shares ISA", "Cash ISA", "Lifetime ISA"; and `'/calculator/property'.lisaCapBannerText` | **Expanding it would misrepresent the statement.** These are the names a real bank shows, and a participant matching the prototype against their own accounts needs the string they would actually see. "Individual Savings Account" appears on no statement. | Gloss it once on frame 03 rather than expanding the names |
+| `valuation` | `'/assumptions/deposit'.assumptionsRowsBeforeInterest[0]` and `.exclusionsRows[2]` | Used in two different senses one list apart - a lender's valuation of the property, and the fee for a survey. One replacement cannot serve both, and splitting them is a content change rather than a wording one. | "what a lender thinks it is worth" / "a survey" |
+| `repayment mortgage` | `'/learn/ltv'.comparisonCaptionTemplate` | It names the mortgage TYPE the illustrative figures assume. Removing the term would leave the figures unqualified as to type, which is a loss of precision on a comparison, not a gain in plainness. | "a mortgage you pay off in full over {years} years" |
+| `affordability model` | `'/assumptions/borrowing'.exclusionsRows[1]` | **Describes a lender's own process.** Rewording it risks changing what the line claims a lender does, and the line's job is to say their method differs from ours. Precision here outranks plainness. | "A lender works out what you can afford in their own way, which differs from ours" |
+| `underwriting` | `'/assumptions/borrowing'.borrowingEstimateWarning` | **Found during this pass, not previously flagged.** Rendered through `riskWarningHTML()` and required by `fca-copy-check` rule 2 as the not-an-offer statement on frame 31. Rewording a required line is a separate decision from a plain-wording pass. | "the checks a lender runs before they agree" |
+| `indicative` | `'/assumptions/deposit'.rateVariabilityWarning` | **Found during this pass, not previously flagged.** Same reason: it is the rates-indicative risk warning rule 2 requires on frame 30, rendered through `riskWarningHTML()`. | "Mortgage rates shown here follow the market and change often" |
+
+**The line between the five that changed and the six that did not.** Every term rewritten under D65
+sat in an ordinary explanatory row and carried no regulatory weight. Every term left here either
+names something precisely (a product, a mortgage type, a lender's process) or sits inside a required
+statement. None was left because it was hard.
+
+*Status: open by decision. The last two rows are the ones most worth revisiting, because both are
+required lines that a lower-literacy participant is least likely to parse, and both would need a
+copy-check decision rather than an edit.*
+

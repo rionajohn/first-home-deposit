@@ -218,7 +218,7 @@ const content = {
       // screen where the whole task is deciding what an account is FOR. The
       // plainer form is 8 characters longer, which the row absorbs: the
       // Lifetime ISA caption below is 100 characters in the same slot.
-      stocksIsaCaption: "Some people are saving this towards a home, some aren't. Tap to tell us.",
+      stocksIsaCaption: "Some people are saving this toward a home, some aren't. Tap to tell us.",
       lifetimeIsaCaption:
         "Mainly for buying a first home, so we've counted it. Move it if you're saving it for retirement instead.",
       emergencyFundCaption: 'About three months of your essential spending.',
@@ -632,7 +632,7 @@ const content = {
     timingRangeTemplate: '{pct} - {low} to {high}',
     timingAlreadyTemplate: "{pct} - you've already saved this",
     chartHeading: 'How your savings would build up',
-    chartCaptionTemplate: 'With interest at {aer} AER. Illustrative.',
+    chartCaptionTemplate: 'With interest at {aer} a year. Illustrative.',
     thresholdLabelTemplate: '{pct} - {amount}',
     xAxisNow: 'Now',
     legendTemplate: 'At {amount} a month',
@@ -993,7 +993,7 @@ const content = {
     expectHeading: "Here's what to expect",
     expectRows: [
       { label: 'How long it takes', value: 'About 10 minutes' },
-      { label: 'Credit check', value: 'A soft search only' },
+      { label: 'Credit check', value: 'A check that leaves no mark' },
       { label: 'How long the result lasts', value: 'Usually 90 days' },
     ],
     softSearchWarning: 'This is a soft credit search. It will not affect your credit score and other lenders cannot see it.',
@@ -1123,7 +1123,8 @@ const content = {
       'You pay in at the start of each month',
       'Your income and essential outgoings stay roughly as they are now',
     ],
-    interestAssumptionTemplate: 'Interest is paid at {rate} AER, based on the {source}, and compounds monthly',
+    interestAssumptionTemplate:
+      'Interest is paid at {rate} a year, based on the {source}, and each month you earn interest on the interest already added',
     assumptionsRowsAfterInterest: ["We've used the last 12 months of your account activity as the starting point"],
     exclusionsHeading: "What these figures don't include",
     inflationExclusionTemplate: 'Inflation, so {amount} will not buy the same in five years as it does today',
@@ -1148,13 +1149,13 @@ const content = {
       'Rate ranges come from current market data and change often',
       'Loan-to-Value is the mortgage amount as a share of the property value',
     ],
-    interestAssumptionTemplate: 'Your savings keep earning {rate} AER while you save, based on the {source}',
+    interestAssumptionTemplate: 'Your savings keep earning {rate} a year while you save, based on the {source}',
     exclusionsHeading: "What these figures don't include",
     exclusionsRows: [
       "Stamp duty, which depends on the property price and whether you're a first-time buyer",
-      'Solicitor and conveyancing fees',
+      'Solicitor fees for the legal work of buying',
       'A survey or valuation fee',
-      'Mortgage arrangement or product fees',
+      'Fees a lender charges to set the mortgage up',
       'Moving costs, and anything you need to buy for the property',
     ],
     costsBannerText: 'These usually add up to several thousand pounds on top of your deposit.',
@@ -1169,7 +1170,8 @@ const content = {
     assumptionsHeading: 'What we assumed',
     salaryAssumptionTemplate: 'Your salary before tax is {amount}, taken from your salary payments',
     outgoingsAssumptionTemplate: 'Your regular outgoings are {amount} a month, taken from your direct debits and standing orders',
-    studentLoanAssumptionTemplate: 'A lender counts your {amount} student loan separately from the income figure, which is already net of it.',
+    studentLoanAssumptionTemplate:
+      'A lender counts your {amount} student loan separately. It has already been taken off the income figure.',
     assumptionsRowsMiddle: [
       'You are buying on your own',
       'Lenders typically lend up to around four and a half times income, though this varies',
@@ -1177,7 +1179,7 @@ const content = {
     depositAssumptionTemplate: 'Your deposit is the {amount} currently in your savings with us',
     exclusionsHeading: "What this estimate doesn't include",
     exclusionsRows: [
-      "Any income or commitments held with another provider that we can't see",
+      "Any income or commitments held with another bank or building society that we can't see",
       "A lender's own affordability model, which will differ from ours",
       'A full credit check, which happens at application rather than here',
       'The property itself, which a lender will value separately',

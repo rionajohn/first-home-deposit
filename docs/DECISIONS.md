@@ -4576,6 +4576,7 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 29 August 2026 (step 2's year becomes typeable) | **D61 recorded; G73 raised, open.** The target year on frame 10b is an `<input>` rather than a `<p>`, carrying `.date-stepper__value` plus a modifier that undoes only what a user-agent stylesheet puts on a form control - so frame 10b is **byte-for-byte identical** before and after in both themes and at both text sizes, verified by shooting it rather than by asserting it. The attributes and the two listeners are frame 05's `figureInputHTML` and frame 09's `currencyInputHTML` verbatim: `type="text"` with `inputmode="numeric"` (not `type="number"`), `focus -> select()`, and `change` as the commit. `dateStepperHTML` gains a `yearRole` parameter - pass it and the readout becomes a field, leave it out and the control renders as it always has; the month stays stepped-only, being a closed set of twelve. **The empty case is D46's draft rule, applied to the second typeable field in this build:** `state.js` gains `targetYearCleared`, an empty or unparseable field writes it instead of `targetYear`, the render guards on it before deriving anything, and Continue is disabled with no error banner - which matters here because `savings-rate`, `monthly-low` and `monthly-high` are all SOLVED from this date (D2). Both year chevrons resolve the draft, and `stepMonth()` resolves it on exactly the month rolls that cross a year boundary. `targetYearCleared` is deliberately kept OUT of `STAGE_KEYS`, for the reason `targetYear` is. **Bounds: the existing `errorPastDate` minimum only.** No maximum exists anywhere, the stepper handlers stay unbounded, and none was invented - `maxlength="4"` is a format constraint, not a bound, so five-digit years are unreachable by typing while four-digit ones beyond a plausible range still degrade into a pennies-level figure and frame 12's existing `beyondWindowNote`. Asked before building, logged as **G73**, open. No copy changed - the input reuses `dateStepperYearAriaLabel`. `shots.mjs` gains a `--solve` axis, which is what made frame 10b shootable at all. `stale-session.test.mjs` gains a sixth test: the attribute contract, the typed year across a reload and a back navigation, the empty field writing nothing, and `savings-rate` matching `monthlyAmountFromDate()` asserted against the model rather than a literal. `CACHE_VERSION` v53. 270 tests passing. |
 | 29 August 2026 (frame 05 leads with the definition) | **D63 recorded; G78 raised, open.** Frame 05's heading goes `"Here's what we worked out"` to **`"What's left over each month"`** and its body to **"This is roughly what you have left after your usual spending. Anything you save comes out of this. You can change any of it below."**, so the definition of the headline figure arrives in the first line rather than in the provenance caption below the input. **One correction of fact carried in:** the change was requested as "left after their usual spending **and the money they already save**", which the model does not do - `build-spec.md` section 6 defines `left-over` as `money-in - essential-spending` with no saving term, `model.js` computes exactly that, and frame 10 errors when `savings-rate > left-over`, a bound that only holds if saving comes OUT of this figure downstream. Shipping the requested clause would have overstated the deduction by the 200-310 a month frame 10 seeds and failed `fca-copy-check` rule 6A. The wording states the relationship in the same direction the code implements it, and its tense is unscoped on purpose: existing saving and whatever is chosen on frame 10 both come out of the same figure. `figureCaption` shortened **'Left over each month' to 'Each month'**, the heading now saying the long form two elements earlier; `figureAriaLabel` keeps the full label. **Nothing required was touched**: `shared.leftOverCaption`, `enteredCaption`, both error strings, the sources and assumptions routes and `guidanceNotAdvice` are all unchanged, and "roughly" strengthens the estimate framing on a figure modelled from 12 months of activity. Copy-checked over `/position`, all nine rules: **0 fixed, 1 flagged** (`report-issue` unbound, pre-existing and already recorded at `ui.js:1207`). **G78 raised**: dropping "This all comes from your accounts" leaves the provenance caption as the first sourcing statement, and it renders below the figure - recorded for observation in the first session, not fixed. `CACHE_VERSION` v56, `BUILD_VERSION` v56. |
 | 29 August 2026 (frame 03 drops "earmark") | **D64 recorded.** `'/consent'.accountCaptions.stocksIsaCaption` goes "Some people **earmark** this for a home, some don't." to **"Some people are saving this towards a home, some aren't."** One string, one screen - a whole-repo grep for "earmark" returned exactly one hit, so there was no second copy to correct under the correct-everywhere rule. **The longer of two candidate replacements was taken** because the row is not tight: the Lifetime ISA caption directly beneath it is 100 characters in the same slot against this one's 72, and the shorter candidate ("Is any of this for your home?") would have bought nothing the layout needed. Verified rendered at large text, where it wraps to two lines and nothing truncates. **Not changed, and noted:** the string uses "towards" as specified, where the rest of the build uses "toward" - including two strings on this same screen. Both are British English; the inconsistency is flagged rather than silently resolved. A jargon scan over all 615 user-facing strings was run alongside and is reported separately: no `allocate`, `contribute`, `deploy`, `ring-fence`, `disposable`, `principal`, `equity`, `vehicle` or `instrument` anywhere, and the literal `LTV` never reaches the screen. `CACHE_VERSION` v57, `BUILD_VERSION` v57. 270 tests passing. |
+| 29 August 2026 (AER leaves the screen, and five terms with it) | **D65 recorded; G79 raised, open by decision.** `fca-copy-check` rule 5's acronym rule was breached on three screens: frames 12, 29 and 30 used **AER** with no expansion on them, the gloss (`shared.bankRateCaptionTemplate`) rendering only on 08, 10, 11 and 32. **Remedy chosen was removal, not explanation** - all three become "a year", so the acronym is gone rather than glossed a fourth time, and `bankRateCaptionTemplate` and the four screens carrying it are untouched. Rate basis verified per screen: same `RATES.bankRate`, same annual period, source attribution kept verbatim on 29 and 30. **Stated rather than glossed over:** AER also encodes compounding, and only frame 29 keeps that - its "compounds monthly" becomes "each month you earn interest on the interest already added", so 29 says MORE than before, while 12 and 30 lose the implied signal. 12 recovers it through 29, one tap away; 30 does not, and a one-clause fix was offered and not taken because the brief specified the "a year" remedy and nothing more. Five further plain-wording swaps applied, all single-clause and none regulatory: "product fees", "provider", "conveyancing", "net of it" and frame 19's bare "A soft search only". **Two could not be applied literally** - the conveyancing row read "Solicitor **and conveyancing** fees" so a word swap produced nonsense, and the student-loan clause substituted directly would have repeated the noun and attached "which" to the wrong referent; both rewritten whole, with rule 6A's double-counting point preserved exactly. Frame 03's "towards" reverted to "toward" for consistency with two strings on its own screen. Copy-checked over all six routes: **3 fixed, 1 flagged** (`report-issue`, pre-existing). Six terms deliberately NOT changed and recorded as **G79**, with the rejected alternative beside each. `CACHE_VERSION` v58, `BUILD_VERSION` v58. 270 tests passing. |
 
 ---
 
@@ -4802,4 +4803,67 @@ and has been applied as given rather than silently altered; resolving the incons
 one-word change either way.
 
 **To reverse.** One string value in `content.js`.
+
+---
+
+## D65. The acronym goes, rather than getting a fourth explanation
+
+**Date.** 29 August 2026.
+
+**Decision.** Frames 12, 29 and 30 stop using "AER" and say "a year" instead. Frame 29 additionally
+replaces "compounds monthly" with "each month you earn interest on the interest already added". Five
+further terms are replaced in ordinary explanatory rows, and frame 03's "towards" becomes "toward".
+Ten string values in `src/content.js`. No screen module, no component, no CSS, no figure.
+
+**Why removal rather than a gloss.** `fca-copy-check` rule 5 asks that an acronym be written out
+before use. The build already carried the expansion in `shared.bankRateCaptionTemplate` ("AER means
+Annual Equivalent Rate"), but that string renders on frames 08, 10, 11 and 32 only, so three screens
+used the acronym cold. The obvious repair was to render the gloss on those three too. It was not
+taken. A gloss satisfies the rule by adding a second sentence a participant must read and hold; "a
+year" satisfies it by removing the thing that needed explaining. On a screen being used to measure
+whether people can follow their own figures, the shorter road is the point.
+
+**What this deliberately does not touch.** `shared.bankRateCaptionTemplate` and the three
+`savingsInterestSuffix` keys on 08, 10 and 32 are unchanged. Those screens render the suffix and its
+expansion together, which is the pattern rule 5 asks for, and breaking it up would have traded a
+compliant screen for a consistent vocabulary.
+
+### The nuance that is lost, named rather than buried
+
+AER is not only "annual". It is the rate once compounding is counted, and "a year" does not carry
+that. The three screens land differently and it is worth being exact about which:
+
+- **Frame 29 gains.** Compounding is now stated in words instead of encoded in three letters. This
+  screen says more after the change than before it.
+- **Frame 12 loses the signal, and recovers it.** The caption is a chart footnote; the working is on
+  frame 29, which the screen already links.
+- **Frame 30 loses it outright.** Rate, period and source survive, so the rate BASIS is unchanged,
+  but nothing on that sheet now says interest builds on interest.
+
+A one-clause fix for 30 exists ("with interest building up each month") and was offered rather than
+applied, because the brief specified the "a year" remedy and adding to it would have been scope taken
+rather than given. If frame 30's omission matters, that clause is the fix.
+
+### Two swaps that could not be made literally
+
+Both are recorded because a later reader comparing the brief to the diff will otherwise see a
+deviation and not know it was forced.
+
+- **"Solicitor and conveyancing fees."** The row named the same thing twice, so substituting the one
+  word produced "Solicitor and solicitor fees for the legal work of buying fees". The row was
+  replaced whole. Nothing is lost: conveyancing IS the legal work a solicitor does on a purchase.
+- **"…which is already net of it."** Substituting the clause gave "…separately from the income
+  figure, which has already been taken off the income figure" - the noun twice, and "which" bound to
+  the income figure when the thing taken off is the loan. Split into two sentences instead. This line
+  is the one rule 6A has a clause written specifically for (Plan 2 repayments leave through payroll,
+  so subtracting again double-counts), so its meaning had to survive intact, and it does: the lender
+  counts the loan separately, and it is already off the income figure.
+
+**What was left alone, on purpose.** Six terms were found and not changed: the ISA account names,
+"valuation", "repayment mortgage", "affordability model", and - found during this pass rather than
+the one before it - "underwriting" and "indicative", both of which sit inside required risk warnings.
+Each is recorded in **G79** with the alternative that was considered, so the position is on record
+rather than waiting to be rediscovered.
+
+**To reverse.** Ten string values in `content.js`. No other file carries any of them.
 
