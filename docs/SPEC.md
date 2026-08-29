@@ -104,6 +104,16 @@ docs/
   nextReviewDate: '2026-09-17', rangeSpread: 0.10 }`, plus `borrowRangeCentral = 'loan-amount'` and
   `lisaCapPropertyValue = 450000`.
 
+  It also exports `AREA_AVERAGE_PROPERTY_VALUE = { value: 470000, region: 'London', source: 'UK
+  House Price Index, HM Land Registry and ONS', asAt: '2026-06', asAtLabel: 'June 2026', sourceUrl }`
+  - the first-time-buyer average shown as context on frame 09, with the attribution caption beneath
+  it. **Display only**: no function in `model/` reads it, and the property value a session opens with
+  is `STAGE_PROPERTY_VALUE` in `src/stage.js` (650,000, DECISIONS.md D55), not this. Frame 09's
+  caption and its `Source:` line both resolve `{region}`, `{amount}`, `{source}` and `{period}` from
+  this one object, the same treatment `bankRateCaptionTemplate` gives `RATES.source`, so the sentence
+  and its attribution cannot come to name different figures or different months. See DECISIONS.md
+  D56.
+
   **Maintenance rule:** any change to a value in this file requires re-running the model tests and
   bumping `sw.js`'s `CACHE_VERSION` in the same commit. The Bank Rate is under Monetary Policy
   Committee review on 17 September 2026; a rate change landed without a cache bump would leave some

@@ -481,7 +481,15 @@ const content = {
 
     propertyValueHintFilled: "A rough figure is fine - you can change it later",
     propertyValueAriaLabel: 'Likely property value',
-    areaAverageCaption: 'The average first-time-buyer property in your area is around {amount}.',
+    // Context for what to type in the field above, not a benchmark the
+    // participant is measured against (copy-check rule 6). `{amount}`,
+    // `{region}` and `{period}` all resolve from
+    // AREA_AVERAGE_PROPERTY_VALUE in model/rates.js, and the attribution
+    // below resolves its source and period from the same object, so the two
+    // lines cannot end up naming different figures or different months.
+    // DECISIONS.md D56.
+    areaAverageCaption: 'In {region}, first-time buyers paid around {amount} on average in {period}.',
+    areaAverageSourceCaption: 'Source: {source}, {period}.',
     depositQuestionHeading: 'How much would you put down?',
     comparisonHeaderText: 'What each one means',
     comparisonSublabelTemplate: '{pct} deposit',

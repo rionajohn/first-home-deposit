@@ -4050,6 +4050,75 @@ before-and-after comparison is an improvement either way and should stay.
 
 ---
 
+## D56. The area-average property figure is London, dated, and named to its source
+
+**Date.** 29 August 2026.
+
+**Decision.** `AREA_AVERAGE_PROPERTY_VALUE` in `src/model/rates.js` goes from **190,000 to 470,000**,
+gains `region: 'London'`, `asAt: '2026-06'`, `asAtLabel: 'June 2026'` and a `sourceUrl`, and its
+`source` becomes **'UK House Price Index, HM Land Registry and ONS'**. Frame 09's caption becomes
+"In London, first-time buyers paid around 470,000 on average in June 2026." and a
+`provenanceCaptionHTML()` line beneath it reads "Source: UK House Price Index, HM Land Registry and
+ONS, June 2026."
+
+**Why.** 190,000 was carried with the note that no source was named for it anywhere in
+`build-spec.md` or here, and it was the only figure on any screen in that position. It is also wrong
+for the case study: this prototype's participants are London first-time buyers, the opening session
+holds a 650,000 property (D55), and a screen that offers 190,000 as the local average alongside a
+650,000 field is not context, it is noise. A figure a participant is asked to reason against has to
+be one they can place, and it has to say where it came from.
+
+**Nothing is calculated from it, and that is what made this safe.** `AREA_AVERAGE_PROPERTY_VALUE` is
+read at exactly one place in the repo - the caption on `src/screens/calculator-property.js`. The
+property value a session opens with is `STAGE_PROPERTY_VALUE` (D55); every figure on frames 09 to 12
+runs off the participant's own committed `property-value`; and `model.test.js`'s 190,000 fixtures are
+`build-spec.md` section 4's deposit-target worked example, a different figure that happens to share
+the number. Nothing in `model/` was touched and no derived figure moved. The 43 model tests pass
+unchanged, which is the evidence rather than the claim.
+
+**Why it is one constant and two templates rather than two sentences.** The sentence and its
+attribution both name the month, and the sentence and the constant both name the figure. Written out
+twice they drift, which is the failure `bankRateCaptionTemplate` already exists to prevent -
+`{source}` there resolves from `RATES.source` so the caption cannot name a source the model did not
+use. The same treatment applies here: `areaAverageCaption` and `areaAverageSourceCaption` resolve
+`{region}`, `{amount}`, `{source}` and `{period}` from the one object, so the two lines on screen
+cannot come apart.
+
+**Plain text, not a link, and the caption style is the existing one.** The attribution renders
+through `provenanceCaptionHTML()` at `.provenance-caption`, the style D5 established and nine other
+screens already use - not a Source badge, which the design rules exclude, and not a new style. It
+does not link out because **no screen in this build renders an anchor at all**: a grep for `<a ` and
+`href=` across `src/` returns nothing outside `index.html`'s own stylesheet and icon tags. A single
+link on frame 09 would be the only tappable external destination in the prototype and would be read
+as a live affordance in a think-aloud session. The URL is recorded on the constant instead, the same
+way `RATES.sourceUrl` is held and never rendered.
+
+**Copy check.** Rule 1 (advice boundary): a statement of past fact, no recommendation, no steer.
+Rule 6: the average sits above the input as context for what to type, not as a benchmark the
+participant is measured against, and the copy makes no comparison between it and their own figure -
+which matters more at 470,000 against an opening 650,000 than it did at 190,000. Rule 8: sentence
+case, en-GB, pound sign and thousands separator through `formatCurrency`, provenance carried as a
+caption. **One flag, not fixed:** rule 5 bars sentences carrying more than one number, and
+"470,000 ... June 2026" carries a figure and a date. The wording is as specified and the date is
+what makes the figure checkable, so it stands; it is recorded here rather than silently allowed.
+
+**What was NOT changed.** No other copy on frame 09. `build-spec.md` section 4's 190,000 worked
+example and `model.test.js`'s fixtures are a different figure and are left alone. `scripts/session-
+seed.mjs` is untouched.
+
+**Verified.** 43 model tests, 50 state tests (`skip-ahead`, `g62`, `stage`), 66 overlap assertions
+(all 33 frames x both text sizes, so frame 09 with the extra line at large text) and 77 action-bar
+assertions - 236 passing, 0 failing. `CACHE_VERSION` v47, with `BUILD_VERSION` bumped to match: it
+was found at v45 against sw.js's v46, a drift from the previous commit, and D49's pairing rule makes
+correcting it part of this bump rather than a separate errand.
+
+**Reversal.** Put `190000` and the old one-line `source` back in `rates.js`, restore
+`areaAverageCaption` to its "in your area" wording, and drop `areaAverageSourceCaption` with the
+`provenanceCaptionHTML()` call and the import that feeds it. Nothing else depends on any of it.
+
+---
+
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -4125,3 +4194,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 28 August 2026 (one forward route from frame 08) | **D53 recorded.** Frame 08 draws **no action bar**: "Not now, just track my goal" is removed with its content key, and the deposit calculator becomes the only forward route from the screen. The removed button wrote no state and offered a shortcut past the one thing the screen introduces, from the more prominent of two unequal slots; `build-spec.md` section 1 names the card's checkpoint button from here and **no row for this one at all**. `/tracker` stays reachable from the Insights tab, `/goals`'s bridge card, frame 12's primary and the MIP exits, and no journey state is lost - nothing in `src/` reads `calculatorEntered`, and frame 33's Journey stage builds a populated tracker more completely than the button did (D45). The **DUAA pushback affordance is untouched**: SPEC.md's anchor map satisfies it on this screen with the flag row plus the "how we worked this out" link, both of which stay - the removed control was a decline route, not pushback. Lost and recorded: the screen's only decline route, and the `--more-below` fade, which the dock draws and which goes with it on a screen that needs scrolling. The guidance-not-advice line keeps its place as the last element in the content. A **tenth** screenshot exemption in SPEC.md; frame 08 leaves the sixth exemption's set; `action-bar.test.mjs` moves the route into the no-bar test and all three no-bar enumerations now read "01, 08, 12, 19b, 20, 21 and 33". `CACHE_VERSION` v44. |
 | 28 August 2026 (a second, invisible path to frame 33) | **D54 recorded.** A **~700ms long press on the DISABLED Profile tab** opens `/settings`, so a session reaches frame 33 and its reset without a hash typed in front of a participant. Nothing renders, nothing is labelled, nothing enters the accessibility tree, and the tab stays visually and semantically disabled. A visible block on frame 01 was rejected as the worst possible placement for a control that can flip the scenario mid-session; a `/profile` screen was rejected as a large change - new route, new screen outside the 32-frame set, a focusable tab - in service of a small need. The tab beat the app bar the Figma node annotates on **coverage** (20 routes to 19, including the three calculator steps the app bar cannot reach) and **blast radius** (the tab is inert; the app bar holds the back control). Built on the measured fact that a disabled button fires `pointerdown` but **not** `click` - load-bearing, since it is what keeps the tab inert to a tap, and the condition under which this must be revisited if `profile` ever joins `NAVIGABLE_TABS`. `user-select: none` added to the shared `.bottom-nav__tab` rule for the gesture's sake, not as a styling tweak; a required maintainer comment at `bottomNavHTML`; `GAPS.md` G23 stays **resolved** with a dated note, its "never linked from any on-screen element" still literally true; and `skip-ahead.js`'s citation of a "facilitator gesture on frame 10" that never existed is corrected. **No copy and no accessible name** - the one prototype affordance in this build that does not carry the "Prototype control" framing, because there is no name to carry it in. Owns no state. Six "typing the URL" records amended in place. `CACHE_VERSION` v45. |
 | 28 August 2026 (opening session meets the LISA cap) | **D55 recorded; D45 amended in place.** `STAGE_PROPERTY_VALUE` raised **240,000 to 650,000**, so a session opening in the saving stage (D48) arrives on frame 09 above the Lifetime ISA cap with the warning already rendered. **D45's projection-window property is deliberately given up**, because the two cannot both hold: the window closes at a **275,832** property and the cap starts above **450,000**, with no value in between, and no savings rate bridges it - 822.11 a month would be needed and `monthsToTarget()` rejects it as `exceeds-left-over` against the 380 ceiling, while even at that ceiling the largest property reachable inside 60 months is 358,305. Raising `saved-toward-deposit` to 40,076 would satisfy both and was rejected: 8,950 is the sum of the four mock accounts frames 03, 06 and 32 draw. **Cost:** `months-to-target` 154.8 months, so the tracker's "On track for" row renders its beyond-window variant from the opening session. **Kept:** 8,950 < 48,750, so the tracker still opens locked and both skip-ahead positions still exist. `stage.test.mjs` swaps the window assertion for two that assert the trade - the seed is above the cap, and the beyond-window consequence is explicit - so a later change that silently restored the window fails a test naming D55 rather than looking like a fix. `g62.test.mjs` had one assertion accidentally coupled to the seed and now compares the projection before and after the clear. Frame 09's banner was confirmed to derive live from `property-value` rather than read `lisaCapBreached`. `ROUTES.md` stage table and recipe comparison row updated. `CACHE_VERSION` v46. 264 tests passing. |
+| 29 August 2026 (area average sourced and localised) | **D56 recorded.** `AREA_AVERAGE_PROPERTY_VALUE` goes **190,000 to 470,000**, gains `region`, `asAt`, `asAtLabel` and `sourceUrl`, and is sourced to the **UK House Price Index, HM Land Registry and ONS, June 2026**. Frame 09's caption becomes "In London, first-time buyers paid around 470,000 on average in June 2026." with a `.provenance-caption` "Source:" line beneath it. **No calculation moved**: the constant is read at one place in the repo (the caption), the opening property value is `STAGE_PROPERTY_VALUE` (D55), and `model.test.js`'s 190,000 is `build-spec.md` section 4's deposit-target example, a different figure sharing the number. Sentence and attribution are two templates over **one** object, the `bankRateCaptionTemplate` treatment, so they cannot drift. **Plain text, not a link** - no screen in this build renders an anchor, so one here would be the only external affordance in the prototype; the URL lives on the constant as `RATES.sourceUrl` does. Copy-checked: rules 1, 6 and 8 pass, **rule 5 flagged not fixed** (the sentence carries a figure and a date, and the date is what makes the figure checkable). No other frame 09 copy touched. 236 tests passing. `CACHE_VERSION` v47, `BUILD_VERSION` corrected v45 to v47 under D49. |

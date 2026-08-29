@@ -30,15 +30,30 @@ export const BORROW_RANGE_CENTRAL = 'loan-amount';
 export const LISA_CAP_PROPERTY_VALUE = 450000;
 
 /**
- * Frame 08 seeds the deposit calculator's starting property value from an
- * "area average" (build-spec.md section 2: "08 Ready for the calculator —
- * default — property-value (area average)") — no source is named anywhere
- * in build-spec.md/DECISIONS.md for this figure, so it's held here as a
- * dated, sourced constant rather than inlined into frame 09/09a/09b.
+ * The first-time-buyer average property price shown as context on frame 09
+ * (build-spec.md section 2's "08 Ready for the calculator - default -
+ * property-value (area average)"). Held here as a dated, sourced constant
+ * rather than inlined into frame 09/09a/09b, so the caption and the
+ * attribution beneath it both resolve from one place and cannot drift
+ * apart. See DECISIONS.md D56.
+ *
+ * DISPLAY ONLY. Nothing in model/ reads this - the seeded property value a
+ * session opens with is STAGE_PROPERTY_VALUE in src/stage.js, and every
+ * calculation on frames 09 to 12 runs off the participant's own committed
+ * `property-value`. Changing the figure here changes one sentence and its
+ * caption, and no derived figure anywhere.
+ *
+ * `sourceUrl` is recorded for the same reason RATES.sourceUrl is: the
+ * prototype renders no anchors at all (no screen in this build links out),
+ * so it documents the figure rather than being read by a screen.
  */
 export const AREA_AVERAGE_PROPERTY_VALUE = {
-  value: 190000,
-  source: 'UK House Price Index 2026, first-time-buyer average',
+  value: 470000,
+  region: 'London',
+  source: 'UK House Price Index, HM Land Registry and ONS',
+  asAt: '2026-06',
+  asAtLabel: 'June 2026',
+  sourceUrl: 'https://www.gov.uk/government/statistics/uk-house-price-index-for-june-2026/uk-house-price-index-england-june-2026',
 };
 
 /**

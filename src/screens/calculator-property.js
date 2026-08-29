@@ -34,6 +34,7 @@ import {
   optionComparisonCardHTML,
   warningBannerHTML,
   infoLinkHTML,
+  provenanceCaptionHTML,
   rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
@@ -111,7 +112,15 @@ export function render(container, ctx) {
       })}
       ${errorText ? warningBannerHTML(errorText) : ''}
       ${isAboveLisaCap ? infoBannerHTML(fill(c.lisaCapBannerText, { cap: formatCurrency(LISA_CAP_PROPERTY_VALUE) })) : ''}
-      <p class="entry-card__body">${fill(c.areaAverageCaption, { amount: formatCurrency(AREA_AVERAGE_PROPERTY_VALUE.value) })}</p>
+      <p class="entry-card__body">${fill(c.areaAverageCaption, {
+        region: AREA_AVERAGE_PROPERTY_VALUE.region,
+        amount: formatCurrency(AREA_AVERAGE_PROPERTY_VALUE.value),
+        period: AREA_AVERAGE_PROPERTY_VALUE.asAtLabel,
+      })}</p>
+      ${provenanceCaptionHTML(fill(c.areaAverageSourceCaption, {
+        source: AREA_AVERAGE_PROPERTY_VALUE.source,
+        period: AREA_AVERAGE_PROPERTY_VALUE.asAtLabel,
+      }))}
       <h3 class="section-heading">${c.depositQuestionHeading}</h3>
       ${chipRowHTML({ chips: DEPOSIT_PCT_OPTIONS.map((pct) => ({ value: pct, label: formatPercent(pct, 0) })), selected: isEmpty ? null : depositPct, action: 'select-deposit-pct' })}
       ${isEmpty
