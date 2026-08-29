@@ -2136,3 +2136,44 @@ to match D5's refinement, or reversing the refinement and restoring the two capt
 decisions about the audit standard itself, so neither was taken here. Until it is settled, a
 `fca-copy-check` run over `/calculator/review` will report those four rows, and the report should be
 read against this entry.
+
+---
+
+**G78. Frame 05 now states what the figure is before it states where it came from, and nothing on
+screen sources it above the fold.** Raised while applying D63, 29 August 2026. **Open: an
+observation for the first session, not a resolved point.**
+
+D63 replaced frame 05's body. The sentence that went was `'This all comes from your accounts. Change
+anything that looks wrong.'`, and its first half was the only statement of SOURCING a participant met
+before the figure. The replacement spends its three sentences on what the figure IS and on the fact
+they can change it, which is what the screen was failing to say quickly enough, so sourcing moved
+down rather than being reworded.
+
+What a participant now reads, in render order:
+
+1. `What's left over each month` - the heading
+2. `This is roughly what you have left after your usual spending. Anything you save comes out of
+   this. You can change any of it below.`
+3. `640` - the editable figure
+4. `Each month` - the figure's own caption
+5. `Worked out from your salary and your regular spending` - the provenance caption, and the first
+   thing on the screen that says where the number came from
+
+So the first three things read are a definition, a number and a period. Sourcing is fourth, one
+element below the figure and in footnote type.
+
+**Why this was accepted rather than fixed.** Nothing REQUIRED is missing. `shared.leftOverCaption`
+still renders directly under the figure, and rule 8 asks for a provenance caption, not for it to
+precede the figure. `'Where these figures come from'` still routes to frame 32 and the disclosure
+still routes to frame 29. The replaced half-sentence was also the vaguer of the two statements - "This
+all comes from your accounts" against a caption that names the salary and the regular spending
+specifically - so what moved down the screen is weaker than what stayed put. Adding a fourth sentence
+to restore it would undo the change D63 was made for.
+
+**What to watch in the first session.** Whether a participant asks where the 640 came from, or
+challenges it, BEFORE their eye reaches the provenance caption. The think-aloud will show it: a
+participant reading the heading and body and then querying the number's origin unprompted is the
+signal that sourcing is now too low. If it appears, the fix is a sourcing clause in the body or a
+caption promoted above the figure, and both are copy changes, not layout ones.
+
+*Status: open, recorded for observation. No change made.*

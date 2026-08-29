@@ -4574,6 +4574,7 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 29 August 2026 (stale sessions self-clear) | **D59 recorded; G66 RESOLVED, both halves.** `defaultState()` gains `buildVersion: BUILD_VERSION`, and `load()` **discards a stored session whose stamp is not the running build's** - unstamped included - falling through to `defaultState()` rather than merging over it, warning on the console with both versions, and re-persisting so the discard fires once. A matching stamp restores exactly as before; `persist()` and `setState()` are untouched. **This is not the fix G66 rejected, and the difference is one word:** that one re-applied the opening stage OVER a restored store, and `stagePatch()` writes only `STAGE_KEYS`, leaving a real session's flags beside a fresh goal - the mixed state D46 and `CLAUDE.md`'s state rules exist to prevent. Discarding WHOLE cannot produce it: what returns is a first load. **The routing half closes for free** - `restoredFromStorage` stays false, so `openSession()` applies the opening stage to the fresh store and Insights stops redirecting. **Stamp inside the store, not an envelope around it**, on blast radius: ten call sites across six harnesses touch the stored object and two read it back (`sheet-drag` asserts `state.ltvVideoSeen`, `shots` spreads over a stored session). **All ten harness seeds now stamped** - an unstamped seed is discarded by the check itself, so every browser suite would have silently measured a default session instead of its own. Residual risk kept deliberately: a deploy landing mid-session costs that participant their progress, to a clean opening session. Frame 33's build line (D49) already satisfied the surfacing requirement; verified at v51. `CACHE_VERSION` v51, `BUILD_VERSION` v51. **269 tests passing** (5 new in `scripts/stale-session.test.mjs`). |
 | 29 August 2026 (the seeded property becomes relatable) | **D60 recorded; D55 reversed in effect, D45's window still not recovered.** `STAGE_PROPERTY_VALUE` lowered **650,000 to 450,000**, so the case study is one an early-career participant reads as theirs rather than as a comment on the London market. **The Lifetime ISA cap warning is the cost:** 450,000 IS `LISA_CAP_PROPERTY_VALUE` and the comparison is strictly greater-than, so `lisaCapBreached` is false and frame 09b's banner is no longer an opening state - still reachable by typing a higher value, since frame 09 derives it live, but not without typing. Logged as **G70**. **The window is not bought back:** `months-to-target` is 107.6 months, still `beyond-window`, because the window closes at a 275,832 property - so both of the properties D45 and D55 traded between are now given up, on purpose, for a third axis neither was about. **Kept:** 8,950 < 33,750, so the tracker still opens locked and both skip-ahead positions still exist; "Ready to check" is 29.9 months, on track for 27 to 33. Every dependent figure follows through `src/model/` and **not one was edited** - a full grep of all seven written forms of 650,000 and of every figure derived from it found code hits in `src/stage.js` alone. `stage.test.mjs`'s cap assertion rewritten to the new intent as a RELATIONSHIP to the cap constant rather than as `450000`; the beyond-window test kept its assertions and gained a comment. Borrowing against the seeded salary (`MOCK_MIP_DATA.annualSalaryBeforeTax`, 38,000 - not `money-in`, which is monthly after tax) is still implausible at 10.7x - flagged as **G71**, not fixed, because it needs G69's unanswered question settled first. `SPEC.md`, `ROUTES.md` and `GAPS.md` G69's figures updated. `CACHE_VERSION` v52. 93 pure-Node tests passing. |
 | 29 August 2026 (step 2's year becomes typeable) | **D61 recorded; G73 raised, open.** The target year on frame 10b is an `<input>` rather than a `<p>`, carrying `.date-stepper__value` plus a modifier that undoes only what a user-agent stylesheet puts on a form control - so frame 10b is **byte-for-byte identical** before and after in both themes and at both text sizes, verified by shooting it rather than by asserting it. The attributes and the two listeners are frame 05's `figureInputHTML` and frame 09's `currencyInputHTML` verbatim: `type="text"` with `inputmode="numeric"` (not `type="number"`), `focus -> select()`, and `change` as the commit. `dateStepperHTML` gains a `yearRole` parameter - pass it and the readout becomes a field, leave it out and the control renders as it always has; the month stays stepped-only, being a closed set of twelve. **The empty case is D46's draft rule, applied to the second typeable field in this build:** `state.js` gains `targetYearCleared`, an empty or unparseable field writes it instead of `targetYear`, the render guards on it before deriving anything, and Continue is disabled with no error banner - which matters here because `savings-rate`, `monthly-low` and `monthly-high` are all SOLVED from this date (D2). Both year chevrons resolve the draft, and `stepMonth()` resolves it on exactly the month rolls that cross a year boundary. `targetYearCleared` is deliberately kept OUT of `STAGE_KEYS`, for the reason `targetYear` is. **Bounds: the existing `errorPastDate` minimum only.** No maximum exists anywhere, the stepper handlers stay unbounded, and none was invented - `maxlength="4"` is a format constraint, not a bound, so five-digit years are unreachable by typing while four-digit ones beyond a plausible range still degrade into a pennies-level figure and frame 12's existing `beyondWindowNote`. Asked before building, logged as **G73**, open. No copy changed - the input reuses `dateStepperYearAriaLabel`. `shots.mjs` gains a `--solve` axis, which is what made frame 10b shootable at all. `stale-session.test.mjs` gains a sixth test: the attribute contract, the typed year across a reload and a back navigation, the empty field writing nothing, and `savings-rate` matching `monthlyAmountFromDate()` asserted against the model rather than a literal. `CACHE_VERSION` v53. 270 tests passing. |
+| 29 August 2026 (frame 05 leads with the definition) | **D63 recorded; G78 raised, open.** Frame 05's heading goes `"Here's what we worked out"` to **`"What's left over each month"`** and its body to **"This is roughly what you have left after your usual spending. Anything you save comes out of this. You can change any of it below."**, so the definition of the headline figure arrives in the first line rather than in the provenance caption below the input. **One correction of fact carried in:** the change was requested as "left after their usual spending **and the money they already save**", which the model does not do - `build-spec.md` section 6 defines `left-over` as `money-in - essential-spending` with no saving term, `model.js` computes exactly that, and frame 10 errors when `savings-rate > left-over`, a bound that only holds if saving comes OUT of this figure downstream. Shipping the requested clause would have overstated the deduction by the 200-310 a month frame 10 seeds and failed `fca-copy-check` rule 6A. The wording states the relationship in the same direction the code implements it, and its tense is unscoped on purpose: existing saving and whatever is chosen on frame 10 both come out of the same figure. `figureCaption` shortened **'Left over each month' to 'Each month'**, the heading now saying the long form two elements earlier; `figureAriaLabel` keeps the full label. **Nothing required was touched**: `shared.leftOverCaption`, `enteredCaption`, both error strings, the sources and assumptions routes and `guidanceNotAdvice` are all unchanged, and "roughly" strengthens the estimate framing on a figure modelled from 12 months of activity. Copy-checked over `/position`, all nine rules: **0 fixed, 1 flagged** (`report-issue` unbound, pre-existing and already recorded at `ui.js:1207`). **G78 raised**: dropping "This all comes from your accounts" leaves the provenance caption as the first sourcing statement, and it renders below the figure - recorded for observation in the first session, not fixed. `CACHE_VERSION` v56, `BUILD_VERSION` v56. |
 
 ---
 
@@ -4691,3 +4692,80 @@ branch in `reviewRowHTML`, its CSS block in `components.css`, and the bindings i
 `src/screens/calculator-review.js`. Restoring the navigation means putting a `changeLabel` back on
 the component and re-pointing four actions at frames 09, 06 and 10; no route was removed, so all four
 destinations are still live.
+
+---
+
+## D63. Frame 05 says what the figure is before it says the figure
+
+**Date.** 29 August 2026.
+
+**Decision.** Frame 05's heading names the figure and its body defines it. The heading goes
+`"Here's what we worked out"` to `"What's left over each month"`, and the body goes `'This all comes
+from your accounts. Change anything that looks wrong.'` to `'This is roughly what you have left after
+your usual spending. Anything you save comes out of this. You can change any of it below.'`
+`figureCaption` shortens from `'Left over each month'` to `'Each month'`. Three strings in
+`content.js`. No screen module, no component, no CSS.
+
+**Why.** Participants were not learning quickly enough what the headline number was. The old heading
+named no figure at all - "what we worked out" describes an activity, not a quantity - and the only
+definition on the screen was the provenance caption, which renders BELOW the input. A participant
+therefore met the number before meeting anything that said what it was, and the think-aloud recorded
+them working it out from the breakdown they had to open.
+
+### The clause that was corrected, and why it had to be
+
+The change was requested with the definition given as "the money left over after their usual spending
+**and the money they already save**". The second half is not true of this figure, and three places in
+the repo say so independently:
+
+- `build-spec.md` section 6: `left-over | money-in - essential-spending`. No saving term.
+- `src/model/model.js`: `const value = moneyIn.value - essentialSpending.value;`
+- `build-spec.md` section 2: frame 10 errors when `savings-rate > left-over`. A bound that only makes
+  sense if the saving is taken OUT of this figure. If it had already been taken off, the seeded
+  200-310 a month would be constrained against a figure it had itself produced.
+
+So the requested wording would have told a participant that 640 was already net of the 200-310 they
+put aside, understating what they have to work with by up to half. That is `fca-copy-check` rule 6A -
+a modelled figure presented as something the model does not compute - and it is the specific defect
+`CLAUDE.md` means by "never invent a rule".
+
+**The shipped sentence states the same relationship in the direction the code implements it.**
+"Anything you save comes out of this" says the deduction happens downstream, which is what frame 10
+then does. **Its tense is unscoped deliberately**: what they already put aside and whatever they
+choose on frame 10 both come out of the same 640, and a version scoped to existing saving alone
+would have been narrower than the truth.
+
+**"Roughly" is not padding.** `left-over` is modelled from 12 months of activity and was previously
+stated flat. The word clears a latent rule 6A item rather than hedging a known quantity.
+
+### What was shortened, and what was not
+
+`figureCaption` was the only repetition the new heading created: with the heading reading "What's
+left over each month", a caption reading "Left over each month" two elements later did no new work.
+It was shortened rather than deleted, because it is the field's visible label and an empty
+`.figure-input__caption` would leave the element rendering nothing. `figureAriaLabel` keeps
+`'Left over each month, editable'`, so what a screen reader announces is unchanged.
+
+`'This all comes from your accounts'` went, and it was the screen's first sourcing statement. That is
+a real loss and it is recorded as **G78**, open, for observation in the first session rather than
+resolved. It was accepted because the caption that replaced it as the first sourcing statement is the
+MORE specific of the two - "Worked out from your salary and your regular spending" against "your
+accounts" - and because restoring it means a fourth sentence, which undoes the change this decision
+was made for.
+
+**Nothing required was touched.** `shared.leftOverCaption` still renders directly under the figure
+and still switches to `enteredCaption` on a typed edit, which is D5 as refined by D62. Both error
+strings, the disclosure and its breakdown, `'Where these figures come from'` to frame 32, the
+assumptions route to frame 29, the flag row and `shared.regulatory.guidanceNotAdvice` are unchanged.
+
+### Copy check
+
+Run over `/position` against all nine rules. **0 fixed, 1 flagged.** The flag is the flag row's
+`report-issue` action, which nothing binds - pre-existing, already recorded at `src/components/ui.js`
+as the standing counter-example, and not introduced here. Rule 8 read against D5-as-refined and G77:
+the caption is correctly present, because the figure does not originate with the participant until
+they type over it.
+
+**To reverse.** Three string values in `content.js`'s `'/position'` block: `headline`, `body` and
+`figureCaption`. Nothing else changed, so restoring them restores the screen exactly.
+

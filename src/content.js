@@ -238,9 +238,33 @@ const content = {
 
   '/position': {
     appBarTitle: 'What we can see',
-    headline: "Here's what we worked out",
-    body: 'This all comes from your accounts. Change anything that looks wrong.',
-    figureCaption: 'Left over each month',
+
+    // THE DEFINITION LEADS (DECISIONS.md D63). The heading names the figure
+    // and the first line says what it is net of, because both used to arrive
+    // after it: the old heading ("Here's what we worked out") named no figure
+    // at all, and the only definition on screen was the provenance caption
+    // BELOW the input, which a participant reaches after the number.
+    //
+    // "Anything you save comes out of this" states the direction the model
+    // implements. build-spec.md section 6 defines `left-over` as `money-in -
+    // essential-spending`, with no saving term, and frame 10 errors when
+    // `savings-rate > left-over` - a bound that only makes sense if saving is
+    // taken OUT of this figure downstream. Wording that claimed the deduction
+    // had already been applied ("after your usual spending and the money you
+    // already put away") would overstate it by the 200-310 a month frame 10
+    // seeds, and fails fca-copy-check rule 6A. The tense is deliberately
+    // unscoped: what they already put aside and what they choose on frame 10
+    // both come out of the same figure.
+    //
+    // "Roughly" is not hedging for its own sake - left-over is modelled from
+    // 12 months of activity and was previously stated flat.
+    headline: "What's left over each month",
+    body: 'This is roughly what you have left after your usual spending. Anything you save comes out of this. You can change any of it below.',
+
+    // Shortened from 'Left over each month', which the heading now says
+    // verbatim two elements earlier. The full label is kept in
+    // figureAriaLabel, so a screen reader still announces the whole thing.
+    figureCaption: 'Each month',
     figureAriaLabel: 'Left over each month, editable',
     disclosureTitlePrefix: 'How we got to',
     proportions: {
