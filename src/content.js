@@ -143,7 +143,7 @@ const content = {
       {
         heading: 'Yesterday',
         rows: [
-          { merchant: 'Salary', category: 'Monthly pay', amount: '+£2,240.00' },
+          { merchant: 'Salary', category: 'Monthly pay', amount: '+£2,500.00' },
           { merchant: 'Spotify', category: 'Subscriptions', amount: '−£11.99' },
         ],
       },

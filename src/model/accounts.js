@@ -188,13 +188,13 @@ export function goalsByHorizon(accounts) {
 /**
  * Mock monthly position for frame 05 (money-in, essential-spending —
  * build-spec.md section 6). Read from the same mock salary credit shown on
- * frame 01's transaction list (+£2,240.00), so the figure is consistent
+ * frame 01's transaction list (+£2,500.00), so the figure is consistent
  * across screens rather than a second, unrelated number. Provenance is
  * 'read': this is the participant's main bank and its own current-account
  * activity, seeded into the store at session start (src/state.js).
  */
 export const MOCK_POSITION = {
-  moneyIn: 2240,
+  moneyIn: 2500,
   essentialSpending: 1860,
   // Frame 10's "how you'll save" range slider (monthly-low/monthly-high):
   // read from the instant saver's own deposit history. Values match the

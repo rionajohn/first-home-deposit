@@ -148,12 +148,25 @@ export const OPENING_STAGE = 'saving';
  * meet the Lifetime ISA cap warning as part of its opening state, and that
  * warning renders only above `LISA_CAP_PROPERTY_VALUE` (450,000).
  *
- * THE TWO REQUIREMENTS CANNOT BOTH HOLD. Against the same mock seeds the
- * projection window closes at about 275,800, and the warning needs more than
- * 450,000 - there is no value in between, and no savings rate reaches one
+ * THE TWO REQUIREMENTS CANNOT BOTH HOLD AT THE SEEDED SAVINGS RATE. Against
+ * the same mock seeds the projection window closes at about 275,800, and the
+ * warning needs more than 450,000 - there is no value in between. So this is
+ * a trade, not an oversight.
+ *
+ * 29 AUGUST 2026, D57: THE SECOND HALF OF THAT ARGUMENT NO LONGER HOLDS, AND
+ * THE TRADE STANDS ANYWAY. It used to read "and no savings rate reaches one
  * either: at the `left-over` ceiling of 380 a month, the most a session can
- * reach inside 60 months is a 358,300 property, still below the cap. So this
- * is a trade, not an oversight.
+ * reach inside 60 months is a 358,300 property, still below the cap". Rounding
+ * the seeded salary to 2,500 lifts `left-over` to 640, and 640 a month from
+ * 8,950 reaches about 52,985 in 60 months - a 529,848 property at 10%, above
+ * the cap. So a session COULD in principle be both inside the window and above
+ * the cap, by dragging frame 10's handles to the new ceiling.
+ *
+ * THAT CHANGES NOTHING HERE, because the stage does not drag them. The seeded
+ * handles are `min(200, ceiling)` and `min(310, ceiling)`; the clamp was not
+ * binding at 380 and is not binding at 640, so `savings-rate` is still 255 and
+ * 650,000 still lands beyond-window exactly as described below. The trade is
+ * now a trade about the SEEDED rate rather than about every reachable rate.
  *
  * WHAT IT COSTS. 650,000 lands `months-to-target` at 154.8 months, so
  * `monthsToTarget()` returns `beyond-window` and `onTrackFor()` has no range:

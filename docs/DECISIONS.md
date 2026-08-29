@@ -1357,7 +1357,7 @@ find again, because every one of these is a figure a participant sees:
 | Figure | What the answer changed | What it is now |
 |---|---|---|
 | `money-in`, `essential-spending` | Provenance `read` where the accounts were with the bank, `estimated` where they were not - frame 05 against 05b | Always `read`, seeded at session start from `MOCK_POSITION` |
-| `left-over` | Derived from those two, or never derived at all on the declined path, where it stayed null | Always `derived`. £380, from £2,240 less £1,860 |
+| `left-over` | Derived from those two, or never derived at all on the declined path, where it stayed null | Always `derived`. £640, from £2,500 less £1,860 |
 | `monthly-low` / `monthly-high`, the frame 10 slider ceiling | `left-over` in personalised mode; `GENERAL_SAVINGS_RANGE.max` in general mode, because `left-over` was null (D24) | Always `left-over`. `calculator-saving.js` reads `state['left-over'].value` and has no fallback |
 | The annual saving range on frame 04 | `generalAnnualRange()` - monthly x 12, no interest | Gone with the frame. The calculator's interest-bearing projection is the only one left |
 | The guidance-not-advice line | `regulatory.js` selected a second, uncleared line when nothing had been read (D27) | Gone. The FCA-checked line applies on every screen that carries one |
@@ -4118,6 +4118,77 @@ correcting it part of this bump rather than a separate errand.
 
 ---
 
+## D57. The seeded salary rounds to 2,500, and the FCA slider flags clear as a side effect
+
+**Date.** 29 August 2026.
+
+**Decision.** `MOCK_POSITION.moneyIn` in `src/model/accounts.js` goes from **2,240 to 2,500**, and
+frame 01's matching salary credit in `content.js` goes from `+£2,240.00` to `+£2,500.00`. The unit
+is unchanged: this is **monthly income after tax**, which is what frame 19 labels it, what frame
+01 draws as a single credit categorised "Monthly pay", and what frames 05/06 caption as read from
+salary payments over twelve months. Gross annual pay is a different variable,
+`MOCK_MIP_DATA.annualSalaryBeforeTax`, and is untouched at 38,000.
+
+**Why the number was wrong before, not merely awkward.** 2,240 a month is 26,880 a year net, which
+38,000 gross cannot produce - the two mock figures described a person who does not exist. 38,000
+gross nets about 2,573 a month, less roughly 80 a month of Plan 2 student loan (the same loan
+`MOCK_MIP_DATA` already carries), which lands at about 2,493. The rounded figure is the internally
+consistent one; the awkward figure was also the incoherent one.
+
+**One derived figure moves, and only one.** `left-over` is the sole figure computed from
+`money-in` (`build-spec.md` section 4: `money-in - essential-spending`), and
+`essential-spending` is unchanged at 1,860, so `left-over` goes **380 to 640**. Frames 05 and 06
+recompute their two proportion rows from the pair: essential spending **83% to 74%** of what comes
+in, left over **17% to 26%**, still summing to 100.
+
+**Nothing in the projection chain moves at all,** which is the load-bearing fact of this pass.
+Frame 10's slider ceiling is `left-over`, so the ceiling rises - but the seeded handles are
+`min(200, ceiling)` and `min(310, ceiling)`, and the clamp was **not binding at 380 and is not
+binding at 640**. `monthly-low` stays 200, `monthly-high` stays 310, `savings-rate` stays 255, and
+therefore `months-to-target`, `on-track-for`, `checkpoint-amount`, `deposit-target`, `loan-amount`,
+`ltv`, `borrow-low`, `borrow-high` and `max-property` are all **unchanged**. The deposit calculator
+steps 1 to 3, the tracker and the MIP borrowing result read nothing from `money-in`. **No formula
+was touched.**
+
+**THE CONSEQUENCE THAT WAS NOT ASKED FOR AND IS THE MOST IMPORTANT PART.** Three open FCA gaps were
+raised against the 380 ceiling, and raising it clears two of them without a figure in the slider
+moving:
+
+- **G61a**, the 255 default at 67% of left-over, 27 above rule 1A's 60% line: now **39.8%**, and
+  129 below a line that has itself risen to 384.
+- **G63**, the 310 upper handle at 81.6%, above the 80% rule 1A names as predictably failing: now
+  **48.4%**, below both thresholds. This gap named its own trade exactly - lowering 310 would break
+  frame 10's reference PNG - and this pass took the other side of it, leaving 310 alone.
+- **G64**, the 10b date path's uncapped 331-404 range: now sits *inside* a 640 ceiling. **The defect
+  is unchanged and the gap stays open.** Only its default reproduction goes quiet, which makes it
+  harder to find rather than smaller, and the gap now says so.
+
+**Flagged, not fixed, and not mine to close.** Frame 10's slider track becomes 0-640 where the
+reference PNG draws 0-380. G63 anticipated exactly this as a screenshot-exemption call belonging to
+whoever owns the reference set. G63 is therefore left **open** with its resolution recorded, rather
+than closed on my own authority.
+
+**D55's reasoning is amended in place, and its decision is not.** The stage block argued the LISA
+cap and the projection window "cannot both hold" partly on the ground that "at the left-over ceiling
+of 380 a month, the most a session can reach inside 60 months is a 358,300 property, still below the
+cap". At 640 that is false: 640 a month from 8,950 reaches 52,985 in 60 months, a **529,848**
+property at 10%, above the cap. The trade still stands because the stage does not drag the handles -
+`savings-rate` is still 255 and 650,000 still lands beyond-window - so `STAGE_PROPERTY_VALUE` is
+untouched and `stage.test.mjs` asserts the same things. It is now a trade about the **seeded** rate
+rather than about every reachable rate, and the comment says so.
+
+**Test fixtures deliberately left alone.** `model.test.js`'s `read(2240)` and
+`skip-ahead.test.mjs`'s `f(2240)` are self-contained hypotheticals, not the seed - the latter models
+a 420,000-property session that never existed. Both stay internally consistent at 2,240 less 1,860,
+and both still assert what they were written to assert. `session-seed.mjs`'s 2,600 is the
+screenshot seed and is a separate scenario by design.
+
+**Reversal.** Put `2240` back in `MOCK_POSITION.moneyIn` and `+£2,240.00` back in `content.js`.
+The stage comment, the three GAPS amendments and the four doc figures are prose and revert with it.
+Nothing else depends on any of it.
+
+---
+
 
 ## Open questions
 
@@ -4195,3 +4266,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 28 August 2026 (a second, invisible path to frame 33) | **D54 recorded.** A **~700ms long press on the DISABLED Profile tab** opens `/settings`, so a session reaches frame 33 and its reset without a hash typed in front of a participant. Nothing renders, nothing is labelled, nothing enters the accessibility tree, and the tab stays visually and semantically disabled. A visible block on frame 01 was rejected as the worst possible placement for a control that can flip the scenario mid-session; a `/profile` screen was rejected as a large change - new route, new screen outside the 32-frame set, a focusable tab - in service of a small need. The tab beat the app bar the Figma node annotates on **coverage** (20 routes to 19, including the three calculator steps the app bar cannot reach) and **blast radius** (the tab is inert; the app bar holds the back control). Built on the measured fact that a disabled button fires `pointerdown` but **not** `click` - load-bearing, since it is what keeps the tab inert to a tap, and the condition under which this must be revisited if `profile` ever joins `NAVIGABLE_TABS`. `user-select: none` added to the shared `.bottom-nav__tab` rule for the gesture's sake, not as a styling tweak; a required maintainer comment at `bottomNavHTML`; `GAPS.md` G23 stays **resolved** with a dated note, its "never linked from any on-screen element" still literally true; and `skip-ahead.js`'s citation of a "facilitator gesture on frame 10" that never existed is corrected. **No copy and no accessible name** - the one prototype affordance in this build that does not carry the "Prototype control" framing, because there is no name to carry it in. Owns no state. Six "typing the URL" records amended in place. `CACHE_VERSION` v45. |
 | 28 August 2026 (opening session meets the LISA cap) | **D55 recorded; D45 amended in place.** `STAGE_PROPERTY_VALUE` raised **240,000 to 650,000**, so a session opening in the saving stage (D48) arrives on frame 09 above the Lifetime ISA cap with the warning already rendered. **D45's projection-window property is deliberately given up**, because the two cannot both hold: the window closes at a **275,832** property and the cap starts above **450,000**, with no value in between, and no savings rate bridges it - 822.11 a month would be needed and `monthsToTarget()` rejects it as `exceeds-left-over` against the 380 ceiling, while even at that ceiling the largest property reachable inside 60 months is 358,305. Raising `saved-toward-deposit` to 40,076 would satisfy both and was rejected: 8,950 is the sum of the four mock accounts frames 03, 06 and 32 draw. **Cost:** `months-to-target` 154.8 months, so the tracker's "On track for" row renders its beyond-window variant from the opening session. **Kept:** 8,950 < 48,750, so the tracker still opens locked and both skip-ahead positions still exist. `stage.test.mjs` swaps the window assertion for two that assert the trade - the seed is above the cap, and the beyond-window consequence is explicit - so a later change that silently restored the window fails a test naming D55 rather than looking like a fix. `g62.test.mjs` had one assertion accidentally coupled to the seed and now compares the projection before and after the clear. Frame 09's banner was confirmed to derive live from `property-value` rather than read `lisaCapBreached`. `ROUTES.md` stage table and recipe comparison row updated. `CACHE_VERSION` v46. 264 tests passing. |
 | 29 August 2026 (area average sourced and localised) | **D56 recorded.** `AREA_AVERAGE_PROPERTY_VALUE` goes **190,000 to 470,000**, gains `region`, `asAt`, `asAtLabel` and `sourceUrl`, and is sourced to the **UK House Price Index, HM Land Registry and ONS, June 2026**. Frame 09's caption becomes "In London, first-time buyers paid around 470,000 on average in June 2026." with a `.provenance-caption` "Source:" line beneath it. **No calculation moved**: the constant is read at one place in the repo (the caption), the opening property value is `STAGE_PROPERTY_VALUE` (D55), and `model.test.js`'s 190,000 is `build-spec.md` section 4's deposit-target example, a different figure sharing the number. Sentence and attribution are two templates over **one** object, the `bankRateCaptionTemplate` treatment, so they cannot drift. **Plain text, not a link** - no screen in this build renders an anchor, so one here would be the only external affordance in the prototype; the URL lives on the constant as `RATES.sourceUrl` does. Copy-checked: rules 1, 6 and 8 pass, **rule 5 flagged not fixed** (the sentence carries a figure and a date, and the date is what makes the figure checkable). No other frame 09 copy touched. 236 tests passing. `CACHE_VERSION` v47, `BUILD_VERSION` corrected v45 to v47 under D49. |
+| 29 August 2026 (seeded salary rounded) | **D57 recorded; D55's reasoning amended in place.** `MOCK_POSITION.moneyIn` goes **2,240 to 2,500** with frame 01's matching salary credit, unit unchanged (**monthly income after tax**; gross annual stays `MOCK_MIP_DATA.annualSalaryBeforeTax` at 38,000). The old figure was not just awkward but **incoherent**: 2,240 net a month is 26,880 a year, which 38,000 gross cannot produce, where 2,500 is about what 38,000 nets after tax and Plan 2. **One derived figure moves**: `left-over` 380 to 640, so frames 05/06's proportions go 83%/17% to 74%/26%. **Nothing in the projection chain moves** - frame 10's ceiling rises but the seeded handles `min(200, c)` and `min(310, c)` were not clamped at 380 and are not at 640, so `savings-rate` stays 255 and `months-to-target`, `checkpoint-amount`, `borrow-low/high` and `max-property` are unchanged. No formula touched. **The side effect is the headline**: G61a's 67% default becomes **39.8%** and G63's 81.6% handle becomes **48.4%**, both now under rule 1A's 60% flag and 80% failure lines, with 310 itself untouched - G63's own named trade taken from the other side. **G64 stays open**: its 331-404 range now sits inside the ceiling, so the defect is unfound rather than fixed, and the gap says so. **Flagged not fixed**: the 0-640 track no longer matches frame 10's 0-380 PNG, a screenshot exemption belonging to whoever owns the reference set, so G63 is left open. D55's "no savings rate reaches one either" is now false (640 a month reaches a 529,848 property) but its decision stands - the stage does not drag the handles. `model.test.js` and `skip-ahead.test.mjs` fixtures deliberately left at 2,240 as self-contained hypotheticals. `CACHE_VERSION` v48, `BUILD_VERSION` v48. |

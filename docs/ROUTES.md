@@ -206,7 +206,7 @@ Every recipe below was driven in the browser and confirmed to produce the state.
 
 | # | Frame | State | How to produce it |
 |---|---|---|---|
-| 1 | 05 | error | Tap the big figure, type **9999** (above money-in £2,240). `0` also works |
+| 1 | 05 | error | Tap the big figure, type **9999** (above money-in £2,500). `0` also works |
 | 2 | 06 | emergency fund short | At 03, tap **Emergency fund** → "Neither of those" → Save, then continue |
 | 3 | 06 | no accounts assigned | At 03, untick **all four** accounts under "Toward your deposit" individually, then "Continue" |
 | 4 | 09 | error | Type `0` into the property value field. **Letters won't work** - the field rejects them |

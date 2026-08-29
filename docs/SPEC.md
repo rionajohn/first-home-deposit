@@ -163,6 +163,16 @@ This makes the anchor audit mechanical - run once across all screens - rather th
 
 - `state.js` holds one flat object: the 20 Section 6 variables with provenance, the frame 33
   toggles, and the `returnFrame` value.
+- **Seeded figures.** The store is seeded at session start from `MOCK_POSITION` in
+  `src/model/accounts.js`, not from the participant. The two that anchor everything downstream are
+  `money-in` **2,500** and `essential-spending` **1,860**, both provenance `read`, giving a derived
+  `left-over` of **640**. `money-in` is **monthly income after tax** - frame 19 labels it so, frame
+  01 draws it as one credit categorised "Monthly pay", and gross annual pay is a separate constant
+  (`MOCK_MIP_DATA.annualSalaryBeforeTax`, 38,000). `left-over` is the only figure derived from
+  `money-in`, and it is frame 10's slider ceiling; the seeded handles are `min(200, ceiling)` and
+  `min(310, ceiling)`, so the ceiling does not bind and `savings-rate` is 255 regardless. Changing
+  `money-in` therefore moves frames 05, 06, 08, 12, 13, 19, 20 and 21 and nothing in the projection
+  chain. See DECISIONS.md D57.
 - `router.js` maps every route above - including `/mip/adviser` - to a screen module. Screens are
   pure render functions of `(state, content) → DOM`. No screen imports another screen directly; all
   cross-screen navigation goes through the router.

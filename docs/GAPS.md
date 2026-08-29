@@ -1368,9 +1368,9 @@ copy rule flags. CLOSED 27 August 2026 - DECISIONS.md D47. Split three ways; see
 Frame 10's range slider seeds itself from the accounts when the participant has not set it:
 `calculator-saving.js` reads `MOCK_POSITION.recentMonthlySavingLow` and
 `recentMonthlySavingHigh` (£200 and £310, provenance `read`) and clamps each to `left-over`.
-`left-over` is £380 on a fresh session (`money-in` £2,240 less `essential-spending` £1,860), so
+`left-over` is £640 on a fresh session (`money-in` £2,500 less `essential-spending` £1,860), so
 neither end clamps. A participant who accepts the range without moving a handle continues with
-`savings-rate` set to the midpoint, **£255 a month - 67% of the £380 they have left**.
+`savings-rate` set to the midpoint, **£255 a month - 40% of the £640 they have left**.
 
 The copy-check rule (`.claude/skills/fca-copy-check`, rule 1A) asks that no default or
 illustrative contribution exceed roughly 60% of what is left after essential spending, on the
@@ -1410,6 +1410,14 @@ the remedy the three FIX bullets ask for, already met. The range is fixed by the
 which draw £200, £310 and the £0-£380 track exactly. **The default remains flagged and is not being
 raised.** The skill has been corrected so the FIX/FLAG contradiction does not have to be resolved
 again. See DECISIONS.md D47.
+
+**29 AUGUST 2026, D57: THE FLAG CLEARS ON ITS OWN, WITHOUT THE DEFAULT MOVING.** Rounding the
+seeded salary to £2,500 lifts `left-over` from £380 to £640. The £255 midpoint is unchanged - the
+slider seeds `min(200, ceiling)` and `min(310, ceiling)`, and the clamp was not binding at £380 and
+is not binding at £640 - but it is now **39.8%** of what is left, against a 60% line that has itself
+risen to £384. The default is £129 BELOW the line it used to sit £27 above. Recorded rather than
+closed: the gap was raised as a question about the persona's figures, and the persona's figures are
+what moved.
 
 **G61b - the £310 upper handle at 81.6% of left-over. OPEN, and the stronger finding.** Raised
 during the G61 split; carried below as its own entry, **G63**.
@@ -1463,6 +1471,15 @@ so the built screen would stop matching frame 10's PNG. Leaving it accepts a def
 the rule names. That is a decision about a figure and about a screenshot exemption, and it belongs
 to whoever owns the mock persona rather than to a copy pass.
 
+**29 AUGUST 2026, D57: RESOLVED BY THE PERSONA CHANGE THIS GAP ASKED FOR, FROM THE OTHER END.** The
+gap named the trade exactly - lowering £310 would break the reference PNG - and the salary round
+took the other side of it: `left-over` rises to £640 and £310 is untouched, so the PNG still matches
+and the handle now sits at **48.4%**, below both the 60% flag line and the 80% "predictably fails"
+level. Frame 10's caption is a template (`{max}`), so it renders the new ceiling with no copy
+change. **Closing this needs one confirmation that is not mine to give:** the £0-£640 slider track
+no longer matches the £0-£380 track frame 10's reference PNG draws. That is a screenshot-exemption
+call for whoever owns the reference set.
+
 ---
 
 ---
@@ -1497,6 +1514,13 @@ model guard, on a screen that does not explain it - not by the screen that accep
 *Not fixed here.* The fix is a decision about which of two paths owns the ceiling rule, and it has
 to be taken with `monthsToTarget`'s `exceeds-left-over` guard in the same pass rather than by adding
 a clamp to one branch. Related but separate: G63, the height of the slider path's own default.
+
+**29 AUGUST 2026, D57: THE DEFECT IS UNCHANGED; ITS DEFAULT REPRODUCTION IS NOT.** The date path
+still has no ceiling, and that is still the gap. What changed is that the seeded date's £331-£404
+range now sits INSIDE a £640 `left-over` rather than past a £380 one, so the recipe above no longer
+breaches on the screen's own default and `monthsToTarget()`'s `exceeds-left-over` guard no longer
+fires there. The path is reachable by stepping the date earlier. **This makes the gap harder to
+find, not smaller** - do not read the recipe's going quiet as the bounds question being answered.
 
 ---
 
@@ -1770,7 +1794,7 @@ rows say. The routing is right; the copy asserts a reason that its own figures d
 
 *Status: open, and deliberately not fixed in the D55 pass.* Three candidate readings, and the spec
 does not settle which is meant: the copy is generic and should not name a comparison it does not
-make; or `borrowRange` should be income-derived (the mock salary is £2,240 a month, which no
+make; or `borrowRange` should be income-derived (the mock salary is £2,500 a month, which no
 plausible multiple takes to £643,500) rather than derived from the loan the participant's own
 property value implies; or frame 21's rows should compare against the checkpoint that actually chose
 the screen. The third is closest to D51 but the widest change. **Asked rather than guessed** -
