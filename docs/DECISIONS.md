@@ -4189,6 +4189,56 @@ Nothing else depends on any of it.
 
 ---
 
+## D58. Frame 01's two figures are read from the model, because a display string is a second copy
+
+**Date.** 29 August 2026.
+
+**Decision.** `content.js`'s `'/home'` block loses both of its typed money strings.
+`balanceAmount: '£1,042.16'` is deleted outright and `home.js` renders
+`formatAccountBalance(MOCK_ACCOUNTS['current-account'].balance)`. The salary row's
+`amount: '+£2,500.00'` becomes `amountTemplate: '+{amount}'`, which `home.js` fills with
+`formatTransactionAmount(MOCK_POSITION.moneyIn)`. The other three transaction rows keep their
+literal amounts: they are arbitrary mock merchants with no model figure behind them, so there is
+nothing to read them from. **Nothing on the screen changes** - it renders £1,042.16 and +£2,500.00
+before and after.
+
+**Why, and it is not tidiness.** D57 rounded the seeded salary and had to edit `content.js` by hand
+as a second step, because the figure existed twice. That is the whole defect: `MOCK_POSITION.moneyIn`
+is the seed every screen derives from, and frame 01 held a typed copy of the same number with
+nothing connecting them. A pass that updated one and missed the other would leave the store saying
+2,500 and the first screen of the study saying 2,240, and no test would fail - the repo's own
+`overlap`, `action-bar` and `bottom-nav` suites measure geometry, not figures.
+
+**The balance was the same defect, one row up, and is included under the standing rule that a
+correction applies everywhere the pattern appears.** `format.js`'s own comment on
+`formatAccountBalance` already asserted that frame 01's balance and frame 03's account row "read the
+same mock balance for the same account and must show the same number, not a rounded one" - a
+statement that was true only because someone had kept two numbers equal by hand. It is now true
+because there is one number.
+
+**A third formatter, and why the two existing ones would not do.** `formatTransactionAmount` is
+en-GB, £, always two decimal places. `formatCurrency` is D9's whole-pound rule for deposit-journey
+figures and would render "£2,500". `formatAccountBalance` shows pence only when the value carries
+them and would also render "£2,500" for a round salary. Every other row in that list draws pence, so
+a salary row without them would read as a different kind of number rather than the same kind
+rounded. The sign stays in `content.js`, where the "+" and the "−" (U+2212, not a hyphen) are copy.
+
+**What this does not do.** It does not make frame 01 recompute anything. `MOCK_POSITION` and
+`MOCK_ACCOUNTS` are mock read-provenance sources, not calculations, so this is a read, not a
+derivation, and no provenance changes.
+
+**Audited rather than assumed.** All 29 routes were walked in a browser on a FRESH session and their
+rendered text searched for every form of the old figure and its derived pair. No screen renders
+£2,240, £380, 83% or 17%. Frames 20 and 21 were reached by walking the real Mortgage in Principle
+flow, the only way they are reachable. Gross pay is £38,000 on both screens that show it (frame 19
+and the borrowing sheet), both from `MOCK_MIP_DATA.annualSalaryBeforeTax`, and no screen anywhere
+shows £26,880 or any other figure implying the old net.
+
+**Reversal.** Put the two literals back in `content.js`, drop the two imports and
+`CURRENT_ACCOUNT_BALANCE` from `home.js`, and delete `formatTransactionAmount` from `format.js`.
+
+---
+
 
 ## Open questions
 
@@ -4267,3 +4317,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 28 August 2026 (opening session meets the LISA cap) | **D55 recorded; D45 amended in place.** `STAGE_PROPERTY_VALUE` raised **240,000 to 650,000**, so a session opening in the saving stage (D48) arrives on frame 09 above the Lifetime ISA cap with the warning already rendered. **D45's projection-window property is deliberately given up**, because the two cannot both hold: the window closes at a **275,832** property and the cap starts above **450,000**, with no value in between, and no savings rate bridges it - 822.11 a month would be needed and `monthsToTarget()` rejects it as `exceeds-left-over` against the 380 ceiling, while even at that ceiling the largest property reachable inside 60 months is 358,305. Raising `saved-toward-deposit` to 40,076 would satisfy both and was rejected: 8,950 is the sum of the four mock accounts frames 03, 06 and 32 draw. **Cost:** `months-to-target` 154.8 months, so the tracker's "On track for" row renders its beyond-window variant from the opening session. **Kept:** 8,950 < 48,750, so the tracker still opens locked and both skip-ahead positions still exist. `stage.test.mjs` swaps the window assertion for two that assert the trade - the seed is above the cap, and the beyond-window consequence is explicit - so a later change that silently restored the window fails a test naming D55 rather than looking like a fix. `g62.test.mjs` had one assertion accidentally coupled to the seed and now compares the projection before and after the clear. Frame 09's banner was confirmed to derive live from `property-value` rather than read `lisaCapBreached`. `ROUTES.md` stage table and recipe comparison row updated. `CACHE_VERSION` v46. 264 tests passing. |
 | 29 August 2026 (area average sourced and localised) | **D56 recorded.** `AREA_AVERAGE_PROPERTY_VALUE` goes **190,000 to 470,000**, gains `region`, `asAt`, `asAtLabel` and `sourceUrl`, and is sourced to the **UK House Price Index, HM Land Registry and ONS, June 2026**. Frame 09's caption becomes "In London, first-time buyers paid around 470,000 on average in June 2026." with a `.provenance-caption` "Source:" line beneath it. **No calculation moved**: the constant is read at one place in the repo (the caption), the opening property value is `STAGE_PROPERTY_VALUE` (D55), and `model.test.js`'s 190,000 is `build-spec.md` section 4's deposit-target example, a different figure sharing the number. Sentence and attribution are two templates over **one** object, the `bankRateCaptionTemplate` treatment, so they cannot drift. **Plain text, not a link** - no screen in this build renders an anchor, so one here would be the only external affordance in the prototype; the URL lives on the constant as `RATES.sourceUrl` does. Copy-checked: rules 1, 6 and 8 pass, **rule 5 flagged not fixed** (the sentence carries a figure and a date, and the date is what makes the figure checkable). No other frame 09 copy touched. 236 tests passing. `CACHE_VERSION` v47, `BUILD_VERSION` corrected v45 to v47 under D49. |
 | 29 August 2026 (seeded salary rounded) | **D57 recorded; D55's reasoning amended in place.** `MOCK_POSITION.moneyIn` goes **2,240 to 2,500** with frame 01's matching salary credit, unit unchanged (**monthly income after tax**; gross annual stays `MOCK_MIP_DATA.annualSalaryBeforeTax` at 38,000). The old figure was not just awkward but **incoherent**: 2,240 net a month is 26,880 a year, which 38,000 gross cannot produce, where 2,500 is about what 38,000 nets after tax and Plan 2. **One derived figure moves**: `left-over` 380 to 640, so frames 05/06's proportions go 83%/17% to 74%/26%. **Nothing in the projection chain moves** - frame 10's ceiling rises but the seeded handles `min(200, c)` and `min(310, c)` were not clamped at 380 and are not at 640, so `savings-rate` stays 255 and `months-to-target`, `checkpoint-amount`, `borrow-low/high` and `max-property` are unchanged. No formula touched. **The side effect is the headline**: G61a's 67% default becomes **39.8%** and G63's 81.6% handle becomes **48.4%**, both now under rule 1A's 60% flag and 80% failure lines, with 310 itself untouched - G63's own named trade taken from the other side. **G64 stays open**: its 331-404 range now sits inside the ceiling, so the defect is unfound rather than fixed, and the gap says so. **Flagged not fixed**: the 0-640 track no longer matches frame 10's 0-380 PNG, a screenshot exemption belonging to whoever owns the reference set, so G63 is left open. D55's "no savings rate reaches one either" is now false (640 a month reaches a 529,848 property) but its decision stands - the stage does not drag the handles. `model.test.js` and `skip-ahead.test.mjs` fixtures deliberately left at 2,240 as self-contained hypotheticals. `CACHE_VERSION` v48, `BUILD_VERSION` v48. |
+| 29 August 2026 (frame 01 reads its figures) | **D58 recorded.** `content.js`'s `'/home'` block loses both typed money strings: `balanceAmount: '£1,042.16'` is deleted and `home.js` renders `formatAccountBalance` over `MOCK_ACCOUNTS['current-account'].balance`, and the salary row's `amount: '+£2,500.00'` becomes `amountTemplate: '+{amount}'` filled with `formatTransactionAmount(MOCK_POSITION.moneyIn)`. **Nothing on screen changes.** The reason is D57: the seeded salary existed twice, so rounding it needed a second hand-edit, and a pass that missed the second copy would leave the store at 2,500 and the study's first screen at 2,240 with **no test failing** - the three browser suites measure geometry, not figures. The balance is the same defect one row up and is fixed under the standing correct-everywhere rule; `format.js`'s comment already asserted frames 01 and 03 must show the same balance, which was true only by hand. Third formatter added because neither existing one fits: `formatCurrency` is D9's whole-pound rule and `formatAccountBalance` drops pence on a round number, either of which would draw "£2,500" in a list where every other row shows pence. The other three transaction rows stay literal - no model figure exists behind them. **Audit, not assumption:** all 29 routes walked in a browser on a fresh session, frames 20 and 21 reached through the real MIP flow; **no screen renders £2,240, £380, 83% or 17%**, gross pay is £38,000 on both screens showing it, and £26,880 appears nowhere. Root cause of the reported sighting was **deployment, not code**: commit 8d87578 was never pushed, so `origin/build` and the Vercel build were two commits behind. `CACHE_VERSION` v49, `BUILD_VERSION` v49. |

@@ -18,15 +18,38 @@
  * the special case rather than adding a second place that binds it.
  */
 import { chevronRight } from '../icons.js';
+import { MOCK_ACCOUNTS, MOCK_POSITION } from '../model/accounts.js';
+import { formatAccountBalance, formatTransactionAmount } from '../format.js';
 
-function transactionRow({ merchant, category, amount }) {
+/**
+ * BOTH FIGURES ON THIS SCREEN ARE READ FROM THE MODEL, NOT TYPED INTO
+ * `content.js` (DECISIONS.md D58). They used to be two literal display
+ * strings, `'£1,042.16'` and `'+£2,240.00'`, each a second copy of a figure
+ * `model/accounts.js` already held. The salary credit is the seeded
+ * `money-in`, and it drifted the moment that seed was rounded to 2,500: the
+ * store said one thing and frame 01 said another, with nothing to catch it.
+ *
+ * The current-account balance is the same defect one row up - `format.js`'s
+ * own comment already asserted that frames 01 and 03 "read the same mock
+ * balance for the same account and must show the same number", which was
+ * only true by hand.
+ *
+ * The other three rows stay literal. They are arbitrary mock merchants with
+ * no model figure behind them, so there is nothing to read them from.
+ */
+const CURRENT_ACCOUNT_BALANCE = MOCK_ACCOUNTS.find((a) => a.id === 'current-account').balance;
+
+function transactionRow({ merchant, category, amount, amountTemplate }) {
+  const displayAmount = amountTemplate
+    ? amountTemplate.replace('{amount}', formatTransactionAmount(MOCK_POSITION.moneyIn))
+    : amount;
   return `
     <div class="transaction-row">
       <div>
         <p class="transaction-row__merchant">${merchant}</p>
         <p class="transaction-row__category">${category}</p>
       </div>
-      <p class="transaction-row__amount">${amount}</p>
+      <p class="transaction-row__amount">${displayAmount}</p>
     </div>
   `;
 }
@@ -56,7 +79,7 @@ export function render(container, { content, setState }) {
     <main class="screen-content" role="main">
       <div class="card balance-card">
         <p class="balance-card__label">${c.balanceLabel}</p>
-        <p class="balance-card__amount">${c.balanceAmount}</p>
+        <p class="balance-card__amount">${formatAccountBalance(CURRENT_ACCOUNT_BALANCE)}</p>
       </div>
 
       <div class="card transactions-card">

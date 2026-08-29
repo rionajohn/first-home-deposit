@@ -33,6 +33,30 @@ export function formatAccountBalance(value) {
 }
 
 /**
+ * Statement-line amount for frame 01's transaction list: en-GB, £, and
+ * ALWAYS two decimal places.
+ *
+ * Deliberately neither of the two formatters above. `formatCurrency` is D9's
+ * whole-pound rule and governs deposit-journey figures, not a statement line.
+ * `formatAccountBalance` shows pence only when the value carries them, which
+ * would render a 2,500.00 salary credit as "£2,500" - and every other row in
+ * that list draws pence, so the one row without them would read as a
+ * different kind of number rather than as the same kind rounded.
+ *
+ * The sign is the caller's, not this function's: the list draws "+" on a
+ * credit and "−" (U+2212, not a hyphen) on a debit, and those are content
+ * strings.
+ */
+export function formatTransactionAmount(value) {
+  return new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+/**
  * Percentage display for rate-derived figures (e.g. RATES.bankRate as an
  * AER, or a Loan-to-Value band) — takes a fraction (0.0375, not 3.75) and
  * formats it as en-GB percent text. Keeps every on-screen percentage

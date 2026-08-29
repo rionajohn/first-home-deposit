@@ -131,7 +131,6 @@ const content = {
   '/home': {
     appBarTitle: 'Home',
     balanceLabel: 'Current account',
-    balanceAmount: '£1,042.16',
     transactionGroups: [
       {
         heading: 'Today',
@@ -143,7 +142,10 @@ const content = {
       {
         heading: 'Yesterday',
         rows: [
-          { merchant: 'Salary', category: 'Monthly pay', amount: '+£2,500.00' },
+          // THE ONLY MODEL-BACKED ROW IN THIS LIST. Its amount is the seeded
+          // monthly income (MOCK_POSITION.moneyIn), so it is a template the
+          // screen fills rather than a typed figure - see DECISIONS.md D58.
+          { merchant: 'Salary', category: 'Monthly pay', amountTemplate: '+{amount}' },
           { merchant: 'Spotify', category: 'Subscriptions', amount: '−£11.99' },
         ],
       },
