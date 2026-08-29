@@ -214,7 +214,11 @@ const content = {
     },
     sortThisOut: 'Sort this out',
     accountCaptions: {
-      stocksIsaCaption: "Some people earmark this for a home, some don't. Tap to tell us.",
+      // "earmark" is a verb a participant has to stop and decode, on the one
+      // screen where the whole task is deciding what an account is FOR. The
+      // plainer form is 8 characters longer, which the row absorbs: the
+      // Lifetime ISA caption below is 100 characters in the same slot.
+      stocksIsaCaption: "Some people are saving this towards a home, some aren't. Tap to tell us.",
       lifetimeIsaCaption:
         "Mainly for buying a first home, so we've counted it. Move it if you're saving it for retirement instead.",
       emergencyFundCaption: 'About three months of your essential spending.',
