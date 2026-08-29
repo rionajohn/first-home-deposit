@@ -123,68 +123,67 @@ export const OPENING_STAGE = 'saving';
  * inputs a participant supplies, chosen here on their behalf, and it lives with
  * the control so the deletion list at the top of this file stays true.
  *
- * WHY 240,000. It has to leave `months-to-target` inside the 60-month
- * projection window (`CHART_WINDOW_MONTHS`), because `monthsToTarget()` returns
- * the `beyond-window` error above it and `onTrackFor()` then has no range to
- * render - the tracker's "On track for" row would fall to its beyond-window
+ * WHY 240,000, ORIGINALLY. It had to leave `months-to-target` inside the
+ * 60-month projection window (`CHART_WINDOW_MONTHS`), because `monthsToTarget()`
+ * returns the `beyond-window` error above it and `onTrackFor()` then has no
+ * range to render - the tracker's "On track for" row falls to its beyond-window
  * variant, which is a boundary state and not the ordinary screen a facilitator
  * is trying to demonstrate. Against the mock accounts' own seeds (a 8,950
  * starting balance and a 255 a month savings rate, both read from
- * `MOCK_POSITION`) the window closes at about 275,800; 240,000 lands at 49.3
- * months with roughly 36,000 of headroom, so a later change to the mock
- * balances or to the Bank Rate has room to move before the stage silently
- * changes which variant it demonstrates.
+ * `MOCK_POSITION`) the window closes at about 275,800; 240,000 landed at 49.3
+ * months with roughly 36,000 of headroom.
  *
  * It also has to leave the starting balance BELOW the checkpoint, so the saving
- * stage renders the tracker locked and "Ready to check" has somewhere to go:
- * 8,950 against a 18,000 checkpoint. `scripts/stage.test.mjs` asserts both
- * properties rather than asserting the numbers, so a change here is caught by
- * the thing it would break rather than by a stale constant.
+ * stage renders the tracker locked and "Ready to check" has somewhere to go.
+ * `scripts/stage.test.mjs` asserts that property rather than asserting the
+ * numbers, so a change here is caught by the thing it would break rather than
+ * by a stale constant. That property has held at every value this constant has
+ * taken, and still holds.
  *
- * 28 AUGUST 2026: RAISED TO 650,000, AND THE FIRST PROPERTY ABOVE IS
- * DELIBERATELY GIVEN UP (DECISIONS.md D55). The reasoning above is still the
- * reasoning - it is why 240,000 was right for what the stage demonstrated
- * then. What the stage demonstrates changed: the opening session now has to
- * meet the Lifetime ISA cap warning as part of its opening state, and that
- * warning renders only above `LISA_CAP_PROPERTY_VALUE` (450,000).
+ * 28 AUGUST 2026, D55: RAISED TO 650,000 so the opening session met the
+ * Lifetime ISA cap warning, which renders only above `LISA_CAP_PROPERTY_VALUE`.
+ * The window property was deliberately given up to buy it, because the window
+ * closes at about 275,800 and the warning needs more than 450,000, with no
+ * value in between at the seeded rate.
  *
- * THE TWO REQUIREMENTS CANNOT BOTH HOLD AT THE SEEDED SAVINGS RATE. Against
- * the same mock seeds the projection window closes at about 275,800, and the
- * warning needs more than 450,000 - there is no value in between. So this is
- * a trade, not an oversight.
+ * 29 AUGUST 2026, D60: LOWERED TO 450,000, AND THE CAP WARNING IS WHAT IT
+ * COSTS. The seed is a case study a participant is asked to reason about, and
+ * 650,000 was not a property an early-career professional recognises as theirs;
+ * a figure a participant reads as somebody else's problem is a figure they
+ * reason about at arm's length, which is the opposite of what a think-aloud
+ * session needs. 450,000 is the relatable value, and it is chosen for that and
+ * for nothing else.
  *
- * 29 AUGUST 2026, D57: THE SECOND HALF OF THAT ARGUMENT NO LONGER HOLDS, AND
- * THE TRADE STANDS ANYWAY. It used to read "and no savings rate reaches one
- * either: at the `left-over` ceiling of 380 a month, the most a session can
- * reach inside 60 months is a 358,300 property, still below the cap". Rounding
- * the seeded salary to 2,500 lifts `left-over` to 640, and 640 a month from
- * 8,950 reaches about 52,985 in 60 months - a 529,848 property at 10%, above
- * the cap. So a session COULD in principle be both inside the window and above
- * the cap, by dragging frame 10's handles to the new ceiling.
+ * WHAT IT COSTS, AND THE COST IS EXACTLY D55 REVERSED. `lisaCapBreached` is
+ * `STAGE_PROPERTY_VALUE > LISA_CAP_PROPERTY_VALUE` and the comparison is
+ * strictly greater-than, so at 450,000 - which IS the cap, to the pound - it is
+ * false. Frame 09b's banner no longer renders on the opening session. It is not
+ * unreachable: a participant who types anything above 450,000 on frame 09 still
+ * meets it, and frame 09's banner derives live from `property-value` rather
+ * than reading the stored flag. It is no longer an OPENING state, so a
+ * facilitator who wants to demonstrate it has to type a value first. Recorded
+ * as GAPS.md G70 rather than worked around, because a facilitator-visible
+ * change to what a stage sets up should be on the record.
  *
- * THAT CHANGES NOTHING HERE, because the stage does not drag them. The seeded
- * handles are `min(200, ceiling)` and `min(310, ceiling)`; the clamp was not
- * binding at 380 and is not binding at 640, so `savings-rate` is still 255 and
- * 650,000 still lands beyond-window exactly as described below. The trade is
- * now a trade about the SEEDED rate rather than about every reachable rate.
+ * WHAT IT DOES NOT BUY BACK. The projection window. 450,000 lands
+ * `months-to-target` at 107.6 months, still past `CHART_WINDOW_MONTHS`, so the
+ * tracker's "On track for" row renders the same beyond-window variant it did at
+ * 650,000. D55 traded the window for the cap warning; this trades the cap
+ * warning away without recovering the window, and that is understood rather
+ * than overlooked - nothing between 275,800 and 450,000 satisfies both, and
+ * 450,000 was picked for relatability, not to sit in that band.
  *
- * WHAT IT COSTS. 650,000 lands `months-to-target` at 154.8 months, so
- * `monthsToTarget()` returns `beyond-window` and `onTrackFor()` has no range:
- * the tracker's "On track for" row renders its beyond-window variant from the
- * opening session. That variant is built and correct; it is simply no longer
- * the ordinary screen a facilitator meets first.
+ * WHAT IT KEEPS. The checkpoint property, untouched and still asserted: 8,950
+ * against a 33,750 checkpoint, so the tracker still opens locked and both
+ * skip-ahead positions still exist. "Ready to check" lands at 29.9 months, on
+ * track for 27 to 33 - inside the window, because the skip-ahead position
+ * starts from the checkpoint rather than from 8,950.
  *
- * WHAT IT KEEPS. The second property is untouched and still asserted: 8,950
- * against a 48,750 checkpoint, so the tracker still opens locked and both
- * skip-ahead positions still exist. `scripts/stage.test.mjs` now asserts the
- * beyond-window consequence explicitly rather than the window property, so
- * the cost is recorded by the test rather than discovered on a screen.
- *
- * TO REVERSE IT: put 240,000 back here and the window property returns
- * untouched, since nothing else was moved to accommodate this. The test named
- * above is the other half of the reversal.
+ * TO REVERSE IT: put 650,000 back here and the cap warning returns to the
+ * opening session untouched, since nothing else was moved to accommodate this.
+ * `scripts/stage.test.mjs`'s cap assertion is the other half of the reversal.
  */
-export const STAGE_PROPERTY_VALUE = 650000;
+export const STAGE_PROPERTY_VALUE = 450000;
 
 /**
  * The deposit percentage the stand-in participant tapped. Written here rather

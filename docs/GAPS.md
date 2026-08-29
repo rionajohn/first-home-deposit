@@ -1820,34 +1820,111 @@ permanent, and then treat `lockedRowAriaSuffix` separately, since removing it is
 show the opposite.** Noticed while verifying D55's raised seed, and **not caused by it** - the
 condition holds at every property value below £895,000, so it was equally true at D45's £240,000.
 
-At the D55 seed the screen reads:
+At the D60 seed the screen reads:
 
 | Row | Figure |
 |---|---|
 | Headline copy | "the amount you'd need to borrow is **above** what a lender would typically offer" |
-| What you'd need to borrow | £641,050 |
-| What a lender would typically offer | around £643,500 |
+| What you'd need to borrow | £441,050 |
+| What a lender would typically offer | around £445,500 |
 
-£641,050 is **below** £643,500, so the two rows contradict the sentence above them. The same
-comparison at £240,000 gives £231,050 against £237,600 - contradictory in the same direction.
+£441,050 is **below** £445,500, so the two rows contradict the sentence above them. The same
+comparison at D55's £650,000 gives £641,050 against £643,500, and at D45's £240,000 gives £231,050
+against £237,600 - contradictory in the same direction at all three, which is the point below.
 
 **Why it is structural rather than a bad number.** `neededLoanAmount` is `P - S`, and `borrowRange`
 is `rangeFromCentral(loanAmount)`, so its high is `1.1 x P x (1 - depositPct)` = `0.99P` at a 10%
 deposit. `P - S < 0.99P` reduces to `P < 100 x S`, and S is the fixed £8,950 mock balance - so the
 sentence is false for every property under £895,000 and true only above it. The same relationship
-makes `max-property` (£652,450) exceed the property value itself, which is why step 2 of "What you
-could do next" invites the participant to "look at a property target closer to £652,450" when their
-current target is £650,000 - a higher one.
+makes `max-property` (£454,450) exceed the property value itself, which is why step 2 of "What you
+could do next" invites the participant to "look at a property target closer to £454,450" when their
+current target is £450,000 - a higher one.
 
 **Why the screen is shown at all is a separate and correct thing.** Under D51 the CHECKPOINT decides
 the result, not this comparison, so a below-checkpoint session lands on frame 21 whatever these two
 rows say. The routing is right; the copy asserts a reason that its own figures do not support.
 
-*Status: open, and deliberately not fixed in the D55 pass.* Three candidate readings, and the spec
-does not settle which is meant: the copy is generic and should not name a comparison it does not
-make; or `borrowRange` should be income-derived (the mock salary is £2,500 a month, which no
-plausible multiple takes to £643,500) rather than derived from the loan the participant's own
+*Status: open. Not fixed in the D55 pass, and not in the D60 pass either - D60 moved the figures and
+left the finding exactly where it was.* Three candidate readings, and the spec does not settle which
+is meant: the copy is generic and should not name a comparison it does not make; or `borrowRange`
+should be income-derived (the mock salary the MIP flow actually reads is
+`MOCK_MIP_DATA.annualSalaryBeforeTax`, £38,000, which no plausible multiple takes to £445,500 - see
+G71) rather than derived from the loan the participant's own
 property value implies; or frame 21's rows should compare against the checkpoint that actually chose
 the screen. The third is closest to D51 but the widest change. **Asked rather than guessed** -
 picking one silently would move a figure on frames 20 and 21 and change what the MIP flow tells a
 participant.
+
+---
+
+**G70. Frame 09b's Lifetime ISA cap banner is no longer an opening state, and a facilitator
+expecting it will not find it.** Raised by D60, which caused it deliberately, and recorded here so
+the absence reads as a decision rather than as a broken screen.
+
+D55 raised `STAGE_PROPERTY_VALUE` to £650,000 for one reason: to put the opening session above
+`LISA_CAP_PROPERTY_VALUE` so frame 09 rendered the cap banner from the first tap, with the
+projection window given up to pay for it. D60 lowered the seed to £450,000 for relatability. £450,000
+IS the cap, and `savingPatch()`'s comparison is strictly greater-than:
+
+```js
+lisaCapBreached: STAGE_PROPERTY_VALUE > LISA_CAP_PROPERTY_VALUE   // 450000 > 450000 === false
+```
+
+So the opening session sits exactly on the boundary and does not breach it.
+
+**Nothing was removed, and the banner still works.** Frame 09 derives the comparison live from
+`property-value` rather than reading the stored flag, so typing any value above £450,000 renders it
+immediately, and `scripts/overlap.test.mjs` still covers the 09b row. What is gone is meeting it
+*without typing* - which for a moderated session means a facilitator who wants to show 09b has to
+spend a step of session time reaching it, exactly the cost D45's own rationale gives for the stage
+control existing at all.
+
+**Three ways out, none taken.** Seed £450,001 or £455,000 - restores the banner, costs the round
+figure that made the case study relatable in the first place. Change the comparison to `>=` -
+rejected outright, because £450,000 is the real Lifetime ISA property ceiling and a home *at* the cap
+is usable, so `>=` would make the app state the rule wrongly. Give frame 33 a fourth stage that opens
+above the cap - rejected under D38's fifth amendment, which is the standing argument against a second
+control answering a question an existing one already answers.
+
+*Status: open as a question for the researcher, not as a defect.* The prototype is correct at every
+value; the question is whether an opening session that meets the cap warning is worth more to the
+study than an opening property a participant recognises. **Asked rather than guessed** - D55 and D60
+each answered it one way, and the answer belongs to whoever is running the sessions.
+
+---
+
+**G71. The seeded income does not support the borrowing the Mortgage in Principle screens show.**
+Raised in the D60 pass, and **not caused by it** - D60 improved the ratio and did not come close to
+fixing it.
+
+**Two income figures exist and only one of them is the affordability one.** `MOCK_POSITION.moneyIn`
+is £2,500, monthly income AFTER tax (D57), and it drives `left-over` and frame 10's slider ceiling.
+The Mortgage in Principle flow reads a different figure - `MOCK_MIP_DATA.annualSalaryBeforeTax`,
+£38,000 - which is what frames 19 and 31 show and what any affordability multiple has to be taken
+against. Against £38,000:
+
+| Seed | `loan-amount` | Multiple of salary before tax |
+|---|---|---|
+| D45, £240,000 | £216,000 | 5.7x |
+| D55, £650,000 | £585,000 | 15.4x |
+| D60, £450,000 | £405,000 | **10.7x** |
+
+Mainstream affordability sits around 4 to 4.5x, so every seed this prototype has held is outside it,
+and the current one is roughly two and a half times over. D45's was the closest and still exceeded it.
+
+**Nothing errors, and no screen contradicts itself on this axis.** Frame 20's "likely to be
+considered" outcome is set by the facilitator through `resultOutcome` on frame 33, not computed from
+affordability, and `borrowRange` is D2's range rule applied to `loan-amount` rather than to income.
+So the flow runs, the figures are internally consistent with each other, and the only thing wrong is
+that a participant who knows what they could borrow may not recognise the picture as theirs - the
+same objection D60 raised about the property value, one layer down.
+
+**Why it is not fixed here.** Fixing it means either lowering `loan-amount` (i.e. lowering the
+property again, which reopens G70 and undoes D60's own reason) or making `borrowRange` income-derived
+- and income-derived `borrowRange` is precisely one of the three unsettled readings **G69** is
+already waiting on. Choosing it here would answer G69 silently, from a different pass, on a different
+question. Raising the mock salary instead would move `money-in`, `left-over` and D57's whole slider
+argument, and £2,500 was itself a decision (D57).
+
+*Status: open, and coupled to G69.* Whichever reading settles G69 settles this. **Asked rather than
+guessed** - it moves figures on frames 20 and 21 and changes what the flow tells a participant.

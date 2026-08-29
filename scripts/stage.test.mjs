@@ -70,16 +70,32 @@ test('"Saving" leaves the savings position below the checkpoint', () => {
   assert.ok(saving['saved-toward-deposit'].value < saving['deposit-target'].value);
 });
 
-test('"Saving" seeds a property above the Lifetime ISA cap', () => {
+test('"Saving" seeds a property that does not breach the Lifetime ISA cap', () => {
   const saving = select(defaultState(), 'saving');
 
-  // THE PROPERTY THE SEED IS NOW CHOSEN FOR (DECISIONS.md D55). The opening
-  // session has to meet the Lifetime ISA cap warning as part of its opening
-  // state, and frame 09 renders that banner by re-deriving the comparison
-  // live from `property-value` rather than by reading the stored flag - so
-  // this asserts the figure the screen actually tests, and the flag beside it.
-  assert.ok(saving['property-value'].value > LISA_CAP_PROPERTY_VALUE);
-  assert.equal(saving.lisaCapBreached, true);
+  // THE COST OF D60, ASSERTED RATHER THAN DISCOVERED. D55 raised the seed past
+  // the Lifetime ISA cap so the opening session met frame 09b's warning; D60
+  // lowered it to a property an early-career participant recognises as theirs,
+  // and the comparison is strictly greater-than, so a seed at or below the cap
+  // does not breach it. Frame 09b's banner is no longer an OPENING state - it
+  // is still reachable by typing a higher value, because frame 09 re-derives
+  // the comparison live from `property-value` rather than reading the stored
+  // flag. GAPS.md G70 carries what that costs a facilitator.
+  //
+  // NOT WRITTEN AS 450000. The seed and the cap are the same figure today by
+  // coincidence, not by construction: the cap is the Lifetime ISA rule and the
+  // seed is a relatability choice. Asserting the RELATIONSHIP means a later
+  // change to either one fails here only if the opening session's banner state
+  // actually changed, which is the thing this test is about.
+  assert.ok(saving['property-value'].value <= LISA_CAP_PROPERTY_VALUE);
+  assert.equal(saving.lisaCapBreached, false);
+
+  // The stored flag and the live comparison frame 09 makes must agree, at
+  // whatever value the seed takes.
+  assert.equal(
+    saving.lisaCapBreached,
+    saving['property-value'].value > LISA_CAP_PROPERTY_VALUE
+  );
 });
 
 test('"Saving" gives up the projection window, and does so knowingly', () => {
@@ -89,9 +105,13 @@ test('"Saving" gives up the projection window, and does so knowingly', () => {
   // `months-to-target` inside the window; D55 raised the seed past the
   // Lifetime ISA cap knowing the two cannot both hold - the window closes at
   // about 275,800 and the warning starts above 450,000, so there is no value
-  // that satisfies both. This asserts the COST, so that a later change which
-  // silently restored the window would fail here and be read alongside D55
-  // rather than looking like a fix.
+  // that satisfies both. D60 then lowered the seed to 450,000 and gave the
+  // warning up too: 107.6 months is still past the window, so this cost
+  // survives the change that removed the thing it was paid for. That is
+  // understood rather than overlooked - 450,000 was chosen for relatability,
+  // not to sit in a band that does not exist. This asserts the COST, so that a
+  // later change which silently restored the window would fail here and be
+  // read alongside D45, D55 and D60 rather than looking like a fix.
   assert.ok(saving['months-to-target'].value > CHART_WINDOW_MONTHS);
   assert.equal(monthsToTarget(saving).error, 'beyond-window');
 

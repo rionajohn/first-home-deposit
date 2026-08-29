@@ -73,6 +73,16 @@
  *              load. `--saved`, `--goal` and `--draft` all seed, so they are
  *              refused with `opening` rather than silently ignored.
  *                                                    default seeded
+ *   --stage    `setting-up`, `saving` or `ready-to-check` - frame 33's Journey
+ *              stage (DECISIONS.md D45). Applied by PRESSING the real control
+ *              on `#/settings`, the same way `--state=ahead` presses the real
+ *              skip-ahead control, so what is captured is what a facilitator
+ *              actually gets rather than a seeded approximation of it. Without
+ *              it the harness can only reach the stage a session opens in
+ *              (`OPENING_STAGE`), which leaves two of the three unreachable -
+ *              and `ready-to-check` is the only way to a checkpoint-reached
+ *              Mortgage in Principle result at the seed's own property value.
+ *                                        default none, i.e. leave the stage alone
  *   --scroll   `top` or `end` - where the screen's scroller is left before the
  *              shot. An axis like the others, so `--scroll=top,end` shoots
  *              both. Added for the screens whose bottom edge is the thing
@@ -80,6 +90,13 @@
  *              screen, and whether a dock's `--more-below` fade is drawn.
  *                                                       default top
  *   --out      Output directory.                  default .screenshots/shots
+ *   --figures  Also dump every currency string each screen actually rendered,
+ *              to stdout and to `figures.txt` beside the PNGs. Read from the
+ *              live DOM, not from state, so a screen showing a hard-coded or
+ *              stale amount is caught rather than confirmed. This is what to
+ *              run after changing a seeded or derived figure - pair it with
+ *              `--session=opening` to see what a participant meets on a first
+ *              load with nothing restored.
  *   --full     Capture the whole scroller rather than the viewport.
  *   --no-sheet Skip the contact sheet.
  *   --scale    Device pixel ratio.                       default 2
@@ -104,6 +121,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
 import { FULL } from './session-seed.mjs';
+import { STAGES } from '../src/stage.js';
 import { BUILD_VERSION } from '../src/cache-version.js';
 // Every seed below carries `buildVersion` (DECISIONS.md D59). `state.js` now
 // DISCARDS a stored session whose stamp is not the running build's, so an
@@ -135,13 +153,21 @@ const DEFAULTS = {
   goal: 'set',
   draft: 'none',
   scroll: 'top',
+  stage: '',
 };
 
+/**
+ * Every currency string each shot rendered, filled when `--figures` is passed
+ * and written to `figures.txt` beside the PNGs. Empty otherwise.
+ */
+const figureDump = [];
+
 function parseArgs(argv) {
-  const flags = { ...DEFAULTS, full: false, sheet: true };
+  const flags = { ...DEFAULTS, full: false, sheet: true, figures: false };
   for (const arg of argv) {
     if (arg === '--full') { flags.full = true; continue; }
     if (arg === '--no-sheet') { flags.sheet = false; continue; }
+    if (arg === '--figures') { flags.figures = true; continue; }
     const m = arg.match(/^--([a-z-]+)=(.*)$/);
     if (!m) {
       console.error(`Unrecognised argument: ${arg}\nRun with no arguments for the defaults, or read the header of this file.`);
@@ -149,7 +175,7 @@ function parseArgs(argv) {
     }
     const [, key, value] = m;
     if (!(key in DEFAULTS)) {
-      console.error(`Unknown option --${key}. Known: ${Object.keys(DEFAULTS).map((k) => `--${k}`).join(', ')}, --full, --no-sheet.`);
+      console.error(`Unknown option --${key}. Known: ${Object.keys(DEFAULTS).map((k) => `--${k}`).join(', ')}, --full, --no-sheet, --figures.`);
       process.exit(1);
     }
     flags[key] = value;
@@ -401,6 +427,18 @@ if (!OPENING && STATES.includes('now') && STATES.includes('ahead') && savedNow >
   );
 }
 
+/**
+ * `--stage` names one of frame 33's three journey stages, or is empty for
+ * "leave whatever the session already has". Validated against `STAGES` itself
+ * rather than against a second list, so a stage added to `src/stage.js` is
+ * immediately reachable here.
+ */
+const STAGE = args.stage === '' ? null : args.stage;
+if (STAGE && !STAGES.includes(STAGE)) {
+  console.error(`--stage must be one of ${STAGES.join(', ')}, got '${STAGE}'.`);
+  process.exit(1);
+}
+
 const [server, base] = await startServer();
 const browser = await chromium.launch();
 const shots = [];
@@ -485,6 +523,24 @@ try {
                 // stored theme said otherwise.
                 await page.reload({ waitUntil: 'networkidle' });
               }
+
+              // FRAME 33'S OWN CONTROL, PRESSED. Applied after the session
+              // exists either way - an opening session has just persisted
+              // `OPENING_STAGE`, a seeded one has just been written - because
+              // `stagePatch()` builds from a fresh `defaultState()` and
+              // overwrites every key it owns, so pressing it last is what
+              // makes the stage the thing on screen. `navigate` re-enters from
+              // the requested entry point afterwards.
+              if (STAGE) {
+                await page.goto(`${base}#/settings`, { waitUntil: 'networkidle' });
+                const control = await page.$(`[data-action="set-stage"][data-value="${STAGE}"]`);
+                if (!control) {
+                  skipped.push(`${route} - frame 33 draws no "${STAGE}" stage control`);
+                  continue;
+                }
+                await control.click();
+                await page.waitForTimeout(300);
+              }
               await navigate(page, base, route, entry, state);
 
               const landed = await page.evaluate(() => window.location.hash);
@@ -521,6 +577,35 @@ try {
                 await page.screenshot({ path: file, fullPage: args.full });
                 shots.push({ name, file, route, entry, state, theme, text, scroll });
                 console.log(`  ${name}`);
+
+                // `--figures` DUMPS WHAT THE SCREEN ACTUALLY RENDERS, as text.
+                // A PNG answers "does it look right"; this answers "is that
+                // the figure the model produced", which is the question a
+                // change to a seeded or derived amount actually raises. Read
+                // from the live DOM rather than from state, so a screen that
+                // renders a stale or hard-coded string is caught by the same
+                // pass - the point of SPEC.md's "no number hardcoded in a
+                // screen" rule is only testable against what is on screen.
+                if (args.figures) {
+                  const found = await page.evaluate(() => {
+                    const root = document.querySelector('.bottom-sheet, .screen') || document.body;
+                    const seen = new Set();
+                    for (const m of (root.innerText || '').matchAll(/£[\d,]+(?:\.\d{2})?/g)) seen.add(m[0]);
+                    // AN INPUT'S VALUE IS NOT IN `innerText`, and frame 09's
+                    // property field is the one figure this whole dump most
+                    // needs to see - the participant's own committed amount,
+                    // rendered back into the control they typed it in. Read
+                    // separately and tagged, so a field showing something the
+                    // rest of the screen disagrees with is visible rather than
+                    // absent.
+                    for (const el of root.querySelectorAll('input')) {
+                      if (el.value) seen.add(`[field: ${el.value}]`);
+                    }
+                    return [...seen];
+                  });
+                  figureDump.push({ name, route, entry, state, figures: found });
+                  console.log(`    figures: ${found.length ? found.join('  ') : '(none)'}`);
+                }
               }
             } finally {
               await context.close();
@@ -579,6 +664,15 @@ try {
   }
 } finally {
   await browser.close();
+  if (args.figures && figureDump.length > 0) {
+    const lines = figureDump.map(
+      (d) => `${d.route}  [${d.entry}/${d.state}]\n    ${d.figures.length ? d.figures.join('  ') : '(no currency figure rendered)'}`,
+    );
+    const dumpFile = path.join(OUT, 'figures.txt');
+    fs.writeFileSync(dumpFile, lines.join('\n') + '\n');
+    console.log(`\n${dumpFile}`);
+  }
+
   await new Promise((resolve) => server.close(resolve));
 }
 

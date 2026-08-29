@@ -70,26 +70,30 @@ what the calculator would have committed, it does not invent anything (`DECISION
 | Stage | Property / deposit | Target | Checkpoint | Saved | Tap Insights and you land on |
 |---|---|---|---|---|---|
 | **Setting up** | - | - | - | £8,950 | **09** `#/calculator/property` - the empty state, unchanged |
-| **Saving** | £650,000 @ 10% | £65,000 | £48,750 | £8,950 | **15** `#/tracker`, below checkpoint, MIP milestone locked |
-| **Ready to check** | £650,000 @ 10% | £65,000 | £48,750 | £48,750 | **16** `#/tracker`, checkpoint reached, MIP milestone available |
+| **Saving** | £450,000 @ 10% | £45,000 | £33,750 | £8,950 | **15** `#/tracker`, below checkpoint, MIP milestone locked |
+| **Ready to check** | £450,000 @ 10% | £45,000 | £33,750 | £33,750 | **16** `#/tracker`, checkpoint reached, MIP milestone available |
 
-**The seed is above the Lifetime ISA cap on purpose, and frame 09 shows the warning from the first
-tap.** £650,000 is over `LISA_CAP_PROPERTY_VALUE` (£450,000), so a session that opens in the saving
-stage arrives on frame 09 with the cap banner already rendered. That is the point of the figure
-(`DECISIONS.md` D55).
+**The seed sits AT the Lifetime ISA cap, so frame 09 does NOT show the warning from the first tap.**
+£450,000 is exactly `LISA_CAP_PROPERTY_VALUE`, and the comparison is strictly greater-than, so a
+session opening in the saving stage arrives on frame 09 with no cap banner. This reverses D55, which
+had raised the seed to £650,000 for precisely that banner; D60 lowered it for a case study a
+participant recognises as theirs. **To demonstrate frame 09b, type any value above £450,000 on frame
+09** - the banner derives live from `property-value`, so it appears as soon as the field commits.
+Recorded as `GAPS.md` G70.
 
-**What it costs: the Saving stage's "On track for" row is the beyond-window variant.** At £65,000 the
-projection runs to 154.8 months, past the 60-month chart window, so `months-to-target` has no range
-to show and frames 11, 12 and 15 render their beyond-window variant. This is expected, not a broken
-screen. D45 originally chose £240,000 to avoid it; the two cannot both hold, because the window
-closes at about £275,800 and the cap starts above £450,000. **Ready to check is unaffected** - at
-£48,750 saved the projection is 37.8 months, on track for 35 to 42, well inside the window. If you
-need a Saving-stage tracker with an ordinary "On track for" row, use a recipe below instead of a
-stage.
+**What it costs: the Saving stage's "On track for" row is still the beyond-window variant.** At
+£45,000 the projection runs to 107.6 months, past the 60-month chart window, so `months-to-target`
+has no range to show and frames 11, 12 and 15 render their beyond-window variant. This is expected,
+not a broken screen, and it did not improve when the cap warning was given up: the window closes at
+about £275,800, well below £450,000. D45 originally chose £240,000 to avoid it. **Ready to check is
+unaffected** - at £33,750 saved the projection is 29.9 months, on track for 27 to 33, well inside the
+window. If you need a Saving-stage tracker with an ordinary "On track for" row, use a recipe below
+instead of a stage.
 
 **Ready to check is the Saving stage moved forward, not a different goal.** It is Saving with the
 tracker's own skip-ahead control applied, so the goal figures are identical and only the savings
-position differs. On track for reads 45–55 months at Saving and 17–21 at Ready to check.
+position differs. On track for has no range at Saving (beyond-window) and reads 27–33 months at
+Ready to check.
 
 **Setting up is a full reset of the goal.** Selecting any stage clears whatever the last participant
 left - a run through the MIP flow, an edited account selection, a skipped-ahead position - so you do
@@ -213,7 +217,7 @@ Set at frame 09. Checkpoint is 75% of target; target is property × deposit %.
 | **15** below checkpoint | £280,000 @ 5% | £14,000 | £10,500 | 8,950 < 10,500 → locked |
 | **16** checkpoint reached | £200,000 @ 5% | £10,000 | £7,500 | 8,950 ≥ 7,500 → MIP unlocks |
 | **goal met** fallback | £150,000 @ 5% | £7,500 | £5,625 | 8,950 ≥ 7,500 → goal met |
-| - *(for comparison)* | **Journey stage: Saving / Ready to check** | £65,000 | £48,750 | 8,950 → **15**; 48,750 → **16** |
+| - *(for comparison)* | **Journey stage: Saving / Ready to check** | £45,000 | £33,750 | 8,950 → **15**; 33,750 → **16** |
 
 ## The eleven no-frame-drawn states
 

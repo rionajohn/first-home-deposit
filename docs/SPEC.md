@@ -108,7 +108,7 @@ docs/
   House Price Index, HM Land Registry and ONS', asAt: '2026-06', asAtLabel: 'June 2026', sourceUrl }`
   - the first-time-buyer average shown as context on frame 09, with the attribution caption beneath
   it. **Display only**: no function in `model/` reads it, and the property value a session opens with
-  is `STAGE_PROPERTY_VALUE` in `src/stage.js` (650,000, DECISIONS.md D55), not this. Frame 09's
+  is `STAGE_PROPERTY_VALUE` in `src/stage.js` (450,000, DECISIONS.md D60), not this. Frame 09's
   caption and its `Source:` line both resolve `{region}`, `{amount}`, `{source}` and `{period}` from
   this one object, the same treatment `bankRateCaptionTemplate` gives `RATES.source`, so the sentence
   and its attribution cannot come to name different figures or different months. See DECISIONS.md

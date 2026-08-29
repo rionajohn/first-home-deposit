@@ -4309,6 +4309,81 @@ ten harness seed sites.
 ---
 
 
+## D60. The seeded property is 450,000, and the Lifetime ISA cap warning is what it costs
+
+**29 August 2026.**
+
+**Decision.** `STAGE_PROPERTY_VALUE` in `src/stage.js` is lowered from **650,000 to 450,000**. This
+reverses D55 in effect: 450,000 is exactly `LISA_CAP_PROPERTY_VALUE`, the comparison in
+`savingPatch()` is strictly greater-than, so `lisaCapBreached` is false and a session opening in the
+saving stage no longer arrives on frame 09 with the Lifetime ISA cap banner rendered.
+
+**Why.** The seed is the case study a participant is asked to reason against in a moderated
+think-aloud session, and 650,000 is not a property an early-career professional reads as theirs. A
+figure a participant treats as somebody else's problem is a figure they reason about at arm's length,
+which is the opposite of what the method needs: the instrument is trying to observe how someone
+thinks about *their* deposit, and a headline they cannot occupy converts that into a comment on the
+London market. 450,000 is chosen for relatability and for nothing else.
+
+**What it costs, stated rather than discovered.** Frame 09b's cap banner stops being an OPENING
+state. It is not unreachable and no code was removed: frame 09 re-derives the comparison live from
+`property-value` rather than reading the stored flag (confirmed in the D55 pass), so a participant or
+facilitator who types anything above 450,000 still meets it. What is gone is meeting it *without
+typing*, which is the whole thing D55 bought. Carried as `GAPS.md` **G70** so a facilitator who
+expects the banner on the opening screen finds the reason rather than a bug.
+
+**What it does not buy back, and this is the part worth being explicit about.** The projection
+window. D55 gave the window up to reach the cap; lowering the seed gives the cap up **without**
+recovering the window. At 450,000 the target is 45,000 and `months-to-target` is **107.6 months**,
+still past `CHART_WINDOW_MONTHS`, so `monthsToTarget()` still returns `beyond-window` and the
+tracker's "On track for" row still renders its beyond-window variant from the opening session. The
+window closes at about a **275,832** property against the seeded 8,950 balance and 255 a month, so
+nothing near a relatable London figure sits inside it. This is understood, not overlooked: the two
+properties D45 and D55 traded between are now both given up, and the seed is chosen on a third axis
+that neither of them was about.
+
+**What it keeps.** D45's second property, untouched and still asserted: **8,950 < 33,750**, so the
+tracker still opens locked, the Mortgage in Principle milestone is still the thing out of reach, and
+both skip-ahead positions still exist. "Ready to check" lands at **29.9 months, on track for 27 to
+33** - inside the window, because the skip-ahead position starts from the checkpoint rather than from
+8,950.
+
+**Every dependent figure follows, and none of them was edited.** `deposit-target` 65,000 → **45,000**,
+`loan-amount` 585,000 → **405,000**, `checkpoint-amount` 48,750 → **33,750**, `gap-to-checkpoint`
+39,800 → **24,800**, frame 21's `gap` 56,050 → **36,050**, `borrow-low`/`borrow-high` 526,500/643,500
+→ **364,500/445,500**, `max-property` 652,450 → **454,450**, frame 20's Loan-to-Value 99% → **98%**,
+frame 21's needed loan 641,050 → **441,050**, frame 12's three chart targets 32,500/65,000/97,500 →
+**22,500/45,000/67,500**. `ltv` stays 90%, because it is a function of `deposit-pct` alone. Not one of
+these is written down anywhere: the repo already holds SPEC.md's "no number hardcoded in a screen"
+property, so a full grep for every one of the old figures in all seven written forms returned code
+hits in `src/stage.js` only, and prose hits in this file, `GAPS.md`, `ROUTES.md` and `SPEC.md`. There
+was nothing to rewire.
+
+**The test moves with it.** `scripts/stage.test.mjs`'s cap assertion was D55's, and asserting the old
+intent would have failed. It now asserts the new one - the seed does not breach the cap, the stored
+flag is false, and the flag agrees with the live comparison frame 09 makes - written as a
+relationship to `LISA_CAP_PROPERTY_VALUE` rather than as `450000`, because the seed and the cap are
+the same figure today by coincidence (one is a relatability choice, one is the Lifetime ISA rule) and
+a change to either should only fail this test if the opening session's banner state actually moved.
+The beyond-window test needed no new assertion and got a new comment: the cost it records now
+outlives the thing it was paid for.
+
+**Flagged and not fixed.** The borrowing figures do not sit plausibly against the seeded salary. The
+affordability figure is `MOCK_MIP_DATA.annualSalaryBeforeTax` (38,000), not `money-in`'s 2,500 a
+month after tax - the two are different seeds for different screens - and a 405,000 loan is **10.7x**
+it, down from 15.4x but still well outside any real multiple. Frame 20's outcome is facilitator-set
+(`resultOutcome`), not affordability-derived, so
+nothing errors and no screen contradicts itself on that axis. Raised as `GAPS.md` **G71** rather than
+addressed here, because changing it means choosing an income-derived `borrowRange`, which is one of
+the three readings G69 is already waiting on an answer for.
+
+**Reversal.** Put 650,000 back in `src/stage.js` and restore `stage.test.mjs`'s cap assertion to
+`> LISA_CAP_PROPERTY_VALUE` / `true`. The opening session's banner returns untouched; nothing else
+was moved to accommodate this.
+
+---
+
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -4389,3 +4464,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 29 August 2026 (frame 01 reads its figures) | **D58 recorded.** `content.js`'s `'/home'` block loses both typed money strings: `balanceAmount: '£1,042.16'` is deleted and `home.js` renders `formatAccountBalance` over `MOCK_ACCOUNTS['current-account'].balance`, and the salary row's `amount: '+£2,500.00'` becomes `amountTemplate: '+{amount}'` filled with `formatTransactionAmount(MOCK_POSITION.moneyIn)`. **Nothing on screen changes.** The reason is D57: the seeded salary existed twice, so rounding it needed a second hand-edit, and a pass that missed the second copy would leave the store at 2,500 and the study's first screen at 2,240 with **no test failing** - the three browser suites measure geometry, not figures. The balance is the same defect one row up and is fixed under the standing correct-everywhere rule; `format.js`'s comment already asserted frames 01 and 03 must show the same balance, which was true only by hand. Third formatter added because neither existing one fits: `formatCurrency` is D9's whole-pound rule and `formatAccountBalance` drops pence on a round number, either of which would draw "£2,500" in a list where every other row shows pence. The other three transaction rows stay literal - no model figure exists behind them. **Audit, not assumption:** all 29 routes walked in a browser on a fresh session, frames 20 and 21 reached through the real MIP flow; **no screen renders £2,240, £380, 83% or 17%**, gross pay is £38,000 on both screens showing it, and £26,880 appears nowhere. Root cause of the reported sighting was **deployment, not code**: commit 8d87578 was never pushed, so `origin/build` and the Vercel build were two commits behind. `CACHE_VERSION` v49, `BUILD_VERSION` v49. |
 | 29 August 2026 (G66 widened to seeded figures) | **No decision reversed; G66's SCOPE corrected and `ROUTES.md`'s deploy procedure with it.** Frame 19 was reported as still rendering £2,240 after D57. **It was not a code defect.** `mip-pre-check.js:80` renders `formatCurrency(state['money-in'].value)` with no literal anywhere in the file, no bundler or dist output exists in this repo, and the whole MIP flow was re-audited: **zero hard-coded monetary figures** across frames 17, 18, 19, 19b, 20, 21, the adviser stub and the borrowing sheet - every figure goes through `formatCurrency`/`formatPercent` over a store key or a `MOCK_MIP_DATA` constant. The cause is `state.js`'s `load()`, which returns `{ ...defaultState(), ...JSON.parse(raw) }`: **a stored figure overrides a freshly seeded one**, so a tab holding a pre-change session renders the old figure indefinitely on correct code. `isNewSession()` gates `openSession()`; **nothing gates the figures**, which is the half G66 did not say. Reproduced against v49: stored `money-in` at 2240, two reloads, £2,240 both times; `#/reset` or a new tab returns £2,500. **This symptom is worse than G66's routing one** - a stale figure is fully rendered and internally consistent, so it reads as a bug in the code that just changed and survives both a hard refresh (which clears the HTTP cache and the service worker, not `sessionStorage`) and a `CACHE_VERSION` bump (assets, not state). The version-stamp fix stays rejected for its original reason: it would reset a participant mid-task. `CACHE_VERSION` v50, `BUILD_VERSION` v50. 264 tests passing. |
 | 29 August 2026 (stale sessions self-clear) | **D59 recorded; G66 RESOLVED, both halves.** `defaultState()` gains `buildVersion: BUILD_VERSION`, and `load()` **discards a stored session whose stamp is not the running build's** - unstamped included - falling through to `defaultState()` rather than merging over it, warning on the console with both versions, and re-persisting so the discard fires once. A matching stamp restores exactly as before; `persist()` and `setState()` are untouched. **This is not the fix G66 rejected, and the difference is one word:** that one re-applied the opening stage OVER a restored store, and `stagePatch()` writes only `STAGE_KEYS`, leaving a real session's flags beside a fresh goal - the mixed state D46 and `CLAUDE.md`'s state rules exist to prevent. Discarding WHOLE cannot produce it: what returns is a first load. **The routing half closes for free** - `restoredFromStorage` stays false, so `openSession()` applies the opening stage to the fresh store and Insights stops redirecting. **Stamp inside the store, not an envelope around it**, on blast radius: ten call sites across six harnesses touch the stored object and two read it back (`sheet-drag` asserts `state.ltvVideoSeen`, `shots` spreads over a stored session). **All ten harness seeds now stamped** - an unstamped seed is discarded by the check itself, so every browser suite would have silently measured a default session instead of its own. Residual risk kept deliberately: a deploy landing mid-session costs that participant their progress, to a clean opening session. Frame 33's build line (D49) already satisfied the surfacing requirement; verified at v51. `CACHE_VERSION` v51, `BUILD_VERSION` v51. **269 tests passing** (5 new in `scripts/stale-session.test.mjs`). |
+| 29 August 2026 (the seeded property becomes relatable) | **D60 recorded; D55 reversed in effect, D45's window still not recovered.** `STAGE_PROPERTY_VALUE` lowered **650,000 to 450,000**, so the case study is one an early-career participant reads as theirs rather than as a comment on the London market. **The Lifetime ISA cap warning is the cost:** 450,000 IS `LISA_CAP_PROPERTY_VALUE` and the comparison is strictly greater-than, so `lisaCapBreached` is false and frame 09b's banner is no longer an opening state - still reachable by typing a higher value, since frame 09 derives it live, but not without typing. Logged as **G70**. **The window is not bought back:** `months-to-target` is 107.6 months, still `beyond-window`, because the window closes at a 275,832 property - so both of the properties D45 and D55 traded between are now given up, on purpose, for a third axis neither was about. **Kept:** 8,950 < 33,750, so the tracker still opens locked and both skip-ahead positions still exist; "Ready to check" is 29.9 months, on track for 27 to 33. Every dependent figure follows through `src/model/` and **not one was edited** - a full grep of all seven written forms of 650,000 and of every figure derived from it found code hits in `src/stage.js` alone. `stage.test.mjs`'s cap assertion rewritten to the new intent as a RELATIONSHIP to the cap constant rather than as `450000`; the beyond-window test kept its assertions and gained a comment. Borrowing against the seeded salary (`MOCK_MIP_DATA.annualSalaryBeforeTax`, 38,000 - not `money-in`, which is monthly after tax) is still implausible at 10.7x - flagged as **G71**, not fixed, because it needs G69's unanswered question settled first. `SPEC.md`, `ROUTES.md` and `GAPS.md` G69's figures updated. `CACHE_VERSION` v52. 93 pure-Node tests passing. |
