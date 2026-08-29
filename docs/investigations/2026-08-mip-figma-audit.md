@@ -122,7 +122,7 @@ same list-row component, left blank rather than filled or hidden.
 9. `From your salary payments`
 10. `✓`
 11. `Monthly income after tax`
-12. `£2,240`
+12. `£2,500`
 13. `✓`
 14. `Regular outgoings`
 15. `£1,860`

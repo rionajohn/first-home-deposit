@@ -1666,6 +1666,30 @@ on the running build recovers it.
 
 **A participant who opened the link early meets this**, and nothing on screen says why.
 
+**29 AUGUST 2026: THE GAP IS WIDER THAN THE TITLE SAYS. IT IS NOT ONLY THE OPENING STAGE - IT IS
+EVERY SEEDED FIGURE.** `load()` returns `{ ...defaultState(), ...JSON.parse(raw) }`, so a STORED
+figure wins over a freshly seeded one. `isNewSession()` gates `openSession()`; nothing gates the
+figures. A tab holding a session from before a seed changed therefore keeps rendering the OLD figure
+on every screen that reads it, indefinitely, on correct code.
+
+**Reproduced against the v49 build.** After D57 rounded the seeded salary to 2,500, frame 19 was
+reported as still rendering £2,240. It was not a code defect - all 29 routes were verified rendering
+£2,500 - and the cause was this. Seeding a tab's stored `money-in` at 2240 and reloading twice
+renders £2,240 both times; `#/reset` or a new tab returns £2,500.
+
+**WHY THIS SYMPTOM IS WORSE THAN THE ROUTING ONE.** A misrouting Insights tab is visibly wrong and
+prompts someone to ask why. A stale FIGURE is not: the screen is fully rendered, internally
+consistent, and indistinguishable from a build that was never updated. It reads as a bug in the code
+that just changed, and it sends whoever is looking into the source rather than into the session. It
+also survives the two things anyone would try first - a hard refresh (which clears the HTTP cache
+and the service worker, not `sessionStorage`) and a `CACHE_VERSION` bump (which invalidates cached
+ASSETS, where this is stored STATE).
+
+**This does not change the decision below.** The version-stamp fix is still rejected for the same
+reason - it would reset a participant mid-task - and the facilitator procedure is still the standing
+answer. What changes is what the procedure has to warn about, and `ROUTES.md` now names the figure
+symptom alongside the routing one.
+
 **The proposed fix, and why it is not here.** Stamp `BUILD_VERSION` into the stored session; if the
 stored stamp does not match the running one, treat the session as new and apply the opening stage.
 It closes the gap exactly. It also **resets a participant mid-task**, which is why it was stopped:

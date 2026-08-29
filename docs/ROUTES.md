@@ -15,10 +15,25 @@ account-linking choice.)
 ## After a deploy, before the first participant
 
 **A tab that was already open before the deploy will not pick the new build up properly, and the
-symptom is silent**: Insights keeps redirecting to `#/calculator/property` as though no goal had
-ever been set. The session state lives in `sessionStorage`, which is per tab and survives every
-reload, so the app treats that tab as a restored session and never applies the opening stage
-(`GAPS.md` G66). Nothing on screen says why.
+symptom is silent.** The session state lives in `sessionStorage`, which is per tab and survives
+every reload, so the app treats that tab as a restored session (`GAPS.md` G66). Nothing on screen
+says why. It shows up in TWO ways, and the second is the one that gets mistaken for a bug:
+
+1. **Routing.** Insights keeps redirecting to `#/calculator/property` as though no goal had ever
+   been set, because the opening stage is never applied.
+2. **Stale figures.** `state.js`'s `load()` returns `{ ...defaultState(), ...JSON.parse(raw) }`, so
+   a STORED figure overrides the freshly seeded one. A tab holding a session from before a seed
+   changed keeps rendering the OLD figure on every screen that reads it, through any number of
+   reloads, on completely correct code.
+
+**The second one has already cost a full investigation.** After the seeded salary was rounded to
+2,500 (`DECISIONS.md` D57), frame 19 was reported as still showing £2,240. It was not: every screen
+was verified rendering £2,500, and the tab was holding a pre-change session. Reproduced 29 August
+2026 against the v49 build - seed a tab's stored `money-in` at 2240, reload twice, and frame 19
+reads £2,240 both times; `#/reset` or a new tab returns it to £2,500. **A hard refresh does not fix
+this**, because a hard refresh clears the HTTP cache and the service worker, not `sessionStorage`.
+Bumping `CACHE_VERSION` does not fix it either - that invalidates cached ASSETS, and this is stored
+STATE.
 
 Do one of these, in this order of preference:
 
