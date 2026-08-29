@@ -1007,6 +1007,42 @@
   color: var(--color-label);
 }
 
+/* The year readout is an input rather than a <p> (ui.js dateStepperHTML). It
+   must be indistinguishable from the month's <p> beside it until it is tapped,
+   so this modifier only undoes what a user-agent stylesheet puts on a form
+   control - the border, the background, the padding, the font family, the
+   ~20ch default width - and adds nothing of its own. Every visible property
+   (size, line height, weight, colour, margin) still comes from
+   `.date-stepper__value` above, so the two readouts cannot drift apart.
+
+   NO BORDER, NO UNDERLINE, NO FILL. Frame 05's `.figure-input__field` draws a
+   1px bottom rule, but that rule belongs to the wrapper around its input and
+   frame 05 has no box of its own; here the `.date-stepper__control` box is
+   already the field's outline, and a second rule 1px inside it would be a
+   change to a screen this pass is not meant to redraw. Focus is still shown -
+   the global :focus-visible ring in shell.css applies to this input like any
+   other control, on keyboard focus only.
+
+   NO min-height EITHER, which is the one place this departs from
+   `.figure-input__value`. That rule sets `min-height: var(--touch-target-min)`
+   on a readout standing alone on the screen; the same 44px here would grow the
+   control box by about 20px and move the stepper - a visible change. The
+   readout keeps its 24px line box, which still clears WCAG 2.5.8's 24px
+   minimum, and the two 44px chevron buttons flanking it are untouched.
+
+   4ch fits the four digits `maxlength` allows. The control is `flex: 1 1 0`
+   and centres its children, so this width sizes the caret box only and never
+   the box around it. */
+.date-stepper__value--input {
+  width: 4ch;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
 .date-stepper__step {
   appearance: none;
   background: none;

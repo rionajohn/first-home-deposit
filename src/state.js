@@ -223,6 +223,25 @@ export function defaultState() {
     targetMonth: null, // 1-12
     targetYear: null,
 
+    // Frame 10b — IS THE YEAR FIELD SITTING EMPTY WHILE THE PARTICIPANT
+    // RE-TYPES IT?
+    //
+    // The year is typed as well as stepped, so it has the same two ways of
+    // being empty that frame 09's property value has, and it takes frame 09's
+    // answer: an empty or unparseable field is this screen's own draft, never
+    // a written value. See `propertyValueCleared` below, DECISIONS.md D46 and
+    // GAPS.md G62 - the rule is the same one, applied to the second field in
+    // this build that a participant can type into and leave empty.
+    //
+    // `targetYear` is left standing while this is true, so nothing downstream
+    // can read a half-made edit. Continue is disabled, exactly as frame 09's
+    // is on an empty property value.
+    //
+    // NOT IN `stage.js`'s STAGE_KEYS, for the reason `targetYear` itself is
+    // not: a stage patch does not write the target date, so clearing the draft
+    // without clearing the year it describes would make the two disagree.
+    targetYearCleared: false,
+
     // Frame 09 (Property and deposit) — IS THE PROPERTY VALUE FIELD SITTING
     // EMPTY WHILE THE PARTICIPANT RE-TYPES IT?
     //

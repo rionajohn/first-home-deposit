@@ -99,6 +99,12 @@ export function render(container, ctx) {
   }
   const targetMonth = state.targetMonth ?? new Date().getMonth() + 1;
   const targetYear = state.targetYear ?? new Date().getFullYear() + 3;
+  // THE YEAR FIELD IS EMPTY WHILE THE PARTICIPANT RE-TYPES IT (state.js
+  // `targetYearCleared`). Frame 09's `propertyValueCleared` pattern exactly:
+  // the draft is the screen's own, `targetYear` above is left standing, and
+  // Continue is disabled until the field holds a year again. DECISIONS.md D46,
+  // GAPS.md G62.
+  const yearCleared = state.targetYearCleared;
 
   // The seed is what the accounts show this session has been putting aside.
   const seedLow = MOCK_POSITION.recentMonthlySavingLow;
@@ -119,7 +125,12 @@ export function render(container, ctx) {
     if (monthlyHigh.value > savingCeiling) {
       errorText = c.errorExceedsLeftOver;
     }
-  } else {
+  } else if (!yearCleared) {
+    // GUARDED ON THE DRAFT FIRST. While the year field is empty there is no
+    // target date, so there is nothing to solve and nothing to say is wrong -
+    // `previewAmount` stays null and Continue is disabled by `yearCleared`
+    // below rather than by an error. This is the branch that keeps the state
+    // rule: no figure is derived from a year the guard has not tested.
     const months = monthsFromNow(targetMonth, targetYear);
     if (months < 0) {
       errorText = c.errorPastDate;
@@ -178,7 +189,8 @@ export function render(container, ctx) {
       ` : `
         ${dateStepperHTML({
           monthLabel: MONTH_NAMES[targetMonth - 1],
-          yearLabel: String(targetYear),
+          yearLabel: yearCleared ? '' : String(targetYear),
+          yearRole: 'target-year',
           hint: c.dateStepperHint,
           monthAction: 'step-month',
           yearAction: 'step-year',
@@ -215,7 +227,10 @@ export function render(container, ctx) {
     ${actionBarHTML({
       primaryLabel: c.primaryCta,
       primaryAction: 'continue',
-      primaryDisabled: !!errorText,
+      // An empty year disables Continue without raising an error, the same way
+      // frame 09's empty property value does: nothing is wrong yet, the
+      // participant is simply part-way through typing.
+      primaryDisabled: !!errorText || yearCleared,
       secondaryLabel: c.secondaryCta,
       secondaryAction: 'exit',
     })}
@@ -278,24 +293,65 @@ export function render(container, ctx) {
       commit(Number(figureLow.value), clamp(Number(figureHigh.value) || 0, Number(figureLow.value), savingCeiling));
     });
   } else {
+    // A MONTH ROLL PAST EITHER END OF THE YEAR MOVES THE YEAR, and while the
+    // year field is sitting empty that would move it where the participant
+    // cannot see it. `stepMonth` resolves the draft on exactly the presses that
+    // write a new year and leaves it alone on the other eleven, so the field is
+    // never empty while holding a year the participant did not put there. The
+    // month is stepped, never typed, so it has no draft of its own.
+    function stepMonth(m, y) {
+      const next = setState(y === targetYear
+        ? { targetMonth: m }
+        : { targetMonth: m, targetYear: y, targetYearCleared: false });
+      rerenderInPlace(container, render, { ...ctx, state: next });
+    }
+
     container.querySelector('[data-action="step-month-up"]').addEventListener('click', () => {
       let m = targetMonth + 1, y = targetYear;
       if (m > 12) { m = 1; y += 1; }
-      const next = setState({ targetMonth: m, targetYear: y });
-      rerenderInPlace(container, render, { ...ctx, state: next });
+      stepMonth(m, y);
     });
     container.querySelector('[data-action="step-month-down"]').addEventListener('click', () => {
       let m = targetMonth - 1, y = targetYear;
       if (m < 1) { m = 12; y -= 1; }
-      const next = setState({ targetMonth: m, targetYear: y });
-      rerenderInPlace(container, render, { ...ctx, state: next });
+      stepMonth(m, y);
     });
+    // Both year chevrons resolve the draft as well as moving the year: they
+    // put a value back in the field, so the field is no longer empty. They stay
+    // unbounded in both directions, exactly as they were - the typed field
+    // introduces no bound the stepper does not have, so the two routes to a
+    // year cannot accept different values. GAPS.md G73.
     container.querySelector('[data-action="step-year-up"]').addEventListener('click', () => {
-      const next = setState({ targetYear: targetYear + 1 });
+      const next = setState({ targetYear: targetYear + 1, targetYearCleared: false });
       rerenderInPlace(container, render, { ...ctx, state: next });
     });
     container.querySelector('[data-action="step-year-down"]').addEventListener('click', () => {
-      const next = setState({ targetYear: targetYear - 1 });
+      const next = setState({ targetYear: targetYear - 1, targetYearCleared: false });
+      rerenderInPlace(container, render, { ...ctx, state: next });
+    });
+
+    // THE TYPED YEAR. Frame 05's `figureInputHTML` handler and frame 09's
+    // `currencyInputHTML` handler are the same two lines, and this is them:
+    // `focus` selects the whole value so a tap replaces it rather than dropping
+    // a caret mid-number, and `change` - not `input` - is the commit, so a
+    // half-typed "2" never reaches the store or re-renders the screen under the
+    // participant's fingers.
+    const yearInput = container.querySelector('[data-role="target-year"]');
+    yearInput.addEventListener('focus', () => yearInput.select());
+    yearInput.addEventListener('change', () => {
+      const typed = yearInput.value.replace(/[^0-9]/g, '');
+      const parsed = Number(typed);
+      // An empty field, or anything that does not parse to a finite number, is
+      // a DRAFT and never a value - frame 09's rule, applied here for the same
+      // reason. `targetYear` is left exactly as it is, so nothing downstream
+      // can read a half-made edit, and the emptiness is recorded as this
+      // screen's own state. Frame 09's `[^0-9.-]` strip is narrowed to `[^0-9]`
+      // here because a year has no decimal point and no sign, so "-" and "."
+      // are not characters this field can hold rather than characters it must
+      // recover from.
+      const next = typed === '' || !Number.isFinite(parsed)
+        ? setState({ targetYearCleared: true })
+        : setState({ targetYearCleared: false, targetYear: parsed });
       rerenderInPlace(container, render, { ...ctx, state: next });
     });
   }
@@ -311,7 +367,7 @@ export function render(container, ctx) {
   });
 
   container.querySelector('[data-action="continue"]').addEventListener('click', () => {
-    if (errorText) return;
+    if (errorText || yearCleared) return;
     if (solveFor === 'date') {
       const savingsRate = (monthlyLow.value + monthlyHigh.value) / 2;
       // The midpoint inherits the provenance of the pair it is the midpoint
@@ -330,6 +386,12 @@ export function render(container, ctx) {
       const rate = previewAmount;
       const range = rangeFromCentral(rate.value);
       setState({
+        // The draft is resolved by the same click that commits the figures it
+        // fed, so it cannot outlive the edit it describes - frame 09's Continue
+        // writes its own flag false for the same reason. Continue is unreachable
+        // while the field is empty, so this only ever clears a flag already
+        // false.
+        targetYearCleared: false,
         'savings-rate': { value: rate.value, provenance: rate.provenance },
         'monthly-low': { value: range.low, provenance: rate.provenance },
         'monthly-high': { value: range.high, provenance: rate.provenance },

@@ -1988,3 +1988,40 @@ one); or the whole thing is out of scope because these screens are about borrowi
 which account funds the deposit. **Asked rather than guessed** - the first two add a regulated-product
 statement to a result screen, which is an FCA copy question and not a layout one, and the third is
 already waiting on G69.
+
+---
+
+**G73. The target year on frame 10b has no maximum, and typing it is a faster route to a nonsense
+one than stepping to it was.** Raised while making the year editable (D61), and mitigated by that
+change rather than closed by it.
+
+**What is enforced now, and what is not.** `targetYear` has exactly one guard, and it is a minimum:
+`monthsFromNow()` in `src/screens/calculator-saving.js` returns a negative number for a date in the
+past, which raises `errorPastDate` ("Pick a date in the future.") and disables Continue. There is no
+maximum anywhere. Both stepper chevrons are unbounded arithmetic (`targetYear + 1` /
+`targetYear - 1`), and the typed field deliberately adds no bound they do not have, so the two routes
+to a value cannot accept different years.
+
+**Why it did not surface before.** Reaching an absurd year through the chevrons needed one tap per
+year, so nothing beyond a plausible horizon was reachable in a session. A keyboard reaches 9999 in
+four keystrokes.
+
+**What `maxlength="4"` does and does not do.** It is a format constraint, not a validation rule: a
+year is four digits, so the field holds four. It makes five-digit years **unreachable by typing**,
+which removes the worst of the range, and it introduces no error string, no new content rule and no
+new bound. It does not constrain the four-digit years that remain, and it does not apply to the
+stepper at all - a participant can still step past 9999 if they have the patience.
+
+**What a four-digit year beyond a plausible range does.** Nothing errors. `monthlyAmountFromDate()`
+solves the annuity for the months implied by the date and returns a correspondingly tiny monthly
+figure, so frames 11 and 12 render pennies rather than fail; frame 12's own `beyondWindowNote` ("This
+could take more than 5 years at your current rate") already covers the far end of the chart. The
+result is legible and wrong-looking rather than broken, which is why it degrades rather than needing
+a guard to be usable.
+
+*Status: open, mitigated for typing and not closed.* **Asked rather than guessed** before the field
+was built, and the answer was to enforce only the existing minimum: a maximum is a content rule about
+how far ahead this feature lets someone plan, it is not derivable from anything in the spec or from
+the Bank Rate the other figures anchor to, and inventing one would have put a figure in the codebase
+that no source backs. Settling it needs a stated horizon; whatever is chosen must be applied to the
+stepper handlers as well as the field, or the two routes start disagreeing.

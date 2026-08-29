@@ -4384,6 +4384,104 @@ was moved to accommodate this.
 ---
 
 
+## D61. Step 2 of 3's target year is typed as well as stepped, and looks no different for it
+
+**29 August 2026.**
+
+**Decision.** The year on frame 10b (`/calculator/saving`, `solveFor === 'amount'`) is an input. It
+was a `<p class="date-stepper__value">` reachable only by its two chevrons; it is now an
+`<input class="date-stepper__value date-stepper__value--input">` carrying the same class, so a
+participant can tap it and type. The month beside it is unchanged and stays stepped-only: it is
+chosen from twelve names rather than typed, and a text field is the wrong control for a closed set
+the two chevrons already reach in at most six taps.
+
+**Why.** A participant setting a target three, five or seven years out was tapping a chevron once per
+year with no other route to the value, while frame 05's headline figure and frame 09's property value
+have both been typeable throughout. The prototype is an instrument for observing how someone sets a
+deposit goal, and a control that makes the goal expensive to move measures the control rather than
+the goal.
+
+**The pattern is frame 05's and frame 09's, not a new one.** `figureInputHTML` and
+`currencyInputHTML` already agree on every attribute that matters, and the year copies them exactly:
+`type="text"` with `inputmode="numeric"` rather than `type="number"` - the numeric keypad without the
+spinners, without the locale parsing, and without the `setSelectionRange` exception `rerenderInPlace`
+has to catch on a number input. The handler is the same two listeners those screens bind:
+`focus -> select()`, so a tap replaces the year rather than dropping a caret between two digits, and
+`change` rather than `input` as the commit, so a half-typed "2" never reaches the store or
+re-renders the screen under the participant's fingers.
+
+**Nothing on the screen moved, and that was checked rather than asserted.** `shots.mjs` gains a
+`--solve` axis - frame 10b was previously unshootable, because the shared seed carries
+`solveFor: 'date'` and a variant selector belongs in a script's own overrides rather than in
+`session-seed.mjs` - and frame 10b was shot before and after in both themes and at both text sizes.
+All three pairs are **byte-for-byte identical**. Two rules bought that:
+
+- **No border, no underline, no fill.** Frame 05's `.figure-input__field` draws a 1px bottom rule,
+  but that rule belongs to the wrapper around its input and frame 05 has no box of its own. Here the
+  `.date-stepper__control` box is already the field's outline, and a second rule 1px inside it would
+  redraw a screen this pass was not meant to touch. The modifier undoes what a user-agent stylesheet
+  puts on a form control - border, background, padding, font family, the ~20ch default width - and
+  adds nothing; every visible property still comes from `.date-stepper__value`, so the year and the
+  month beside it cannot drift apart. Focus is still shown: the global `:focus-visible` ring in
+  `shell.css` applies to this input like any other control, on keyboard focus only, so a tap shows
+  nothing and a Tab shows the ring.
+- **No `min-height`,** which is the one place this departs from `.figure-input__value`. That rule
+  sets `min-height: var(--touch-target-min)` on a readout standing alone on a screen; the same 44px
+  here would grow the control box by about 20px and move the stepper. The readout keeps its 24px line
+  box, which still clears WCAG 2.5.8's 24px minimum, and the two 44px chevron buttons flanking it are
+  untouched.
+
+**An empty field is a draft, which is D46 applied to the second typeable field in this build.**
+`state.js` gains `targetYearCleared`, and an empty or unparseable field sets it instead of writing
+`targetYear`. This is not a precaution: `savings-rate`, `monthly-low` and `monthly-high` are all
+SOLVED from the target date on this path (D2), so a year written mid-keystroke would be solved
+against by frames 11 and 12 exactly as `property-value: null` was before D46 - and
+`formatCurrency(null)` renders that as £0 rather than failing. The committed year is left standing,
+Continue is disabled with **no error banner** (nothing is wrong yet; the participant is part-way
+through typing, which is frame 09's own behaviour), and the draft is resolved by the same click that
+commits the figures it fed. The render guards on the draft BEFORE deriving anything, so no figure is
+built from a year the guard has not tested - CLAUDE.md's second state rule.
+
+**Both year chevrons resolve the draft, and so does a month roll that crosses a year boundary.** The
+second is the one worth stating: `step-month-up` at December writes `targetYear + 1`, and while the
+field was empty that would have moved the year where the participant could not see it. `stepMonth()`
+clears the draft on exactly the presses that write a new year and leaves it alone on the other eleven.
+
+**`targetYearCleared` is deliberately NOT in `stage.js`'s `STAGE_KEYS`,** for the reason `targetYear`
+itself is not: a stage patch makes no claim about the clock and does not write the target date, so
+clearing the draft without clearing the year it describes would leave the two disagreeing.
+
+**Bounds: the existing minimum only, and the maximum asked rather than invented.** `errorPastDate`
+already guards a date in the past and is reused untouched. No maximum exists anywhere - both stepper
+chevrons are unbounded arithmetic - and the typed field adds none, so the two routes to a year cannot
+accept different values. `maxlength="4"` is a **format constraint, not a bound**: a year is four
+digits, so the field holds four; it introduces no error string and no content rule, it applies to
+`type="text"` (it is ignored on `type="number"`, a second reason the pattern uses text), and it
+constrains typing only - not `select()`, and not a value set programmatically on re-render. See
+GAPS.md **G73**, which records that five-digit years are now unreachable by typing, that four-digit
+years beyond a plausible range remain possible and degrade into a pennies-level figure and frame 12's
+existing `beyondWindowNote` rather than erroring, and that the stepper stays unbounded - so the gap
+is mitigated for typing and not closed.
+
+**Rejected: reusing `figureInputHTML` itself.** It is a 40px centred currency figure with a £ prefix
+and a bottom rule, built for a headline standing alone on a screen. Dropping it into a 17px stepper
+box would have changed every visible property of the readout, which is the one thing this change was
+not allowed to do. What is reused is the pattern the component encodes - the attributes, the two
+listeners, the draft rule - which is what reuse is worth here.
+
+**No copy changed.** The input takes the existing `dateStepperYearAriaLabel` ('target year') as its
+own `aria-label`, which a screen reader announces alongside the edit-text role, so the change added
+no string to `content.js` and raised no FCA copy question.
+
+**Verified.** 270 tests passing. `stale-session.test.mjs` gains a sixth test covering the whole of
+the flow-through: the attribute contract, the typed year surviving a reload (the D59 stamp path - a
+same-build restore must carry it through rather than discard it as stale) and a back navigation, an
+empty field writing nothing and disabling Continue, and the committed `savings-rate` matching
+`monthlyAmountFromDate()` run over the same months - asserted against the model rather than against a
+number written into the test, so the two cannot drift.
+
+---
+
 ## Open questions
 
 None remain open as of 20 August 2026. Nothing in D11-D19 (this session's shell, icon-set, frame 03, action-bar, sheet-gesture and sheet-header passes) opened a new one - each is a build-stage decision with a stated reason and a stated reversal, not a question left hanging.
@@ -4465,3 +4563,4 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 29 August 2026 (G66 widened to seeded figures) | **No decision reversed; G66's SCOPE corrected and `ROUTES.md`'s deploy procedure with it.** Frame 19 was reported as still rendering £2,240 after D57. **It was not a code defect.** `mip-pre-check.js:80` renders `formatCurrency(state['money-in'].value)` with no literal anywhere in the file, no bundler or dist output exists in this repo, and the whole MIP flow was re-audited: **zero hard-coded monetary figures** across frames 17, 18, 19, 19b, 20, 21, the adviser stub and the borrowing sheet - every figure goes through `formatCurrency`/`formatPercent` over a store key or a `MOCK_MIP_DATA` constant. The cause is `state.js`'s `load()`, which returns `{ ...defaultState(), ...JSON.parse(raw) }`: **a stored figure overrides a freshly seeded one**, so a tab holding a pre-change session renders the old figure indefinitely on correct code. `isNewSession()` gates `openSession()`; **nothing gates the figures**, which is the half G66 did not say. Reproduced against v49: stored `money-in` at 2240, two reloads, £2,240 both times; `#/reset` or a new tab returns £2,500. **This symptom is worse than G66's routing one** - a stale figure is fully rendered and internally consistent, so it reads as a bug in the code that just changed and survives both a hard refresh (which clears the HTTP cache and the service worker, not `sessionStorage`) and a `CACHE_VERSION` bump (assets, not state). The version-stamp fix stays rejected for its original reason: it would reset a participant mid-task. `CACHE_VERSION` v50, `BUILD_VERSION` v50. 264 tests passing. |
 | 29 August 2026 (stale sessions self-clear) | **D59 recorded; G66 RESOLVED, both halves.** `defaultState()` gains `buildVersion: BUILD_VERSION`, and `load()` **discards a stored session whose stamp is not the running build's** - unstamped included - falling through to `defaultState()` rather than merging over it, warning on the console with both versions, and re-persisting so the discard fires once. A matching stamp restores exactly as before; `persist()` and `setState()` are untouched. **This is not the fix G66 rejected, and the difference is one word:** that one re-applied the opening stage OVER a restored store, and `stagePatch()` writes only `STAGE_KEYS`, leaving a real session's flags beside a fresh goal - the mixed state D46 and `CLAUDE.md`'s state rules exist to prevent. Discarding WHOLE cannot produce it: what returns is a first load. **The routing half closes for free** - `restoredFromStorage` stays false, so `openSession()` applies the opening stage to the fresh store and Insights stops redirecting. **Stamp inside the store, not an envelope around it**, on blast radius: ten call sites across six harnesses touch the stored object and two read it back (`sheet-drag` asserts `state.ltvVideoSeen`, `shots` spreads over a stored session). **All ten harness seeds now stamped** - an unstamped seed is discarded by the check itself, so every browser suite would have silently measured a default session instead of its own. Residual risk kept deliberately: a deploy landing mid-session costs that participant their progress, to a clean opening session. Frame 33's build line (D49) already satisfied the surfacing requirement; verified at v51. `CACHE_VERSION` v51, `BUILD_VERSION` v51. **269 tests passing** (5 new in `scripts/stale-session.test.mjs`). |
 | 29 August 2026 (the seeded property becomes relatable) | **D60 recorded; D55 reversed in effect, D45's window still not recovered.** `STAGE_PROPERTY_VALUE` lowered **650,000 to 450,000**, so the case study is one an early-career participant reads as theirs rather than as a comment on the London market. **The Lifetime ISA cap warning is the cost:** 450,000 IS `LISA_CAP_PROPERTY_VALUE` and the comparison is strictly greater-than, so `lisaCapBreached` is false and frame 09b's banner is no longer an opening state - still reachable by typing a higher value, since frame 09 derives it live, but not without typing. Logged as **G70**. **The window is not bought back:** `months-to-target` is 107.6 months, still `beyond-window`, because the window closes at a 275,832 property - so both of the properties D45 and D55 traded between are now given up, on purpose, for a third axis neither was about. **Kept:** 8,950 < 33,750, so the tracker still opens locked and both skip-ahead positions still exist; "Ready to check" is 29.9 months, on track for 27 to 33. Every dependent figure follows through `src/model/` and **not one was edited** - a full grep of all seven written forms of 650,000 and of every figure derived from it found code hits in `src/stage.js` alone. `stage.test.mjs`'s cap assertion rewritten to the new intent as a RELATIONSHIP to the cap constant rather than as `450000`; the beyond-window test kept its assertions and gained a comment. Borrowing against the seeded salary (`MOCK_MIP_DATA.annualSalaryBeforeTax`, 38,000 - not `money-in`, which is monthly after tax) is still implausible at 10.7x - flagged as **G71**, not fixed, because it needs G69's unanswered question settled first. `SPEC.md`, `ROUTES.md` and `GAPS.md` G69's figures updated. `CACHE_VERSION` v52. 93 pure-Node tests passing. |
+| 29 August 2026 (step 2's year becomes typeable) | **D61 recorded; G73 raised, open.** The target year on frame 10b is an `<input>` rather than a `<p>`, carrying `.date-stepper__value` plus a modifier that undoes only what a user-agent stylesheet puts on a form control - so frame 10b is **byte-for-byte identical** before and after in both themes and at both text sizes, verified by shooting it rather than by asserting it. The attributes and the two listeners are frame 05's `figureInputHTML` and frame 09's `currencyInputHTML` verbatim: `type="text"` with `inputmode="numeric"` (not `type="number"`), `focus -> select()`, and `change` as the commit. `dateStepperHTML` gains a `yearRole` parameter - pass it and the readout becomes a field, leave it out and the control renders as it always has; the month stays stepped-only, being a closed set of twelve. **The empty case is D46's draft rule, applied to the second typeable field in this build:** `state.js` gains `targetYearCleared`, an empty or unparseable field writes it instead of `targetYear`, the render guards on it before deriving anything, and Continue is disabled with no error banner - which matters here because `savings-rate`, `monthly-low` and `monthly-high` are all SOLVED from this date (D2). Both year chevrons resolve the draft, and `stepMonth()` resolves it on exactly the month rolls that cross a year boundary. `targetYearCleared` is deliberately kept OUT of `STAGE_KEYS`, for the reason `targetYear` is. **Bounds: the existing `errorPastDate` minimum only.** No maximum exists anywhere, the stepper handlers stay unbounded, and none was invented - `maxlength="4"` is a format constraint, not a bound, so five-digit years are unreachable by typing while four-digit ones beyond a plausible range still degrade into a pennies-level figure and frame 12's existing `beyondWindowNote`. Asked before building, logged as **G73**, open. No copy changed - the input reuses `dateStepperYearAriaLabel`. `shots.mjs` gains a `--solve` axis, which is what made frame 10b shootable at all. `stale-session.test.mjs` gains a sixth test: the attribute contract, the typed year across a reload and a back navigation, the empty field writing nothing, and `savings-rate` matching `monthlyAmountFromDate()` asserted against the model rather than a literal. `CACHE_VERSION` v53. 270 tests passing. |

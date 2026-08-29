@@ -698,14 +698,41 @@ export function segmentedControlHTML({ options, selected, action }) {
  * Input / Date stepper (frame 10b): a month control and a year control,
  * each with an up/down pair, plus a hint line beneath.
  */
-export function dateStepperHTML({ monthLabel, yearLabel, hint, monthAction, yearAction, monthAriaLabel, yearAriaLabel, increaseLabel, decreaseLabel }) {
-  function control({ value, upAction, downAction, ariaLabel }) {
+export function dateStepperHTML({ monthLabel, yearLabel, hint, monthAction, yearAction, monthAriaLabel, yearAriaLabel, increaseLabel, decreaseLabel, yearRole }) {
+  // THE YEAR IS TYPED AS WELL AS STEPPED; THE MONTH IS STEPPED ONLY.
+  //
+  // `yearRole` is what turns the year's readout into a field: pass it and the
+  // `<p>` becomes an `<input>` carrying that `data-role`, leave it out and the
+  // control renders exactly as it always has. The month has no equivalent
+  // because it is chosen from twelve names, not typed - a text field is the
+  // wrong control for a closed set, and the two chevrons already reach every
+  // member of it in at most six taps.
+  //
+  // The input's attributes are frame 05's `figureInputHTML` and frame 09's
+  // `currencyInputHTML` verbatim: `type="text"` with `inputmode="numeric"`
+  // rather than `type="number"`, so a phone raises the numeric keypad without
+  // the spinners, the locale parsing or the `setSelectionRange` exception that
+  // `type="number"` brings with it (see `rerenderInPlace` above, which restores
+  // the caret after every commit).
+  //
+  // `maxlength="4"` IS A FORMAT CONSTRAINT, NOT A BOUND. A year is four digits,
+  // so the field holds four. It introduces no validation, no error string and
+  // no maximum: the only guard on the value remains the past-date check the
+  // stepper has always had, so typing and stepping cannot disagree about what
+  // is acceptable. `maxlength` applies to `type="text"` (it is ignored on
+  // `type="number"`, which is a second reason the pattern uses text), and it
+  // constrains typing only - it does not touch `select()`, and it does not
+  // touch a value set programmatically on re-render. See GAPS.md G73.
+  function control({ value, upAction, downAction, ariaLabel, role }) {
+    const readout = role
+      ? `<input class="date-stepper__value date-stepper__value--input" type="text" inputmode="numeric" maxlength="4" data-role="${role}" value="${value}" aria-label="${ariaLabel}" />`
+      : `<p class="date-stepper__value">${value}</p>`;
     return `
       <div class="date-stepper__control">
         <button type="button" class="date-stepper__step" data-action="${upAction}" aria-label="${increaseLabel} ${ariaLabel}">
           ${chevronUp({ size: 'micro', weight: 'semibold' })}
         </button>
-        <p class="date-stepper__value">${value}</p>
+        ${readout}
         <button type="button" class="date-stepper__step date-stepper__step--down" data-action="${downAction}" aria-label="${decreaseLabel} ${ariaLabel}">
           ${chevronDown({ size: 'micro', weight: 'semibold' })}
         </button>
@@ -716,7 +743,7 @@ export function dateStepperHTML({ monthLabel, yearLabel, hint, monthAction, year
     <div class="date-stepper">
       <div class="date-stepper__row">
         ${control({ value: monthLabel, upAction: `${monthAction}-up`, downAction: `${monthAction}-down`, ariaLabel: monthAriaLabel })}
-        ${control({ value: yearLabel, upAction: `${yearAction}-up`, downAction: `${yearAction}-down`, ariaLabel: yearAriaLabel })}
+        ${control({ value: yearLabel, upAction: `${yearAction}-up`, downAction: `${yearAction}-down`, ariaLabel: yearAriaLabel, role: yearRole })}
       </div>
       <p class="date-stepper__hint">${hint}</p>
     </div>

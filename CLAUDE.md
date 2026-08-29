@@ -71,7 +71,9 @@ do not introduce a state management library.
 - Test stale-session discard: `node --test scripts/stale-session.test.mjs` (drives Chromium; asserts a
   session stamped with another build - or unstamped - is discarded whole rather than merged, that a
   same-stamp session restores untouched, and that a typed calculator value survives a reload and a
-  back navigation. D59)
+  back navigation. D59. Also owns frame 10b's typed target year: its attribute contract, its
+  persistence across a reload and a back navigation, that an empty field writes no committed key, and
+  that the solved `savings-rate` matches the model over the same months. D61)
 - Test the journey stage control: `node --test scripts/stage.test.mjs` (pure Node, no browser; asserts each stage is idempotent in both directions, that ready-to-check is the saving stage with `skipAheadPatch()` applied rather than a second goal, and that no derived figure is written by hand)
 - Test the action bar: `node --test scripts/action-bar.test.mjs` (D39's pinned bar; 20 screens x 4 viewports plus 7 sheets, asserting the bar is visible and hittable without scrolling, flush above the tab bar, and clear of the last content element when scrolled to the end)
 - Test the tab bar: `node --test scripts/bottom-nav.test.mjs` (D11's three states; asserts an enabled-but-not-current tab resolves to the same colour, weight, icon variant and indicator as a disabled one)

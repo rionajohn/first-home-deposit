@@ -34,6 +34,7 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 import { BUILD_VERSION } from '../src/cache-version.js';
 import { MOCK_POSITION } from '../src/model/accounts.js';
+import { monthlyAmountFromDate } from '../src/model/model.js';
 
 const ROOT = path.resolve('.');
 const STORAGE_KEY = 'yfh-state';
@@ -239,6 +240,139 @@ test('mid-session persistence still carries a typed calculator value across a re
 
     stored = await readStored(page);
     assert.equal(stored['property-value'].value, 375000);
+  } finally {
+    await ctx.close();
+  }
+});
+
+/**
+ * THE TYPED TARGET YEAR (frame 10b).
+ *
+ * The year on step 2 of 3 used to be a stepped-only readout, and is now typed
+ * as well - the same `focus`/`change` pair frames 05 and 09 already use. Three
+ * things have to hold, and only the first is about this screen:
+ *
+ *   1. The typed year survives a reload and a back navigation, exactly as
+ *      frame 09's typed property value does above. This is the half that
+ *      touches D59: the store is stamped with the running build, so a
+ *      same-build restore must carry the year through untouched rather than
+ *      discard it as stale.
+ *   2. It reaches the figure step 3 and the result screen are built from.
+ *      `savings-rate` is SOLVED from the target date on this path (D2), so a
+ *      year the participant typed and a year they stepped to must produce the
+ *      same figure - asserted against the model directly, not against a
+ *      number written into this file, so the two cannot drift.
+ *   3. An empty field writes nothing. This is CLAUDE.md's state rule and
+ *      D46/G62's defect: a draft that reached `targetYear` would leave the
+ *      store holding a year no screen expects, and the calculator would solve
+ *      against it.
+ */
+test('a typed target year survives a reload and a back navigation, and drives step 3', async () => {
+  const ctx = await contextWith(undefined);
+  try {
+    const page = await ctx.newPage();
+    await page.goto(`${base}/index.html#/calculator/property`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+
+    const propertyInput = await page.$('[data-role="property-value"]');
+    await propertyInput.fill('375000');
+    await propertyInput.dispatchEvent('change');
+    await page.waitForTimeout(200);
+    await page.click('[data-action="continue"]');
+    await page.waitForTimeout(400);
+
+    // Switch to the date-stepper variant, which is where the year lives.
+    await page.click('[data-action="select-solve-for"][data-value="amount"]');
+    await page.waitForTimeout(300);
+
+    const yearInput = await page.$('[data-role="target-year"]');
+    assert.ok(yearInput, 'frame 10b target-year input is present');
+
+    // It is a numeric-keypad text field, not a number input, and it holds a
+    // four-digit year - the whole of the attribute contract this change added.
+    const attrs = await page.evaluate(() => {
+      const el = document.querySelector('[data-role="target-year"]');
+      return { type: el.type, inputmode: el.getAttribute('inputmode'), maxlength: el.getAttribute('maxlength') };
+    });
+    assert.equal(attrs.type, 'text');
+    assert.equal(attrs.inputmode, 'numeric');
+    assert.equal(attrs.maxlength, '4');
+
+    const typedYear = new Date().getFullYear() + 7;
+    await yearInput.fill(String(typedYear));
+    await yearInput.dispatchEvent('change');
+    await page.waitForTimeout(300);
+
+    let stored = await readStored(page);
+    assert.equal(stored.targetYear, typedYear);
+    assert.equal(stored.targetYearCleared, false);
+    const targetMonth = stored.targetMonth;
+
+    // 1. Survives the reload. A same-build stamp is a mid-session restore.
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+    stored = await readStored(page);
+    assert.equal(stored.targetYear, typedYear, 'the typed year survived the reload');
+    assert.equal(stored.buildVersion, BUILD_VERSION);
+    assert.equal(
+      await page.evaluate(() => document.querySelector('[data-role="target-year"]').value),
+      String(typedYear),
+      'and the field is repopulated with it',
+    );
+
+    // 2. AN EMPTY FIELD IS A DRAFT. The committed year is left standing and
+    // Continue is disabled - no figure moves, and no error is raised, because
+    // nothing is wrong yet.
+    const liveYear = await page.$('[data-role="target-year"]');
+    await liveYear.fill('');
+    await liveYear.dispatchEvent('change');
+    await page.waitForTimeout(300);
+    stored = await readStored(page);
+    assert.equal(stored.targetYearCleared, true);
+    assert.equal(stored.targetYear, typedYear, 'the draft did not write the committed year');
+    assert.equal(
+      await page.evaluate(() => document.querySelector('[data-action="continue"]').disabled),
+      true,
+      'Continue is disabled while the field is empty',
+    );
+
+    // Typing it back resolves the draft.
+    const backAgain = await page.$('[data-role="target-year"]');
+    await backAgain.fill(String(typedYear));
+    await backAgain.dispatchEvent('change');
+    await page.waitForTimeout(300);
+    stored = await readStored(page);
+    assert.equal(stored.targetYearCleared, false);
+
+    // 3. It drives the figure step 3 is built from. `savings-rate` is solved
+    // from the typed date, so it must match the model run over the same
+    // months - computed here from the store rather than hard-coded.
+    await page.click('[data-action="continue"]');
+    await page.waitForTimeout(400);
+    assert.match(await page.evaluate(() => location.hash), /calculator\/review/);
+
+    stored = await readStored(page);
+    const now = new Date();
+    const months = (typedYear - now.getFullYear()) * 12 + (targetMonth - 1 - now.getMonth());
+    const expected = monthlyAmountFromDate(stored, months);
+    assert.ok(Math.abs(stored['savings-rate'].value - expected.value) < 1e-6,
+      `savings-rate ${stored['savings-rate'].value} should be the model's ${expected.value}`);
+    // And step 3 renders it, so the figure reached the screen and not just the
+    // store. `monthly-low` is the range's lower bound, drawn by the review row.
+    const reviewText = await page.evaluate(() => document.getElementById('app').textContent);
+    const lowShown = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 })
+      .format(Math.round(stored['monthly-low'].value));
+    assert.ok(reviewText.includes(lowShown), `step 3 should show ${lowShown}`);
+
+    // 4. Going back to step 2 still shows the typed year - the history path,
+    // which is the one a participant uses to change their mind.
+    await page.goBack();
+    await page.waitForTimeout(500);
+    assert.equal(
+      await page.evaluate(() => document.querySelector('[data-role="target-year"]').value),
+      String(typedYear),
+      'the year is still there after a back navigation',
+    );
   } finally {
     await ctx.close();
   }

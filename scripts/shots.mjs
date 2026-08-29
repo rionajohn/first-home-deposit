@@ -64,6 +64,13 @@
  *              own flag moves (DECISIONS.md D46). Use it to shoot the screens
  *              that read `property-value` live while a goal is committed.
  *                                                       default none
+ *   --solve    `date` or `amount` - which of frame 10's two variants step 2 of
+ *              3 draws. `date` is the slider (pick a monthly range, solve the
+ *              date), `amount` is the date stepper (pick a target year, solve
+ *              the monthly amount). The shared seed carries `date`, so `amount`
+ *              is the only way to shoot 10b - and 10b's year is now a typed
+ *              field, so it is the variant a presentation check has to look at.
+ *                                                       default date
  *   --session  `seeded` or `opening`. `seeded` writes the shared seed into
  *              sessionStorage before the first paint, which is what every
  *              option above is described against. `opening` writes NOTHING and
@@ -152,6 +159,7 @@ const DEFAULTS = {
   saved: '',
   goal: 'set',
   draft: 'none',
+  solve: 'date',
   scroll: 'top',
   stage: '',
 };
@@ -255,6 +263,19 @@ const NO_GOAL_KEYS = ['property-value', 'deposit-pct', 'deposit-target', 'checkp
 const DRAFT_STATES = ['none', 'property-cleared'];
 if (!DRAFT_STATES.includes(args.draft)) {
   console.error(`Unknown --draft "${args.draft}". One of: ${DRAFT_STATES.join(', ')}.`);
+  process.exit(1);
+}
+/**
+ * WHICH VARIANT OF STEP 2 OF 3, and why it is an override here rather than a
+ * change to the shared seed. `solveFor` selects one of frame 10's two variants
+ * and nothing else reads it, so it is exactly the kind of key CLAUDE.md's seed
+ * rule keeps out of `session-seed.mjs`: one script's variant selector belongs
+ * in that script's own overrides. `overlap.test.mjs` and `action-bar.test.mjs`
+ * already pass it in their own row lists for the same reason.
+ */
+const SOLVE_FOR = ['date', 'amount'];
+if (!SOLVE_FOR.includes(args.solve)) {
+  console.error(`Unknown --solve "${args.solve}". One of: ${SOLVE_FOR.join(', ')}.`);
   process.exit(1);
 }
 const ENTRIES = list(args.entry);
@@ -381,6 +402,7 @@ function shotName({ route, entry, state, theme, text, scroll }) {
   const parts = [slug(route), entry, state, theme, `${WIDTH}w`];
   if (args.goal === 'none') parts.splice(1, 0, 'no-goal');
   if (args.draft !== 'none') parts.splice(1, 0, args.draft);
+  if (args.solve !== 'date') parts.splice(1, 0, `solve-${args.solve}`);
   if (text !== 'default') parts.push(text);
   if (scroll !== 'top') parts.push(`scroll-${scroll}`);
   if (args.full) parts.push('full');
@@ -405,6 +427,7 @@ if (OPENING) {
     SAVED !== null && '--saved',
     args.goal !== 'set' && '--goal',
     args.draft !== 'none' && '--draft',
+    args.solve !== 'date' && '--solve',
   ].filter(Boolean);
   if (seeding.length) {
     console.error(
@@ -496,6 +519,7 @@ try {
                 for (const key of NO_GOAL_KEYS) seed[key] = { value: null, provenance: null };
               }
               if (args.draft === 'property-cleared') seed.propertyValueCleared = true;
+              seed.solveFor = args.solve;
               await context.addInitScript((v) => {
                 try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {}
               }, { ...seed, buildVersion: BUILD_VERSION });
