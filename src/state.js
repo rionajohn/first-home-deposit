@@ -93,9 +93,6 @@ const COLLAPSIBLE_DEFAULTS = {
   // the projection, so it is not a section 6 key and nothing in model/ reads
   // it. Defaults to the full window, which is what the chart drew before the
   // control existed.
-  // null means the "To goal" chip: the range is the participant's own
-  // projection, resolved at render because it moves with their figures.
-  chartRangeMonths: null,
   // Frame 19 (Before you run the check) — its three chevron sections.
   mipAskedOpen: false,
   mipBenefitsOpen: false,
@@ -319,7 +316,17 @@ export function defaultState() {
 
     // Frame 33 scenario controls (build-spec.md section 7) — testing only,
     // not part of the feature being tested.
-    theme: 'greyscale', // 'greyscale' | 'brand'
+    // DECISIONS.md D73. Frame 12's growth-chart range, in months; null is the
+  // "To goal" chip, resolved at render from the participant's own projection.
+  //
+  // NOT IN `COLLAPSIBLE_DEFAULTS`, and it was, briefly. That object is reset by
+  // `resetCollapsibles()` on every hash-driven navigation (D12), so a range the
+  // participant had chosen was silently thrown away the moment they opened a
+  // sheet and came back. It is a view setting, not a disclosure: it should
+  // persist for the session exactly as theme and text size do, which is why it
+  // sits with them.
+  chartRangeMonths: null,
+  theme: 'greyscale', // 'greyscale' | 'brand'
     textSize: 'default', // 'default' | 'large'
     stage: 'setting-up', // 'setting-up' | 'saving' | 'ready-to-check'
     resultOutcome: 'likely', // 'likely' | 'not-yet'

@@ -6591,3 +6591,89 @@ and whether participants find them is what a session will show.
 `monthsResult`, which it now reads - a temporal dead zone that blanked the screen. `node --check`
 passes it and every test passed. Third time this exact failure has been caught by looking rather than
 by the suite; the harness gap reported earlier is still the reason.
+
+---
+
+## D74. Every route gets a smoke assertion, because three blank screens got past the whole suite
+
+**Date.** 30 August 2026.
+
+`scripts/smoke.test.mjs`. Thirty routes, one test each, three assertions: the screen raises no error
+while it mounts, it puts something into `#app`, and the hash the app settles on is the hash that was
+asked for. Nothing about content.
+
+### Why it took three occurrences
+
+| | Defect | Caught by |
+|---|---|---|
+| D51's third amendment | `mipRowBody` declared after the array consuming it | a screenshot |
+| D73 | `rangeMonths` declared after `monthsResult` | a screenshot |
+| D73's amendment | the same, again, after that declaration moved | a screenshot |
+
+All three are temporal dead zones. `node --check` passes them - they are valid syntax - and every
+existing suite passed, because none of them asks whether a screen rendered at all.
+
+**That was verified rather than assumed.** D51's defect was reintroduced deliberately and
+`overlap.test.mjs` returned **72 of 72 passing against a completely blank tracker**. Its assertions
+are all of the form "nothing is wrong": no divider crosses text, no box is squashed below its
+content. An empty page satisfies every one of them. `action-bar.test.mjs` catches a blank screen only
+incidentally, on the routes that have an action bar, and reports it as a covered button.
+
+### What it asserts, and what it deliberately does not
+
+**No content assertions at all.** A smoke test that knows what a screen says has to be updated
+whenever the screen changes, and a test that is updated on every change stops being a check and
+becomes a chore. This one should need touching only when a route is added - and it does not even need
+touching then, because it reads the route list from `router.js` rather than keeping a copy.
+
+**The third assertion earns its place.** A guard that newly rejects a screen which used to render is
+the same failure from the participant's side as a screen that throws: they do not arrive. It costs
+nothing to check once the seed that makes the route render is already in hand.
+
+**It was verified to fail.** Reintroducing D73's exact defect takes it to 29 of 30, naming
+`/calculator/result`. A suite that cannot fail is not coverage - the same test this project applied
+to the model tests in D70 and failed at the time.
+
+### Cost
+
+**~29 seconds** for thirty routes, one browser, a fresh context per route. It is the second slowest
+suite after `overlap` at ~28s, and it is the one to run first when a screen "does not render" -
+recorded in `CLAUDE.md` in those words.
+
+### What it found on the build it was written against: nothing
+
+The reported failure - "See what this means" not reaching frame 12 - **does not reproduce at
+`f9dfa33`**. All thirty routes pass. The full calculator flow was then driven end to end in a fresh
+tab with no seed at all - frame 09, a typed £450,000, the 10% chip, Continue, Continue, "See what
+this means" - and frame 12 rendered, titled "Your deposit would be £45,000".
+
+Frame 12 was additionally exercised in seven states, since one seed cannot reach them all: within the
+window, beyond it, unreachable, `monthly-low` at zero, a typed 12%, 25%, and with a range chip
+preset. No errors in any.
+
+**No committed build has the defect either.** The declaration order in `calculator-result.js` was
+checked across the last twelve commits on `build`: `rangeMonths` sits above `monthsResult` only in
+`5124e41`, where it did not yet read it. Both temporal dead zones existed in the working tree and
+were fixed before the commit that would have carried them.
+
+**`origin/main` was checked too, in a worktree, and passes 28 of 28.** It is **sixteen commits
+behind** `origin/build`, still at `4a627bc` - the state before the stamp duty work began. If the
+participant URL serves the production branch, it is serving a build from before any of this, which
+would explain a frame 12 that does not look like the current one. It would not explain one that fails
+to render, because that build's frame 12 renders.
+
+So the cause is environmental rather than in the code, and this repo already documents both
+candidates at length: a tab holding a session from before a deploy (`ROUTES.md`'s "After a deploy,
+before the first participant", D49, D59, `GAPS.md` G66), or a deployment serving an older commit
+(D58). `#/settings`'s footer reports the running build, which is the fastest way to tell them apart.
+
+### One real defect found while looking
+
+`chartRangeMonths` had been added **inside `COLLAPSIBLE_DEFAULTS`** in `state.js`. That object is
+reset by `resetCollapsibles()` on every hash-driven navigation (D12), so a range the participant had
+chosen was silently discarded the moment they opened a sheet and came back - the chip returned to "To
+goal" with nothing to say why. It is a view setting, not a disclosure, and now sits with `theme` and
+`textSize`, which persist for the session exactly as it should.
+
+Not the reported failure, and not a crash. Found because a variant check showed a session seeded to
+six months rendering byte-identically to the default.
