@@ -1281,6 +1281,24 @@ const content = {
   },
 
   '/mip/result/likely': {
+    // THE LIFETIME ISA CAP, RESTATED WHERE THE FIGURE EXCEEDS IT (GAPS.md G72).
+    //
+    // IT IS A RESTATEMENT, NOT A NEW WARNING, and the wording is chosen to make
+    // that obvious: it opens with the same clause frame 09b's banner uses ("A
+    // Lifetime ISA can only be used for a home costing {cap} or less"), which
+    // is itself what frame 06's account caption says in the participant's own
+    // words. The participant has met this line before; here it reappears
+    // against a figure that crosses it.
+    //
+    // WHAT IT DELIBERATELY LEAVES OUT is frame 09b's second sentence, the 25%
+    // withdrawal charge. On a results screen that would read as a penalty
+    // notice attached to their result, which is a warning rather than a
+    // restatement, and this screen is not the place to introduce a cost the
+    // participant has not asked about.
+    //
+    // No advice and no steer: it does not suggest looking lower, does not say
+    // the figure is wrong, and does not tell them to do anything.
+    lisaCapNoteTemplate: 'A Lifetime ISA can only be used for a home costing {cap} or less.',
     appBarTitle: 'Your result',
     resultHeadline: "You'd likely be seen as a serious buyer",
     resultBody: 'Based on your salary, deposit and commitments, a lender could be willing to lend in this range.',
@@ -1310,6 +1328,24 @@ const content = {
   },
 
   '/mip/result/not-yet': {
+    // THE LIFETIME ISA CAP, RESTATED WHERE THE FIGURE EXCEEDS IT (GAPS.md G72).
+    //
+    // IT IS A RESTATEMENT, NOT A NEW WARNING, and the wording is chosen to make
+    // that obvious: it opens with the same clause frame 09b's banner uses ("A
+    // Lifetime ISA can only be used for a home costing {cap} or less"), which
+    // is itself what frame 06's account caption says in the participant's own
+    // words. The participant has met this line before; here it reappears
+    // against a figure that crosses it.
+    //
+    // WHAT IT DELIBERATELY LEAVES OUT is frame 09b's second sentence, the 25%
+    // withdrawal charge. On a results screen that would read as a penalty
+    // notice attached to their result, which is a warning rather than a
+    // restatement, and this screen is not the place to introduce a cost the
+    // participant has not asked about.
+    //
+    // No advice and no steer: it does not suggest looking lower, does not say
+    // the figure is wrong, and does not tell them to do anything.
+    lisaCapNoteTemplate: 'A Lifetime ISA can only be used for a home costing {cap} or less.',
     appBarTitle: 'Your result',
     resultHeadline: "You're not quite there yet",
     resultBody:

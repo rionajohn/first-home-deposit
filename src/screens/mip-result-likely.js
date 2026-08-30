@@ -37,6 +37,7 @@ import {
   flagRowHTML,
   rerenderInPlace,
 } from '../components/ui.js';
+import { LISA_CAP_PROPERTY_VALUE } from '../model/rates.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { mipEstimatedLtv } from '../model/model.js';
 import { checkmarkCircle } from '../icons.js';
@@ -82,6 +83,11 @@ export function render(container, ctx) {
       <p class="legal-text">${reg.estimateDisclosure}</p>
 
       ${figureRowHTML({ label: fill(c.propertyUpToLabelTemplate, { deposit: formatCurrency(savedTowardDeposit) }), trailing: formatCurrency(maxPropertyValue), caption: c.propertyUpToCaption })}
+      <!-- G72: the figure above can exceed the Lifetime ISA cap, and did on
+           every seeded session. Restated here only where it does. -->
+      ${maxPropertyValue > LISA_CAP_PROPERTY_VALUE
+        ? `<p class="provenance-caption">${fill(c.lisaCapNoteTemplate, { cap: formatCurrency(LISA_CAP_PROPERTY_VALUE) })}</p>`
+        : ''}
       ${figureRowHTML({ label: c.ltvLabel, trailing: ltvResult.error ? '—' : fill(c.ltvValueTemplate, { ltv: formatPercent(ltvResult.value, 0) }), caption: c.ltvCaption })}
       ${figureRowHTML({ label: c.basedOnLabel, trailing: c.basedOnValue })}
 

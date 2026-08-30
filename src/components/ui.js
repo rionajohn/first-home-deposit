@@ -263,6 +263,60 @@ function focusSelector(el) {
   return parts.join('');
 }
 
+/**
+ * KEEP A PRESS ON A BUTTON FROM SWALLOWING ITSELF (DECISIONS.md D76).
+ *
+ * THE DEFECT THIS EXISTS FOR. On a screen with typed fields, pressing a button
+ * while a field still has focus ran this sequence: mousedown -> the field
+ * blurs -> its `change` handler commits and calls `rerenderInPlace`, which
+ * replaces the whole of `#app` -> mouseup lands on a node that no longer
+ * exists -> no `click` event is ever dispatched. The edit committed correctly;
+ * only the button did nothing. A participant who typed a value and went
+ * straight for Continue had to press it twice, on frames 09 and 11 both.
+ *
+ * WHY IT IS NOT FIXED BY DEFERRING THE RE-RENDER. `setTimeout(..., 0)` around
+ * the re-render passes an instantaneous synthetic tap 4 times out of 4 and
+ * fails a HELD tap 0 times out of 3 at both 80ms and 200ms - and a real finger
+ * tap is 50-150ms. It would have looked fixed in the harness and been broken
+ * for every participant. Measured before choosing; see D76.
+ *
+ * WHAT THIS DOES INSTEAD. Two listeners on the screen container:
+ *
+ *   mousedown  `preventDefault()` while a field is focused, so the press never
+ *              moves focus, the field never blurs, `change` never fires and
+ *              nothing re-renders. The button survives the whole press.
+ *   click      in the CAPTURE phase, flush the still-focused field by
+ *              dispatching the `change` it never got, so the value is committed
+ *              before the button's own handler reads state.
+ *
+ * The flush re-renders, which detaches the button mid-event - but the click is
+ * already in flight and its listener is on that node, so the handler still
+ * runs. That is why the flush is on capture rather than bubble.
+ *
+ * It is bound to the container rather than to named buttons on purpose: every
+ * typed field and every button on the screen inherits it, so a field or a
+ * control added later cannot reintroduce the defect by being forgotten.
+ */
+export function keepPressAlive(container) {
+  const focusedField = () => {
+    const active = document.activeElement;
+    return active && active.matches?.('input[data-role]') && container.contains(active)
+      ? active
+      : null;
+  };
+
+  container.addEventListener('mousedown', (event) => {
+    if (!event.target.closest('button')) return;
+    if (focusedField()) event.preventDefault();
+  });
+
+  container.addEventListener('click', (event) => {
+    if (!event.target.closest('button')) return;
+    const field = focusedField();
+    if (field) field.dispatchEvent(new Event('change', { bubbles: true }));
+  }, true);
+}
+
 export function rerenderInPlace(container, render, ctx) {
   const scroller = container.querySelector('.screen-content, .bottom-sheet__content');
   const scrollTop = scroller ? scroller.scrollTop : 0;

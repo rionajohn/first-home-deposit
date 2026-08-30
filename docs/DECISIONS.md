@@ -6985,3 +6985,93 @@ change-detector that has to be updated whenever the axis rescales.
 counting twelve bars, which the floor does not produce - a six-month range draws six. It now asserts
 the floor by comparing the "Max" axis against the "6 mo" axis directly, which is the property that
 actually matters.
+
+---
+
+## D76. The press that was swallowed, and three stale assertions that hid a real defect
+
+**Date.** 30 August 2026.
+
+### A participant who typed and then tapped had to tap twice
+
+On frames 09 and 11, pressing the primary button while a field still had focus did nothing the first
+time. The sequence: mousedown blurs the field, its `change` handler commits and calls
+`rerenderInPlace`, which replaces the whole of `#app`, mouseup lands on a node that no longer exists,
+and no `click` is ever dispatched. **The edit committed correctly** - only the button appeared dead.
+
+Reproduced 6 times out of 6 on frame 11 and confirmed on frame 09. Tapping a neutral part of the
+screen first, then the button, worked every time - which is why no test caught it: every test in
+`inline-edit.test.mjs` blurs the field before pressing anything, and a participant does not.
+
+### The two candidate fixes, and why the obvious one is a trap
+
+**Committing on `input` instead of `change`** was rejected before it was tried. Every keystroke would
+write to state and re-render, so typing "450000" commits property values of 4, 45, 450, 4500 and
+45000 on the way - and D46 exists precisely to stop a half-typed field writing a figure, which is why
+`propertyValueCleared` and its four siblings are in the store at all. It would also re-run
+`rerenderInPlace`'s focus and caret restoration on every character, and flash frame 11's 5-to-25
+deposit-percentage error at "1" on the way to "15".
+
+**Deferring the re-render** was tried, measured, and rejected on the measurement:
+
+| | Instant synthetic tap | Held 80ms | Held 200ms |
+|---|---|---|---|
+| `setTimeout(..., 0)` around the re-render | **4/4 pass** | **0/3** | **0/3** |
+
+A real finger tap is 50-150ms. **The deferral would have looked correct in the harness and been broken
+for every participant** - the same "passes because a timer happened to be long enough" failure this
+project has now hit four times, this time inside the proposed fix. It is recorded because it is the
+answer that looks right.
+
+### What was built instead: the blur never happens
+
+`keepPressAlive(container)` in `ui.js`, two listeners on the screen container:
+
+- **`mousedown`** - `preventDefault()` while a field has focus, so the press never moves focus, the
+  field never blurs, `change` never fires and nothing re-renders. The button survives the press.
+- **`click`, capture phase** - flush the still-focused field by dispatching the `change` it never got,
+  so the value is committed before the button's own handler reads state. Capture, because the flush
+  re-renders and detaches the button mid-event; the click is already in flight and its listener is on
+  that node, so the handler still runs.
+
+**Bound to the container, not to named buttons**, so every typed field and every control on the
+screen inherits it and a field added later cannot reintroduce the defect by being forgotten.
+
+Verified across **all five typed fields on frame 11 and frame 09's field, at hold durations of 0, 80
+and 200ms: 18 of 18**.
+
+### Three stale assertions, not two, and the third was hidden
+
+All three came from `8ae7964` (D67, varying the duplicated explanatory clusters), which changed copy
+and did not update the tests. They are updated to the current strings rather than the copy reverted,
+because D67's change was deliberate.
+
+| Assertion | Expected | Actually renders |
+|---|---|---|
+| the two tautological captions | "Read from the accounts you assigned to your deposit" | "The total sitting in the accounts you picked for your deposit" |
+| a typed Saved so far | same string | same |
+| **the tax row still says where it came from** | "Worked out from your salary" | **"Based on what you earn"** |
+
+**The third was invisible until the first was fixed** - the test failed on the earlier assertion and
+never reached it. "Worked out from your salary" is `/calculator/saving`'s key, a different screen's.
+So the count carried for a dozen sessions was wrong in both directions: three stale, not two, and the
+remaining failure is not stale at all.
+
+### The fixed wait is gone, and the first replacement was also wrong
+
+`typeInto` waited 50ms after the blur. It now waits on the re-render having happened, detected by
+stamping the field's node and waiting for a different node to carry the role.
+
+**The first attempt waited for the field to redisplay what was typed, and hung on every clamping
+field**: typing 900 into the lower monthly figure commits 600, so the value never equals the input
+and the wait timed out at 30 seconds. Recorded because it is the obvious condition and it is wrong.
+
+### Coverage for the real interaction
+
+Five tests, one per typed field on frame 11: type, then press the CTA with **no intervening tap**,
+holding 150ms, and assert navigation on the first press. Driven through the mouse API rather than
+`locator.click()` so the press and release are separate events with a real gap - an instantaneous
+synthetic click does not reproduce the defect, and a fix that satisfied only that would have shipped.
+
+**One failure remains and it is not fixed**: `GAPS.md` G91 records it, with the evidence that it is a
+harness isolation problem rather than an app defect and the three wrong hypotheses already eliminated.

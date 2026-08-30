@@ -47,6 +47,7 @@ import {
   reviewRowHTML,
   warningBannerHTML,
   rerenderInPlace,
+  keepPressAlive,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent, formatDigits } from '../format.js';
 import { monthsToTarget, onTrackFor, checkpointAmount, depositTarget, loanAmount, ltv, stampDuty, combinedGoal } from '../model/model.js';
@@ -232,6 +233,9 @@ export function render(container, ctx) {
       secondaryAction: 'exit',
     })}
   `;
+
+  // D76: a press on any button must survive the field commit it triggers.
+  keepPressAlive(container);
 
   bindFormStepHeader(container, {
     onClose: () => { setState({ returnFrame: '/calculator/review' }); window.location.hash = '#/calculator/exit'; },

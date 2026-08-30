@@ -1949,10 +1949,12 @@ counterweight.
 
 | Screen | Row | Opening session | Ready to check |
 |---|---|---|---|
-| **20** likely | "With your {deposit} deposit, that's a property up to" | - | **£479,250** |
+| **20** likely | "With your {deposit} deposit, that's a property up to" | - | **£484,875** |
 | **21** not yet | "Look at a property target closer to {amount}" | **£454,450** | - |
 
-Both exceed `LISA_CAP_PROPERTY_VALUE` (£450,000). Both also exceed the participant's own £450,000
+Both exceed `LISA_CAP_PROPERTY_VALUE` (£450,000). **The ready-to-check figure was £479,250 when this
+was raised and is £484,875 since D70** moved the checkpoint from £33,750 to £39,375, which raises
+`saved-toward-deposit` at that stage and so raises `0.99P + S` with it. Corrected 30 August 2026. Both also exceed the participant's own £450,000
 target, which is G69's separate finding about the same relationship - `0.99P + S > P` whenever
 `P < 100 x S`, and S is the fixed £8,950 mock balance.
 
@@ -2651,3 +2653,42 @@ directly - `--color-label` for the lower, `--color-border-control` for the upper
 alongside D73's hatch and then again when D73's amendment replaced the hatch with a measured grey
 pair; the swatches follow the bands either way. It was a defect in its own right and would have needed
 fixing whether or not the range control was ever built.*
+
+---
+
+## G91. `inline-edit.test.mjs`'s "an edited value reaches the result screen" fails intermittently in a full-file run
+
+*Raised 30 August 2026. `DECISIONS.md` D76. **A harness defect, not an app defect**, and the evidence
+for that is below.*
+
+**It is not the app.** The exact sequence the test performs - open frame 11, type 400000 into the
+property field, wait for the commit, press "Work it out" - was driven four times in isolation and
+navigated to `/calculator/result` **4 times out of 4**, with the field, the state, the cleared flag
+and the button's disabled state all correct at every step.
+
+**It is not the timing, any more.** The `waitForTimeout(50)` that made it load-sensitive is gone,
+replaced by a condition on the re-render actually having happened. That removed one cause and left
+this one.
+
+**It is not the new tests added in D76.** With those removed the file still fails 3 runs in 4.
+
+**What it looks like when it fails.** The result screen assertion reports frame 11 with **every field
+empty** - the state the test above it leaves behind, which clears each field in turn to prove a
+cleared field disables the button. With the fields empty the button is disabled and the click is a
+no-op, so the screen never changes.
+
+**Which should be impossible**, and that is the unresolved part. `beforeEach` closes the previous
+browser context and opens a fresh one per test, and the seed is written on init when
+`sessionStorage` is empty - so each test should start from the shared seed with every field
+populated. Something is carrying the cleared state across that boundary and it has not been proven
+what. Three hypotheses were tried and each was wrong: shared page state (there is none - the context
+is fresh), a same-document navigation defeating the re-seed (forcing a reload did not fix it), and
+the newly added tests (removing them did not fix it).
+
+**Why it is recorded rather than fixed.** The next step is instrumenting `beforeEach` itself, and
+guessing a fourth time is what this entry exists to stop. It has been carried for a dozen sessions
+described as a stale assertion, which it is not.
+
+*Status: open. It fails roughly 3 runs in 4 and passes cleanly in isolation. Do not describe it as a
+stale assertion - the three genuine stale assertions in this file were fixed in D76 and this is not
+one of them.*

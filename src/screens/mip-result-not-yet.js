@@ -44,6 +44,7 @@ import {
   flagRowHTML,
   rerenderInPlace,
 } from '../components/ui.js';
+import { LISA_CAP_PROPERTY_VALUE } from '../model/rates.js';
 import { formatCurrency, formatMonthsDuration } from '../format.js';
 import { gap, neededLoanAmount, borrowRange, maxProperty, monthsToReachAmount } from '../model/model.js';
 import { arrowUp } from '../icons.js';
@@ -112,7 +113,13 @@ export function render(container, ctx) {
           {
             number: 2,
             title: fill(c.step2TitleTemplate, { amount: maxPropertyResult.error ? '—' : formatCurrency(maxPropertyResult.value) }),
-            caption: c.step2Caption,
+            // G72: the title above carries `max-property`, which exceeds the
+            // Lifetime ISA cap at the seeded values. Restated as a second
+            // sentence on this step's own caption, only where it applies, so
+            // it sits with the figure rather than as a banner of its own.
+            caption: !maxPropertyResult.error && maxPropertyResult.value > LISA_CAP_PROPERTY_VALUE
+              ? `${c.step2Caption} ${fill(c.lisaCapNoteTemplate, { cap: formatCurrency(LISA_CAP_PROPERTY_VALUE) })}`
+              : c.step2Caption,
           },
           // ROW 3 KEEPS ITS ACTION, ITS CHEVRON AND ITS ROUTE. The adviser route
           // rests on MCOB 4.8A and the Consumer Duty consumer support outcome

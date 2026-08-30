@@ -37,6 +37,7 @@ import {
   infoLinkHTML,
   provenanceCaptionHTML,
   rerenderInPlace,
+  keepPressAlive,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { depositTarget, loanAmount, ltv, stampDuty, combinedGoal, ftbReliefLost } from '../model/model.js';
@@ -152,6 +153,9 @@ export function render(container, ctx) {
       secondaryAction: 'exit',
     })}
   `;
+
+  // D76: a press on any button must survive the field commit it triggers.
+  keepPressAlive(container);
 
   bindFormStepHeader(container, {
     onClose: () => { setState({ returnFrame: '/calculator/property' }); window.location.hash = '#/calculator/exit'; },

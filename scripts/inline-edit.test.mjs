@@ -104,11 +104,39 @@ const FIELDS = [
 ];
 
 /** Types into a field and commits it the way a participant does: blur. */
+/**
+ * Type into a field and wait for the COMMIT to have landed, not for a timer.
+ *
+ * This waited 50ms after the blur, which is why "an edited value reaches the
+ * result screen" was load-sensitive: the commit is synchronous on `change`,
+ * but `rerenderInPlace` then rebuilds the DOM, and under load a fixed 50ms was
+ * not always enough for the next locator to resolve against the new markup. A
+ * test that passes because a timer happened to be long enough is the failure
+ * this project has now hit four times (D74, D76).
+ *
+ * The condition is the RE-RENDER itself: the node is stamped before the blur,
+ * and the wait ends when the field carrying that role is a different node.
+ *
+ * It deliberately does not wait for the field to redisplay what was typed.
+ * That was the first attempt and it hangs on every clamping field - typing 900
+ * into the lower monthly figure commits 600, so the value never equals the
+ * input and the wait times out. Waiting on the rebuild works whatever the
+ * commit decides the value should be.
+ */
 async function typeInto(role, text) {
   const field = page.locator(`[data-role="${role}"]`);
+  await page.evaluate((r) => {
+    document.querySelector(`[data-role="${r}"]`)?.setAttribute('data-settled', 'pending');
+  }, role);
   await field.fill(text);
   await field.blur();
-  await page.waitForTimeout(50);
+  await page.waitForFunction(
+    (r) => {
+      const el = document.querySelector(`[data-role="${r}"]`);
+      return !!el && el.getAttribute('data-settled') !== 'pending';
+    },
+    role,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -191,12 +219,19 @@ test('the two tautological captions are gone, and only those two', async () => {
   assert.ok(!text.includes('You entered this'), 'the property value no longer restates its own field');
   assert.ok(!text.includes('The range you set'), 'nor does the monthly range');
   assert.ok(!text.includes("Read from what you've been putting aside lately"), "D47's second caption goes with it");
-  // The one figure the participant did not type keeps saying so.
-  assert.ok(text.includes('Read from the accounts you assigned to your deposit'), 'Saved so far keeps its provenance');
+  // The one figure the participant did not type keeps saying so. The wording
+  // changed in 8ae7964 (D67, varying the duplicated explanatory clusters) and
+  // this assertion was left on the old string; it is updated rather than the
+  // copy reverted, because D67's change was deliberate.
+  assert.ok(text.includes('The total sitting in the accounts you picked for your deposit'), 'Saved so far keeps its provenance');
   // The two explanatory rows keep theirs, which is the FCA traceability
   // requirement as much as a design one.
   assert.ok(text.includes('Bank of England Bank Rate'), 'the rate row still says where it came from');
-  assert.ok(text.includes('Worked out from your salary'), 'the tax row still says where it came from');
+  // A THIRD STALE ASSERTION, and it was hidden behind the first: this test
+  // failed on the caption above long before reaching here, so nothing reported
+  // it. Frame 11's own tax caption is "Based on what you earn"; "Worked out
+  // from your salary" is /calculator/saving's, a different screen's key.
+  assert.ok(text.includes('Based on what you earn'), 'the tax row still says where it came from');
 });
 
 test('only Saved so far carries a caption among the editable rows', async () => {
@@ -208,7 +243,7 @@ test('only Saved so far carries a caption among the editable rows', async () => 
 
 test('a typed Saved so far stops claiming it was read from the accounts', async () => {
   const caption = () => rowByLabel('Saved so far').locator('.review-row__caption').textContent();
-  assert.ok((await caption()).includes('Read from the accounts'), 'it starts as a read figure');
+  assert.ok((await caption()).includes('The total sitting in the accounts'), 'it starts as a read figure');
   await typeInto('edit-saved-so-far', '30000');
   assert.equal((await stored())['saved-toward-deposit'].provenance, 'entered');
   assert.equal((await caption()).trim(), 'You entered this', 'the change of provenance stays visible');
@@ -341,3 +376,50 @@ test('a reload keeps every committed edit', async () => {
   await page.waitForSelector('.review-rows-stack');
   assert.equal(await page.locator('[data-role="edit-property-value"]').inputValue(), '310,000');
 });
+
+// ---------------------------------------------------------------------------
+// 7. The press that used to be swallowed (DECISIONS.md D76)
+// ---------------------------------------------------------------------------
+//
+// EVERY OTHER TEST IN THIS FILE BLURS THE FIELD FIRST, and that is exactly why
+// none of them caught this. A participant does not tap a neutral part of the
+// screen before tapping Continue; they go straight from the field to the
+// button. That press blurred the field, the commit re-rendered the screen, and
+// the button the press had started on no longer existed when the finger came
+// up - so no click was dispatched and the button appeared dead. It took two
+// presses, on frames 09 and 11 both.
+//
+// The tap is driven through the mouse API rather than `locator.click()` so the
+// press and the release are separate events with a real gap between them: an
+// instantaneous synthetic click does not reproduce the defect, and a fix that
+// only satisfies one would have shipped. 150ms is an ordinary finger tap.
+
+/** Press and release over an element, holding for `ms` between the two. */
+async function heldTap(locator, ms) {
+  const box = await locator.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  if (ms) await page.waitForTimeout(ms);
+  await page.mouse.up();
+}
+
+for (const [role, typed] of [
+  ['edit-property-value', '400000'],
+  ['edit-deposit-pct', '15'],
+  ['edit-saved-so-far', '30000'],
+  ['edit-monthly-low', '300'],
+  ['edit-monthly-high', '700'],
+]) {
+  test(`typing into ${role} and tapping the CTA navigates on the first press`, async () => {
+    await page.goto(`${base}/#/calculator/review`);
+    await page.waitForSelector('[data-role="edit-property-value"]');
+    const field = page.locator(`[data-role="${role}"]`);
+    await field.click();
+    await field.fill(typed);
+    // No blur, no wait: straight from the field to the button, as a
+    // participant does.
+    await heldTap(page.locator('.action-bar .button--primary'), 150);
+    await page.waitForFunction(() => window.location.hash === '#/calculator/result', null, { timeout: 4000 });
+    assert.equal(await page.evaluate(() => window.location.hash), '#/calculator/result');
+  });
+}
