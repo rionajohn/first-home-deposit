@@ -112,7 +112,7 @@ export function render(container, ctx) {
       <!-- EVERY CHIP FRAME 09 OFFERS, not the fixed 5/10/15 band (D72). A
            participant who chose 20% or 25% had no row of their own before. -->
       <h3 class="section-heading">${c.compareHeading}</h3>
-      <div class="card">
+      <div class="card comparison-card">
         ${DEPOSIT_PCT_OPTIONS.map((pct, i) => {
           const amount = propertyValue * pct;
           const goalAtPct = amount + stampDutyValue;

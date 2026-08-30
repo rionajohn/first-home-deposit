@@ -2561,10 +2561,32 @@ button.milestone-row {
   padding: var(--space-md) 0;
 }
 
+/* THE BORDER MARKS THE ROW WITHOUT INSETTING ITS CONTENTS.
+   Under the global `box-sizing: border-box`, adding 12px of padding and a 2px
+   border to a `width: 100%` row keeps the OUTER box the same and takes all
+   28px out of the content, so the selected row's label and value sat 14px
+   inside its neighbours' text edges - on frame 12 and, identically, on the
+   tracker's rates card, since both draw this component.
+
+   The negative margin pulls the box outward by exactly what the padding and
+   border consume, so the content lands back on its neighbours' edges. The box
+   is therefore 28px WIDER than an unhighlighted row, which is deliberate and
+   is where the ring lives: both cards that draw this component pad by
+   --space-lg (16px), so a 14px pull leaves the ring 2px inside the card's own
+   border and the card edge stays straight.
+
+   Content alignment and an identical outer box cannot both be had - the border
+   has to occupy space somewhere - and alignment is the one that shows. */
 .rate-band-row--highlighted {
   border: 2px solid var(--color-label);
   border-radius: var(--radius-sm);
-  padding: var(--space-md);
+  /* Vertical padding is reduced by the border width so the row's total height
+     still matches its neighbours' `var(--space-md) 0`. */
+  padding: calc(var(--space-md) - 2px) var(--space-md);
+  margin: 0 calc(-1 * (var(--space-md) + 2px));
+  /* `width: 100%` plus a negative margin would overhang to the right; `auto`
+     lets the box grow into the space the margin opened on both sides. */
+  width: auto;
 }
 
 .rate-band-row__content {

@@ -96,7 +96,11 @@ export function formatMonthsDuration(months, { abbreviated = false } = {}) {
   const remainderMonths = whole % 12;
 
   const yearUnit = abbreviated ? 'yr' : years === 1 ? 'year' : 'years';
-  const monthUnit = abbreviated ? 'mo' : remainderMonths === 1 ? 'month' : 'months';
+  // 'mon', not 'mo' (D72's amendment). `yr` stays: the pair is a two-letter
+  // and a three-letter abbreviation, which is a real inconsistency, but the
+  // alternatives are worse - 'yrs' would pair a plural with a singular, and
+  // this function deliberately does not inflect the abbreviated forms.
+  const monthUnit = abbreviated ? 'mon' : remainderMonths === 1 ? 'month' : 'months';
 
   if (years === 0) return `${remainderMonths} ${monthUnit}`;
   if (remainderMonths === 0) return `${years} ${yearUnit}`;

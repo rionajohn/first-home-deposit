@@ -6174,3 +6174,70 @@ makes the gridlines legible.
 `headlineTemplate`, `depositBasisCaptionTemplate`, the `goal*` and `compare*` keys in `content.js`;
 the headline, goal block and comparison in `calculator-result.js`, restoring `rangeFigureHTML` and
 the `timing*` templates; and the guard's two extra keys. `CACHE_VERSION` v66.
+
+### Amended, 30 August 2026: the comparison card's padding, the selected row's inset, and "mon"
+
+Three fixes to frame 12's comparison, two of which turned out to be one defect each rather than the
+string-length problem they looked like.
+
+**The values were not clipping. They were flush.** Measured overhang past the card's content box was
++0.0px at every string length - no text was cut - but the value sat hard against the card's 1px
+border, and so did the labels on the left. Shortening the string does not help: injected into a live
+row, `within 24 yr 11 mo`, `24 yr 11 mo` and `24y 11m` all right-aligned to **369.0px** at both text
+sizes. `.rate-band-row` is `space-between` with the value at `flex: 0 0 auto`, so the value's position
+is set by the row's content edge, not by its own width.
+
+"within" was therefore kept. It is the only per-row signal that the figure is `monthly-low`, the
+pessimistic end of a range, rather than a point estimate, and neither the caption nor
+`estimateDisclosure` carries that per row. The column-heading variant was dropped for a structural
+reason as well as a width one: `rateBandRowHTML` has no heading slot, and the values right-align to
+positions that vary with their own length, so a heading could not sit reliably over the column.
+
+**1. `.card` is a base class, and the fix is a modifier.** Of roughly thirty uses across
+`src/screens` and `ui.js`, every one pairs `.card` with a modifier that supplies padding -
+`.rates-card` and `.this-month-card` at `--space-lg`, `.status-card` at `--space-xl`,
+`.accounts-card`, `.why-bigger-deposit-card` and the rest. Frame 12's comparison card was the single
+exception, written as a bare `<div class="card">` when it was added, so it inherited no padding.
+Adding padding to `.card` itself would have moved every one of those screens; `.comparison-card` at
+`--space-lg` is the convention rather than a one-off override, and matches `.rates-card` because the
+two draw the same component.
+
+**2. The selected row's contents were inset by 14px, on both screens.** Under the global
+`box-sizing: border-box`, `padding: 12px` plus `border: 2px` on a `width: 100%` row keeps the outer
+box the same and takes all 28px out of the content. Measured before: content 320px against 348px on
+frame 12, and identically 288px against 316px on the tracker's rates card - the same component, so
+the same defect in both places, which is why the fix is in `.rate-band-row--highlighted` and not on
+either screen.
+
+A negative horizontal margin of `--space-md + 2px` pulls the box outward by exactly what the padding
+and border consume, so the content lands back on its neighbours' edges. Vertical padding drops by the
+border width so row heights still match.
+
+**Content alignment and an identical outer box cannot both be had** - the border has to occupy space
+somewhere - and alignment is the one that shows. The box is 28px wider than an unhighlighted row,
+which is where the ring lives: both cards that draw this component pad by 16px, so a 14px pull leaves
+the ring 2px inside the card's own border and **the card edge stays straight**. Verified after: label
+x 37.0 and value right 353.0 on both plain and highlighted rows, on both screens, at both text sizes,
+with the ring at 23.0..367.0 inside a card border of 20.0..370.0.
+
+**3. `mo` becomes `mon`**, in `formatMonthsDuration`'s abbreviated branch - the shared formatter, not
+a string on this screen. Two call sites take the abbreviated form and both are on frame 12: the
+comparison rows and the growth chart's x-axis. The x-axis absorbs it with no overlap and no spill past
+the axis at either text size (`Now | 1 yr 8 mon | 3 yr 4 mon | 5 yr`). The unabbreviated branch is
+untouched, so frame 12's chart point labels and frame 21's `step1CaptionTemplate` are unaffected.
+
+`yr` deliberately stays. The pair is a two-letter and a three-letter abbreviation, which is a real
+inconsistency, but the alternatives are worse: `yrs` would pair a plural with a singular, and this
+function does not inflect its abbreviated forms at all - it renders "24 yr", not "24 yrs", today.
+
+The longest value grew from 130.3px to 139.2px at default text and 149.8px to 160.1px at Large, and
+both clear comfortably: the card's 16px padding puts the content edge 17px inside the card border,
+where before there was nothing.
+
+**Reported, not fixed: the growth chart's y-axis label overlaps its top threshold label.** `£70,875`
+is `.growth-chart__y-label--top`, positioned at the top-left of the plot; `15% - £67,500` is a
+`.growth-chart__threshold-label` positioned `bottom: {pct}%` where pct is the amount over `maxScale`.
+`maxScale` is `rangeHighAmount * 1.05`, so the top threshold always sits at 95.2% of the plot - a few
+pixels below the y-label, by construction rather than by coincidence. Measured overlapping at **both**
+text sizes. Fixing it means more headroom above the top threshold, moving the y-label out of the plot
+area, or dropping it; all three change the chart's proportions, so none was attempted here.

@@ -1501,6 +1501,17 @@
 /* /tracker — frames 15, 16                                      */
 /* ============================================================ */
 
+/* Frame 12's deposit comparison (DECISIONS.md D72). `.card` is a BASE class -
+   background, border, radius, border-box - and every other card in this build
+   pairs it with a modifier that supplies padding: `.rates-card` and
+   `.this-month-card` at --space-lg, `.status-card` at --space-xl, and so on.
+   This card was written without one, so it inherited no padding and its rows
+   ran flush into the card's own border on both sides. Same value as
+   `.rates-card` below, because the two draw the same component. */
+.comparison-card {
+  padding: var(--space-lg);
+}
+
 .rates-card {
   padding: var(--space-lg);
   display: flex;
