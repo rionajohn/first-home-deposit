@@ -673,9 +673,19 @@
   box-sizing: border-box;
 }
 
+/* THE ICON TAKES THE COLOUR ITS OWN TEXT TAKES (DECISIONS.md D79), for the
+   reason `.warning-banner__icon` below takes --color-warning. Icons are
+   stroked in `currentColor`, and this one declared none, so it inherited the
+   computed colour of `body` - which resolves --color-label OUTSIDE `.screen`,
+   where `.theme-dark`'s override lives. It drew #17171c on #000000, 1.18:1,
+   against WCAG 1.4.11's 3:1. Naming the token here resolves it inside the
+   theme: unchanged at 16.68:1 in light, 21.00:1 in dark. The glyph is
+   untouched - it is still infoCircle, and still a different SHAPE from the
+   error banner's triangle, which is what 1.4.1 needs. */
 .info-banner__icon {
   flex: 0 0 auto;
   margin-top: 2px;
+  color: var(--color-label);
 }
 
 .info-banner__text {

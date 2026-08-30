@@ -7279,3 +7279,79 @@ rather than the error, so the screen's own validation raises the banner and a sh
 error the app would not itself draw. 36 shots: all eight states plus frame 11's three-at-once, each
 in two themes at two text sizes, and two informational shots for comparison. Full suite: 353 tests, 352 passing, 1 skipped (G91), 0
 failing.
+
+---
+
+## D79. The informational banner's icon names its colour, which closes D78's one exception
+
+**Date.** 30 August 2026. Closes the exception recorded at the foot of D78.
+
+### What was wrong
+
+`infoBannerHTML`'s icon declared no colour. Every icon in this build is stroked in `currentColor`, so
+it took the computed colour of the nearest ancestor that declares one - and that ancestor was `body`.
+`body { color: var(--color-label) }` sits **outside `.screen`**, which is where `.theme-dark` applies
+its palette, so the custom property resolved to the light value there and every descendant inherited
+the literal `#17171c`.
+
+In the dark palette the informational banner therefore drew a near-black glyph on `--color-bg`
+`#000000`: **1.18:1**, against WCAG 1.4.11's 3:1 for non-text content. The icon was effectively
+invisible while its own text beside it was white.
+
+### Why this is not the blanket change D78 ruled out
+
+D78 declined to touch informational banners because the change on the table was the **glyph** - giving
+them the error triangle would have erased the shape difference WCAG 1.4.1 requires between an error and
+a note. That reasoning does not reach a colour declaration. The glyph is unchanged: the informational
+banner still draws `infoCircle`, the error banner still draws `exclamationTriangle`, and the two remain
+different shapes rather than two colours of one shape.
+
+What changed is an inherited value that was never chosen. Nothing decided that this icon should be
+`#17171c` in the dark palette; it fell out of where a custom property happened to resolve.
+
+### The decision
+
+**`.info-banner__icon { color: var(--color-label) }`** - the token its own text already uses, declared
+inside `.screen` so the theme override reaches it. No token was added. This is the same move D78 made
+on the error banner for the same reason: there, the icon takes `--color-warning` because the border and
+the text already do.
+
+Measured against the banner's own background, which is `--color-bg` and not `--color-surface` (that is
+the error banner's ground):
+
+| | before | after | 1.4.11 needs |
+| --- | --- | --- | --- |
+| Light, on `#f7f7f8` | 16.68:1 | **16.68:1** (unchanged) | 3:1 |
+| Dark, on `#000000` | **1.18:1** | **21.00:1** | 3:1 |
+
+Light is untouched by construction: the token already resolved to `#17171c` there, so naming it changes
+nothing. The fix is entirely a dark-palette one.
+
+### Why it was worth doing while the dark palette is unselectable
+
+Frame 33 offers Greyscale and Brand, so no participant can reach this (`tokens.css`). That makes it
+**cheap to fix rather than safe to leave**: the palette is defined, measured and kept precisely so its
+measurements are not lost, and a token left resolving outside its own theme is a defect that would ship
+the moment the palette became selectable.
+
+### Thirteen other icon contexts have the same defect, and are NOT fixed here
+
+Audited by rendering all thirty routes in the dark palette and reporting every `svg.icon` whose
+computed colour is the light `--color-label`. Recorded so the list exists; fixing them is a wider pass
+than this one and was not asked for.
+
+| Icon | Context | Ground | Ratio |
+| --- | --- | --- | --- |
+| `exclamationTriangle` | `.risk-warning-card__icon` | `#1c1c1e` | 1.05:1 |
+| `checkmarkCircle` | `.result-panel__icon`, `.tick-list__icon` | `#1c1c1e` | 1.05:1 |
+| `arrowUp` | `.result-panel__icon` | `#1c1c1e` | 1.05:1 |
+| `chevronRight` | `.list-row__chevron` | `#1c1c1e` / `#000000` | 1.05:1 / 1.18:1 |
+| `playCircle` | `.media-placeholder__icon` | `#2c2c2e` | 1.28:1 |
+| `starCircle` | `.goal-row__icon` | `#000000` | 1.18:1 |
+| `starCircleFill`, `starCircleDashed` | `.milestone-row__icon` | `#000000` | 1.18:1 |
+| `checkmarkCircle`, `arrowUpRight`, `photo` | no context class | `#000000` | 1.18:1 |
+
+The MCOB risk-warning card is the one worth naming: it is the same `exclamationTriangle` D78 coloured
+on the error banner, drawing at 1.05:1 on eight screens because its own context class declares no
+colour either.
+
