@@ -2739,3 +2739,84 @@ isolation and not in the app. Sessions are the constraint on the calendar; this 
 *Status: **open, skipped**. It fails roughly 3 runs in 4 in a full-file run and passes cleanly in
 isolation. Do not describe it as a stale assertion - the three genuine stale assertions in this file
 were fixed in D76 and this is not one of them. Un-skip it when the fourth investigation runs.*
+
+---
+
+## G92. Nudging the low slider handle silently rewrites the high figure the participant set
+
+*Raised 30 August 2026, in the pass that reported on G64. **Not an amendment to G64** - G64 is about a
+figure being produced without a bound; this is about a second figure being destroyed while the
+participant looks at the first. **Not G74 either**, and the difference is the whole point of a separate
+entry: G74 is a value the participant just typed snapping to a bound in the field they typed it in,
+visible immediately and landing on a bound they set themselves. This is a field they did not touch,
+changing to a figure they were never shown, on a screen that then reports the problem solved.*
+
+### The mechanism
+
+`calculator-saving.js`'s slider path draws four controls over one pair of figures: two
+`input[type=range]` and two `input[type=number]`, all four carrying `max="${savingCeiling}"`. **The two
+kinds of input honour `max` differently, and nothing in the screen accounts for that.**
+
+- `input[type=range]` **clamps its DOM value to `max`**. Written `value="1861.22"` against
+  `max="640"`, `rangeHigh.value` reads `"640"`.
+- `input[type=number]` treats `max` as **validation only** and does not clamp. The same figure written
+  to `figureHigh` leaves `figureHigh.value` reading `"1861"`, which is what the participant reads.
+
+So after a ceiling breach the screen holds the participant's figure in one control and the ceiling in
+the other. The low handle's `change` handler then reads across:
+
+    rangeLow.addEventListener('change', () => {
+      commit(clamp(Number(rangeLow.value), 0, Number(rangeHigh.value)), Number(rangeHigh.value));
+    });
+
+`Number(rangeHigh.value)` is the **clamped ceiling**, not the committed high. The handler commits it as
+though the participant had moved that handle too.
+
+### What it does, driven in a browser
+
+Reached by G64's own path: target-date mode, a date requiring more than `left-over`, Continue, back to
+step 2, switch to "Set a monthly amount". Session at `left-over` £640, holding `savings-rate`
+£1,692.02 with a £1,522.82-£1,861.22 range.
+
+Nudging **only the low handle** to £300 committed:
+
+- `monthly-low` £300 - asked for
+- `monthly-high` **£1,861.22 -> £640** - not asked for, on a control the participant did not touch, and
+  with no affordance saying anything had been replaced
+
+**And the banner then cleared.** `monthlyHigh.value > savingCeiling` is false at £640, so
+`errorExceedsLeftOver` stopped rendering and Continue re-enabled. The screen reported the problem
+solved, having solved it by discarding the participant's figure.
+
+### The store consequence
+
+`savings-rate` is written by Continue, not by `commit()`, so it was left standing at **£1,692.02 while
+the range beneath it read £300 to £640** - a midpoint of £470. The store held a state no screen
+expects, and `formatCurrency` renders every part of it without complaint. This is the class of defect
+`CLAUDE.md`'s state rules name and that D46 and D38's third amendment were each written for.
+
+### It is a D46 breach on its own terms
+
+D46's rule is that a value the participant set is not silently replaced, and that a discarded value
+must be visible to them. Both halves fail here. It is **independent of which ceiling option is chosen
+for G64**: the collateral read across two controls with different clamping behaviour is in the slider
+path itself, and would still be there if the date path never produced an out-of-range figure at all.
+
+### Section 3's fix makes this UNREACHABLE, not fixed
+
+Bounding the date path (G64) removes the only route by which `monthly-high` can be above the ceiling
+while the screen is drawn, so the divergence between the two controls' values never arises and the
+handler never reads the wrong number. **The handler is unchanged, and it is still wrong.**
+
+That distinction is worth stating plainly, because this file already records what happens when it is
+not. G64's 29 August amendment: D57's re-seeding moved the seeded date's range inside the new £640
+ceiling, so G64 stopped reproducing on the screen's own default - "**this makes the gap harder to
+find, not smaller**". The same is now true here, and one step further removed: after Section 3 there is
+no participant-reachable route to it at all, so nothing will surface it again. If a later change gives
+`monthly-high` another way past the ceiling - a new entry point, a relaxed bound, a general mode - this
+returns with no warning and no test naming it.
+
+*Status: **open, unreachable**. Do not close it on the strength of Section 3. Closing it means making
+the two control kinds agree - reading the committed figures rather than the DOM values, or clamping
+both kinds the same way - so that the handler cannot read a number the participant never set.*
+
