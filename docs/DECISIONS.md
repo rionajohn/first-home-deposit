@@ -6220,19 +6220,26 @@ the ring 2px inside the card's own border and **the card edge stays straight**. 
 x 37.0 and value right 353.0 on both plain and highlighted rows, on both screens, at both text sizes,
 with the ring at 23.0..367.0 inside a card border of 20.0..370.0.
 
-**3. `mo` becomes `mon`**, in `formatMonthsDuration`'s abbreviated branch - the shared formatter, not
-a string on this screen. Two call sites take the abbreviated form and both are on frame 12: the
-comparison rows and the growth chart's x-axis. The x-axis absorbs it with no overlap and no spill past
-the axis at either text size (`Now | 1 yr 8 mon | 3 yr 4 mon | 5 yr`). The unabbreviated branch is
-untouched, so frame 12's chart point labels and frame 21's `step1CaptionTemplate` are unaffected.
+**3. `mo` went to `mon`, and came back the same day.** Recorded rather than quietly undone, because
+the round trip is the useful part of it.
 
-`yr` deliberately stays. The pair is a two-letter and a three-letter abbreviation, which is a real
-inconsistency, but the alternatives are worse: `yrs` would pair a plural with a singular, and this
-function does not inflect its abbreviated forms at all - it renders "24 yr", not "24 yrs", today.
+The longer form was applied to `formatMonthsDuration`'s abbreviated branch while the comparison values
+still looked clipped. Once the card padding above was in, the values cleared the border by 17px on
+their own and the string change was doing no work - it had been a fix for a symptom whose cause was
+elsewhere. It also left a live inconsistency: `yr` against `mon` pairs a two-letter abbreviation with a
+three-letter one, and the ways out are worse, since `yrs` would pair a plural with a singular and this
+function deliberately does not inflect its abbreviated forms at all - it renders "24 yr", not
+"24 yrs".
 
-The longest value grew from 130.3px to 139.2px at default text and 149.8px to 160.1px at Large, and
-both clear comfortably: the card's 16px padding puts the content edge 17px inside the card border,
-where before there was nothing.
+So the branch is back to `mo`, both call sites together: frame 12's comparison rows and the growth
+chart's x-axis, which reads `Now | 1 yr 8 mo | 3 yr 4 mo | 5 yr` with no overlap and no spill past the
+axis at either text size. The unabbreviated branch was never touched in either direction, so frame
+12's chart point labels and frame 21's `step1CaptionTemplate` are unaffected throughout.
+
+**The measurement that settles it:** the longest value's right edge is 353.0px at both text sizes,
+which is the card's content edge and **17px clear of its border** - and that figure is identical at
+`mo` and at `mon`, because the value right-aligns to the content edge whatever its width. The padding
+fixed the appearance; the abbreviation never could.
 
 **Reported, not fixed: the growth chart's y-axis label overlaps its top threshold label.** `£70,875`
 is `.growth-chart__y-label--top`, positioned at the top-left of the plot; `15% - £67,500` is a

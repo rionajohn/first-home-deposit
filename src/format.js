@@ -96,11 +96,14 @@ export function formatMonthsDuration(months, { abbreviated = false } = {}) {
   const remainderMonths = whole % 12;
 
   const yearUnit = abbreviated ? 'yr' : years === 1 ? 'year' : 'years';
-  // 'mon', not 'mo' (D72's amendment). `yr` stays: the pair is a two-letter
-  // and a three-letter abbreviation, which is a real inconsistency, but the
-  // alternatives are worse - 'yrs' would pair a plural with a singular, and
-  // this function deliberately does not inflect the abbreviated forms.
-  const monthUnit = abbreviated ? 'mon' : remainderMonths === 1 ? 'month' : 'months';
+  // 'mo', AND IT WENT TO 'mon' AND CAME BACK (D72's amendment). The longer
+  // form was tried while frame 12's comparison values looked clipped; the
+  // cause turned out to be that card's missing padding, and once that was
+  // fixed the string change was doing no work. 'mo' also keeps both
+  // abbreviations two letters - 'yr' with 'mon' left a live mismatch, and the
+  // ways out of it are worse, since 'yrs' would pair a plural with a singular
+  // and this function deliberately does not inflect its abbreviated forms.
+  const monthUnit = abbreviated ? 'mo' : remainderMonths === 1 ? 'month' : 'months';
 
   if (years === 0) return `${remainderMonths} ${monthUnit}`;
   if (remainderMonths === 0) return `${years} ${yearUnit}`;
