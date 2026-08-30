@@ -293,8 +293,6 @@ export function render(container, ctx) {
 
       ${progressBarHTML({
         fillPct: (savedTowardDeposit / combinedGoalValue) * 100,
-        markerPct: CHECKPOINT_FRACTION * 100,
-        label: c.checkpointProgressLabel,
         // THE GOAL AT THE END THE PARTICIPANT IS SAVING TOWARD (D70's second
         // amendment). It used to sit under the headline as a second caption,
         // where it labelled nothing; at the right-hand end of the track it

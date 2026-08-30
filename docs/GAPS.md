@@ -2429,3 +2429,67 @@ is deleted rather than reworded, along with the range figure it labelled. The go
 screen under "What you would save toward", carrying `combined-goal` - the same key and therefore the
 same figure `/tracker` states. D72 records the phrase-by-phrase check confirming no wording renders
 on both screens against different figures.*
+
+---
+
+## G86. Two screens still name the checkpoint, and the participant can no longer see it
+
+*Raised 30 August 2026. `DECISIONS.md` D51's second amendment. Copy only - the checkpoint itself is
+unchanged and still live in the model.*
+
+The progress bar's 75% marker and its "Checkpoint" label are gone. The checkpoint still decides which
+tracker variant renders and what the Mortgage in Principle flow returns, but **nothing on any screen
+draws it any more**. Two pieces of participant-facing copy still refer to it, and both now arrive
+without an antecedent.
+
+### 1. Frame 16, `/tracker` `checkpointReachedBodyTemplate`
+
+> "You've passed the {pct} checkpoint. You can now check whether a Mortgage in Principle is likely to
+> be approved."
+
+Rendered as "You've passed the 75% checkpoint." A participant crossing that line is congratulated on
+passing a threshold **they were never shown**. Before the marker was removed, the bar had been
+carrying it since the goal was set, so the sentence landed on something already on screen.
+
+It is not false - they have passed it - but it announces a milestone the interface never established,
+which is the weaker half of the same problem D42 was written about.
+
+### 2. Frame 17, `/mip` `body`
+
+> "You've saved three quarters of your deposit, so this is now open to you."
+
+Same antecedent problem, **and a second, separate defect that predates this change**: the sentence is
+now arithmetically wrong.
+
+D70 moved the checkpoint to 0.75 x `combined-goal`. At the seeded figures the checkpoint is £39,375
+and the deposit is £45,000, so a participant at the checkpoint has saved **87.5% of their deposit**,
+not three quarters of it. Three quarters of the deposit is £33,750, which is £5,625 below the point
+this sentence claims to describe.
+
+**This one is a factual error in participant-facing copy, not a comprehension risk.** It was
+introduced by D70 and missed there.
+
+### Why neither was fixed here
+
+The task that removed the marker scoped itself to presentation and said explicitly not to change the
+checkpoint's value, the variant it triggers, or anything in the Mortgage in Principle flow. Frame 17
+is in that flow. Frame 16's line is a copy decision that depends on what replaces it - a rewording, a
+different milestone, or restoring some visible antecedent - and that is a design question rather than
+a correction.
+
+### What resolving it needs
+
+- **Frame 17's arithmetic is the urgent half** and should be fixed before any participant session.
+  The narrowest correct fix is to stop describing the threshold as a share of the deposit, since it
+  is a share of the goal: it could name the goal instead, or drop the fraction and state the fact
+  ("you have saved enough for this to be worth checking").
+- **Frame 16's line** needs a decision about whether the checkpoint should be visible anywhere. If it
+  should not, the sentence should stop naming a threshold and say what is now true instead. If it
+  should, the bar is not the place - D51's second amendment and D71 both record why.
+
+**Do not read the removal as the concept having gone.** `CHECKPOINT_FRACTION`, `checkpointAmount()`
+and `gapToCheckpoint()` are all live, the skip-ahead control still lands on the checkpoint exactly,
+and `/mip/running` still branches on it.
+
+*Status: open. The frame 17 arithmetic should be closed before participant sessions; the frame 16
+wording can wait for a decision about whether the checkpoint is shown at all.*

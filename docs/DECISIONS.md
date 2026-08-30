@@ -3714,6 +3714,57 @@ amendment banners come off in the same pass. Nothing was deleted from `MILESTONE
 `components.css` or the `locked` state's own styling, so the milestone half of that reversal is one
 word.
 
+### Amended, 30 August 2026: the checkpoint is not drawn at all now
+
+D51 recorded a cost: the checkpoint stopped being legible on the milestone list, and the consolation
+was that "the progress bar's marker still carries the checkpoint". **That is no longer true.** The
+marker at 75% and the "Checkpoint" label beneath the track are both removed. Nothing on any screen
+draws the checkpoint now.
+
+**Presentation only. Nothing behavioural changed, and this was verified rather than assumed:**
+
+| What the checkpoint drives | Where | Status |
+|---|---|---|
+| Frame 15 vs frame 16 vs goal-met | `tracker.js`, `saved >= checkpoint-amount` | unchanged |
+| Whether `/mip/running` returns likely or not-yet | `mip-running.js`, `gapToCheckpoint(state).value > 0` | unchanged |
+| Where the skip-ahead control lands | `skip-ahead.js`, reads the stored `checkpoint-amount` | unchanged |
+| Whether `/goals` shows its tracker card | `goals.js`, tests the key for null | unchanged |
+| The value itself | `checkpointAmount()` = 0.75 x `combined-goal` | unchanged |
+
+The only things deleted are a `<div>`, a `<p>`, two CSS rules and one content key
+(`checkpointProgressLabel`). `CHECKPOINT_FRACTION` is still imported by `tracker.js`, because
+`checkpointReachedBodyTemplate` still renders the 75% figure in its text.
+
+**Why remove it: one kind of fact per channel.** D71 set this out at length while rejecting a
+different proposal - three marked points on the track - and the argument applies to the element that
+was already there. The bar was carrying a **position** (the fill, where the participant is) and a
+**milestone** (the marker, a threshold that decides what the flow returns) on one axis with no visual
+grammar separating them. Of the two, the milestone was the one nothing else on the screen explained:
+the fill is self-evident, the marker was a bare tick.
+
+**D71 is not contradicted by this, and the distinction matters.** D71 declined "drop the checkpoint
+marker" as a *means to an end* - as a way of making room for the three-point sketch, trading a working
+element for a speculative one. Nothing speculative replaced it here; the space is simply recovered.
+The three-point sketch remains rejected on D71's own measurements.
+
+**What it recovered:** 22.0px at default text, 24.7px at Large. `.progress-bar` goes from 40.0px to
+18.0px, and from 45.4px to 20.7px. Verified after the change: the goal figure still sits at the
+track's right end, the segment boundary is still drawn at 85.7%, and the fill's leading edge still
+reads as an edge at 22.9% - the marker's removal took nothing else with it.
+
+**THE CONCEPT IS NOT REMOVED, AND THE SILENCE MUST NOT BE READ THAT WAY.** This is the part most
+likely to be misread by whoever comes next. Two pieces of participant-facing copy still name the
+checkpoint:
+
+- `/tracker`'s `checkpointReachedBodyTemplate` - "You've passed the 75% checkpoint" (frame 16)
+- `/mip`'s `body` - "You've saved three quarters of your deposit" (frame 17)
+
+Both now arrive without an antecedent, and the second is **also arithmetically wrong** since D70: the
+checkpoint is 0.75 x the combined goal, so at the checkpoint a participant has saved 87.5% of their
+deposit, not three quarters of it. Both are raised as `GAPS.md` G86 rather than silently kept, and
+the frame 17 arithmetic should be closed before participant sessions. Neither was fixed here: frame
+17 is inside the Mortgage in Principle flow, which this change was scoped out of.
+
 ---
 
 ## D52. Frame 21 ends the flow too: D50's treatment applied to the not-yet result

@@ -807,7 +807,13 @@ const content = {
     // promise, without telling them to go and check anything.
     stampDutyNoteTemplate:
       'Your goal includes an estimated {amount} of stamp duty, at first-time buyer rates. Whether those apply is confirmed when you buy.',
-    checkpointProgressLabel: 'Checkpoint',
+    // `checkpointProgressLabel` IS DELETED (D51's second amendment). It held
+    // "Checkpoint", the label under the progress bar's 75% marker, and both the
+    // marker and this row are gone. The CONCEPT is not gone - the checkpoint
+    // still decides which variant this screen draws and what the Mortgage in
+    // Principle flow returns - so read the silence here as "not drawn", never
+    // as "removed". `checkpointReachedBodyTemplate` below still names it, and
+    // GAPS.md G86 records that it now does so without an antecedent on screen.
     // THE PROGRESS BAR'S LEGEND (DECISIONS.md D70). Each names one portion of
     // the goal and its amount, because colour cannot identify them - WCAG
     // 1.4.1, and in this palette no second shade could carry it even if the

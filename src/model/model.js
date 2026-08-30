@@ -174,13 +174,18 @@ export function ltv(state) {
  * (DECISIONS.md D70, amending build-spec.md section 4's "0.75 x
  * deposit-target").
  *
- * IT MOVED TO THE COMBINED GOAL FOR THE PROGRESS BAR, not for its own sake.
- * `/tracker` draws the bar with `markerPct: CHECKPOINT_FRACTION * 100` - a
- * literal 75 - and fills it against the goal. Leaving the checkpoint on
- * `deposit-target` while the bar ran to the combined goal would have put the
- * marker at 64.3% of the track while the copy beside it said 75%, and the two
- * would have been describing different denominators. One denominator, both
- * true.
+ * IT MOVED TO THE COMBINED GOAL, and the reason it moved has since been
+ * superseded by a better one. D70 moved it for the progress bar: the bar drew a
+ * marker at a literal 75% and filled against the goal, so a checkpoint on
+ * `deposit-target` would have sat at 64.3% of the track under copy saying 75%.
+ * That marker is gone (D51's second amendment), so that argument is spent.
+ *
+ * WHAT KEEPS IT ON THE COMBINED GOAL NOW is the variant boundary itself.
+ * `/tracker` compares `saved-toward-deposit` against this figure to choose
+ * between frames 15 and 16, and against `combined-goal` to choose the goal-met
+ * variant. Both comparisons have to run against the same denominator or the
+ * three variants stop being ordered - a checkpoint above the goal-met line, or
+ * a goal met before its own checkpoint, are both reachable if they differ.
  *
  * WHAT IT COST: the checkpoint rises 33,750 to 39,375 on the seeded goal. The
  * skip-ahead control and the ready-to-check stage both follow it with no edit,

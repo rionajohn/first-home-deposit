@@ -908,9 +908,15 @@ export function riskWarningHTML(text) {
 }
 
 /**
- * Content / Progress bar (frames 15, 16): a filled track toward the goal, with
- * a fixed marker at the checkpoint position and a label naming what the marker
- * is.
+ * Content / Progress bar (frames 15, 16): a filled track toward the goal.
+ *
+ * NO CHECKPOINT MARKER AND NO LABEL ROW SINCE D51'S SECOND AMENDMENT. It
+ * carried a 2px mark at 75% with "Checkpoint" beneath the track. Both are gone,
+ * for D71's reason applied to the element D71 itself declined to remove: the
+ * bar was carrying two kinds of fact on one axis - a position and a milestone -
+ * and the milestone was the one nothing else on the screen explained. The
+ * checkpoint is unchanged in the model and still decides the variant this bar
+ * is drawn on; it is simply not drawn any more.
  *
  * DIVIDED, OPTIONALLY, SINCE DECISIONS.md D70. Pass `segments` to split the
  * track into named parts - `/tracker` passes the deposit and the stamp duty
@@ -950,9 +956,8 @@ export function riskWarningHTML(text) {
  * The track flexes and the label does not: a truncated currency figure is
  * worse than a shorter track, so all the width pressure goes to the track.
  */
-export function progressBarHTML({ fillPct, markerPct, label, segments = null, endLabel = null }) {
+export function progressBarHTML({ fillPct, segments = null, endLabel = null }) {
   const clampedFill = Math.max(0, Math.min(100, fillPct));
-  const clampedMarker = Math.max(0, Math.min(100, markerPct));
 
   // Rule 3, applied before anything is measured: a part with no width is not a
   // part. `> 0` rather than a tolerance - these come from real amounts, and an
@@ -994,11 +999,9 @@ export function progressBarHTML({ fillPct, markerPct, label, segments = null, en
         <div class="progress-bar__track">
           ${segmentsHTML}
           <div class="progress-bar__fill" style="width:${clampedFill}%"></div>
-          <div class="progress-bar__marker" style="left:${clampedMarker}%"></div>
         </div>
         ${endLabel ? `<p class="progress-bar__end-label">${endLabel}</p>` : ''}
       </div>
-      <p class="progress-bar__label">${label}</p>
     </div>
   `;
 }

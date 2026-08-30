@@ -2320,33 +2320,6 @@
   color: var(--color-label);
 }
 
-.progress-bar__marker {
-  position: absolute;
-  top: 0;
-  width: 2px;
-  height: 100%;
-  /* INK, NOT BACKGROUND, for the join's reason above (D70's third amendment):
-     a `--color-surface` marker on a light page was a slit, not a mark.
-
-     TWICE THE JOIN'S WIDTH, AND THAT IS THE POINT. The two are different kinds
-     of fact - the join is a boundary between parts of the goal, the marker is
-     the checkpoint milestone - and D71 records that the tracker must not blur
-     kinds of fact together on one axis. Weight separates them where colour no
-     longer does, and the marker alone carries a label beneath the bar. */
-  background: var(--color-label);
-  transform: translateX(-1px);
-  /* Above both layers, for the join's reason. */
-  z-index: 3;
-}
-
-.progress-bar__label {
-  margin: 0;
-  font-size: var(--text-footnote-size);
-  line-height: var(--text-footnote-line);
-  font-weight: 500;
-  letter-spacing: 0.2px;
-  color: var(--color-label-tertiary);
-}
 
 /* --- Milestone tracker (Content / Milestone tracker — frames 15, 16) --- */
 .milestone-tracker {
