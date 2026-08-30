@@ -856,26 +856,25 @@ const content = {
     onTrackLabel: 'On track for',
     onTrackCaption: "Worked out from what you're putting aside each month",
 
-    // BEYOND THE 60-MONTH WINDOW (DECISIONS.md D68). The row used to render an
-    // em dash here, which said nothing and looked like a defect. It now states
-    // the threshold, in the same terms frame 12 uses, so the two screens agree
-    // on the same session.
+    // BEYOND THE 60-MONTH WINDOW. `onTrackBeyondWindowValue` ("More than 5
+    // years") is GONE: D68's amendment renders the same date range here as
+    // anywhere else, because the model supplies one and withholding it told the
+    // participant less than the app knew. See D68's "Amended" section for the
+    // trade that was reversed.
     //
-    // Deliberately NOT the date range the model can now supply: 60 months is
-    // where the projection stops being shown, so quoting "August 2034 to June
-    // 2036" would state a projection more precise than the window allows and
-    // would contradict frame 12, which says only "more than 5 years".
-    onTrackBeyondWindowValue: 'More than 5 years',
-
-    // Frame 12's `beyondWindowNote` written for a screen with no chart. Its
-    // second clause explains the CHART's limit; there is no chart here, so the
-    // clause explains why the row shows no date instead - the same job for a
-    // screen without one. "at what you're putting aside now" rather than frame
-    // 12's "at your current rate" because this screen draws a rates card a
-    // little above it, where "rate" means the mortgage interest rate; the
-    // wording also matches this row's own caption.
+    // The note stays and its job changed. It used to explain why no date was
+    // shown; there is a date now, so it QUALIFIES the date instead. "an
+    // estimate based on" echoes `shared.regulatory.estimateDisclosure`, which
+    // is this build's established estimate framing, rather than inventing a
+    // second phrasing for the same idea. It does not repeat the row's own
+    // caption, which already says where the figure comes from; it adds the two
+    // things the caption does not - that the figure is an estimate, and that it
+    // moves.
+    //
+    // The key name still says WHEN it renders, which is accurate, even though
+    // it no longer says what it contains.
     onTrackBeyondWindowNote:
-      "This could take more than 5 years at what you're putting aside now. We show a date once it's closer than that.",
+      "These dates are an estimate based on what you're putting aside now. They move if that changes.",
     provenanceKeyLabel: 'How we worked out your monthly saving',
     flagLabel: "Something doesn't look right",
     // `belowCheckpointCta` IS DELETED (DECISIONS.md D51). It held "What a

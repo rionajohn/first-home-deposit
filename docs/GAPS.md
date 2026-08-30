@@ -2279,3 +2279,46 @@ at it.
 stored key instead of re-deriving, which is exactly the change someone would make to save a
 recomputation.*
 
+---
+
+**G82. The tracker shows a projected figure and carries no estimate disclosure, and its endpoints are
+more precise than the projection is.** Raised with D68's amendment, 30 August 2026. **Open: reported
+inside a task scoped to reporting it, and a one-line fix that was not taken unilaterally.**
+
+Two separate things about the same row, both pre-existing and both made more consequential by showing
+a date nine years out rather than a threshold string.
+
+**1. A rule 2 breach.** `fca-copy-check` rule 2: "Shows a projected figure -> must carry the estimate
+note, `shared.regulatory.estimateDisclosure`, directly beneath it." The tracker's "On track for" row
+IS a projected figure. `tracker.js`'s anchors are `['guidanceNotAdvice',
+'mcob3aRepossessionWarning']` and it renders no `estimateDisclosure`; only frames 12, 20 and 21 do.
+The only "estimate" strings in the `/tracker` block describe the Mortgage in Principle, a different
+figure.
+
+This did not begin with D68's amendment. The in-window range at `ready-to-check` ("October 2028 to
+April 2029") has shipped unqualified since the screen was built. What changed is the size of what
+goes unqualified.
+
+`onTrackBeyondWindowNote` supplies estimate framing in the **beyond-window case only**. The in-window
+case still has none.
+
+**2. Endpoints more precise than the band.** The range is `rangeFromCentral` at 0.9 and 1.1, each end
+`Math.ceil`'d to a whole month, then rendered by `formatMonthYear`, which resolves to a calendar
+month. So two month-precise endpoints bracket a **22-month-wide** band, over a projection that holds
+the Bank Rate, the participant's income and their outgoings constant for nine years - the assumptions
+frame 29 lists. The width of the range signals imprecision honestly; the month-level endpoints work
+against it.
+
+Also pre-existing, and the same shape at every distance: it is simply more visible at nine years than
+at two and a half.
+
+**The fix for the first is one line** - `estimateDisclosure` beneath the "This month" card, adding
+`estimateDisclosure` to `tracker.js`'s anchors. It was not applied because the task that found it
+scoped this to reporting, and adding a required regulatory line to a screen is not a change to make
+as a side effect of a copy tweak. **The second has no one-line fix**: rendering the endpoints less
+precisely (a year, or a season) is a change to `formatMonthYearRange`, which frames 11, 12 and the
+tracker all share, so it is a decision about every on-track figure in the build rather than this one.
+
+*Status: open. The rule 2 half should be closed deliberately and soon; the precision half needs a
+decision about the shared formatter before anything is worth doing.*
+

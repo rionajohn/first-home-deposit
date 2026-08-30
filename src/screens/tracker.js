@@ -96,8 +96,8 @@ export function render(container, ctx) {
   });
 
   const onTrack = onTrackFor(state);
-  // Beyond-window is the one error state with a figure behind it, so it is the
-  // one that renders a value rather than a dash. See DECISIONS.md D68.
+  // Beyond-window renders its range like any other projection; what it still
+  // does differently is carry a note qualifying it. See DECISIONS.md D68.
   const beyondWindow = onTrack.error === 'beyond-window';
 
   // Four icon states, never a flat complete/locked split: every earlier
@@ -283,16 +283,16 @@ export function render(container, ctx) {
         <hr class="divider" />
         ${statRowHTML({
           label: c.onTrackLabel,
-          value: beyondWindow
-            ? c.onTrackBeyondWindowValue
-            : onTrack.error
-              ? '—'
-              : formatMonthYearRange(onTrack.value.low, onTrack.value.high, RATES.asAt),
-          // No caption where no figure renders: the remaining dash states have
-          // nothing for a provenance line to describe. Beyond-window DOES
-          // render a figure, and "what you're putting aside" is what produced
-          // it, so it keeps its caption.
-          caption: onTrack.error && !beyondWindow ? null : c.onTrackCaption,
+          // THE VALUE DECIDES, NOT THE ERROR CODE. Beyond-window carries a
+          // range like any other projection (D68 change 1), so it renders like
+          // any other projection - the special case that turned it into a
+          // threshold string is gone. The dash is left for the three codes that
+          // genuinely have no value, and the caption follows the figure for the
+          // same reason: nothing renders, nothing to claim a derivation for.
+          value: onTrack.value
+            ? formatMonthYearRange(onTrack.value.low, onTrack.value.high, RATES.asAt)
+            : '—',
+          caption: onTrack.value ? c.onTrackCaption : null,
         })}
         ${beyondWindow ? infoBannerHTML(c.onTrackBeyondWindowNote) : ''}
         <button type="button" class="list-row" data-action="open-provenance-key">
