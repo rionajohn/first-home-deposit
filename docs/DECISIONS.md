@@ -6677,3 +6677,53 @@ goal" with nothing to say why. It is a view setting, not a disclosure, and now s
 
 Not the reported failure, and not a crash. Found because a variant check showed a session seeded to
 six months rendering byte-identically to the default.
+
+### Amended, 30 August 2026: the fifth chip is "Max", and four accessible names were breaching 2.5.3
+
+"To goal" becomes **"Max"**. One content key, `chartRangeLabels` in `content.js` - every other
+occurrence of the old label was a code comment or this file, so nothing else on the screen named it.
+
+**The live region is unaffected**, and by construction rather than by luck. It interpolates
+`formatMonthsDuration(rangeMonths)` - a duration, not the chip's label - so it announces "Showing 10
+years 7 months. Savings reach £61,428." whichever word is on the chip. That is also the better
+behaviour: "Max" would tell a screen-reader participant nothing about what they are now looking at.
+
+### Four of the five accessible names failed WCAG 2.5.3, and were fixed with the rename
+
+Checking the new label against Label in Name showed the existing four were already breaching it.
+`aria-label` REPLACES a button's text for the accessible name, so a speech-input participant saying
+"click 5 yr" could not activate a button named "Show 5 years":
+
+| Visible | Old accessible name | 2.5.3 |
+|---|---|---|
+| `6 mo` | "Show 6 months" | passes, by accident - it is a prefix of "6 months" |
+| `1 yr` | "Show 1 year" | **fails** |
+| `3 yr` | "Show 3 years" | **fails** |
+| `5 yr` | "Show 5 years" | **fails** |
+| `To goal` | "Show the whole time to your goal" | **fails** |
+
+Each name now opens with its visible label and elaborates after a comma: "1 yr, one year", "5 yr,
+five years", "Max, the whole time to reach your goal". All five pass, verified from the rendered DOM.
+
+Fixed across all five rather than only the renamed one, under CLAUDE.md's rule that a correction
+applies everywhere the same pattern appears. Leaving three known breaches beside one freshly written
+compliant name would have been the worse outcome.
+
+"Max" needs the longest elaboration of the five, because the abbreviation says nothing at all about
+the range. It still names no duration: the range is the participant's own projection and differs for
+each of them.
+
+### It now fits one row at Large text, by nothing at all
+
+The row was measured at 65/56/58/58/**79** with "To goal", wrapping to two rows at Large. "Max" is
+19px narrower at default and 22px at Large, which is exactly what was missing:
+
+| | Widths | Span | Rows |
+|---|---|---|---|
+| Default | 65/56/58/58/60 | 330px | **1** |
+| Large | 70/60/62/62/64 | **350px** | **1** |
+
+At Large the row spans 350px in a 350px column - **zero margin**. It fits, and it would stop fitting
+on any change that widened a chip by a pixel: a longer label, a wider gap, a font substitution on a
+device that lacks the loaded face. Recorded because "it fits at Large" is true today and fragile, and
+the next person to touch these labels should know they have no room.

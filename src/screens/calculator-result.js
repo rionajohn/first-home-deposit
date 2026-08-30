@@ -97,7 +97,7 @@ export function render(container, ctx) {
   // The chart's window, in months. A view setting (D73): it changes what the
   // chart draws and never what the model projects.
   //
-  // NULL IS THE "To goal" CHIP, and it resolves to the participant's own
+  // NULL IS THE "Max" CHIP, and it resolves to the participant's own
   // projection rather than to a constant. `monthsToTarget` carries a months
   // figure even when it reports `beyond-window` (D68), which is exactly the
   // case that matters here - the seeded goal runs to 126.1 months - so the
@@ -221,7 +221,7 @@ export function render(container, ctx) {
         <div role="group" aria-labelledby="chart-range-legend">
           ${chipRowHTML({
             chips: c.chartRangeLabels.map((r) => ({ value: r.months, label: r.label, ariaLabel: r.ariaLabel })),
-            // `selected` compares against the STORED value, so the "To goal"
+            // `selected` compares against the STORED value, so the "Max"
             // chip (null) is pressed exactly when nothing has been chosen.
             selected: state.chartRangeMonths,
             action: 'select-chart-range',
@@ -284,7 +284,7 @@ export function render(container, ctx) {
   // of a screen the chart is already well down.
   container.querySelectorAll('[data-action="select-chart-range"]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      // `data-value` is the string "null" for the "To goal" chip, since that
+      // `data-value` is the string "null" for the "Max" chip, since that
       // is what the template interpolates. Anything non-numeric resolves to
       // null, which is the stored form of "use my own projection".
       const raw = btn.dataset.value;

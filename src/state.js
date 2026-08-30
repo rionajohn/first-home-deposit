@@ -317,7 +317,7 @@ export function defaultState() {
     // Frame 33 scenario controls (build-spec.md section 7) — testing only,
     // not part of the feature being tested.
     // DECISIONS.md D73. Frame 12's growth-chart range, in months; null is the
-  // "To goal" chip, resolved at render from the participant's own projection.
+  // "Max" chip, resolved at render from the participant's own projection.
   //
   // NOT IN `COLLAPSIBLE_DEFAULTS`, and it was, briefly. That object is reset by
   // `resetCollapsibles()` on every hash-driven navigation (D12), so a range the
