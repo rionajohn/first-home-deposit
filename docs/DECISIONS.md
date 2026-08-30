@@ -6241,6 +6241,21 @@ which is the card's content edge and **17px clear of its border** - and that fig
 `mo` and at `mon`, because the value right-aligns to the content edge whatever its width. The padding
 fixed the appearance; the abbreviation never could.
 
+**`m` was proposed on 30 August 2026 and declined, for the same reason.** That would have been the
+FOURTH move of this string in two days - `mo`, `mon`, `mo`, `m` - and the third was a revert of the
+second on the grounds that shortening was not doing any work. Nothing had changed in between: the
+comparison rows still clear the card edge by 17px and the chart's x-axis still fits at both text
+sizes with no overlap and no spill. There was no problem behind the proposal.
+
+It would also have taken the pair from `yr`/`mo` to `yr`/`m` - a two-letter abbreviation beside a
+one-letter one - which is the same mismatch that sent `mon` back, and the only consistent way out
+would have been moving `yr` to `y` as well. `10 y 7 m` is terse to the point where the units read as
+placeholders.
+
+**So: `mo` stays, and this is the record that it has now survived two attempts to shorten it.** If a
+third is proposed, the question to answer first is what is going wrong on screen that the length is
+causing - because twice now the answer has been nothing.
+
 **Reported, not fixed: the growth chart's y-axis label overlaps its top threshold label.** `£70,875`
 is `.growth-chart__y-label--top`, positioned at the top-left of the plot; `15% - £67,500` is a
 `.growth-chart__threshold-label` positioned `bottom: {pct}%` where pct is the amount over `maxScale`.
@@ -6758,6 +6773,25 @@ spell it out letter by letter.
 `text-transform: uppercase` leaves them pixel-identical, confirmed by screenshot. Only frame 12's
 range chips change. A shared-component change with a visible effect on exactly one consumer.
 
+### This is a recorded departure from the design language, not an accident
+
+Written down because it is the kind of thing that is otherwise found months later and mistaken for
+drift. Four facts, in the order someone re-reading this will want them:
+
+1. **No rule forbade it.** `DESIGN.md` and `CLAUDE.md` carry no sentence-case rule, and
+   `fca-copy-check`'s rule 8 governs Title Case, not uppercase.
+2. **It still departs from the stated design language.** `DESIGN.md`'s section on styling names
+   Apple's Human Interface Guidelines, which set controls in sentence case, and this is the **first
+   `text-transform` in `src/css`** - so it is a new idiom, not an application of an existing one.
+3. **The strings and the accessible names stay sentence case.** The transform is presentational only.
+   `content.js` holds "6 mo"; the accessible name is "6 mo, six months"; a screen reader never
+   receives an uppercased string, which matters because some announce those letter by letter.
+4. **It is visible on one of the component's two consumers.** Frame 09's chips are numeric and
+   render identically.
+
+If the design language is ever enforced mechanically, this rule is the exception to declare rather
+than the drift to clean up.
+
 **It costs a row, and that is a real regression.** Uppercase glyphs are wider, so the range chips grew
 from 65/56/58/58/60 to 68/61/63/63/64 - 351px of gaps and chips against a 350px column. The row that
 fitted on one line at default text now **wraps, orphaning MAX alone on a second row**. At Large it
@@ -6795,3 +6829,31 @@ moved three times in two days - "mo" to "mon" to "mo" - and the last move was a 
 before it. The call sites are two, both on frame 12, and the `yr`/`y` question that comes with it is a
 separate decision about whether the pair should stay two letters or both become one. Both are set out
 in the handover rather than guessed at.
+
+### Amended, 30 August 2026: the padding came down, and the row fits again
+
+`--space-lg` to `--space-md` on the horizontal axis only - 16px to 12px, returning 8px per chip. It
+was chosen over the two alternatives for reasons already measured: a lighter border would have taken
+the only cue marking an unselected chip's boundary from 3.45:1 to **1.29:1** against WCAG 1.4.11's
+3:1, and a smaller radius changes the shape rather than the weight.
+
+**The 48px height is untouched.** Only `padding-left` and `padding-right` moved; `min-height` is still
+`var(--touch-target-min)` and every chip still measures 48px, verified on both screens at both text
+sizes.
+
+**Every chip row now fits one line**, measured against the 350px column:
+
+| | Widths | Total with gaps | Rows |
+|---|---|---|---|
+| Frame 09, default | 48/53/53/55/55 | 296px | 1 |
+| Frame 09, Large | 50/57/57/59/59 | **315px** | 1 |
+| Frame 12, default | 60/53/55/55/56 | 311px | 1 |
+| Frame 12, Large | 65/57/60/60/60 | **334px** | 1 |
+
+That undoes the wrap uppercase introduced on frame 12 at default text, and it also fixes one that was
+there before either change: **frame 09's chips were wrapping at Large text already**, at 58/65/65/67/67,
+and nothing had reported it. The measurement was taken to check this change and found the older
+problem on the way.
+
+The tightest case is now frame 12 at Large with 16px to spare, against zero before. Still not
+generous, and the reason the note about a knife-edge fit stays on the record above.

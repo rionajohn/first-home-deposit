@@ -1918,9 +1918,20 @@
 
 .chip {
   appearance: none;
+  /* 48px, AND IT CANNOT GO LOWER (D75). The content needs 36px - an 18px
+     line box, 16px of vertical padding, 2px of border - so the last 12px is
+     the touch target and nothing else. DESIGN.md's rule 2 forbids shrinking a
+     control below it in terms. Horizontal padding is what came down instead. */
   min-height: var(--touch-target-min);
   min-width: var(--touch-target-min);
-  padding: var(--space-sm) var(--space-lg);
+  /* HORIZONTAL PADDING IS --space-md, NOT --space-lg (D75). It was 16px, which
+     made a five-chip row 351px against a 350px column once the labels were
+     uppercased, wrapping the last chip onto a line of its own. 12px returns
+     8px per chip - 40px across the row - which is more than the wrap needed.
+     Chosen over a lighter border, which would have dropped the only cue
+     marking an unselected chip's boundary to 1.29:1, and over a smaller
+     radius, which changes the shape rather than the weight. */
+  padding: var(--space-sm) var(--space-md);
   /* accessibility pass: border-control — an unselected chip's background
      matches its surroundings, so the border alone marks its boundary. */
   border: 1px solid var(--color-border-control);
