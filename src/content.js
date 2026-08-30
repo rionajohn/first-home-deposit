@@ -685,6 +685,30 @@ const content = {
     compareAlreadyLabel: 'already saved',
     compareProvenanceCaption: 'Time to save each one, at what you are putting away now',
     chartHeading: 'How your savings would build up',
+    // --- THE CHART'S THREE LINES ARE A REFERENCE, AND NOW SAY SO ------------
+    //
+    // The chart plots 5/10/15% whatever the participant chose (build-spec.md
+    // section 2). That used to be coherent: the screen's headline was a 5-15%
+    // range and its timing rows were 5/10/15, so the lines matched everything
+    // around them. D72 replaced both with a comparison windowed on the
+    // selection and left the chart, so the same screen started giving two
+    // answers to one question with nothing to say why.
+    //
+    // The lines stay fixed - windowing them puts the savings curve at 26.4% of
+    // the plot at 25%, and showing growth is the chart's only job - so the
+    // caption is what makes them legible as a deliberate reference rather than
+    // a mismatch.
+    chartReferenceCaption:
+      'The three lines are a low, middle and high deposit at this property price, not the deposit you chose.',
+    // THE SECOND STATE, AND IT IS NOT AN EDGE CASE. The goal is deposit plus
+    // stamp duty, so it clears the top line at three of the five chip values on
+    // the seeded property and at two of five where no stamp duty is due. Above
+    // that point every line on the chart sits below the participant's target
+    // and nothing else on the screen says so.
+    //
+    // It names the chart, not the goal's feasibility: "not shown here" is about
+    // this chart's scale, where "out of reach" would be a claim about them.
+    chartGoalAboveNoteTemplate: 'Your {goal} goal sits above all three, so it is not shown here.',
     chartCaptionTemplate: 'With interest at {aer} a year. Illustrative.',
     thresholdLabelTemplate: '{pct} - {amount}',
     xAxisNow: 'Now',

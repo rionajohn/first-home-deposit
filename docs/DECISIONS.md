@@ -6332,3 +6332,67 @@ least bridge it - and the window makes it more visible without causing it.
 **A typed percentage outside the chip set gets no marked row.** Frame 11 accepts any whole number
 from 5 to 25, so 12% is committable; the window then returns 5/10/15 and nothing matches. Equally
 true before the window, when all five rows were listed and none was highlighted. `GAPS.md` G87.
+
+### Amended, 30 August 2026: the chart keeps 5/10/15, and says why
+
+**This decision caused the problem it is now closing, and that is worth stating plainly.** Frame 12's
+growth chart plots thresholds at 5/10/15% whatever the participant chose, which `build-spec.md`
+section 2 states explicitly. When that was written the whole screen answered at 5/10/15: the headline
+was a 5-15% deposit range, the timing rows were 5/10/15, and the chart's lines matched both. This
+decision replaced the headline with the participant's own deposit and the timing rows with a
+comparison windowed on their selection - and left the chart alone. So one screen began giving two
+answers to the same question, and nothing on it said why.
+
+**The chart stays fixed, and the reason is what the chart is for.** Windowing its thresholds to
+follow the selection was measured rather than argued about. The savings curve reaches £31,212 at
+sixty months, and against a windowed axis it fills:
+
+| Selected | Window | Axis top | Curve fills |
+|---|---|---|---|
+| 5% / 10% | 5/10/15 | £70,875 | 44.0% |
+| 15% | 10/15/20 | £94,500 | 33.0% |
+| 20% / 25% | 15/20/25 | £118,125 | **26.4%** |
+
+At the top of the chip set the curve becomes a quarter of the plot. Showing growth is the chart's
+only job, so the fix is to make the lines legible as a reference, not to make them follow a selection
+they cannot follow without destroying the thing they sit behind.
+
+### The caption, and the state it has to handle
+
+Two jobs, and the second is the one that was actually missing.
+
+`chartReferenceCaption` - always drawn - says the lines are a reference rather than the selection:
+
+> "The three lines are a low, middle and high deposit at this property price, not the deposit you
+> chose."
+
+`chartGoalAboveNoteTemplate` appends where the goal clears the top line:
+
+> "Your £120,000 goal sits above all three, so it is not shown here."
+
+**One base sentence with a conditional clause, not two whole strings.** The base is true in both
+states, so duplicating it into a second variant would have put the same wording in two keys to change
+one clause - the shape `onTrackBeyondWindowNote` already uses on the tracker.
+
+**It names the chart, not the goal's feasibility.** "so it is not shown here" is a statement about
+this chart's scale. "out of reach", or anything about how far off they are, would be a claim about the
+participant, and the rules on framing a savings position as a shortfall apply exactly as they do
+everywhere else.
+
+### The second state is common, not an edge case
+
+The goal is the deposit plus stamp duty, so it clears the 15% line well before a 15% deposit does:
+
+| Property | Stamp duty | Top line | Chips whose goal is above it |
+|---|---|---|---|
+| £300,000 | £0 | £45,000 | 20%, 25% - **two of five** |
+| £450,000 (seeded) | £7,500 | £67,500 | **15%, 20%, 25% - three of five** |
+| £500,001 | £15,000 | £75,000 | 15%, 20%, 25% - three of five |
+
+**D70 is why 15% tips over.** With no stamp duty a 15% deposit lands exactly on the 15% line; the
+£7,500 pushes it above. So the goal never coincides with a reference line at the seeded property, and
+at the seeded value the majority of the chip set reaches the second state. Treating it as a rare
+branch would have been wrong.
+
+`build-spec.md` section 2's own row now records all of this, so the next person reading "thresholds at
+5, 10, 15%" finds out immediately that it is deliberate and what changed around it.

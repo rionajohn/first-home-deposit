@@ -191,6 +191,11 @@ export function render(container, ctx) {
             yBottom: c.yAxisFloor,
           });
         })()}
+        <p class="provenance-caption">${c.chartReferenceCaption}${
+          combinedGoalValue > rangeHighAmount
+            ? ` ${fill(c.chartGoalAboveNoteTemplate, { goal: formatCurrency(combinedGoalValue) })}`
+            : ''
+        }</p>
         <p class="legal-text">${fill(c.chartCaptionTemplate, { aer: formatPercent(RATES.bankRate) })}</p>
         ${beyondWindow ? infoBannerHTML(c.beyondWindowNote) : ''}
       `}
