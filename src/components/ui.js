@@ -474,6 +474,29 @@ export function figureRowHTML({ label, value, caption, trailing }) {
  * has no icon and is its own primary-looking control on frame 04). Reused
  * by frames 06 and 08 for "How did we work this out?" style links.
  */
+/**
+ * A bare information icon that opens an explainer, for a term introduced
+ * inside a sentence (DECISIONS.md D70). Distinct from `infoLinkHTML` above,
+ * which is a full-width labelled row - this one sits in a trailing cell beside
+ * the prose that names the term.
+ *
+ * IT IS 48px, AND THAT IS WHY IT IS A COMPONENT RATHER THAN AN INLINE <svg>.
+ * DESIGN.md's rule 2 requires a 48px target and forbids shrinking one to match
+ * a design; the icon inside it is body-sized. An icon dropped inline into a
+ * 13px caption could not carry a 48px target without disturbing the line box,
+ * which is why the callers put it in its own flex cell instead.
+ *
+ * `ariaLabel` is the control's whole accessible name - there is no visible
+ * text - so it says what opening it gets you rather than describing the glyph.
+ */
+export function infoIconButtonHTML({ action, ariaLabel }) {
+  return `
+    <button type="button" class="info-icon-button" data-action="${action}" aria-label="${ariaLabel}">
+      ${infoCircle({ size: 'body', className: 'info-icon-button__icon' })}
+    </button>
+  `;
+}
+
 export function infoLinkHTML({ label, action }) {
   return `
     <button type="button" class="info-link" data-action="${action}">
@@ -901,21 +924,29 @@ export function riskWarningHTML(text) {
  *
  * THREE RULES THIS FUNCTION ENFORCES, and they are not stylistic:
  *
- *   1. COLOUR NEVER CARRIES THE MEANING. Every segment with a label gets a
- *      legend entry naming it and its amount (WCAG 1.4.1). The palette cannot
- *      do it with colour anyway - see the token comments in tokens.css - but
- *      the legend would be required even if it could.
+ *   1. COLOUR NEVER CARRIES THE MEANING - BUT THE LEGEND IS NO LONGER WHAT
+ *      CARRIES IT (D70's second amendment). The segments are drawn IN
+ *      PROPORTION to their amounts, and the caller states both amounts in
+ *      prose directly above the bar, so SIZE maps the amounts to the segments.
+ *      Size is not colour, so WCAG 1.4.1 is satisfied independently of the
+ *      shades and independently of any legend. `segments` therefore carries no
+ *      labels any more; `/tracker` renders the same two strings in a
+ *      disclosure below the bar, closed by default.
  *   2. THE JOIN IS MARKED WITHOUT COLOUR. A 1px `--color-surface` separator
  *      sits at each internal boundary, the same device `.progress-bar__marker`
  *      already uses, so the division survives at any contrast.
  *   3. A ZERO PART COLLAPSES. A segment with no width is dropped, and if that
- *      leaves one segment the legend is suppressed entirely and the bar
- *      renders as an ordinary single fill. A legend naming a zero portion has
- *      the same defect as a sentence explaining one: it invites the reader to
- *      wonder what they missed. `/tracker` relies on this below the 300,000
- *      nil-rate band, where the tax genuinely is nothing.
+ *      leaves one segment the bar renders as an ordinary single undivided
+ *      fill. `/tracker` relies on this below the 300,000 nil-rate band, where
+ *      the tax genuinely is nothing, and suppresses its own explanatory
+ *      sentence on the same test.
+ *
+ * `endLabel` puts a figure at the RIGHT-HAND END of the track, on the same
+ * row, so the bar reads from what has been saved to what is being aimed at.
+ * The track flexes and the label does not: a truncated currency figure is
+ * worse than a shorter track, so all the width pressure goes to the track.
  */
-export function progressBarHTML({ fillPct, markerPct, label, segments = null }) {
+export function progressBarHTML({ fillPct, markerPct, label, segments = null, endLabel = null }) {
   const clampedFill = Math.max(0, Math.min(100, fillPct));
   const clampedMarker = Math.max(0, Math.min(100, markerPct));
 
@@ -925,24 +956,29 @@ export function progressBarHTML({ fillPct, markerPct, label, segments = null }) 
   const drawn = (segments || []).filter((seg) => seg.widthPct > 0);
   const divided = drawn.length > 1;
 
-  const fillHTML = divided
-    ? drawn.map((seg, i) => `
-        <div
-          class="progress-bar__fill progress-bar__fill--${seg.shade}"
-          style="width:${Math.max(0, Math.min(100, seg.widthPct))}%"
-        ></div>
-        ${i < drawn.length - 1 ? '<div class="progress-bar__join"></div>' : ''}
-      `).join('')
-    : `<div class="progress-bar__fill" style="width:${clampedFill}%"></div>`;
-
-  const legendHTML = divided
+  // TWO LAYERS, NOT ONE, AND THE BAR IS WRONG WITHOUT BOTH.
+  //
+  // The segments describe the GOAL - what the participant is saving toward and
+  // what it is made of. The fill describes the POSITION - how much of it they
+  // have. An earlier version of this function drew segments INSTEAD of the fill
+  // when divided, which silently turned the tracker's progress bar into a
+  // composition chart: at 12,000 of a 52,500 goal it drew a bar that looked
+  // 86% full, because that is the deposit's share of the goal. See D70.
+  //
+  // So the segments are a background layer inset over the whole track, and the
+  // fill sits on top of them. Three regions result, and each says a different
+  // thing: solid is saved, the lighter band is deposit still to save, the
+  // middle band is the tax. The join and the checkpoint marker are drawn above
+  // both layers so neither is hidden by the fill.
+  const segmentsHTML = divided
     ? `
-      <div class="progress-bar__legend">
-        ${drawn.map((seg) => `
-          <span class="progress-bar__legend-item">
-            <span class="progress-bar__swatch progress-bar__swatch--${seg.shade}"></span>
-            <span class="progress-bar__legend-label">${seg.label}</span>
-          </span>
+      <div class="progress-bar__segments">
+        ${drawn.map((seg, i) => `
+          <div
+            class="progress-bar__segment progress-bar__segment--${seg.shade}"
+            style="width:${Math.max(0, Math.min(100, seg.widthPct))}%"
+          ></div>
+          ${i < drawn.length - 1 ? '<div class="progress-bar__join"></div>' : ''}
         `).join('')}
       </div>
     `
@@ -950,11 +986,14 @@ export function progressBarHTML({ fillPct, markerPct, label, segments = null }) 
 
   return `
     <div class="progress-bar">
-      <div class="progress-bar__track${divided ? ' progress-bar__track--divided' : ''}">
-        ${fillHTML}
-        <div class="progress-bar__marker" style="left:${clampedMarker}%"></div>
+      <div class="progress-bar__row">
+        <div class="progress-bar__track">
+          ${segmentsHTML}
+          <div class="progress-bar__fill" style="width:${clampedFill}%"></div>
+          <div class="progress-bar__marker" style="left:${clampedMarker}%"></div>
+        </div>
+        ${endLabel ? `<p class="progress-bar__end-label">${endLabel}</p>` : ''}
       </div>
-      ${legendHTML}
       <p class="progress-bar__label">${label}</p>
     </div>
   `;

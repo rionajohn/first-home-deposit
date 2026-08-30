@@ -28,6 +28,7 @@ import {
   bindFormStepHeader,
   actionBarHTML,
   infoBannerHTML,
+  infoIconButtonHTML,
   flagRowHTML,
   currencyInputHTML,
   chipRowHTML,
@@ -121,7 +122,12 @@ export function render(container, ctx) {
            450,000, the stamp duty cliff at 500,000. Above 500,000 both are
            drawn and both are true. Between the two only the cap shows, which is
            correct - nothing about the tax changes there. -->
-      ${reliefLost ? infoBannerHTML(c.stampDutyCliffBannerText) : ''}
+      ${reliefLost ? `
+        <div class="note-with-info">
+          <div class="note-with-info__text">${infoBannerHTML(c.stampDutyCliffBannerText)}</div>
+          ${infoIconButtonHTML({ action: 'open-stamp-duty-info', ariaLabel: c.stampDutyInfoAriaLabel })}
+        </div>
+      ` : ''}
       <p class="entry-card__body">${fill(c.areaAverageCaption, {
         region: AREA_AVERAGE_PROPERTY_VALUE.region,
         amount: formatCurrency(AREA_AVERAGE_PROPERTY_VALUE.value),
@@ -210,6 +216,21 @@ export function render(container, ctx) {
     setState({ returnFrame: '/calculator/property' });
     window.location.hash = '#/calculator/exit';
   });
+
+  // THE FIRST ENCOUNTER WITH THE TERM for a participant above 500,000, and
+  // they meet it having just watched the goal step up by 5,000 for one extra
+  // pound - so the explainer matters more here than it does on the tracker.
+  //
+  // `returnFrame` IS THIS SCREEN, NOT THE TRACKER. Dismissing the sheet has to
+  // come back to the calculator step the participant was on. `goBack` handles
+  // the ordinary case from history; `returnFrame` is what the sheet's '/home'
+  // fallback would otherwise mis-target if it were opened cold.
+  if (reliefLost) {
+    container.querySelector('[data-action="open-stamp-duty-info"]').addEventListener('click', () => {
+      setState({ returnFrame: '/calculator/property' });
+      window.location.hash = '#/learn/stamp-duty';
+    });
+  }
 
   container.querySelector('[data-action="continue"]').addEventListener('click', () => {
     if (isEmpty || errorText) return;

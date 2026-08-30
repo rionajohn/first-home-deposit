@@ -42,6 +42,8 @@ import {
   infoBannerHTML,
   infoLinkHTML,
   progressBarHTML,
+  disclosureHTML,
+  infoIconButtonHTML,
   milestoneTrackerHTML,
   rangeFigureHTML,
   riskWarningHTML,
@@ -55,6 +57,7 @@ import { MOCK_POSITION } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
 import { isRootEntry } from '../router.js';
 import { canSkipAhead, isSkippedAhead, skipAheadHTML, bindSkipAhead } from '../skip-ahead.js';
+import { rerenderInPlace } from '../components/ui.js';
 
 export const anchors = ['guidanceNotAdvice', 'mcob3aRepossessionWarning'];
 
@@ -256,45 +259,78 @@ export function render(container, ctx) {
       ${skipAheadHTML({ c, position: isSkippedAhead(state) ? 'ahead' : 'now', available: canSkipAhead(state) })}
 
       <p class="figure-display">${formatCurrency(savedTowardDeposit)}</p>
+      <!-- THE ONLY THING EXPLAINING THE HEADLINE FIGURE, since
+           "goalCaptionTemplate" was deleted (D70's second amendment). D5 and
+           copy-check rule 8 both require a provenance caption on a figure the
+           participant did not enter, and this one is summed from the accounts
+           they assigned. Kept in place and unshortened: the restructure made it
+           MORE necessary, not less. -->
       <p class="provenance-caption provenance-caption--center">${c.savedCaption}</p>
-      <p class="provenance-caption provenance-caption--center">${fill(c.goalCaptionTemplate, { target: formatCurrency(combinedGoalValue) })}</p>
-      <!-- D70. What the goal is made of, in one line, directly under the goal
-           figure it qualifies. It carries the estimate framing itself rather
-           than leaning on the shared estimateDisclosure line: this screen has
-           never carried that line, and its own beyond-window note already
-           establishes in-line qualification as the treatment here. The second
-           sentence is what stops "at first-time buyer rates" reading as a
-           claim that the participant will get the relief - nothing in this app
-           asks whether they qualify.
 
-           DRAWN ONLY WHERE THERE IS A TAX TO EXPLAIN - see hasStampDuty
-           above the render. -->
-      ${hasStampDuty ? `<p class="provenance-caption provenance-caption--center">${fill(c.stampDutyNoteTemplate, { amount: formatCurrency(stampDutyValue) })}</p>` : ''}
+      <!-- D70, moved above the bar and left-aligned by D70's second amendment.
+           What the goal is made of, in one line. It carries the estimate
+           framing itself rather than leaning on the shared estimateDisclosure
+           line: this screen has never carried that line, and its own
+           beyond-window note already establishes in-line qualification as the
+           treatment here. The second sentence is what stops "at first-time
+           buyer rates" reading as a claim that the participant will get the
+           relief - nothing in this app asks whether they qualify.
+
+           IT IS ALSO WHERE THE TERM IS FIRST INTRODUCED on the default path,
+           which is why the explainer icon is here and not on the disclosure
+           row below: frames 09 to 12 never name stamp duty at the seeded
+           property value. The icon sits in its own 48px cell rather than inline
+           in the sentence, because DESIGN.md's rule 2 will not have a control
+           smaller than that and a 48px target cannot sit in a 13px line box.
+
+           DRAWN ONLY WHERE THERE IS A TAX TO EXPLAIN - see hasStampDuty. -->
+      ${hasStampDuty ? `
+        <div class="note-with-info">
+          <p class="provenance-caption note-with-info__text">${fill(c.stampDutyNoteTemplate, { amount: formatCurrency(stampDutyValue) })}</p>
+          ${infoIconButtonHTML({ action: 'open-stamp-duty-info', ariaLabel: c.stampDutyInfoAriaLabel })}
+        </div>
+      ` : ''}
 
       ${progressBarHTML({
         fillPct: (savedTowardDeposit / combinedGoalValue) * 100,
         markerPct: CHECKPOINT_FRACTION * 100,
         label: c.checkpointProgressLabel,
+        // THE GOAL AT THE END THE PARTICIPANT IS SAVING TOWARD (D70's second
+        // amendment). It used to sit under the headline as a second caption,
+        // where it labelled nothing; at the right-hand end of the track it
+        // labels the end of the journey the fill is crossing.
+        endLabel: formatCurrency(combinedGoalValue),
         // THE GOAL'S COMPOSITION, NOT THE SAVING POSITION (D70). These two
         // widths are the deposit and the tax as shares of the goal, so the bar
         // shows what the goal is made of underneath the fill that shows how far
-        // along it is. At zero tax `progressBarHTML` drops the empty segment,
-        // suppresses the legend and renders an ordinary single fill - which is
-        // why this is passed unconditionally and the omission is not repeated
-        // here. One rule, in one place.
+        // along it is. At zero tax `progressBarHTML` drops the empty segment
+        // and renders an ordinary single undivided fill - which is why this is
+        // passed unconditionally and the omission is not repeated here.
+        //
+        // NO LABELS ON THE SEGMENTS ANY MORE. They identified the parts while
+        // the legend was drawn; the two strings now live in the disclosure
+        // below, and what identifies the segments in the resting state is their
+        // PROPORTIONS against the two amounts the note above states. See D70.
         segments: [
-          {
-            widthPct: (depositTargetValue / combinedGoalValue) * 100,
-            shade: 'primary',
-            label: fill(c.legendDepositLabelTemplate, { amount: formatCurrency(depositTargetValue) }),
-          },
-          {
-            widthPct: (stampDutyValue / combinedGoalValue) * 100,
-            shade: 'muted',
-            label: fill(c.legendStampDutyLabelTemplate, { amount: formatCurrency(stampDutyValue) }),
-          },
+          { widthPct: (depositTargetValue / combinedGoalValue) * 100, shade: 'primary' },
+          { widthPct: (stampDutyValue / combinedGoalValue) * 100, shade: 'muted' },
         ],
       })}
+
+      <!-- CLOSED BY DEFAULT, like every disclosure in this build (D12): a
+           section that is already open cannot show whether a participant would
+           have chosen to open it. Drawn only where there is a second part to
+           show - at zero tax the goal IS the deposit, and a breakdown of one
+           number into one number explains nothing. -->
+      ${hasStampDuty ? disclosureHTML({
+        id: 'goal-breakdown',
+        title: c.goalBreakdownDisclosureTitle,
+        open: state.goalBreakdownOpen,
+        contentHtml: `
+          <p class="goal-breakdown__row">${fill(c.legendDepositLabelTemplate, { amount: formatCurrency(depositTargetValue) })}</p>
+          <p class="goal-breakdown__row">${fill(c.legendStampDutyLabelTemplate, { amount: formatCurrency(stampDutyValue) })}</p>
+        `,
+      }) : ''}
 
       <p class="body-text">${bodyText}</p>
 
@@ -439,6 +475,28 @@ export function render(container, ctx) {
     setState({ returnFrame: '/tracker' });
     window.location.hash = '#/assumptions/deposit';
   });
+
+  // THE DISCLOSURE AND THE ICON ARE BOTH DRAWN ONLY WHERE THERE IS A TAX, so
+  // both bindings are guarded on the same flag the markup is. `forEach` on the
+  // toggle rather than `querySelector`, matching calculator-result.js: the
+  // `toggle-disclosure` action is shared with `howThisWorksCardHTML` and a bare
+  // querySelector would bind whichever came first.
+  if (hasStampDuty) {
+    container.querySelectorAll('[data-action="toggle-disclosure"][data-disclosure-id="goal-breakdown"]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const next = setState({ goalBreakdownOpen: !state.goalBreakdownOpen });
+        rerenderInPlace(container, render, { ...ctx, state: next });
+      });
+    });
+
+    // FIRST INTRODUCTION OF THE TERM on the default path, which is why the
+    // icon is here. `returnFrame` is this screen, so a dismissal comes back to
+    // the tracker.
+    container.querySelector('[data-action="open-stamp-duty-info"]').addEventListener('click', () => {
+      setState({ returnFrame: '/tracker' });
+      window.location.hash = '#/learn/stamp-duty';
+    });
+  }
 
   container.querySelector('[data-action="open-assumptions-costs"]').addEventListener('click', () => {
     setState({ returnFrame: '/tracker' });

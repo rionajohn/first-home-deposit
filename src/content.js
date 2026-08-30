@@ -531,6 +531,7 @@ const content = {
     // why the figure moved. It does not suggest buying below the threshold,
     // which would be advice, and it does not tell the participant to check
     // anything. One number per sentence.
+    stampDutyInfoAriaLabel: 'What stamp duty is',
     stampDutyCliffBannerText:
       'First-time buyer stamp duty relief applies up to £500,000. Above that, standard rates apply to the whole price, which is why the stamp duty in your goal steps up here.',
     depositQuestionHeading: 'How much would you put down?',
@@ -748,10 +749,16 @@ const content = {
   '/tracker': {
     appBarTitle: 'Your deposit',
     savedCaption: 'From the accounts you said are for your deposit',
-    // "goal", NOT "deposit goal" (DECISIONS.md D70). The figure it captions is
-    // now the deposit plus the stamp duty, and calling that a deposit goal
-    // would be false about 7,500 of it. The line below says what is in it.
-    goalCaptionTemplate: 'of your {target} goal',
+    // `goalCaptionTemplate` IS DELETED (DECISIONS.md D70's second amendment).
+    // It held "of your {target} goal" beneath the headline. The goal figure now
+    // sits at the right-hand end of the progress bar, where it labels the end
+    // the participant is saving TOWARD, so a second copy of it under the
+    // headline said the same thing in a worse place.
+    //
+    // `savedCaption` above it STAYS, and is now the only thing explaining the
+    // headline figure. See D70 - D5 and copy-check rule 8 both require a
+    // provenance caption on a figure the participant did not enter, and this
+    // deletion made that caption more necessary, not less.
     // ONE LINE, AND THE SECOND SENTENCE IS THE POINT (D70). Nothing in this app
     // asks whether the participant is a first-time buyer - there is no question
     // that could - so the figure is an estimate on an assumption the app has
@@ -767,8 +774,20 @@ const content = {
     // 1.4.1, and in this palette no second shade could carry it even if the
     // rule allowed. Both are suppressed with the bar's division when the tax is
     // zero: "Stamp duty £0" explains nothing.
+    // THE TWO BREAKDOWN ROWS. Named `legend*` when they were the progress bar's
+    // legend and kept under those names now they are the disclosure's two rows:
+    // the strings are unchanged and in the same relationship to the same two
+    // segments, and renaming them would make copy-identical keys read as new
+    // wording in every diff. One pair of strings, one place, whichever
+    // component is drawing them.
     legendDepositLabelTemplate: 'Deposit {amount}',
     legendStampDutyLabelTemplate: 'Stamp duty {amount}',
+    // Says what is behind the chevron without restating the figures that are
+    // behind it - the same discipline `otherCostsLinkLabel` follows.
+    goalBreakdownDisclosureTitle: 'What makes up your goal',
+    // The icon's accessible name. It is a control, so it says what opening it
+    // gets you, not what it looks like.
+    stampDutyInfoAriaLabel: 'What stamp duty is',
 
     // NO FIGURE, AND NO DIRECTION (DECISIONS.md D51). This used to read
     // "You're {gap} away from the point where checking a Mortgage in Principle
@@ -1258,6 +1277,62 @@ const content = {
     ],
     borrowingEstimateWarning: 'This is a borrowing estimate, not a binding offer of mortgage. Your actual eligibility depends on underwriting.',
     metadataTemplate: 'Based on your account activity to {date} and a soft credit search on {searchDate}.',
+    primaryCta: 'Close',
+  },
+
+  /**
+   * Frame-less screen, DECISIONS.md D70 / GAPS.md G84. Like /assumptions/costs
+   * it has no Figma node and no reference PNG.
+   *
+   * A CONCEPT EXPLAINER, WHICH IS WHY IT IS UNDER /learn AND NOT
+   * /assumptions. The sheet FAMILY it copies is frames 29 to 32's - intro,
+   * a list of rows with values, a short section, a sourcing line - but
+   * `/assumptions/*` means "how we derived YOUR numbers", and this screen
+   * explains a tax that exists whether or not the participant has a goal.
+   * `/learn/ltv/video` already puts a sheet in the /learn namespace.
+   *
+   * WHAT THIS SCREEN MAY NOT DO. It explains. It does not say what the
+   * participant should do, does not tell them whether they will qualify for
+   * the relief, and does not describe any way of reducing the amount - the
+   * last would be advice on structuring a transaction, which is well outside
+   * both the guidance boundary and this prototype.
+   */
+  '/learn/stamp-duty': {
+    heading: 'Stamp duty',
+    // THREE FACTS, IN THE ORDER A PARTICIPANT NEEDS THEM: what it is, who
+    // gets it and when, and why it is in a goal that is otherwise a deposit.
+    // The third sentence exists because the tracker puts the tax inside the
+    // goal, and a participant who reads "it is not part of your deposit"
+    // without it would be left with a contradiction.
+    intro:
+      'Stamp Duty Land Tax is a tax on buying a property. It goes to HM Revenue and Customs when the purchase completes. It is not part of your deposit, but you need the money ready at the same time, which is why your goal includes it.',
+    bandsHeading: 'What a first-time buyer pays',
+    // BANDS ARE MARGINAL AND THE ROWS HAVE TO SAY SO. "5% of that part" and
+    // the caption under it are doing the work that stops the middle row being
+    // read as 5% of the whole price - the single most likely misreading of a
+    // banded tax, and the reason the third row carries a caption at all.
+    bandRows: [
+      {
+        label: 'Up to £300,000',
+        value: 'Nothing',
+      },
+      {
+        label: '£300,001 to £500,000',
+        value: '5% of that part',
+        caption: 'Only the part above £300,000 is taxed',
+      },
+      {
+        label: 'Above £500,000',
+        value: 'Relief no longer applies',
+        caption: 'Standard rates apply to the whole price, not only the part above £500,000',
+      },
+    ],
+    whereHeading: 'Where it applies',
+    whereBody:
+      'Stamp Duty Land Tax applies in England and Northern Ireland. Scotland and Wales have their own property taxes, at their own rates.',
+    // The sheet family's sourcing slot, filled from SDLT in rates.js so the
+    // attribution resolves from the same constant as the bands themselves.
+    metadataTemplate: 'Rates from {source}, accessed {period}.',
     primaryCta: 'Close',
   },
 

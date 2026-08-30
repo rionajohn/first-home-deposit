@@ -29,7 +29,7 @@
  * src/cache-version.js's BUILD_VERSION in step with the version
  * below; see that file's own comment for why the two are separate.
  */
-const CACHE_VERSION = 'v64';
+const CACHE_VERSION = 'v65';
 const CACHE_NAME = `yfh-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
@@ -59,6 +59,7 @@ const SHELL_ASSETS = [
   './src/state.js',
   './src/screens/assumptions-borrowing.js',
   './src/screens/assumptions-costs.js',
+  './src/screens/learn-stamp-duty.js',
   './src/screens/assumptions-deposit.js',
   './src/screens/assumptions-saving.js',
   './src/screens/assumptions-sources.js',

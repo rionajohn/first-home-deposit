@@ -69,7 +69,7 @@ do not introduce a state management library.
 - Serve: `python -m http.server 8080` on Windows (ES modules need a server, not file://)
 - Test the model: `node --test src/model/*.test.js` (the bare directory form fails on Node 24)
 - Test the sheet gesture: `node --test scripts/sheet-drag.test.mjs` (drives Chromium via Playwright)
-- Test screen layout: `node --test scripts/overlap.test.mjs` (all 34 frame rows x both text sizes, the 34th being `/assumptions/costs`, which has no frame number of its own - GAPS.md G83; asserts no divider, border or rule crosses text and no box is squashed below its content)
+- Test screen layout: `node --test scripts/overlap.test.mjs` (all 36 frame rows x both text sizes; the last two, `/assumptions/costs` and `/learn/stamp-duty`, have no frame number of their own - GAPS.md G83 and G84; asserts no divider, border or rule crosses text and no box is squashed below its content)
 - Test the skip-ahead control: `node --test scripts/skip-ahead.test.mjs` (pure Node, no browser; asserts three round trips leave state identical and that the threshold stays a ratio of CHECKPOINT_FRACTION rather than an amount)
 - Test the draft invariant: `node --test scripts/g62.test.mjs` (pure Node, no browser; asserts that abandoning a draft changes no committed key, and that `gapToCheckpoint()` reads the stored checkpoint rather than re-deriving it)
 - Test stale-session discard: `node --test scripts/stale-session.test.mjs` (drives Chromium; asserts a

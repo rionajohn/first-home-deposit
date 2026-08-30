@@ -2351,3 +2351,76 @@ and `ROUTES.md`'s frame column carries a dash. Any pass that assumes those colum
 need to handle it.
 
 *Status: open, deliberately. Recorded so the absence is a known deviation rather than a silent one.*
+
+---
+
+## G84. `/learn/stamp-duty` has no Figma frame either
+
+*Raised 30 August 2026. `DECISIONS.md` D70.*
+
+The second frame-less screen in this build, after G83's `/assumptions/costs`, and raised on the same
+terms. `build-spec.md` is silent on an explainer for stamp duty and no Figma node or
+`reference/frames/` PNG exists for one. It was directed explicitly, with its content and its source
+specified, and it invents no figure: the bands it states are `SDLT` in `rates.js`, the same constant
+the model calculates from, and the attribution is that constant's own.
+
+**It is a sheet on frames 29 to 32's pattern but sits under `/learn`, not `/assumptions`**, and that
+split is deliberate rather than an oversight. `/assumptions/*` means "how we derived YOUR numbers" -
+every screen in that family reads participant state. This one reads none. `/learn/ltv/video` already
+puts a sheet in the `/learn` namespace, so the precedent existed.
+
+Same unresolved consequences as G83: no frame number, so the three browser-driven fixtures carry it
+as the string `stamp-duty` and `ROUTES.md`'s frame column carries a dash. If the Figma file gains a
+frame later, its name is authoritative and this module should be reconciled to it.
+
+*Status: open, deliberately. Recorded so the absence is a known deviation rather than a silent one.*
+
+---
+
+## G85. Frame 12 and the tracker use the same phrase for two different figures
+
+*Raised 30 August 2026. Opened by `DECISIONS.md` D70; not fixed by it.*
+
+**The defect.** `/calculator/result` (frame 12) renders `goalTrackLabelTemplate` - **"Your goal -
+{target}"** - filled from `deposit-target`. Two screens later `/tracker` states the goal is
+`combined-goal`. At the seeded property value a participant is told:
+
+| Screen | What it says |
+|---|---|
+| 12 | Your goal - **£45,000** |
+| 15/16 | of your **£52,500** goal, which includes an estimated £7,500 of stamp duty |
+
+Neither figure is wrong for what it measures. **The phrase is wrong on one of them**, because "your
+goal" now names a specific figure in this build and frame 12 is not using it.
+
+**This is D34's failure mode**, which is why it is raised rather than left as a wording nit: one form
+of words carrying different figures on different screens, where the drift is invisible on either
+screen taken alone and only shows up to someone who sees both. A participant runs the calculator,
+reads "Your goal - £45,000" on frame 12, taps through to the tracker and is told the goal is £52,500,
+with no screen in between explaining the change. The most likely reading is that the app changed its
+mind.
+
+**Why it was not fixed in the pass that found it.** It was found while tracing where stamp duty is
+first introduced, in a task scoped to the tracker's goal area and a new explainer sheet. Frame 12 is a
+different screen with its own range chart, threshold rows and timing copy all sized against
+`deposit-target`, and the fix is a decision about what that whole screen is about rather than a
+string swap - see below.
+
+**It is not obvious which way it should go**, which is the other reason it needs a decision rather
+than a patch:
+
+- **Relabel frame 12** ("Your deposit - £45,000"). Cheapest, and true - the screen IS about the
+  deposit, and its chart plots deposit thresholds at 5/10/15%. Costs nothing elsewhere. But it leaves
+  the participant meeting the combined goal for the first time on the tracker, with the step from
+  £45,000 to £52,500 still unexplained at the moment it happens.
+- **Show the combined goal on frame 12 too.** Consistent, and introduces the tax before the tracker
+  does. But frame 12's chart, its `thresholdLabelTemplate` rows and its timing copy are all sized
+  against `deposit-target`, so either they move with it - which is a much larger change, and wrong
+  for the threshold rows, since those are genuinely about deposit percentages - or the screen shows
+  two goals and has to distinguish them.
+
+**Resolve before participant sessions.** A participant who notices the change and asks about it is
+the good case; one who does not notice and simply loses confidence in the figures is the bad one, and
+this prototype is an instrument for measuring exactly that kind of confidence.
+
+*Status: open. Needs a decision on what frame 12 is about before the wording follows.*

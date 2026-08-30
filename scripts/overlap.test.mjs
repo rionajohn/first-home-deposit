@@ -156,6 +156,7 @@ const FRAMES = [
   ['31', '/assumptions/borrowing', {}],
   ['32', '/assumptions/sources', {}],
   ['costs', '/assumptions/costs', {}],
+  ['stamp-duty', '/learn/stamp-duty', {}],
   ['33', '/settings', {}],
 ];
 

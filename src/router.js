@@ -35,6 +35,7 @@ export const ROUTES = [
   '/calculator/result',
   '/learn/ltv',
   '/learn/ltv/video',
+  '/learn/stamp-duty',
   '/tracker',
   '/mip',
   '/mip/about',
@@ -290,8 +291,9 @@ function renderNotBuilt(container, path) {
 }
 
 /**
- * SPEC.md's 7 sheets (03b, 10c, 13b, 29, 30, 31, 32) plus /assumptions/costs,
- * which has no frame number of its own (GAPS.md G83) - 8 in total — each renders a
+ * SPEC.md's 7 sheets (03b, 10c, 13b, 29, 30, 31, 32) plus /assumptions/costs and
+ * /learn/stamp-duty, neither of which has a frame number of its own (GAPS.md
+ * G83 and G84) - 9 in total — each renders a
  * `[role="dialog"]` bottom sheet (src/screens' shared markup, see G-notes
  * in ui.js's sheetHeaderHTML) as the *entire* contents of #app, since every
  * screen (dialog or not) fully replaces #app's children rather than
@@ -308,6 +310,7 @@ const DIALOG_ROUTES = new Set([
   '/consent/move-account',
   '/calculator/exit',
   '/learn/ltv/video',
+  '/learn/stamp-duty',
   '/assumptions/saving',
   '/assumptions/deposit',
   '/assumptions/borrowing',

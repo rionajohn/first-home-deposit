@@ -151,6 +151,7 @@ Click path is from `#/home`. "Cold" = type the URL with an empty session.
 | 31 | …your borrowing estimate | `#/assumptions/borrowing` | ✅ | 20 → "See how we worked this out" | none |
 | 32 | Where these figures come from | `#/assumptions/sources` | ✅ | 05 → "Where these figures come from" | none |
 | -  | Other costs when you buy | `#/assumptions/costs` | ✅ | 15/16 → "Other costs when you buy" | none (falls back to `#/home`) |
+| -  | Stamp duty explainer | `#/learn/stamp-duty` | ✅ | 15/16 → the ⓘ beside the stamp duty line · or 09 → type **over £500,000** → the ⓘ on the banner | none (falls back to `#/home`) |
 | 33 | Prototype settings | `#/settings` | ✅ | **URL, or a ~700ms long press on the disabled Profile tab** - still no on-screen link anywhere (D54, 28 August 2026) | none |
 
 **Cold ❌ cascades.** Typing `#/tracker`, `#/mip`, `#/mip/result/likely` etc. on an empty session lands

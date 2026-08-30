@@ -2227,36 +2227,37 @@
   height: 100%;
   border-radius: var(--radius-full);
   background: var(--color-accent-neutral);
+  z-index: 1;
 }
 
 /* --- The divided bar (DECISIONS.md D70) ---------------------------------
    Only the tracker draws this, and only when the stamp duty portion is
-   non-zero. The undivided bar above is untouched: a single fill is still
-   absolutely positioned at left 0, and nothing here applies to it.
+   non-zero.
 
-   A DIVIDED TRACK IS A FLEX ROW, so the segments size each other rather
-   than each being positioned from the left edge. The marker stays
-   absolute over the top of them, at the checkpoint, exactly as before. */
-.progress-bar__track--divided {
+   A BACKGROUND LAYER UNDER THE FILL, NOT INSTEAD OF IT. The segments say
+   what the GOAL is made of; the fill says how much of it has been saved.
+   Drawing segments in place of the fill turned the progress bar into a
+   composition chart - see the note above `progressBarHTML`. This layer is
+   inset over the whole track and the fill paints on top of it, giving three
+   regions: solid = saved, `--muted` = the tax, the bare track = deposit
+   still to save. */
+.progress-bar__segments {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: stretch;
 }
 
-.progress-bar__track--divided .progress-bar__fill {
-  position: relative;
-  border-radius: 0;
+.progress-bar__segment {
   flex: 0 0 auto;
+  height: 100%;
 }
 
-/* The rounded ends belong to the bar, not to the segments, so only the
-   outermost corners are rounded. */
-.progress-bar__track--divided .progress-bar__fill:first-child {
-  border-top-left-radius: var(--radius-full);
-  border-bottom-left-radius: var(--radius-full);
-}
-
-.progress-bar__fill--primary { background: var(--color-accent-neutral); }
-.progress-bar__fill--muted { background: var(--color-accent-neutral-muted); }
+/* The deposit band is left as the bare track: it is the part of the goal
+   that is neither saved nor tax, and painting it would need a fourth grey
+   the palette does not have room for. */
+.progress-bar__segment--primary { background: transparent; }
+.progress-bar__segment--muted { background: var(--color-accent-neutral-muted); }
 
 /* RULE 2 IN ui.js: the join is marked without colour. Same 1px-of-surface
    device as `.progress-bar__marker`, so the division reads at any contrast
@@ -2265,38 +2266,41 @@
 .progress-bar__join {
   flex: 0 0 1px;
   background: var(--color-surface);
+  /* Above the fill, so the boundary between the deposit and the tax stays
+     visible even where the fill has painted over it. */
+  position: relative;
+  z-index: 2;
 }
 
-/* RULE 1 IN ui.js: the legend, not the colour, says which part is which.
-   Wraps rather than truncating - at Large text the two items do not fit on
-   one 350px line, and CLAUDE.md's auto-layout rule is that nothing
-   truncates or overflows. */
-.progress-bar__legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs) var(--space-md);
-}
+/* THE TRACK AND THE GOAL FIGURE SHARE A ROW (DECISIONS.md D70's second
+   amendment), so the bar reads from what has been saved to what is being
+   aimed at.
 
-.progress-bar__legend-item {
+   ALL THE WIDTH PRESSURE GOES TO THE TRACK, deliberately. The track is
+   `flex: 1 1 auto` with `min-width: 0` so it can shrink; the figure is
+   `flex: 0 0 auto` and never wraps. A shorter track is a smaller loss than a
+   truncated currency figure, and CLAUDE.md's auto-layout rule forbids the
+   second outright. At Large text on a 350px column the figure takes about
+   67px and the track keeps about 275px. */
+.progress-bar__row {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
 }
 
-.progress-bar__swatch {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-full);
+.progress-bar__row .progress-bar__track {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.progress-bar__end-label {
+  margin: 0;
   flex: 0 0 auto;
-}
-
-.progress-bar__swatch--primary { background: var(--color-accent-neutral); }
-.progress-bar__swatch--muted { background: var(--color-accent-neutral-muted); }
-
-.progress-bar__legend-label {
+  white-space: nowrap;
   font-size: var(--text-footnote-size);
   line-height: var(--text-footnote-line);
-  color: var(--color-label-secondary);
+  font-weight: 600;
+  color: var(--color-label);
 }
 
 .progress-bar__marker {
@@ -2306,6 +2310,8 @@
   height: 100%;
   background: var(--color-surface);
   transform: translateX(-1px);
+  /* Above both layers, for the join's reason. */
+  z-index: 3;
 }
 
 .progress-bar__label {
@@ -2988,4 +2994,56 @@ button.milestone-row {
   font-weight: 400;
   color: var(--color-label-secondary);
   text-align: center;
+}
+
+
+/* --- Info icon button (DECISIONS.md D70's second amendment) ---------------
+   A bare icon opening an explainer, for a term introduced inside a sentence.
+   48px because DESIGN.md's rule 2 requires it of every control and forbids
+   shrinking one to match a design - the glyph inside stays body-sized, which
+   is the same "24px checkbox inside a 48px row" relationship that rule cites
+   as correct. Its callers put it in a trailing flex cell beside the prose
+   rather than inline, because a 48px target cannot sit in a 13px line box. */
+.info-icon-button {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--color-label-secondary);
+}
+
+/* The prose and its icon, side by side. The text takes the pressure here -
+   the opposite of the progress bar's row, because wrapped prose is fine and
+   a shrunken control is not. */
+.note-with-info {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+}
+
+.note-with-info__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* --- The goal breakdown disclosure (D70's second amendment) ---------------
+   Closed by default, like every other disclosure in this build (D12). What
+   identifies the two bar segments while it is closed is NOT this - it is the
+   proportions of the segments themselves against the two amounts the note
+   above the bar states. See D70. */
+/* One line per part, stacked, each the whole string - "Deposit £45,000" -
+   so the disclosure renders the very strings the legend did rather than
+   taking them apart and reassembling them around a value column. */
+.goal-breakdown__row {
+  margin: 0;
+  padding: var(--space-xs) 0;
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  color: var(--color-label);
 }

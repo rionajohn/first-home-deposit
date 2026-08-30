@@ -146,6 +146,14 @@ export const SDLT = {
     [1500000, Infinity, 0.12],
   ],
   source: 'HMRC Stamp Duty Land Tax: residential property rates',
+  /**
+   * How the source is NAMED ON SCREEN, as distinct from `source` above, which
+   * documents the publication. `/learn/stamp-duty` cites the body rather than
+   * the page title, matching how RATES.source reads on screen ("Bank of
+   * England Bank Rate") - a participant recognises the institution, not the
+   * document.
+   */
+  sourceLabel: 'HM Revenue and Customs',
   sourceUrl: 'https://www.gov.uk/stamp-duty-land-tax/residential-property-rates',
   asAt: '2026-08',
   asAtLabel: 'August 2026',

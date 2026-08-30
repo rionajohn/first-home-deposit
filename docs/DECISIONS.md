@@ -5496,3 +5496,129 @@ obvious from the feature; the second is only obvious from the test. `STAGE_KEYS`
 `skip-ahead.js` and `SECTION_6_KEYS` in `state.js` are the three lists of the second kind in this
 build. `skip-ahead.js` needed no change here - neither new key depends on the savings position - but
 it was checked for the same reason.
+
+### 11. Amended, 30 August 2026: the goal area is restructured, and the legend closes
+
+The goal area read as four stacked centred captions under one figure. It now reads as a figure, one
+caption explaining it, a sentence about the tax, and a bar that runs from what has been saved to what
+is being aimed at. Six changes, and three of them turn on the same question - what a thing is FOR.
+
+**The goal figure moved to the right-hand end of the bar.** `goalCaptionTemplate` ("of your £52,500
+goal") is deleted rather than moved: under the headline it labelled nothing, and at the end of the
+track it labels the end the fill is crossing. The track and the figure share a flex row where **the
+track takes all the width pressure** - `flex: 1 1 auto; min-width: 0` against the figure's
+`flex: 0 0 auto` and `white-space: nowrap`. That direction is deliberate: a shorter track is a
+smaller loss than a truncated currency figure, and CLAUDE.md's auto-layout rule forbids the second
+outright. At Large text on a 350px column the figure takes about 67px and the track keeps about 275px.
+
+**The provenance caption stays, and D5 is why.** `savedCaption` ("From the accounts you said are for
+your deposit") was the one element considered for removal that could not go. `saved-toward-deposit`
+carries provenance `read` - it is summed from the accounts the participant assigned, and they did not
+type it - so D5 and copy-check rule 8 both require a caption on it. **Deleting `goalCaptionTemplate`
+made that binding tighter, not looser**: it left `savedCaption` as the only thing on the screen
+explaining the headline figure, where before it was one of three captions. Removing both would have
+left an unexplained five-figure sum at the top of the screen. Kept in place and unshortened.
+
+**The two amounts moved into a disclosure, closed by default** (D12: a section already open cannot
+show whether a participant would have chosen to open it). The two strings are the legend's own,
+reused under their `legend*` names rather than renamed - the strings are unchanged and in the same
+relationship to the same two segments, and renaming copy-identical keys would make every future diff
+read as new wording.
+
+### What identifies the bar's segments with the legend closed
+
+This is the question the collapse had to answer, because D70's section 9 recorded that colour cannot
+do it: no third shade reaches 3:1 from both the fill and the empty track, and in dark nothing reaches
+3:1 against the fill at all. While the legend was drawn, the legend was carrying identification.
+
+**Size carries it, and size is not colour.** The segments are drawn in proportion to their amounts,
+and the note directly above the bar states both - the goal at the track's end, the tax named in the
+sentence. So a reader maps the larger segment to the larger amount without reference to the shades.
+WCAG 1.4.1 asks that information not be conveyed by colour ALONE; here it is conveyed by proportion
+and by prose, and the shades are a third, redundant encoding.
+
+That holds across the whole plausible range, and it is worth writing the numbers down:
+
+| Property value | Tax as a share of the bar |
+|---|---|
+| 450,000 (the case study) | 14.3% |
+| 500,001 | 23.1% |
+| 925,000 | 28.2% |
+| 2,000,000 | 43.5% |
+| **4,312,500** | **50% - parity** |
+
+**No always-visible segment label is needed**, and one was rejected rather than overlooked: it would
+restate what the sentence immediately above it already says, on a screen whose whole problem was too
+many stacked captions.
+
+**The residual, recorded because it is real.** Above about 4.3 million the two segments approach
+parity and size stops disambiguating them. Nothing becomes false there - the note still states the
+composition, and the disclosure still gives both amounts on demand - but the resting state stops
+being self-evident. No participant in this study will type such a value; it is recorded because the
+reasoning above depends on a bound, and a bound that is not written down is one that gets forgotten.
+
+**"Checkpoint" stays where it is**, directly beneath the track and above the disclosure. It labels
+the marker, not either end of the bar. One thing to watch in a session: with the goal figure now at
+the track's right end, a left-aligned "Checkpoint" underneath could be misread as labelling the left
+end. It sits on its own row between two elements that are both about the whole bar, which should hold
+it, but it is the one part of this layout that was not verified against a participant.
+
+### The explainer, and where its icon belongs
+
+**Stamp duty is first named on the tracker**, on the default path. Frames 09 to 12 never name it at
+the seeded property value - frame 09's cliff banner appears only above 500,000, and frame 30's
+assumption rows only if the participant opens that sheet. So the icon belongs on the tracker's note,
+which is the sentence that introduces the term, rather than on the disclosure row below it, which is
+closed.
+
+**It is also on frame 09's cliff banner**, and that is not a second-best placement: above 500,000 the
+banner IS the first encounter, and the participant meets it having just watched the goal step up by
+5,000 for one extra pound. They need the explainer more than a seeded participant does, not less.
+
+**`returnFrame` differs by entry and has to.** From the tracker it is `/tracker`; from frame 09 it is
+`/calculator/property`, so dismissing returns to the calculator step the participant was on rather
+than to a tracker they may not have reached. Dismissal itself is `goBack` from either, so the return
+is the history entry; `returnFrame` is what the sheet's `/home` fallback would otherwise mis-target
+if the sheet were opened cold.
+
+**The icon is 48px and sits in its own flex cell**, not inline in the sentence. DESIGN.md's rule 2
+requires 48px of every control and forbids shrinking one to match a design, and a 48px target cannot
+sit inside a 13px line box. `infoIconButtonHTML` exists for that reason rather than an inline `<svg>`.
+
+**The sheet follows frames 29 to 32 but routes under `/learn`.** The visual pattern and the namespace
+answer different questions: `/assumptions/*` means "how we derived YOUR numbers" and every screen in
+that family reads participant state, while this one reads none - it explains a tax that exists
+whether or not a goal has been set. `/learn/ltv/video` already put a sheet in that namespace.
+`GAPS.md` G84 records the absent Figma frame.
+
+### The progress bar had stopped showing progress, and a screenshot caught it
+
+**Corrected here, and recorded because the description in section 9 was wrong rather than merely
+incomplete.** Section 9 says "the fill still shows how far along the participant is; the division
+shows what they are heading toward". The code did not do that. `progressBarHTML` drew the segments
+**instead of** the fill whenever the bar was divided, so on the tracker - a screen whose entire
+purpose is a savings position - the bar showed the goal's composition and nothing else. At 12,000
+saved against a 52,500 goal it drew a bar that looked 86% full, because 86% is the deposit's share of
+the goal.
+
+**Neither the tests nor the review caught it.** `overlap.test.mjs` asserts nothing crosses text and
+nothing is squashed, which a wrong-width fill satisfies perfectly; `action-bar.test.mjs` never looks
+at the bar. It was found by looking at a screenshot taken for a different reason - the layout
+restructure - which is the argument for `shots.mjs` existing at all.
+
+**The fix is two layers.** The segments become a background layer inset over the whole track, and the
+fill paints on top of them. Three regions result and each says a different thing: solid is saved, the
+bare track is deposit still to save, the `--muted` band at the end is the tax. The join and the
+checkpoint marker are raised above both layers so the fill cannot hide either.
+
+That also removes a colour the palette could not really afford. The deposit band is left as the bare
+track rather than given a fourth grey, so the shades in play are the fill, the tax band and the empty
+track - the three the contrast work in section 9 already measured.
+
+### Not fixed here: frame 12 says "Your goal - £45,000"
+
+Found while tracing where stamp duty is first introduced. Frame 12 fills "Your goal - {target}" from
+`deposit-target` while the tracker two screens later states the goal is `combined-goal`. One phrase,
+two figures, two screens - D34's failure mode, opened by this decision and **not** closed by it.
+Raised as `GAPS.md` G85 with the two candidate resolutions and the reason it is a decision about what
+frame 12 is about rather than a string swap. It needs resolving before participant sessions.

@@ -85,6 +85,9 @@ const COLLAPSIBLE_DEFAULTS = {
   // Frame 06 (What we found) — same accordion pattern, its own key so
   // opening/closing one screen's disclosure doesn't affect the other's.
   summaryDisclosureOpen: false,
+  // DECISIONS.md D70's second amendment. The tracker's "What makes up your
+  // goal" disclosure. Closed on load like every other one (D12).
+  goalBreakdownOpen: false,
   // Frame 19 (Before you run the check) — its three chevron sections.
   mipAskedOpen: false,
   mipBenefitsOpen: false,
