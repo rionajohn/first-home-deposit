@@ -1253,7 +1253,23 @@ const content = {
     resultBody:
       "Based on what we can see today, the amount you'd need to borrow is above what a lender would typically offer. That changes as you keep saving.",
     gapCaption: 'The estimated gap at your current property target',
-    gapProvenanceCaption: 'Worked out from your deposit goal and what you have saved so far',
+    // --- TWO CAPTIONS, ONE WORD APART, AND BOTH ARE RIGHT (GAPS.md G88) ----
+    //
+    // This one captions `gap`, which is `combined-goal` less
+    // `saved-toward-deposit` since D70 - the goal INCLUDING stamp duty. It said
+    // "your deposit goal", which named the wrong figure by 7,500 and was the
+    // same error D51's third amendment corrected in `goalMetBody`.
+    //
+    // `lenderOfferCaption` below says "your deposit goal" and MUST KEEP SAYING
+    // IT. That one captions `borrowRange.high`, which comes from `loan-amount`
+    // - the property value less `deposit-target`, the deposit alone. Stamp duty
+    // is cash to HMRC and never reduces the loan (D70).
+    //
+    // So the two sit four rows apart on one screen, one naming the goal and one
+    // naming the deposit, and a sweep that "makes them consistent" breaks the
+    // second. That is D70's split working as designed, not an oversight.
+    gapProvenanceCaption:
+      'Worked out from your goal, including stamp duty, and what you have saved so far',
     needBorrowLabel: "What you'd need to borrow",
     lenderOfferLabel: 'What a lender would typically offer',
     lenderOfferValueTemplate: 'around {amount}',

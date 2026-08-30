@@ -2570,4 +2570,9 @@ intended.
 Not fixed because frame 21 is inside the Mortgage in Principle flow, which the tasks that came near
 it were scoped out of.
 
-*Status: open. A one-string fix, but it must be made without touching the caption below it.*
+*Status: **closed** 30 August 2026. `gapProvenanceCaption` now reads "Worked out from your goal,
+including stamp duty, and what you have saved so far" - it names the goal rather than the deposit
+goal, and the "including stamp duty" clause is what distinguishes it from the caption four rows
+below. `lenderOfferCaption` is unchanged and still says "your deposit goal", correctly: it captions a
+borrowing figure sized against `deposit-target`. A comment above the pair in `content.js` records why
+a consistency sweep across the two would break the second one.*
