@@ -119,6 +119,11 @@ const TRACKER_SEED = {
   'saved-toward-deposit': f(22000), 'checkpoint-amount': f(21000, 'derived'),
   'property-value': f(280000, 'entered'), 'deposit-pct': f(0.1, 'entered'),
   'deposit-target': f(28000, 'derived'), 'savings-rate': f(500, 'entered'),
+  // DECISIONS.md D70. /tracker's guard tests these two as well now, so a seed
+  // without them bounces to the calculator and every nav assertion below
+  // measures the wrong screen. Zero tax is correct at 280,000 - it is under the
+  // nil-rate band - so the combined goal equals the deposit target here.
+  'stamp-duty': f(0, 'entered'), 'combined-goal': f(28000, 'derived'),
   'months-to-target': f(14, 'derived'), calculatorEntered: true, goal: 'house',
 };
 
@@ -191,7 +196,8 @@ for (const [route, lit, litIcon, seed] of [
   ['/home', 'home', 'icon--house-fill', null],
   ['/goals', 'goals', 'icon--target-fill', null],
   // Insights resolves to /tracker. It needs a seeded session, because
-  // /tracker guards on checkpoint-amount and deposit-target and replaces
+  // /tracker guards on checkpoint-amount, deposit-target, combined-goal and
+  // stamp-duty (the last two since DECISIONS.md D70) and replaces
   // itself with the calculator when either is null.
   ['/tracker', 'insights', 'icon--diamond-fill', TRACKER_SEED],
 ]) {

@@ -64,6 +64,16 @@ export const FULL = {
   // --- Section 6: the deposit goal, committed through the calculator -------
   'property-value': f(280000, 'entered'), 'deposit-pct': f(0.1, 'entered'),
   'deposit-target': f(28000, 'derived'), 'loan-amount': f(252000, 'derived'), ltv: f(0.9, 'derived'),
+  // DECISIONS.md D70. ZERO, AND TRUTHFULLY SO: 280,000 sits under the 300,000
+  // nil-rate band, so first-time buyer stamp duty on this fixture's property
+  // really is nothing, and `combined-goal` really does equal `deposit-target`.
+  // The figure is not invented to make the seed interesting - a fixture that
+  // disagreed with `stampDuty()` would be worse than one that exercises the
+  // zero case. `checkpoint-amount` below stays 21,000 because 0.75 x 28,000 is
+  // unchanged by a zero tax. The NON-zero case is exercised by
+  // overlap.test.mjs's own `15-stamp-duty` row, which is that script's
+  // override rather than a change here.
+  'stamp-duty': f(0, 'entered'), 'combined-goal': f(28000, 'derived'),
   // 'entered', NOT 'estimated'. `estimated` meant "derived because the main
   // account is elsewhere", and that mode went with the account-linking removal
   // (DECISIONS.md D28), so these two keys can only be 'read' (the seeded range

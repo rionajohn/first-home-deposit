@@ -47,6 +47,7 @@ export const ROUTES = [
   '/assumptions/deposit',
   '/assumptions/borrowing',
   '/assumptions/sources',
+  '/assumptions/costs',
   '/settings',
 ];
 
@@ -289,7 +290,8 @@ function renderNotBuilt(container, path) {
 }
 
 /**
- * SPEC.md's 7 sheets (03b, 10c, 13b, 29, 30, 31, 32) — each renders a
+ * SPEC.md's 7 sheets (03b, 10c, 13b, 29, 30, 31, 32) plus /assumptions/costs,
+ * which has no frame number of its own (GAPS.md G83) - 8 in total — each renders a
  * `[role="dialog"]` bottom sheet (src/screens' shared markup, see G-notes
  * in ui.js's sheetHeaderHTML) as the *entire* contents of #app, since every
  * screen (dialog or not) fully replaces #app's children rather than
@@ -310,6 +312,7 @@ const DIALOG_ROUTES = new Set([
   '/assumptions/deposit',
   '/assumptions/borrowing',
   '/assumptions/sources',
+  '/assumptions/costs',
 ]);
 
 /**

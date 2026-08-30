@@ -116,6 +116,21 @@ const FRAMES = [
   ['13b', '/learn/ltv/video', {}],
   ['15', '/tracker', { 'saved-toward-deposit': f(12000), 'checkpoint-amount': f(21000, 'derived') }],
   ['16', '/tracker', { 'saved-toward-deposit': f(22000), 'checkpoint-amount': f(21000, 'derived') }],
+  // DECISIONS.md D70. The shared seed's 280,000 property carries NO stamp duty
+  // (it is under the nil-rate band), so without this row nothing would lay out
+  // the tracker's stamp duty line at a realistic string length. A complete and
+  // internally consistent 450,000 goal: 45,000 deposit, 7,500 tax, 52,500
+  // combined, 39,375 checkpoint - the seeded case study's own figures.
+  ['15-stamp-duty', '/tracker', {
+    'property-value': f(450000, 'entered'),
+    'deposit-target': f(45000, 'entered'),
+    'stamp-duty': f(7500, 'entered'),
+    'combined-goal': f(52500, 'entered'),
+    'loan-amount': f(405000, 'entered'),
+    ltv: f(0.9, 'entered'),
+    'saved-toward-deposit': f(8950),
+    'checkpoint-amount': f(39375, 'entered'),
+  }],
   // The skip-ahead control (DECISIONS.md D38) sits at the TOP of the tracker,
   // above the headline, so it changes the geometry of the whole screen rather
   // than adding a block at the end. Its own note is the longest run of small
@@ -140,6 +155,7 @@ const FRAMES = [
   ['30', '/assumptions/deposit', {}],
   ['31', '/assumptions/borrowing', {}],
   ['32', '/assumptions/sources', {}],
+  ['costs', '/assumptions/costs', {}],
   ['33', '/settings', {}],
 ];
 

@@ -112,3 +112,59 @@ export const LTV_RATE_BANDS_BY_DEPOSIT_PCT = {
  * its Monthly/Interest rows (its own "Interest, 25 yrs" row label).
  */
 export const MORTGAGE_TERM_YEARS = 25;
+
+/**
+ * Stamp Duty Land Tax, residential rates, England and Northern Ireland.
+ * A dated, sourced constant on the AREA_AVERAGE_PROPERTY_VALUE pattern
+ * (DECISIONS.md D70), so the bands and their attribution cannot drift apart.
+ * Nothing fetches these at runtime, exactly as RATES above.
+ *
+ * TWO SCALES, AND A CLIFF BETWEEN THEM. First-time buyer relief is not a
+ * discount applied to the standard result - it is a separate scale that is
+ * lost ENTIRELY above `ftbReliefLimit`, at which point the standard scale
+ * applies to the whole price. That is why these are two band arrays rather
+ * than one with an adjustment: at 500,001 the tax is not the 500,000 figure
+ * plus a marginal step, it is a different calculation. See `stampDuty()` in
+ * model.js and D70's own worked figures.
+ *
+ * Each band is [from, to, rate] and is MARGINAL - the rate applies only to
+ * the portion of the price falling inside that band, never to the whole
+ * price. `Infinity` closes the top band rather than a large number, so the
+ * reducer needs no special case for it.
+ */
+export const SDLT = {
+  ftbReliefLimit: 500000,
+  ftbBands: [
+    [0, 300000, 0],
+    [300000, 500000, 0.05],
+  ],
+  standardBands: [
+    [0, 125000, 0],
+    [125000, 250000, 0.02],
+    [250000, 925000, 0.05],
+    [925000, 1500000, 0.10],
+    [1500000, Infinity, 0.12],
+  ],
+  source: 'HMRC Stamp Duty Land Tax: residential property rates',
+  sourceUrl: 'https://www.gov.uk/stamp-duty-land-tax/residential-property-rates',
+  asAt: '2026-08',
+  asAtLabel: 'August 2026',
+};
+
+/**
+ * Attribution for `/assumptions/costs`'s five cost ranges (DECISIONS.md D70).
+ * A dated, sourced constant on the AREA_AVERAGE_PROPERTY_VALUE pattern, and
+ * held here for that constant's reason: the screen renders the source and the
+ * date through one `metadataTemplate`, so neither can drift from the other or
+ * be updated on its own.
+ *
+ * The ranges themselves stay in `content.js` as prose - "Up to about £1,800",
+ * "From about £400" - because nothing computes them and they are read as
+ * sentences, exactly as frame 30's own cost list already was. This constant
+ * carries only what attributes them.
+ */
+export const UPFRONT_COST_SOURCES = {
+  sources: 'MoneyHelper and Halifax',
+  asAt: '2026-08',
+  asAtLabel: 'August 2026',
+};

@@ -77,6 +77,8 @@ import {
   monthsToTarget,
   onTrackFor,
   checkpointAmount,
+  stampDuty,
+  combinedGoal,
 } from './model/model.js';
 import { MOCK_POSITION } from './model/accounts.js';
 import { LISA_CAP_PROPERTY_VALUE, CHART_WINDOW_MONTHS } from './model/rates.js';
@@ -234,6 +236,14 @@ const STAGE_KEYS = [
   'property-value',
   'deposit-pct',
   'deposit-target',
+  // DECISIONS.md D70. Both are committed by frame 09's Continue alongside
+  // `deposit-target`, so both have to be reset by a stage change with it -
+  // `stage.test.mjs` caught this as a live defect: without them, selecting
+  // "Setting up" cleared the property value and the target but left the
+  // previous stage's stamp duty and combined goal behind, which is exactly the
+  // "a state no screen expects" case CLAUDE.md's state rules describe.
+  'stamp-duty',
+  'combined-goal',
   'loan-amount',
   'ltv',
   'monthly-low',
@@ -315,6 +325,11 @@ function savingPatch() {
   const target = depositTarget(afterEntry);
   const loan = loanAmount(afterEntry);
   const value = ltv(afterEntry);
+  // DECISIONS.md D70. Frame 09's Continue commits these two beside the target,
+  // so the stage replays them here for the same reason it replays the rest: the
+  // stage must leave the store exactly as the calculator would have.
+  const tax = stampDuty(afterEntry);
+  const goal = combinedGoal(afterEntry);
 
   // Provenance is not stamped here, it is whatever the model returned:
   // `combineProvenance` makes each of these 'entered' rather than 'derived'
@@ -323,6 +338,8 @@ function savingPatch() {
   const step1 = {
     ...entered,
     'deposit-target': { value: target.value, provenance: target.provenance },
+    'stamp-duty': { value: tax.value, provenance: tax.provenance },
+    'combined-goal': { value: goal.value, provenance: goal.provenance },
     'loan-amount': { value: loan.value, provenance: loan.provenance },
     ltv: { value: value.value, provenance: value.provenance },
     lisaCapBreached: STAGE_PROPERTY_VALUE > LISA_CAP_PROPERTY_VALUE,

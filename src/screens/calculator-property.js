@@ -38,7 +38,7 @@ import {
   rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
-import { depositTarget, loanAmount, ltv } from '../model/model.js';
+import { depositTarget, loanAmount, ltv, stampDuty, combinedGoal } from '../model/model.js';
 import { AREA_AVERAGE_PROPERTY_VALUE, DEPOSIT_PCT_OPTIONS, DEFAULT_DEPOSIT_PCT, LISA_CAP_PROPERTY_VALUE } from '../model/rates.js';
 
 export const anchors = ['guidanceNotAdvice'];
@@ -204,9 +204,16 @@ export function render(container, ctx) {
   container.querySelector('[data-action="continue"]').addEventListener('click', () => {
     if (isEmpty || errorText) return;
     const finalPct = { value: depositPct, provenance: state['deposit-pct'].provenance ?? 'derived' };
-    const target = depositTarget({ 'property-value': propertyValue, 'deposit-pct': finalPct });
-    const loan = loanAmount({ 'property-value': propertyValue, 'deposit-pct': finalPct });
-    const value = ltv({ 'property-value': propertyValue, 'deposit-pct': finalPct });
+    const pair = { 'property-value': propertyValue, 'deposit-pct': finalPct };
+    const target = depositTarget(pair);
+    const loan = loanAmount(pair);
+    const value = ltv(pair);
+    // DECISIONS.md D70: the tax and the combined goal are committed by the same
+    // click that commits the target they are derived from. `loan-amount` and
+    // `ltv` above are deliberately unchanged - they size the mortgage and stay
+    // on the deposit alone.
+    const tax = stampDuty(pair);
+    const goal = combinedGoal(pair);
     setState({
       // The draft is resolved by the same click that commits it. Continue is
       // unreachable while the field is empty, so this can only ever be clearing
@@ -215,6 +222,8 @@ export function render(container, ctx) {
       propertyValueCleared: false,
       'deposit-pct': finalPct,
       'deposit-target': { value: target.value, provenance: target.provenance },
+      'stamp-duty': { value: tax.value, provenance: tax.provenance },
+      'combined-goal': { value: goal.value, provenance: goal.provenance },
       'loan-amount': { value: loan.value, provenance: loan.provenance },
       ltv: { value: value.value, provenance: value.provenance },
       lisaCapBreached: isAboveLisaCap,

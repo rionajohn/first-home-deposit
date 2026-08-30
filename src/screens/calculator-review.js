@@ -49,7 +49,7 @@ import {
   rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent, formatDigits } from '../format.js';
-import { monthsToTarget, onTrackFor, checkpointAmount, depositTarget, loanAmount, ltv } from '../model/model.js';
+import { monthsToTarget, onTrackFor, checkpointAmount, depositTarget, loanAmount, ltv, stampDuty, combinedGoal } from '../model/model.js';
 import { RATES, DEPOSIT_PCT_OPTIONS, LISA_CAP_PROPERTY_VALUE } from '../model/rates.js';
 import { chevronRight } from '../icons.js';
 
@@ -273,8 +273,13 @@ export function render(container, ctx) {
     if (target.error) return {};
     const loan = loanAmount(pair);
     const value = ltv(pair);
+    // D70: committed alongside the target, by every commit on this screen.
+    const tax = stampDuty(pair);
+    const goal = combinedGoal(pair);
     return {
       'deposit-target': { value: target.value, provenance: target.provenance },
+      'stamp-duty': { value: tax.value, provenance: tax.provenance },
+      'combined-goal': { value: goal.value, provenance: goal.provenance },
       'loan-amount': { value: loan.value, provenance: loan.provenance },
       ltv: { value: value.value, provenance: value.provenance },
       lisaCapBreached: pv.value > LISA_CAP_PROPERTY_VALUE,

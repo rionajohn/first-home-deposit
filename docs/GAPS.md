@@ -2322,3 +2322,32 @@ tracker all share, so it is a decision about every on-track figure in the build 
 *Status: open. The rule 2 half should be closed deliberately and soon; the precision half needs a
 decision about the shared formatter before anything is worth doing.*
 
+
+---
+
+## G83. `/assumptions/costs` has no Figma frame, and is the only screen in the build that does not
+
+*Raised 30 August 2026. `DECISIONS.md` D70.*
+
+**The gap.** `CLAUDE.md` names Figma frame names as the system of record and forbids inventing a
+screen: "If the spec is silent or says 'Confirm', 'Gap' or 'No frame drawn', add it to
+`docs/GAPS.md` and ask." `build-spec.md` is silent on a screen for the upfront costs of buying, and
+no Figma node or `reference/frames/` PNG exists for one. Every other route in this build traces to a
+frame; this one traces to a decision.
+
+**Why it was built anyway.** It was directed explicitly, with its contents, its sources and its
+routing specified, after the alternative (five cost ranges on `/tracker`) was considered and
+rejected for the reason D70 records. The screen invents no figure and no rule: the five ranges and
+their two sources were supplied, and the pattern it follows is frames 29 to 32's, unchanged.
+
+**What that leaves unresolved.** The spec-to-code mapping `CLAUDE.md` protects has one entry with no
+frame behind it. If the Figma file gains a frame for this screen later, its name is authoritative and
+this module's heading, route and `content.js` key should be reconciled to it rather than the other
+way round. Until then `assumptions-costs.js`'s header is the only record of what the screen is.
+
+**Also unresolved: it has no frame NUMBER**, so the three browser-driven fixtures that key on one
+(`overlap.test.mjs`, `action-bar.test.mjs`, `sheet-drag.test.mjs`) carry it as the string `costs`,
+and `ROUTES.md`'s frame column carries a dash. Any pass that assumes those columns are numeric will
+need to handle it.
+
+*Status: open, deliberately. Recorded so the absence is a known deviation rather than a silent one.*

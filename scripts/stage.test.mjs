@@ -26,7 +26,7 @@ import { stagePatch, STAGES, STAGE_PROPERTY_VALUE, STAGE_DEPOSIT_PCT, OPENING_ST
 import { defaultState } from '../src/state.js';
 import { skipAheadPatch, skipBackPatch, isSkippedAhead } from '../src/skip-ahead.js';
 import { CHECKPOINT_FRACTION, CHART_WINDOW_MONTHS, LISA_CAP_PROPERTY_VALUE } from '../src/model/rates.js';
-import { depositTarget, monthsToTarget, onTrackFor, checkpointAmount } from '../src/model/model.js';
+import { depositTarget, monthsToTarget, onTrackFor, checkpointAmount, stampDuty, combinedGoal } from '../src/model/model.js';
 
 /** What `settings.js` does on a tap: the stage value plus the stage's patch. */
 const select = (state, stage) => ({ ...state, stage, ...stagePatch(stage) });
@@ -137,18 +137,36 @@ test('every derived figure matches what the model returns for the same state', (
   // Nothing is written by hand: each stored figure is re-derived here through
   // the same function the screen that commits it calls, and compared.
   assert.deepEqual(saving['deposit-target'].value, depositTarget(saving).value);
+  assert.deepEqual(saving['stamp-duty'].value, stampDuty(saving).value);
+  assert.deepEqual(saving['combined-goal'].value, combinedGoal(saving).value);
   assert.deepEqual(saving['checkpoint-amount'].value, checkpointAmount(saving).value);
   assert.deepEqual(saving['months-to-target'].value, monthsToTarget(saving).value);
   assert.deepEqual(saving['on-track-for'].value, onTrackFor(saving).value);
 
-  // deposit-target = property-value x deposit-pct, and the checkpoint is
-  // CHECKPOINT_FRACTION of it - both as ratios, so a change in rates.js moves
-  // the stage rather than breaking this.
+  // deposit-target = property-value x deposit-pct, and the combined goal adds
+  // the tax to it (DECISIONS.md D70).
   assert.equal(saving['deposit-target'].value, STAGE_PROPERTY_VALUE * STAGE_DEPOSIT_PCT);
   assert.equal(
-    saving['checkpoint-amount'].value,
-    CHECKPOINT_FRACTION * saving['deposit-target'].value
+    saving['combined-goal'].value,
+    saving['deposit-target'].value + saving['stamp-duty'].value
   );
+
+  // THE CHECKPOINT IS A FRACTION OF THE COMBINED GOAL, NOT OF THE DEPOSIT
+  // (D70). Still asserted as a ratio and never as an amount, so a change to
+  // CHECKPOINT_FRACTION or to the stamp duty bands moves the stage rather than
+  // breaking this.
+  assert.equal(
+    saving['checkpoint-amount'].value,
+    CHECKPOINT_FRACTION * saving['combined-goal'].value
+  );
+  assert.notEqual(
+    saving['checkpoint-amount'].value,
+    CHECKPOINT_FRACTION * saving['deposit-target'].value,
+    'the seeded goal must carry a non-zero tax, or this test proves nothing'
+  );
+
+  // THE MORTGAGE FIGURES STAY ON THE DEPOSIT ALONE (D70). If either of these
+  // ever follows the combined goal, the borrowing figures understate the loan.
   assert.equal(saving['loan-amount'].value, STAGE_PROPERTY_VALUE - saving['deposit-target'].value);
   assert.equal(saving.ltv.value, saving['loan-amount'].value / STAGE_PROPERTY_VALUE);
 });
@@ -249,9 +267,16 @@ test('"Ready to check" reaches the checkpoint exactly, and by construction', () 
   // so CHECKPOINT_FRACTION can move without a number here going stale.
   assert.equal(
     readyToCheck['saved-toward-deposit'].value,
-    CHECKPOINT_FRACTION * readyToCheck['deposit-target'].value
+    CHECKPOINT_FRACTION * readyToCheck['combined-goal'].value
   );
-  assert.ok(readyToCheck['saved-toward-deposit'].value < readyToCheck['deposit-target'].value);
+  // STILL SHORT OF THE GOAL, so the tracker draws frame 16 and not its goal-met
+  // variant. Measured against the COMBINED goal since D70 - that is the figure
+  // the tracker's own variant branch compares against.
+  assert.ok(readyToCheck['saved-toward-deposit'].value < readyToCheck['combined-goal'].value);
+  // AND STILL AT OR ABOVE THE CHECKPOINT, which is what makes it frame 16
+  // rather than frame 15. Asserted directly because this is the property the
+  // stage exists to produce, and D70 moved the figure it depends on.
+  assert.ok(readyToCheck['saved-toward-deposit'].value >= readyToCheck['checkpoint-amount'].value);
 });
 
 test('"Ready to check" recomputes the stored projection from the later position', () => {

@@ -25,6 +25,12 @@ const SECTION_6_KEYS = [
   'property-value',
   'deposit-pct',
   'deposit-target',
+  // DECISIONS.md D70. `stamp-duty` and `combined-goal` are section 6 figures
+  // this build adds: `deposit-target` keeps its own meaning (what goes down
+  // against the property, which every mortgage figure still sizes against) and
+  // `combined-goal` is what actually has to be saved.
+  'stamp-duty',
+  'combined-goal',
   'loan-amount',
   'ltv',
   'monthly-low',

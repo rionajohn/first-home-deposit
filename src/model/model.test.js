@@ -11,6 +11,9 @@ import {
   monthsToTarget,
   monthlyAmountFromDate,
   gap,
+  stampDuty,
+  combinedGoal,
+  ftbReliefLost,
 } from './model.js';
 
 // Helpers for building state entries — every key is the exact build-spec.md
@@ -285,5 +288,103 @@ describe('provenance propagation — build-spec.md section 6', () => {
     assert.equal(loanAmount(state).provenance, 'entered');
     assert.equal(ltv(state).provenance, 'entered');
     assert.equal(checkpointAmount(state).provenance, 'entered');
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// Stamp duty and the combined goal — DECISIONS.md D70
+// ---------------------------------------------------------------------------
+
+describe('stamp duty — DECISIONS.md D70', () => {
+  const at = (price) => ({ 'property-value': entered(price), 'deposit-pct': entered(0.10) });
+
+  test('the seeded 450,000 gives 7,500: 5% of the 150,000 above 300,000', () => {
+    assert.equal(stampDuty(at(450000)).value, 7500);
+  });
+
+  test('nothing is due at or below the 300,000 nil-rate band', () => {
+    assert.equal(stampDuty(at(250000)).value, 0);
+    assert.equal(stampDuty(at(300000)).value, 0);
+  });
+
+  test('it is banded, not a flat percentage: 400,000 gives 5,000, not 20,000', () => {
+    assert.equal(stampDuty(at(400000)).value, 5000);
+  });
+
+  test('at the 500,000 relief limit the first-time buyer scale still applies', () => {
+    assert.equal(stampDuty(at(500000)).value, 10000);
+    assert.equal(ftbReliefLost(at(500000)), false);
+  });
+
+  // THE CLIFF. One pound over the limit the relief is lost outright and the
+  // standard scale applies to the WHOLE price, so this is not the 500,000
+  // figure plus a marginal step - it is 5,000 more for one pound.
+  test('one pound over the limit, relief is lost and standard rates apply to the whole price', () => {
+    const justOver = stampDuty(at(500001)).value;
+    assert.ok(Math.abs(justOver - 15000.05) < 0.01, `expected ~15000.05, got ${justOver}`);
+    assert.equal(ftbReliefLost(at(500001)), true);
+    assert.ok(justOver - stampDuty(at(500000)).value > 5000);
+  });
+
+  test('above the limit it keeps following the standard bands', () => {
+    assert.equal(stampDuty(at(600000)).value, 20000);
+    assert.equal(stampDuty(at(925000)).value, 36250);
+  });
+
+  test('a non-positive or non-numeric property-value is a typed result, not a throw', () => {
+    assert.equal(stampDuty({ 'property-value': entered(0) }).error, 'not-positive');
+    assert.equal(stampDuty({ 'property-value': entered(null) }).error, 'non-numeric');
+  });
+});
+
+describe('the combined goal, and what must NOT follow it — DECISIONS.md D70', () => {
+  // A property value with a NON-ZERO stamp duty, deliberately. The suite above
+  // this one uses 190,000 throughout, where the tax is zero and every
+  // assertion below would pass whether or not the figure moved at all.
+  const state = {
+    'property-value': entered(450000),
+    'deposit-pct': entered(0.10),
+    'saved-toward-deposit': read(8950),
+  };
+
+  test('combined-goal is deposit-target plus stamp-duty: 45,000 + 7,500', () => {
+    assert.equal(depositTarget(state).value, 45000);
+    assert.equal(stampDuty(state).value, 7500);
+    assert.equal(combinedGoal(state).value, 52500);
+  });
+
+  test('deposit-target is NOT overwritten by the combined goal', () => {
+    assert.equal(depositTarget(state).value, 45000);
+    assert.notEqual(depositTarget(state).value, combinedGoal(state).value);
+  });
+
+  // THE WHOLE POINT OF THE SPLIT. Stamp duty is cash paid to HMRC at
+  // completion, not money put down against the property, so a larger goal must
+  // not shrink the loan or move the Loan-to-Value. If any of these four ever
+  // starts following `combined-goal`, the borrowing figures on frames 20 and 21
+  // silently understate the mortgage.
+  test('the mortgage figures stay on the deposit alone', () => {
+    assert.equal(loanAmount(state).value, 405000, 'loan-amount must be property less DEPOSIT');
+    assert.equal(ltv(state).value, 0.9, 'ltv must follow loan-amount');
+    // Same state, tax forced to zero by dropping under the nil-rate band:
+    // the loan must be unchanged by the tax at the same deposit percentage.
+    const cheaper = { ...state, 'property-value': entered(300000) };
+    assert.equal(stampDuty(cheaper).value, 0);
+    assert.equal(ltv(cheaper).value, 0.9, 'ltv must not move with the tax');
+  });
+
+  test('the saving figures DO follow the combined goal', () => {
+    // 0.75 x 52,500, not 0.75 x 45,000 (which would be 33,750).
+    assert.equal(checkpointAmount(state).value, 39375);
+    assert.equal(gap(state).value, 52500 - 8950);
+  });
+
+  test('months-to-target projects to the combined goal, so it takes longer than to the deposit alone', () => {
+    const withRate = { ...state, 'savings-rate': read(255), 'left-over': read(1000) };
+    const months = monthsToTarget(withRate);
+    // Beyond the 60-month window at this goal, which carries its months
+    // figure through `fail`'s third parameter (D68) rather than discarding it.
+    assert.ok(months.value > 120, `expected a projection past 120 months, got ${months.value}`);
   });
 });

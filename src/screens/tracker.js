@@ -7,10 +7,13 @@
  * own naming) rather than a query string — the same pattern
  * '/calculator/saving' already establishes for its own two variants.
  *
- * Three variants:
+ * Three variants, measured against COMBINED-GOAL since DECISIONS.md D70
+ * (deposit-target plus stamp-duty). `deposit-target` alone still sizes every
+ * mortgage figure on this screen - the rate bands and the Loan-to-Value - and
+ * the two must not be conflated; see `combinedGoal()` in model/model.js.
  *   - below-checkpoint (frame 15): saved-toward-deposit < checkpoint-amount
- *   - checkpoint-reached (frame 16): checkpoint-amount <= saved < deposit-target
- *   - goal-met: saved-toward-deposit >= deposit-target — build-spec.md
+ *   - checkpoint-reached (frame 16): checkpoint-amount <= saved < combined-goal
+ *   - goal-met: saved-toward-deposit >= combined-goal — build-spec.md
  *     section 2's own "15/16 Deposit tracker | goal met | Milestone tracker
  *     state = complete" row, one of DECISIONS.md D7's eleven no-wireframe
  *     fallbacks. Built from the same layout as checkpoint-reached (the
@@ -64,18 +67,39 @@ export function render(container, ctx) {
   const c = content['/tracker'];
   const reg = content.shared.regulatory;
 
-  if (state['checkpoint-amount'].value === null || state['deposit-target'].value === null) {
+  // `combined-goal` AND `stamp-duty` JOIN THE GUARD BECAUSE THIS SCREEN NOW
+  // DISPLAYS BOTH (DECISIONS.md D70). The state rules in CLAUDE.md are explicit
+  // that a screen may only show a figure derived from a key its own guard
+  // tested, and that a guard passing on stored keys must not sit beside a
+  // figure re-derived live from something it never checked - D46 and D38's
+  // third amendment were both that defect. Adding them here rather than
+  // deriving them at render time is what keeps this screen out of it.
+  if (
+    state['checkpoint-amount'].value === null
+    || state['deposit-target'].value === null
+    || state['combined-goal'].value === null
+    || state['stamp-duty'].value === null
+  ) {
     window.location.replace('#/calculator/result');
     return;
   }
 
   const savedTowardDeposit = state['saved-toward-deposit'].value;
   const depositTargetValue = state['deposit-target'].value;
+  // WHAT THE PARTICIPANT IS SAVING TOWARD, and what this screen measures
+  // against throughout: the headline caption, the progress fill and the
+  // variant. `deposit-target` is still read, but only by the milestone row
+  // that reports the deposit decision they made on frame 09.
+  const combinedGoalValue = state['combined-goal'].value;
+  const stampDutyValue = state['stamp-duty'].value;
   const checkpointAmountValue = state['checkpoint-amount'].value;
   const depositPct = state['deposit-pct'].value;
   const propertyValue = state['property-value'].value;
 
-  const variant = savedTowardDeposit >= depositTargetValue
+  // AGAINST THE COMBINED GOAL, NOT THE DEPOSIT (D70). Comparing against
+  // `deposit-target` would declare the goal met at 45,000 with 7,500 of tax
+  // still unsaved, on a screen whose own headline says the goal is 52,500.
+  const variant = savedTowardDeposit >= combinedGoalValue
     ? 'goal-met'
     : savedTowardDeposit >= checkpointAmountValue
       ? 'checkpoint-reached'
@@ -225,10 +249,19 @@ export function render(container, ctx) {
 
       <p class="figure-display">${formatCurrency(savedTowardDeposit)}</p>
       <p class="provenance-caption provenance-caption--center">${c.savedCaption}</p>
-      <p class="provenance-caption provenance-caption--center">${fill(c.goalCaptionTemplate, { target: formatCurrency(depositTargetValue) })}</p>
+      <p class="provenance-caption provenance-caption--center">${fill(c.goalCaptionTemplate, { target: formatCurrency(combinedGoalValue) })}</p>
+      <!-- D70. What the goal is made of, in one line, directly under the goal
+           figure it qualifies. It carries the estimate framing itself rather
+           than leaning on the shared estimateDisclosure line: this screen has
+           never carried that line, and its own beyond-window note already
+           establishes in-line qualification as the treatment here. The second
+           sentence is what stops "at first-time buyer rates" reading as a
+           claim that the participant will get the relief - nothing in this app
+           asks whether they qualify. -->
+      <p class="provenance-caption provenance-caption--center">${fill(c.stampDutyNoteTemplate, { amount: formatCurrency(stampDutyValue) })}</p>
 
       ${progressBarHTML({
-        fillPct: (savedTowardDeposit / depositTargetValue) * 100,
+        fillPct: (savedTowardDeposit / combinedGoalValue) * 100,
         markerPct: CHECKPOINT_FRACTION * 100,
         label: c.checkpointProgressLabel,
       })}
@@ -270,6 +303,10 @@ export function render(container, ctx) {
 
       ${infoLinkHTML({ label: c.ltvInfoLinkLabel, action: 'open-ltv-info' })}
       ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions-deposit' })}
+      <!-- D70. One row, and it names what is behind it without listing any of
+           it: the five cost ranges belong on their own screen, not competing
+           with the goal figure above. -->
+      ${infoLinkHTML({ label: c.otherCostsLinkLabel, action: 'open-assumptions-costs' })}
 
       ${riskWarningHTML(c.rateCautionText)}
       ${riskWarningHTML(reg.mcob3aRepossessionWarning)}
@@ -371,6 +408,11 @@ export function render(container, ctx) {
   container.querySelector('[data-action="open-assumptions-deposit"]').addEventListener('click', () => {
     setState({ returnFrame: '/tracker' });
     window.location.hash = '#/assumptions/deposit';
+  });
+
+  container.querySelector('[data-action="open-assumptions-costs"]').addEventListener('click', () => {
+    setState({ returnFrame: '/tracker' });
+    window.location.hash = '#/assumptions/costs';
   });
 
   container.querySelector('[data-action="open-provenance-key"]').addEventListener('click', () => {

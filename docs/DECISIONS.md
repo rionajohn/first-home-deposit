@@ -5272,3 +5272,151 @@ participant moved (D5).
 **To reverse.** The `captionWhileUnsorted` flag on `stocks-isa` and the `captionApplies` condition in
 `accountRow`.
 
+
+---
+
+## D70. Stamp duty joins the goal, the other upfront costs get a screen, and the two are kept apart on purpose
+
+**Date.** 30 August 2026.
+
+**Source for every figure below.** HMRC, *Stamp Duty Land Tax: residential property rates*,
+<https://www.gov.uk/stamp-duty-land-tax/residential-property-rates>, accessed August 2026. Held as
+`SDLT` in `model/rates.js` on the `AREA_AVERAGE_PROPERTY_VALUE` pattern, so the bands and their
+attribution cannot be updated independently of each other.
+
+### 1. Why the costs split across two screens
+
+The tracker's job is the goal: one figure, its progress against a target, and what to do next. Five
+cost ranges on that screen would be five more figures competing with the one the screen exists to
+show, and **not one of them is a figure the participant is saving toward**. They are also not
+comparable to each other or to the goal - a survey range and a deposit target are different kinds of
+number - so a reader scanning the screen would have to sort them before reading either.
+
+The separate screen keeps the costs one tap away and reachable, without making them the focus of a
+screen about the goal. The tracker carries **one line** about the tax that is now in the goal, and
+**one row** naming where the rest are. It lists none of them.
+
+Stamp duty is the exception, and it is in the goal rather than on the costs screen for one reason:
+it is the only one of the six that is **knowable from what the participant has already entered**.
+The property value determines it. The other five depend on choices not yet made - which solicitor,
+which survey, which lender - so any figure for them in the goal would be a guess dressed as a target.
+
+### 2. `deposit-target` is not overwritten, and that is the safety property
+
+`combined-goal = deposit-target + stamp-duty`, added as its own section 6 figure. The split is not
+tidiness; it is what made the change safe.
+
+| Reads `deposit-target` (the mortgage) | Reads `combined-goal` (the saving) |
+|---|---|
+| `loan-amount` | `checkpoint-amount` |
+| `ltv` | `months-to-target` |
+| `borrow-low` / `borrow-high` | `monthlyAmountFromDate` |
+| `max-property` | `gap` (frame 21) |
+| `mipEstimatedLtv` | `/tracker`'s progress fill and variant |
+
+Stamp duty is cash paid to HMRC at completion, not money put down against the property, so a larger
+goal must not shrink the loan. Because `deposit-target` kept its meaning, **the five mortgage figures
+needed no edit at all** - and a figure that is never edited cannot be edited wrongly. Redefining
+`deposit-target` in place would have made all five silently wrong and left nothing to review.
+`model.test.js` asserts the boundary in both directions, at a property value where the tax is
+non-zero.
+
+**A trap worth recording.** The pre-existing model tests all use a 190,000 property, where
+first-time buyer stamp duty is zero. Every one of them passed unchanged after this work - not because
+the change was safe, but because at that price `combined-goal` and `deposit-target` are the same
+number. New tests were added at 450,000 for that reason. A suite that cannot fail is not coverage.
+
+### 3. The calculation is banded, and the cliff is real
+
+Two scales, not one with a discount. Below `ftbReliefLimit` (500,000) the first-time buyer scale
+applies; above it the relief is lost **entirely** and the standard scale applies to the whole price.
+
+| Property | Stamp duty | |
+|---|---|---|
+| 300,000 | 0 | the whole price is in the nil-rate band |
+| 400,000 | 5,000 | banded, not flat: 5% of 100,000, not 5% of 400,000 |
+| **450,000** | **7,500** | the seeded case: 5% of the 150,000 above 300,000 |
+| 500,000 | 10,000 | the last price at which relief applies |
+| 500,001 | 15,000.05 | relief lost: standard rates on the whole price |
+
+**One pound moves the goal by 5,000**, which is more than the preceding 50,000 of property value
+moves it. That is the real rule, not an artefact. It is reachable in a session - frame 09's field
+accepts any digits - and it is currently **explained nowhere**. Copy for it has been drafted and is
+held pending a decision; the cliff is live in the model in the meantime, and `/assumptions/deposit`
+states the 500,000 limit as an assumption.
+
+### 4. The checkpoint moved, and the progress bar is why
+
+`checkpoint-amount` becomes 0.75 x `combined-goal`, 33,750 to 39,375 on the seeded goal.
+
+Not for its own sake. `tracker.js` draws the bar with `markerPct: CHECKPOINT_FRACTION * 100` - a
+literal 75 - and fills it against the goal. Leaving the checkpoint on `deposit-target` while the bar
+ran to `combined-goal` would have put the marker at **64.3%** of the track while the copy beside it
+said 75%: two denominators, one bar. One denominator makes both true.
+
+**Nothing else had to move with it**, and that is the payoff from D38's third amendment. The
+skip-ahead control and the ready-to-check stage both read the **stored** `checkpoint-amount` rather
+than a figure of their own, so both followed automatically. There is no 33,750 written down anywhere
+in `src/` to have missed. Every stage still renders the frame it rendered before: Saving below the
+checkpoint (frame 15), Ready to check at it (frame 16), Setting up unchanged.
+
+### 5. Copy
+
+The tracker's line carries its own estimate framing rather than adding
+`shared.regulatory.estimateDisclosure` to the screen: this screen has never carried that line, and
+its own beyond-window note (D68) already establishes in-line qualification as the treatment here.
+
+Its **second sentence is the whole point**. Nothing in this app asks whether the participant is a
+first-time buyer - there is no question that could - so the app has assumed it on their behalf. "at
+first-time buyer rates" alone states the basis of the calculation, but attached to *their* goal it
+reads as a claim they will get the relief. "Whether those apply is confirmed when you buy" keeps it a
+basis rather than a promise, without telling them to go and do anything, which the guidance-versus-
+advice boundary would not allow.
+
+`goalCaptionTemplate` drops the word "deposit": the figure it captions is now the deposit plus the
+tax, and calling that a deposit goal would be false about 7,500 of it.
+
+The costs screen states a consequence it would have been easy to leave out. "Some lenders let you add
+this to the mortgage instead of paying it upfront" reads as the fee being avoidable; it is deferred,
+and deferring it costs interest. MCOB 3A.3.1R and the Consumer Duty consumer understanding outcome
+both require the consequence to be as plain as the benefit. Stating it is not telling the participant
+what to do.
+
+### 6. Frame 30 gave the costs up rather than keeping a second copy
+
+The five costs were already on `/assumptions/deposit`, as `exclusionsRows`, without amounts. Four
+moved to the new screen whole and frame 30 now carries **one row pointing at it**; the fifth, stamp
+duty, moved **up** into `assumptionsRowsBeforeInterest`, because a tax that is in the goal cannot sit
+under "What's not counted here" - that placement went from stale to false. Frame 29's "covered
+separately" now names the destination it always implied.
+
+Two lists of the same costs at different specificity would drift, and D34 records what that costs.
+This also closes a traceability gap: the stamp duty figure on the tracker is derived, and the
+assumptions link already on that screen now reaches an assumption that explains it.
+
+### 7. What is deferred, and why it is listed rather than done
+
+- **The segmented progress bar** (deposit portion and tax portion in two shades of one colour). Held
+  pending the design-rule amendment, which must land first so the rule is accurate before new work is
+  judged against it. The bar's denominator has already moved to `combined-goal`, so it is correct
+  today as a single fill.
+- **The 500,000 cliff copy.** Drafted, not applied, by instruction.
+- **Contrast, recorded now because the measurement is the reasoning.** No third shade can reach 3:1
+  from **both** the deposit fill and the empty track, in either theme, because the two ends are only
+  6.48:1 apart in light and 4.08:1 in dark - and 3 x 3 exceeds both. In dark, nothing reaches 3:1
+  against the deposit fill at any point on the scale. Measured candidates: light `#9a9aa2` at 3.00
+  vs fill / 2.16 vs track, `#7d7d86` at 2.05 / 3.16; dark `#5c5c64` at 2.31 / 1.77, `#75757d` at
+  1.59 / 2.56. **Colour therefore carries emphasis only.** The meaning is carried by the legend,
+  which names each portion and its amount, and by a 1px `--color-surface` separator at the join -
+  the device `.progress-bar__marker` already uses. This is not a workaround for a palette
+  limitation; it is the correct treatment for a divided bar regardless, and WCAG 1.4.1 requires it
+  independently of any contrast figure.
+
+### 8. To reverse
+
+`SDLT` and `UPFRONT_COST_SOURCES` in `rates.js`; `bandedTax`, `stampDuty`, `ftbReliefLost` and
+`combinedGoal` in `model.js`, with `checkpointAmount`, `gap`, `monthsToTarget` and
+`monthlyAmountFromDate` returned to `depositTarget`; the two keys in `state.js` and their commits in
+`calculator-property.js`, `calculator-review.js` and `stage.js`; `assumptions-costs.js` with its
+route in `app.js` and its two entries in `router.js`; the tracker's guard, variant, fill, one caption
+and one info link; and frames 29 and 30's rows. `CACHE_VERSION` v63.

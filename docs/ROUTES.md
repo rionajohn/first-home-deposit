@@ -70,8 +70,8 @@ what the calculator would have committed, it does not invent anything (`DECISION
 | Stage | Property / deposit | Target | Checkpoint | Saved | Tap Insights and you land on |
 |---|---|---|---|---|---|
 | **Setting up** | - | - | - | £8,950 | **09** `#/calculator/property` - the empty state, unchanged |
-| **Saving** | £450,000 @ 10% | £45,000 | £33,750 | £8,950 | **15** `#/tracker`, below checkpoint, MIP milestone locked |
-| **Ready to check** | £450,000 @ 10% | £45,000 | £33,750 | £33,750 | **16** `#/tracker`, checkpoint reached, MIP milestone available |
+| **Saving** | £450,000 @ 10% | £52,500 | £39,375 | £8,950 | **15** `#/tracker`, below checkpoint, MIP milestone locked |
+| **Ready to check** | £450,000 @ 10% | £52,500 | £39,375 | £39,375 | **16** `#/tracker`, checkpoint reached, MIP milestone available |
 
 **The seed sits AT the Lifetime ISA cap, so frame 09 does NOT show the warning from the first tap.**
 £450,000 is exactly `LISA_CAP_PROPERTY_VALUE`, and the comparison is strictly greater-than, so a
@@ -82,18 +82,23 @@ participant recognises as theirs. **To demonstrate frame 09b, type any value abo
 Recorded as `GAPS.md` G70.
 
 **What it costs: the Saving stage's "On track for" row is still the beyond-window variant.** At
-£45,000 the projection runs to 107.6 months, past the 60-month chart window, so `months-to-target`
-has no range to show and frames 11, 12 and 15 render their beyond-window variant. This is expected,
-not a broken screen, and it did not improve when the cap warning was given up: the window closes at
-about £275,800, well below £450,000. D45 originally chose £240,000 to avoid it. **Ready to check is
-unaffected** - at £33,750 saved the projection is 29.9 months, on track for 27 to 33, well inside the
-window. If you need a Saving-stage tracker with an ordinary "On track for" row, use a recipe below
-instead of a stage.
+£52,500 the projection runs to 126.1 months, past the 60-month chart window, so frames 11, 12 and 15
+render their beyond-window variant - which since `DECISIONS.md` D68 still shows the date range, with
+a note qualifying it, rather than a dash. This is expected, not a broken screen, and it did not
+improve when the cap warning was given up: the window closes at about £275,800, well below £450,000.
+D45 originally chose £240,000 to avoid it. **Ready to check is unaffected** - at £39,375 saved the
+projection is 33.1 months, on track for 30 to 37, well inside the window. If you need a Saving-stage
+tracker with an ordinary "On track for" row, use a recipe below instead of a stage.
+
+**The goal figures above include stamp duty since `DECISIONS.md` D70.** The target column is
+`combined-goal` - a £45,000 deposit plus £7,500 of first-time buyer stamp duty on a £450,000
+property - and the checkpoint is 75% of that rather than of the deposit. The projection moved out by
+about 18 months as a result. `deposit-target` is still £45,000 and still sizes every borrowing figure
+in the MIP flow; only the saving figures follow the combined goal.
 
 **Ready to check is the Saving stage moved forward, not a different goal.** It is Saving with the
 tracker's own skip-ahead control applied, so the goal figures are identical and only the savings
-position differs. On track for has no range at Saving (beyond-window) and reads 27–33 months at
-Ready to check.
+position differs. On track for is beyond-window at Saving and reads 30–37 months at Ready to check.
 
 **Setting up is a full reset of the goal.** Selecting any stage clears whatever the last participant
 left - a run through the MIP flow, an edited account selection, a skipped-ahead position - so you do
@@ -145,6 +150,7 @@ Click path is from `#/home`. "Cold" = type the URL with an empty session.
 | 30 | …your deposit and rates | `#/assumptions/deposit` | ✅ | 12 → "How did we work this out?" | none |
 | 31 | …your borrowing estimate | `#/assumptions/borrowing` | ✅ | 20 → "See how we worked this out" | none |
 | 32 | Where these figures come from | `#/assumptions/sources` | ✅ | 05 → "Where these figures come from" | none |
+| -  | Other costs when you buy | `#/assumptions/costs` | ✅ | 15/16 → "Other costs when you buy" | none (falls back to `#/home`) |
 | 33 | Prototype settings | `#/settings` | ✅ | **URL, or a ~700ms long press on the disabled Profile tab** - still no on-screen link anywhere (D54, 28 August 2026) | none |
 
 **Cold ❌ cascades.** Typing `#/tracker`, `#/mip`, `#/mip/result/likely` etc. on an empty session lands
@@ -217,7 +223,7 @@ Set at frame 09. Checkpoint is 75% of target; target is property × deposit %.
 | **15** below checkpoint | £280,000 @ 5% | £14,000 | £10,500 | 8,950 < 10,500 → locked |
 | **16** checkpoint reached | £200,000 @ 5% | £10,000 | £7,500 | 8,950 ≥ 7,500 → MIP unlocks |
 | **goal met** fallback | £150,000 @ 5% | £7,500 | £5,625 | 8,950 ≥ 7,500 → goal met |
-| - *(for comparison)* | **Journey stage: Saving / Ready to check** | £45,000 | £33,750 | 8,950 → **15**; 33,750 → **16** |
+| - *(for comparison)* | **Journey stage: Saving / Ready to check** | £52,500 | £39,375 | 8,950 → **15**; 39,375 → **16** |
 
 ## The eleven no-frame-drawn states
 

@@ -672,6 +672,10 @@ const content = {
     appBarTitle: 'Loan-to-Value',
     headline: "Loan-to-Value decides the rate you're offered",
     assumptionsLinkLabel: 'How we worked out these rate figures',
+    // Says what is behind the row without previewing any of it, and matches the
+    // heading of the screen it opens so a participant knows where they landed
+    // (D70). None of the five costs is named on this screen.
+    otherCostsLinkLabel: 'Other costs when you buy',
     body:
       "It's the share of the property price you'd be borrowing. Put down more, and you borrow a smaller share - which lenders treat as less risky, so they offer a better rate.",
     depositPartLabel: 'Your deposit',
@@ -731,7 +735,19 @@ const content = {
   '/tracker': {
     appBarTitle: 'Your deposit',
     savedCaption: 'From the accounts you said are for your deposit',
-    goalCaptionTemplate: 'of your {target} deposit goal',
+    // "goal", NOT "deposit goal" (DECISIONS.md D70). The figure it captions is
+    // now the deposit plus the stamp duty, and calling that a deposit goal
+    // would be false about 7,500 of it. The line below says what is in it.
+    goalCaptionTemplate: 'of your {target} goal',
+    // ONE LINE, AND THE SECOND SENTENCE IS THE POINT (D70). Nothing in this app
+    // asks whether the participant is a first-time buyer - there is no question
+    // that could - so the figure is an estimate on an assumption the app has
+    // made for them. "at first-time buyer rates" alone states the basis of the
+    // calculation, but attached to THEIR goal it reads as a claim they will get
+    // the relief. The second sentence is what keeps it a basis rather than a
+    // promise, without telling them to go and check anything.
+    stampDutyNoteTemplate:
+      'Your goal includes an estimated {amount} of stamp duty, at first-time buyer rates. Whether those apply is confirmed when you buy.',
     checkpointProgressLabel: 'Checkpoint',
 
     // NO FIGURE, AND NO DIRECTION (DECISIONS.md D51). This used to read
@@ -848,6 +864,10 @@ const content = {
     // it.
     ltvInfoLinkLabel: 'What a bigger deposit changes',
     assumptionsLinkLabel: 'How we worked out these rate figures',
+    // Says what is behind the row without previewing any of it, and matches the
+    // heading of the screen it opens so a participant knows where they landed
+    // (D70). None of the five costs is named on this screen.
+    otherCostsLinkLabel: 'Other costs when you buy',
     thisMonthHeading: 'This month',
     savedLabel: 'Saved',
     savedRowCaption: 'Read from your transfers this month',
@@ -1152,7 +1172,8 @@ const content = {
     exclusionsRowsAfterInflation: [
       'Tax on savings interest above your personal savings allowance',
       'Any change in your circumstances, such as a pay rise, a move or a new commitment',
-      'One-off costs that come with buying, which are covered separately',
+      // D70: "covered separately" named no destination, and there now is one.
+      'One-off costs that come with buying, listed under "Other costs when you buy"',
     ],
     metadataTemplate: 'Based on your account activity to {date}. We refresh this monthly.',
     primaryCta: 'Close',
@@ -1165,20 +1186,30 @@ const content = {
     assumptionsRowsBeforeInterest: [
       'The property value is the figure you entered, not a valuation',
       'The deposit % is the one you chose, which you can change at any time',
+      // MOVED OUT OF `exclusionsRows` BY DECISIONS.md D70. It sat under "What's
+      // not counted here", and once the tax is part of the goal that placement
+      // is false rather than merely stale. It is an assumption now, and it
+      // states the two things the tracker's own one-liner has no room for: the
+      // relief has a ceiling, and the app assumed the participant qualifies
+      // rather than asking.
+      'Stamp duty is worked out at first-time buyer rates, which apply up to a £500,000 property price',
+      'We assumed you are a first-time buyer, because nothing here asks',
       'Rates are typical market ranges at each Loan-to-Value, not rates offered to you',
       'Rate ranges come from current market data and change often',
       'Loan-to-Value is the mortgage amount as a share of the property value',
     ],
     interestAssumptionTemplate: 'Your savings keep earning {rate} a year while you save, based on the {source}',
     exclusionsHeading: "What's not counted here",
+    // ONE ROW, POINTING, NOT FIVE LISTING (DECISIONS.md D70). Four of these
+    // rows moved to `/assumptions/costs`, which gives each an amount; the fifth
+    // (stamp duty) moved UP into the assumptions above, because it is counted
+    // now. Keeping a second, vaguer copy of the same four costs here is exactly
+    // the drift D34 records the cost of - so this row names where they are
+    // instead of restating them.
     exclusionsRows: [
-      "Stamp duty, which depends on the property price and whether you're a first-time buyer",
-      'Solicitor fees for the legal work of buying',
-      'A survey or valuation fee',
-      'Fees a lender charges to set the mortgage up',
-      'Moving costs, and anything you need to buy for the property',
+      'The other costs of buying, such as legal fees, a survey and removals. These have their own screen, "Other costs when you buy", which gives what each one usually comes to',
     ],
-    costsBannerText: 'These usually add up to several thousand pounds on top of your deposit.',
+    costsBannerText: 'These are not in your goal, and what each one costs depends on choices you have not made yet.',
     rateVariabilityWarning: 'Mortgage rates are indicative of the current market and are subject to change. Your final rate will depend on your specific details.',
     metadataTemplate: 'Market rate data from {date}.',
     primaryCta: 'Close',
@@ -1207,6 +1238,66 @@ const content = {
     ],
     borrowingEstimateWarning: 'This is a borrowing estimate, not a binding offer of mortgage. Your actual eligibility depends on underwriting.',
     metadataTemplate: 'Based on your account activity to {date} and a soft credit search on {searchDate}.',
+    primaryCta: 'Close',
+  },
+
+  /**
+   * Frame-less screen, DECISIONS.md D70 / GAPS.md G83. No Figma frame exists
+   * for it: the costs it lists were frame 30's `exclusionsRows`, and they were
+   * moved here whole so one list carries them rather than two that drift.
+   *
+   * WHAT THIS SCREEN MAY NOT DO. It lists costs and says what they usually
+   * come to. It does not tell the participant what to do about any of them,
+   * does not rank them, and does not suggest saving for them - that would be a
+   * course of action, and mortgages sit outside the targeted support regime.
+   * Every row is a statement of fact about what the cost is and what it
+   * typically runs to.
+   */
+  '/assumptions/costs': {
+    heading: 'Other costs when you buy',
+    // OPENS WITH WHY THEY ARE NOT IN THE GOAL, because that is the first
+    // question the row on /tracker raises. The reason is the honest one: these
+    // depend on choices that have not been made, so a figure in the goal would
+    // be a guess dressed as a target.
+    intro: "These aren't in your deposit goal. What each one costs depends on choices you haven't made yet, like the property, the solicitor and the lender.",
+    costsHeading: 'What each one usually costs',
+    costsRows: [
+      {
+        label: 'Legal and conveyancing fees',
+        value: 'Up to about £1,800',
+        caption: 'Includes searches and Land Registry fees',
+      },
+      {
+        label: 'Survey',
+        value: '£300 to £1,500',
+        caption: 'The range depends on the level of survey',
+      },
+      {
+        label: 'Mortgage valuation',
+        value: 'Around £100',
+        caption: 'Arranged by the lender',
+      },
+      {
+        // THE INTEREST CLAUSE IS A BALANCE REQUIREMENT, NOT A WARNING (D70).
+        // MCOB 3A.3.1R and the Consumer Duty consumer understanding outcome
+        // both require a benefit and its consequence to be equally plain.
+        // "you can add it to the mortgage" on its own reads as the fee being
+        // avoidable; it is deferred, and deferring it costs interest. Stating
+        // the consequence is not telling the participant what to do.
+        label: 'Mortgage product fee',
+        value: '£0 to £1,500',
+        caption: 'Some lenders let you add this to the mortgage instead of paying it upfront, which means paying interest on it',
+      },
+      {
+        label: 'Removals',
+        value: 'From about £400',
+      },
+    ],
+    // The sheet family's own sourcing slot (frames 29, 30 and 31 each carry a
+    // `metadataTemplate` at `.legal-text`). Both values are filled from
+    // UPFRONT_COST_SOURCES in rates.js so the attribution cannot drift from the
+    // figures it attributes.
+    metadataTemplate: 'Cost ranges from {sources}, accessed {period}.',
     primaryCta: 'Close',
   },
 

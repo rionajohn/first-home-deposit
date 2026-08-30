@@ -20,7 +20,7 @@
  * 'derived' — it's no longer purely computed from account data.
  */
 
-import { RATES, CHECKPOINT_FRACTION, LTV_RATE_BANDS_BY_DEPOSIT_PCT } from './rates.js';
+import { RATES, CHECKPOINT_FRACTION, LTV_RATE_BANDS_BY_DEPOSIT_PCT, SDLT } from './rates.js';
 
 function combineProvenance(...results) {
   return results.some((r) => r.provenance === 'entered') ? 'entered' : 'derived';
@@ -59,6 +59,96 @@ export function depositTarget(state) {
   return ok(propertyValue.value * depositPct.value, provenance);
 }
 
+/**
+ * Sum a price across a marginal band table. Each band is [from, to, rate] and
+ * contributes only the portion of `price` that falls inside it, so no band
+ * ever taxes the whole price.
+ */
+function bandedTax(price, bands) {
+  return bands.reduce(
+    (total, [from, to, rate]) => total + Math.max(0, Math.min(price, to) - from) * rate,
+    0,
+  );
+}
+
+/**
+ * stamp-duty = SDLT on property-value at first-time buyer rates
+ * (DECISIONS.md D70).
+ *
+ * NOT A PERCENTAGE OF THE PRICE, and not a discount on the standard figure.
+ * Below `SDLT.ftbReliefLimit` the first-time buyer scale applies; ABOVE it the
+ * relief is lost outright and the standard scale applies to the whole price.
+ * The two are separate calculations with a genuine cliff between them - at
+ * 500,000 the tax is 10,000 and at 500,001 it is 15,000, a 5,000 step for one
+ * pound. That is the real rule, not an artefact of this implementation, and
+ * frame 09's own banner is what explains it on screen.
+ *
+ * WORKED FIGURES (asserted in model.test.js so they cannot drift):
+ *   300,000 -> 0          the whole price sits in the 0% band
+ *   450,000 -> 7,500      5% of the 150,000 above 300,000; the seeded case
+ *   500,000 -> 10,000     5% of the full 200,000 second band
+ *   500,001 -> 15,000.05  relief lost: standard rates on the whole price
+ *
+ * THE FIRST-TIME BUYER ASSUMPTION IS THE PROTOTYPE'S, NOT THE PARTICIPANT'S.
+ * Nothing asks whether they qualify - the app has no question that could - so
+ * every figure this returns is an estimate on an assumption the copy has to
+ * state wherever the figure appears. `/tracker`'s `stampDutyNoteTemplate` and
+ * frame 30's assumption row both carry it.
+ */
+export function stampDuty(state) {
+  const propertyValue = state['property-value'];
+  const provenance = combineProvenance(propertyValue);
+
+  if (typeof propertyValue.value !== 'number' || Number.isNaN(propertyValue.value)) {
+    return fail('non-numeric', provenance);
+  }
+  if (!Number.isFinite(propertyValue.value) || propertyValue.value <= 0) {
+    return fail('not-positive', provenance);
+  }
+
+  const bands = propertyValue.value > SDLT.ftbReliefLimit ? SDLT.standardBands : SDLT.ftbBands;
+  return ok(bandedTax(propertyValue.value, bands), provenance);
+}
+
+/** Has first-time buyer relief been lost at this property value? Frame 09's banner reads this. */
+export function ftbReliefLost(state) {
+  const propertyValue = state['property-value'];
+  if (typeof propertyValue.value !== 'number' || !Number.isFinite(propertyValue.value)) return false;
+  return propertyValue.value > SDLT.ftbReliefLimit;
+}
+
+/**
+ * combined-goal = deposit-target + stamp-duty (DECISIONS.md D70).
+ *
+ * THE AMOUNT THE PARTICIPANT HAS TO SAVE. `deposit-target` is kept as its own
+ * figure and is NOT overwritten, because the two answer different questions and
+ * five figures still need the first one:
+ *
+ *   deposit-target  what goes down against the property. `loan-amount`, `ltv`,
+ *                   `borrow-low`/`borrow-high`, `max-property` and
+ *                   `mipEstimatedLtv` all size the MORTGAGE, and stamp duty is
+ *                   cash paid to HMRC at completion rather than money put down
+ *                   against the property. A larger goal must not shrink the
+ *                   loan, so none of those five reads this function.
+ *   combined-goal   what has to be in the account. Everything about SAVING
+ *                   reads this: `checkpointAmount`, `monthsToTarget`,
+ *                   `monthlyAmountFromDate`, `gap`, and the tracker's own
+ *                   progress and variant.
+ *
+ * Splitting them rather than redefining `deposit-target` is what keeps that
+ * boundary enforceable: the five mortgage figures needed no edit at all, so
+ * none of them could be missed.
+ */
+export function combinedGoal(state) {
+  const target = depositTarget(state);
+  const tax = stampDuty(state);
+  const provenance = combineProvenance(target, tax);
+
+  if (target.error) return fail(target.error, provenance);
+  if (tax.error) return fail(tax.error, provenance);
+  return ok(target.value + tax.value, provenance);
+}
+
 /** loan-amount = property-value - deposit-target */
 export function loanAmount(state) {
   const propertyValue = state['property-value'];
@@ -79,11 +169,29 @@ export function ltv(state) {
   return ok(loan.value / propertyValue.value, provenance);
 }
 
-/** checkpoint-amount = CHECKPOINT_FRACTION (0.75) x deposit-target */
+/**
+ * checkpoint-amount = CHECKPOINT_FRACTION (0.75) x COMBINED-GOAL
+ * (DECISIONS.md D70, amending build-spec.md section 4's "0.75 x
+ * deposit-target").
+ *
+ * IT MOVED TO THE COMBINED GOAL FOR THE PROGRESS BAR, not for its own sake.
+ * `/tracker` draws the bar with `markerPct: CHECKPOINT_FRACTION * 100` - a
+ * literal 75 - and fills it against the goal. Leaving the checkpoint on
+ * `deposit-target` while the bar ran to the combined goal would have put the
+ * marker at 64.3% of the track while the copy beside it said 75%, and the two
+ * would have been describing different denominators. One denominator, both
+ * true.
+ *
+ * WHAT IT COST: the checkpoint rises 33,750 to 39,375 on the seeded goal. The
+ * skip-ahead control and the ready-to-check stage both follow it with no edit,
+ * because both read the STORED `checkpoint-amount` rather than a figure of
+ * their own (skip-ahead.js, D38's third amendment) - which is exactly the
+ * property that made this change safe to make.
+ */
 export function checkpointAmount(state) {
-  const target = depositTarget(state);
-  if (target.error) return fail(target.error, target.provenance);
-  return ok(CHECKPOINT_FRACTION * target.value, target.provenance);
+  const goal = combinedGoal(state);
+  if (goal.error) return fail(goal.error, goal.provenance);
+  return ok(CHECKPOINT_FRACTION * goal.value, goal.provenance);
 }
 
 /**
@@ -114,14 +222,21 @@ export function gapToCheckpoint(state) {
   return ok(checkpoint.value - savedTowardDeposit.value, provenance);
 }
 
-/** gap (frame 21) = deposit-target - saved-toward-deposit */
+/**
+ * gap (frame 21) = combined-goal - saved-toward-deposit (DECISIONS.md D70,
+ * amending build-spec.md section 6's "deposit-target - saved-toward-deposit").
+ *
+ * A SAVING SHORTFALL, so it measures against what has to be saved. Frame 21
+ * sits beside borrowing figures, and those stay on `deposit-target` - see
+ * `combinedGoal` above for why the two must not be conflated.
+ */
 export function gap(state) {
   const savedTowardDeposit = state['saved-toward-deposit'];
-  const target = depositTarget(state);
-  const provenance = combineProvenance(savedTowardDeposit, target);
+  const goal = combinedGoal(state);
+  const provenance = combineProvenance(savedTowardDeposit, goal);
 
-  if (target.error) return fail(target.error, provenance);
-  return ok(target.value - savedTowardDeposit.value, provenance);
+  if (goal.error) return fail(goal.error, provenance);
+  return ok(goal.value - savedTowardDeposit.value, provenance);
 }
 
 // --- Monthly position ------------------------------------------------------
@@ -239,7 +354,11 @@ export function monthsToTarget(state) {
   const savedTowardDeposit = state['saved-toward-deposit'];
   const savingsRate = state['savings-rate'];
   const leftOverFigure = state['left-over'];
-  const target = depositTarget(state);
+  // THE COMBINED GOAL, NOT `deposit-target` (DECISIONS.md D70). The stamp duty
+  // has to be in the account too, so a projection to the deposit alone would
+  // report a date the participant reaches with the tax still unsaved - and
+  // would contradict the goal figure rendered directly above it on /tracker.
+  const target = combinedGoal(state);
   const provenance = combineProvenance(savedTowardDeposit, savingsRate, target);
 
   if (target.error) return fail(target.error, provenance);
@@ -415,7 +534,9 @@ export function neededLoanAmount(state) {
  */
 export function monthlyAmountFromDate(state, months) {
   const savedTowardDeposit = state['saved-toward-deposit'];
-  const target = depositTarget(state);
+  // The combined goal, for `monthsToTarget`'s reason above and because this
+  // function must stay that one's exact algebraic inverse (D70).
+  const target = combinedGoal(state);
   const provenance = combineProvenance(savedTowardDeposit, target);
 
   if (target.error) return fail(target.error, provenance);

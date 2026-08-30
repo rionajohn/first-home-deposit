@@ -96,6 +96,8 @@ const SHEETS = [
   ['30  deposit', '/assumptions/deposit', {}],
   ['31  borrowing', '/assumptions/borrowing', {}],
   ['32  sources', '/assumptions/sources', {}],
+  // No frame number: /assumptions/costs has no Figma frame (GAPS.md G83, D70).
+  ['--  costs', '/assumptions/costs', {}],
 ];
 
 /** The brief's viewport matrix. The tightest common case first. */

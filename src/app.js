@@ -57,6 +57,7 @@ import { render as renderAssumptionsSaving } from './screens/assumptions-saving.
 import { render as renderAssumptionsDeposit } from './screens/assumptions-deposit.js';
 import { render as renderAssumptionsBorrowing } from './screens/assumptions-borrowing.js';
 import { render as renderAssumptionsSources } from './screens/assumptions-sources.js';
+import { render as renderAssumptionsCosts } from './screens/assumptions-costs.js';
 import { render as renderSettings } from './screens/settings.js';
 
 registerRoute('/home', renderHome);
@@ -86,6 +87,7 @@ registerRoute('/assumptions/saving', renderAssumptionsSaving);
 registerRoute('/assumptions/deposit', renderAssumptionsDeposit);
 registerRoute('/assumptions/borrowing', renderAssumptionsBorrowing);
 registerRoute('/assumptions/sources', renderAssumptionsSources);
+registerRoute('/assumptions/costs', renderAssumptionsCosts);
 registerRoute('/settings', renderSettings);
 
 startRouter();

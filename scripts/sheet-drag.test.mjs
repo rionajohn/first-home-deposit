@@ -283,6 +283,7 @@ const ALL_SHEETS = [
   { frame: '30', route: '/assumptions/deposit', returnsTo: '#/home' },
   { frame: '31', route: '/assumptions/borrowing', returnsTo: '#/home' },
   { frame: '32', route: '/assumptions/sources', returnsTo: '#/home' },
+  { frame: 'costs', route: '/assumptions/costs', returnsTo: '#/home' },
 ];
 
 for (const sheet of ALL_SHEETS) {
