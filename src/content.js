@@ -588,25 +588,48 @@ const content = {
     flagLabel: "Something doesn't look right",
     errorExceedsLeftOver: "That's more than what's left over each month. Choose a smaller range.",
     errorPastDate: 'Pick a date in the future.',
-    // The date path's own ceiling error (DECISIONS.md D80, D81; GAPS.md G64).
-    // NOT errorExceedsLeftOver, and it must not become it: that string ends
-    // "Choose a smaller range" and there is no range control on this variant -
-    // the participant is looking at a month and a year. Category B, so the two
-    // differ without touching D34.
+    // SUPERSEDED BY DECISIONS.md D82, AND KEPT ON PURPOSE. Nothing renders this
+    // string any more: D82 bounded the date stepper at the earliest reachable
+    // date, so the date it complains about cannot be set and the banner cannot
+    // be raised.
     //
-    // TWO OF THE THREE SLOTS ARE USED. `fill()` replaces a slot only where the
-    // template names it, so the third costs nothing and stays available:
-    //   {max}      what is left over each month - the same {max} slot
-    //              sliderRangeCaptionTemplate above already uses for it
-    //   {earliest} the earliest month and year reachable at {max}, e.g.
-    //              "August 2029"
-    //   {amount}   the monthly figure the chosen date implies. DELIBERATELY
-    //              UNUSED (D81). The readout renders it directly above this
-    //              banner, so restating it here would read as introducing a
-    //              number the participant has not seen - and it would put two
-    //              figures in the first sentence, which the copy check's plain
-    //              language rule does not allow.
+    // NOT DELETED, for two reasons. If the bound is ever removed or relaxed -
+    // a general mode, a different ceiling, a new entry point onto this screen -
+    // the case comes back and this is the string for it, already written and
+    // already through the copy check (D81). And D80's reasoning for it stays
+    // findable beside the words rather than only in a decision record: it is
+    // NOT errorExceedsLeftOver and must not become it, because that string ends
+    // "Choose a smaller range" and there is no range control on this variant.
+    // Category B, so the two differ without touching D34.
+    //
+    // The slots it expects, if it is ever rendered again:
+    //   {max}      what is left over each month
+    //   {earliest} the earliest month and year reachable at {max}
+    //   {amount}   the monthly figure the chosen date implies - deliberately
+    //              unused by this wording (D81)
     errorDateNeedsMoreThanLeftOver: 'That date needs more than the {max} you have left over each month. Even putting all of it aside, the earliest you could reach your goal is {earliest}.',
+    // AWAITING COPY (DECISIONS.md D82, second open question). THE BOUND HAS NO
+    // EXPLANATION ON SCREEN UNTIL THIS IS FILLED, and that is a known, recorded
+    // cost of D82 rather than an oversight: a disabled chevron says neither why
+    // the date will not go lower nor what the earliest one is, and in a session
+    // an unresponsive control reads as a broken prototype rather than as a
+    // constraint.
+    //
+    // IT HAS TO COVER TWO SITUATIONS, not one, and they are not the same
+    // sentence:
+    //   1. the participant is AT the bound and pressing down does nothing
+    //   2. the participant's already-set date is BELOW the bound, because a
+    //      figure on another screen moved it while they were away - nothing was
+    //      rewritten (D46), so their date stands and Continue is disabled
+    //
+    // Slots available:
+    //   {earliest} the earliest month and year that works, e.g. "August 2029"
+    //   {max}      what is left over each month
+    //
+    // WHERE IT SITS IS ALSO OPEN, and is the other half of the same question -
+    // see D82. Nothing renders this key yet, deliberately: rendering it would
+    // be choosing the location.
+    dateBoundNote: '[AWAITING COPY]',
     primaryCta: 'Continue',
     secondaryCta: 'Save and exit',
   },

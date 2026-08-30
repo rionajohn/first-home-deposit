@@ -99,8 +99,14 @@
  *                left-over-zero        frame 05, left over at or below zero
  *                property-non-numeric  frame 09, a value the model rejects
  *                saving-ceiling        frame 10, the range above left over
- *                saving-date-ceiling   frame 10b, a date needing more than
- *                                      what is left over each month
+ *                saving-date-below-bound  frame 10b, a date the ceiling cannot
+ *                                      reach. NOT reachable by pressing the
+ *                                      stepper since D82 bounded it - this is
+ *                                      the state a participant lands in when
+ *                                      the bound MOVES while they are on
+ *                                      another screen. No banner is raised;
+ *                                      Continue is disabled and their date
+ *                                      stands.
  *                saving-past-date      frame 10b, a target date behind today
  *                review-property       frame 11, the property row
  *                review-pct            frame 11, the deposit % row
@@ -111,6 +117,15 @@
  *              banner is then raised by the screen's own validation, so a shot
  *              cannot show an error the app would not itself have drawn. It
  *              seeds, so it is refused with `--session=opening`.
+ *                                                       default none
+ *   --date     Frame 10b's target date, as whole months from today, so the two
+ *              sides of D82's bound can be shot. `bound` is the earliest date
+ *              the goal is reachable at `left-over`, computed through
+ *              `monthsToReachAmount` the way the screen computes it rather than
+ *              written here - so it follows the seed instead of going stale
+ *              against it. `bound+1`, `bound+2` and so on step above it; a bare
+ *              integer is months from today. Only meaningful with
+ *              `--solve=amount`.
  *                                                       default none
  *   --session  `seeded` or `opening`. `seeded` writes the shared seed into
  *              sessionStorage before the first paint, which is what every
@@ -194,6 +209,7 @@ import {
   checkpointAmount,
   loanAmount,
   ltv,
+  monthsToReachAmount,
 } from '../src/model/model.js';
 // Every seed below carries `buildVersion` (DECISIONS.md D59). `state.js` now
 // DISCARDS a stored session whose stamp is not the running build's, so an
@@ -227,6 +243,7 @@ const DEFAULTS = {
   draft: 'none',
   assign: '',
   solve: 'date',
+  date: '',
   error: 'none',
   scroll: 'top',
   stage: '',
@@ -262,11 +279,27 @@ function parseArgs(argv) {
 
 const list = (value) => value.split(',').map((s) => s.trim()).filter(Boolean);
 
-/** The month/year a date `n` months from today lands on - for the 10b error states. */
+/** The month/year a date `n` months from today lands on - for the 10b date states. */
 function monthsFromToday(n) {
   const now = new Date();
   const d = new Date(now.getFullYear(), now.getMonth() + n, 1);
   return { targetMonth: d.getMonth() + 1, targetYear: d.getFullYear() };
+}
+
+/**
+ * D82's bound, in whole months from today: the earliest date the seed's goal is
+ * reachable at its own `left-over`. Computed through the model exactly as
+ * `calculator-saving.js` computes it, so a shot named `--date=bound` is the
+ * date the screen will actually treat as the bound rather than a number written
+ * here that drifts the moment the seed changes.
+ */
+function boundMonths() {
+  const months = monthsToReachAmount({
+    startingBalance: FULL['saved-toward-deposit'].value,
+    targetAmount: combinedGoal(FULL).value,
+    monthlyAmount: FULL['left-over'].value,
+  });
+  return Number.isFinite(months) ? Math.max(0, Math.ceil(months)) : 0;
 }
 
 const args = parseArgs(process.argv.slice(2));
@@ -403,6 +436,17 @@ if (!SOLVE_FOR.includes(args.solve)) {
   process.exit(1);
 }
 
+/** `--date`: a bare month count, or `bound` / `bound+N` resolved through the model. */
+let DATE_MONTHS = null;
+if (args.date !== '') {
+  const m = args.date.match(/^bound(?:\+(\d+))?$/);
+  DATE_MONTHS = m ? boundMonths() + Number(m[1] ?? 0) : Number(args.date);
+  if (!Number.isFinite(DATE_MONTHS)) {
+    console.error(`--date must be a whole number of months from today, or "bound", or "bound+N". Got "${args.date}".`);
+    process.exit(1);
+  }
+}
+
 /**
  * THE SEVEN ERROR STATES, SEEDED AS FIGURES RATHER THAN AS ERRORS (D78).
  *
@@ -444,14 +488,16 @@ const ERROR_STATES = {
     'monthly-low': { value: FULL['left-over'].value + 100, provenance: 'entered' },
     'monthly-high': { value: FULL['left-over'].value + 400, provenance: 'entered' },
   }),
-  'saving-date-ceiling': () => ({
-    // D80 / GAPS.md G64: the date path's own ceiling error, with the solved
-    // amount rendered above it (G65). Three months out needs several times
-    // the seed's left-over whatever the seed is, so this breaches without a
-    // figure being written here - and, being relative to today rather than a
-    // fixed year, it cannot quietly become a past date and shoot
-    // `errorPastDate` instead.
-    ...monthsFromToday(3),
+  'saving-date-below-bound': () => ({
+    // ONE MONTH UNDER D82'S BOUND, computed from the model rather than picked,
+    // so it is under the bound by exactly one month whatever the seed holds.
+    // Renamed from `saving-date-ceiling`: it no longer produces a ceiling
+    // BANNER, because D82 bounded the stepper and the banner went with it. What
+    // it produces is the state a participant reaches when the bound moves while
+    // they are on another screen - their date standing, both down controls
+    // disabled, Continue disabled, and (until D82's second open question is
+    // filled) nothing on screen saying why.
+    ...monthsFromToday(Math.max(0, boundMonths() - 1)),
   }),
   'saving-past-date': () => ({
     targetMonth: 1,
@@ -619,6 +665,7 @@ function shotName({ route, entry, state, theme, text, scroll }) {
   if (args.draft !== 'none') parts.splice(1, 0, args.draft);
   if (args.solve !== 'date') parts.splice(1, 0, `solve-${args.solve}`);
   if (args.error !== 'none') parts.splice(1, 0, `error-${args.error}`);
+  if (args.date !== '') parts.splice(1, 0, `date-${args.date.replace('+', 'plus')}`);
   if (text !== 'default') parts.push(text);
   if (scroll !== 'top') parts.push(`scroll-${scroll}`);
   if (args.full) parts.push('full');
@@ -645,6 +692,7 @@ if (OPENING) {
     args.draft !== 'none' && '--draft',
     args.solve !== 'date' && '--solve',
     args.error !== 'none' && '--error',
+    args.date !== '' && '--date',
   ].filter(Boolean);
   if (seeding.length) {
     console.error(
@@ -766,6 +814,7 @@ try {
                 seed.accountSelectionEdited = true;
               }
               seed.solveFor = args.solve;
+              if (args.date !== '') Object.assign(seed, monthsFromToday(DATE_MONTHS));
               // LAST, so an error state's figure is not overwritten by
               // `--property`'s re-derivation above. `--error` and `--property`
               // both write `property-value`, and the error is the thing the

@@ -82,12 +82,13 @@ do not introduce a state management library.
   rendered cleanly, so the smoke test passed on all of them: a chart can be wrong in every particular
   and still be a chart. ~14s. D73's third amendment.)
 - Test screen layout: `node --test scripts/overlap.test.mjs` (all 37 frame rows x both text sizes; two of them, `/assumptions/costs` and `/learn/stamp-duty`, have no frame number of their own - GAPS.md G83 and G84; asserts no divider, border or rule crosses text and no box is squashed below its content)
-- Test frame 10b's ceiling and readout: `node --test scripts/date-ceiling.test.mjs` (drives Chromium;
-  the date path's own left-over ceiling and the monthly amount it solves. Asserts SHAPE, every expected
-  value derived from `model.js` at run time rather than written in the file, so it follows a re-seeded
-  fixture instead of breaking on one: the banner appears on exactly the month before the earliest
-  workable one and not on it, Continue commits nothing while the error stands, and the solved figure is
-  rendered and matches the model. ~10s. D80, closing GAPS.md G64 and G65.)
+- Test frame 10b's bound and readout: `node --test scripts/date-ceiling.test.mjs` (drives Chromium;
+  the date stepper's floor at the earliest reachable date, and the monthly amount it solves. Asserts
+  SHAPE, every expected value derived from `model.js` at run time rather than written in the file, so it
+  follows a re-seeded fixture instead of breaking on one: both down controls are dead at the bound and
+  no press sequence gets under it in either order, a date already under it is left standing with
+  Continue disabled, no ceiling banner is raised anywhere, and the solved figure is rendered and matches
+  the model. ~32s. D82, superseding D80; closes GAPS.md G64, G65 and G96's frame 10b case.)
 - Test the skip-ahead control: `node --test scripts/skip-ahead.test.mjs` (pure Node, no browser; asserts three round trips leave state identical and that the threshold stays a ratio of CHECKPOINT_FRACTION rather than an amount)
 - Test the draft invariant: `node --test scripts/g62.test.mjs` (pure Node, no browser; asserts that abandoning a draft changes no committed key, and that `gapToCheckpoint()` reads the stored checkpoint rather than re-deriving it)
 - Test stale-session discard: `node --test scripts/stale-session.test.mjs` (drives Chromium; asserts a

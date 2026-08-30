@@ -7651,3 +7651,166 @@ screen - the sweep that opened it found frame 10's slider ceiling error cut at L
 third stacked banner cut at both sizes. See G96 for all three and for the research consequence, which
 is the part that makes it urgent rather than filed.
 
+---
+
+## D82. The date stepper is bounded, which supersedes D80's option C rather than adding to it
+
+**Date.** 30 August 2026. Supersedes the ceiling error D80 introduced. Closes `GAPS.md` G96's frame 10b
+case as unreachable.
+
+### What changed
+
+D80 closed G64 by **option C**: let the participant set a date needing more than `left-over`, then
+refuse it with `errorDateNeedsMoreThanLeftOver` and name the earliest date that works. Nothing was
+discarded, so D46 was satisfied.
+
+**The stepper is now bounded at that earliest date.** The impossible date cannot be set, so there is
+nothing to refuse, the banner is never raised, and G96 - which is that banner falling below the fold -
+goes with it. A banner that cannot be raised cannot fall anywhere.
+
+**This is a different decision, not a refinement of option C.** Option C's whole shape was *accept, then
+explain*; this is *do not accept*. The three options D80 weighed were about what to do with a figure the
+participant had already set, and this one removes the premise. D46 is satisfied more simply than it was
+under option C: no value is discarded because none is ever taken.
+
+**It is also a better outcome than fixing G96's layout would have been.** Reserving space for the
+banner, or scrolling to it, would have made an unreachable state legible. This removes the state.
+
+### What the bound is, and where it lives
+
+`earliestWorkableMonths()` in `calculator-saving.js`: whole months from today to the earliest date the
+goal is reachable at `left-over`, through `monthsToReachAmount`, which is `monthlyAmountFromDate`'s
+inverse over the same annuity-due equation. Rounded UP (D2). The target is derived through
+`combinedGoal(state)` rather than read from the stored key, per D80 and unchanged by this decision: a
+live-derived amount beside a stored target is the split D38's third amendment exists to prevent.
+
+**Recomputed on every render, never cached.** Nothing this screen can edit moves the bound - every
+input lives elsewhere:
+
+| Input | Where it is committed | Reaches the bound through |
+| --- | --- | --- |
+| `money-in`, `essential-spending` | seeded at session start | `left-over` |
+| `left-over` (entered override) | frame 05 | directly, as the ceiling |
+| `property-value`, `deposit-pct` | frames 09 and 11 | `combinedGoal` |
+| `saved-toward-deposit` | frames 03 / 06, and frame 11 | the starting balance |
+
+So the bound cannot move WHILE the participant is on this screen, and it can differ between two visits
+to it. Computing it on entry to date mode and caching it would be correct for the first visit and stale
+for the second - which is the case worth designing for, not the one it looks like it is for.
+
+**One number, three readers.** `belowBound`, `monthDownDisabled` and `yearDownDisabled` are all the same
+comparison against it, and `monthStep()` is used both to compute a disable flag and to perform the press
+it would have refused. The button that refuses a press and the guard that refuses a commit cannot
+disagree.
+
+### The controls
+
+**Disabled, not hidden.** A control that vanishes at the bound moves every control below it up by its own
+height, under the finger reaching for one of them, and takes the participant's landmark with it. The
+greyed chevron stays where it was and says the same thing. Treatment is `.button--primary:disabled`'s
+exactly - `opacity: 0.4`, `cursor: not-allowed` - so a dead control looks the same wherever it appears.
+
+**Bounded as a pair, and the two take different bounds because they move by different amounts.** At the
+bound, both down controls are dead. One month above it, the month may step down (it lands on the bound)
+and the year may not (it would land eleven months under). Only the DOWN direction is bounded: there is a
+floor on how soon, and no ceiling on how far ahead a participant may plan.
+
+**Every date at or after the bound is still reachable**, by month presses if not by year presses. The
+bound costs presses, not destinations.
+
+**Guarded as well as disabled.** Each down handler re-checks its own flag, the same belt-and-braces the
+Continue handler carries, so a press delivered past the attribute is still refused. Asserted by driving
+clicks through the DOM rather than through Playwright's actionability check.
+
+### The case most likely to be missed: a bound that moved
+
+A participant sets a date here, goes back to frame 11, raises their property value, and returns. Their
+date is unchanged and the bound has moved past it. **Reachable with no facilitator gesture.**
+
+**Nothing is rewritten.** Their month and year stand exactly as they set them (D46), both down controls
+are disabled so the date cannot go further out of range, both up controls are live so the bound is one
+press-run away, and Continue is disabled so no impossible figure is committed - G64's invariant, kept
+without the banner that used to carry it.
+
+**It is unexplained on screen until the copy below lands.** That is a known cost of this commit and is
+recorded rather than worked around. It is the same gap as the bound's own, and one string covers both.
+
+### What was removed, and what was kept
+
+- **`errorDateNeedsMoreThanLeftOver` is kept, unrendered, and marked superseded in `content.js`.** If the
+  bound is ever removed or relaxed - a general mode, a different ceiling, a new entry point - the case
+  returns and the string is already written and already copy-checked (D81). D80's reasoning for it stays
+  beside the words rather than only here.
+- **The earliest-date LABEL builder was deleted**, because nothing renders that date now. Three lines;
+  filling the open question below brings it back. `earliestWorkableMonths` is the half worth keeping
+  either way.
+- **`errorPastDate` is untouched**, and is now reachable only from a stored date rather than from a
+  press: the bound stops the steppers well before today.
+
+### The typed year keeps no bound, deliberately
+
+G73's note that "the two routes to a year cannot accept different values" still holds where it matters:
+**neither route can COMMIT a date below the bound**, because `belowBound` disables Continue whichever
+way the year got there. What differs is the affordance - the chevron will not take you there, the field
+will let you type it and then sit refusing to go forward. Clamping the typed year to the bound would
+replace a number the participant had just typed, in the field they typed it in, which is G74 exactly.
+
+### Two open questions, deliberately not settled here
+
+**1. The boundary case: the year press that cannot move.** A participant several years out steps the
+year down repeatedly and arrives one year above the bound, where their month is below the bound's month.
+Two readings:
+
+| | What the participant sees | Cost |
+| --- | --- | --- |
+| **The year refuses to move** (built) | The chevron greys. Their month stands. To go lower they step the month instead | Dates at or after the bound stay reachable, but some now need month presses rather than a year press - up to eleven extra presses in the worst alignment |
+| **The year moves and drags the month up** | The year drops and the month jumps forward on a control they did not touch | Changes a value the participant set, on a control they did not press. That is G92's pattern exactly, and G92 is open |
+
+**The built behaviour is not a choice made here** - it is what "disable the control at the bound"
+produces. Dragging the month would be an addition, and it is the addition that carries the D46 risk. The
+question is whether the extra presses are worth avoiding and whether the drag could be made visible
+enough to satisfy D46. **Provisional view: visibility is not available on a stepper.** The affordances a
+visible replacement needs - an undo, a "we changed this" caption, a highlighted field - are all things
+frame 11 has and this control does not; a stepper's whole vocabulary is "the number changed", which is
+indistinguishable from the participant having changed it.
+
+**2. What replaces the banner's explanation.** A disabled chevron says neither why the date will not go
+lower nor what the earliest one is. In a session an unresponsive control reads as a broken prototype
+rather than as a constraint, which is the failure mode this build has already recorded once, in G96.
+
+`content['/calculator/saving'].dateBoundNote` is added as `[AWAITING COPY]`. It has to cover **two**
+situations, and they are not the same sentence: the participant is AT the bound and pressing down does
+nothing; or their already-set date is BELOW it because the bound moved. Slots available: `{earliest}`
+and `{max}`. Nothing renders the key yet, deliberately - rendering it would be choosing the location,
+which is the other half of this question.
+
+**Measured, because G96 found this screen is already tight below the fold.** At the bound, on a 390x844
+viewport:
+
+| | Free between the readout's bottom and the dock | Budget for a new line |
+| --- | --- | --- |
+| Default text | 92px | **4 lines** at 13px/18px |
+| Large text | **61px** | **2 lines** at 14.95px/20.7px |
+
+Placed beneath the stepper instead, the budget is the same 92px / 61px, because it is the same space -
+a line there pushes the readout down rather than the card. **Two lines at Large is the number the copy
+has to fit.** For scale, D81's superseded banner was five lines at Large; a replacement of that length
+would put itself below the fold and reopen G96 in a new place.
+
+### Verification
+
+`shots.mjs` gained `--date`, taking `bound`, `bound+N` or a bare month count, with the bound computed
+through the model rather than written in the harness so it follows the seed. Its `saving-date-ceiling`
+error state is renamed `saving-date-below-bound` and reseeded to one month under the bound, because it
+no longer produces a ceiling banner and a state whose name outlives its behaviour is how a harness
+starts lying. 16 shots: at the bound, one month above, thirty months above, and one below, each in two
+themes at two text sizes.
+
+`date-ceiling.test.mjs` grew from 11 tests to 16. Three that asserted the banner's presence, its
+interpolated slots and its role were replaced rather than deleted: the banner is gone, so what they
+guarded is now guarded by "no ceiling banner is raised anywhere on the date path", and D78's wiring is
+asserted on `errorPastDate`, the one error this screen can still raise. **The defect was reintroduced
+and the tests confirmed to fail** - 6 of 16 with the disable flags forced false - which is D77's habit.
+
+Full suite: 371 tests, 370 passing, 1 skipped (G91), 0 failing.
+

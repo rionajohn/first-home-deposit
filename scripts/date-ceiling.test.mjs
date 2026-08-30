@@ -1,6 +1,6 @@
 /**
- * FRAME 10b'S CEILING, AND THE FIGURE IT IS ABOUT. DECISIONS.md D80, closing
- * GAPS.md G64 and G65.
+ * FRAME 10b'S BOUND, AND THE FIGURE IT IS ABOUT. DECISIONS.md D82 (superseding
+ * D80's option C), closing GAPS.md G64 and G65.
  *
  * WHY IT IS ITS OWN FILE. The defect it guards was open for two weeks with the
  * whole suite green, because nothing in the suite looks at what frame 10b
@@ -10,31 +10,29 @@
  * exactly: an assertion that passes for a reason unrelated to what it claims to
  * test is worse than none, because it is counted.
  *
- * WHAT IT ASSERTS, AND IN WHAT FORM. Shape, not figures, so it survives a
- * re-scale of the seeded session the way `chart-range.test.mjs` does (D73's
- * third amendment). Every expected value below is derived from `model.js` at
- * run time and compared against what the SCREEN did; none is written here as a
- * constant. If `session-seed.mjs` changes its property value, its left-over or
- * its saved total, these tests follow it instead of breaking.
+ * WHAT CHANGED UNDER D82, AND WHAT THIS FILE NOW ASSERTS. D80 let the date be
+ * set and refused it with a banner; D82 bounds the stepper so it cannot be set.
+ * The invariant is the same either way - **no impossible figure is committed** -
+ * so the tests asserting the invariant are unchanged, and only the ones that
+ * asserted the BANNER had to move. What replaced them is bound coverage: the
+ * down controls are disabled at the bound, no sequence of presses gets under it
+ * in either order, and a date already under it - a bound that moved while the
+ * participant was on another screen - disables Continue without rewriting
+ * anything.
+ *
+ * WHAT ASSERTS IN WHAT FORM. Shape, not figures, so it survives a re-scale of
+ * the seeded session the way `chart-range.test.mjs` does (D73's third
+ * amendment). Every expected value below is derived from `model.js` at run time
+ * and compared against what the SCREEN did; none is written here as a constant.
+ * If `session-seed.mjs` changes its property value, its left-over or its saved
+ * total, these tests follow it instead of breaking.
  *
  * THE BOUNDARY IS THE CENTRAL ASSERTION. `monthsToReachAmount` at the ceiling
  * gives the earliest month the goal is reachable; `monthlyAmountFromDate` at
  * that month must therefore solve to at or under the ceiling, and at the month
- * before it must solve to over. The screen must draw the banner on exactly the
- * second and not the first. That ties the screen's refusal, the figure it
- * shows, and the earliest date it names to one function each rather than to a
- * number typed here.
- *
- * THE COPY HAS LANDED (D81), so the slots are assertable and are asserted. The
- * banner interpolates `{max}` and `{earliest}`; `{amount}` is deliberately
- * unused, and the test below checks that too - an unused slot must leave no
- * literal `{amount}` and no doubled space behind it, which is the one way
- * `fill()` can go wrong quietly.
- *
- * The `{earliest}` assertion is the one that was deferred while the string read
- * `[AWAITING COPY]`. It now closes the loop the boundary test opened: the month
- * the banner NAMES is the same month at which the screen stops drawing the
- * banner at all, both derived from `monthsToReachAmount`.
+ * before it must solve to over. That one number is what the stepper's disable
+ * flags, the Continue guard and these tests all read, so none of the three can
+ * drift from the other two.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -71,11 +69,9 @@ function startServer() {
 const CEILING = FULL['left-over'].value;
 
 /**
- * The earliest whole month at which the goal is reachable at the ceiling -
- * the same figure `earliestWorkableDateLabel` in the screen builds its label
- * from, through the same function and the same rounding (D2: a month figure
- * shown to a participant rounds UP, because a date earlier than the maths
- * gives is a date that does not work).
+ * THE BOUND, computed here the way the screen computes it - same function, same
+ * inputs, same rounding (D2: a month figure shown to a participant rounds UP,
+ * because a date earlier than the maths gives is a date that does not work).
  */
 const EARLIEST_MONTHS = Math.ceil(monthsToReachAmount({
   startingBalance: FULL['saved-toward-deposit'].value,
@@ -90,6 +86,12 @@ function dateAtMonths(n) {
   return { targetMonth: d.getMonth() + 1, targetYear: d.getFullYear() };
 }
 
+/** Months from today to a month/year pair - the screen's own `monthsFromNow`. */
+function monthsFromNow(targetMonth, targetYear) {
+  const now = new Date();
+  return (targetYear - now.getFullYear()) * 12 + (targetMonth - 1 - now.getMonth());
+}
+
 const [server, base] = await startServer();
 const browser = await chromium.launch();
 
@@ -101,6 +103,12 @@ test.after(async () => {
 /**
  * A FRESH TAB EVERY TIME, never a reload: a reload can restore a stale session
  * (D59), and every seed here carries `buildVersion` for the same reason.
+ *
+ * `months` may be BELOW the bound, and that is not cheating - it is the one
+ * state the stepper cannot produce and the app can still be in (D82): a
+ * participant sets a date here, edits a figure on frame 11 that moves the
+ * bound, and comes back. Seeding it is how that path is reached without driving
+ * four screens.
  */
 async function openAt(months, extra = {}) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
@@ -121,6 +129,7 @@ const probe = (page) => page.evaluate(() => {
   const figure = document.querySelector('.figure-input[role="status"]');
   const primary = document.querySelector('.button--primary');
   const stored = JSON.parse(sessionStorage.getItem('yfh-state') || '{}');
+  const btn = (a) => document.querySelector(`[data-action="${a}"]`);
   return {
     hasBanner: !!banner,
     bannerRole: banner?.getAttribute('role') ?? null,
@@ -131,54 +140,155 @@ const probe = (page) => page.evaluate(() => {
     readoutLive: figure?.getAttribute('aria-live') ?? null,
     disabled: primary?.disabled ?? null,
     describedBy: primary?.getAttribute('aria-describedby') ?? null,
+    monthDownDisabled: btn('step-month-down')?.disabled ?? null,
+    yearDownDisabled: btn('step-year-down')?.disabled ?? null,
+    monthUpDisabled: btn('step-month-up')?.disabled ?? null,
+    yearUpDisabled: btn('step-year-up')?.disabled ?? null,
+    month: stored.targetMonth,
+    year: stored.targetYear,
     committed: {
       rate: stored['savings-rate'], low: stored['monthly-low'], high: stored['monthly-high'],
     },
   };
 });
 
+/** Press through the DOM, past Playwright's actionability check, so a disabled control is still pressed. */
+const press = async (page, action) => {
+  await page.evaluate((a) => document.querySelector(`[data-action="${a}"]`).click(), action);
+  await page.waitForTimeout(110);
+};
+
 // ---------------------------------------------------------------------------
-// The boundary. G64.
+// The boundary itself. G64, and the number the bound is built on.
 // ---------------------------------------------------------------------------
 
 test('the earliest workable month solves to at or under the ceiling, and the month before it does not', () => {
-  // The precondition the two screen tests below rest on. Asserted separately so
-  // that a seed whose goal is reachable immediately fails HERE, naming the
-  // fixture, rather than failing as a mysterious missing banner.
-  assert.ok(EARLIEST_MONTHS >= 2, `the seed reaches its goal in ${EARLIEST_MONTHS} months at the ceiling, which leaves no month before the boundary to test`);
+  // The precondition every test below rests on. Asserted separately so that a
+  // seed whose goal is reachable immediately fails HERE, naming the fixture,
+  // rather than failing as a mysteriously enabled control.
+  assert.ok(EARLIEST_MONTHS >= 2, `the seed reaches its goal in ${EARLIEST_MONTHS} months at the ceiling, which leaves no month below the bound to test`);
   const at = monthlyAmountFromDate(FULL, EARLIEST_MONTHS).value;
   const before = monthlyAmountFromDate(FULL, EARLIEST_MONTHS - 1).value;
   assert.ok(at <= CEILING, `at the earliest month the solve is ${at}, above the ${CEILING} ceiling`);
   assert.ok(before > CEILING, `one month earlier the solve is ${before}, not above the ${CEILING} ceiling`);
 });
 
-test('a date needing more than what is left over raises the banner and disables Continue', async () => {
-  const { context, page } = await openAt(EARLIEST_MONTHS - 1);
-  try {
-    const seen = await probe(page);
-    assert.ok(seen.hasBanner, 'no banner on a date the ceiling cannot meet');
-    assert.equal(seen.disabled, true, 'Continue was left enabled over an impossible figure');
-  } finally {
-    await context.close();
-  }
-});
+// ---------------------------------------------------------------------------
+// The bound, as a control. D82.
+// ---------------------------------------------------------------------------
 
-test('the earliest workable date raises nothing and leaves Continue enabled', async () => {
+test('at the earliest workable date both down controls are disabled and Continue is enabled', async () => {
   const { context, page } = await openAt(EARLIEST_MONTHS);
   try {
     const seen = await probe(page);
-    assert.equal(seen.hasBanner, false, `banner drawn at the earliest workable date: "${seen.bannerText}"`);
-    assert.equal(seen.disabled, false, 'Continue disabled at a date the ceiling can meet');
+    assert.equal(seen.monthDownDisabled, true, 'the month can still be stepped below the bound');
+    assert.equal(seen.yearDownDisabled, true, 'the year can still be stepped below the bound');
+    assert.equal(seen.disabled, false, 'Continue is disabled at a date the ceiling can meet');
+  } finally {
+    await context.close();
+  }
+});
+
+test('the up controls are never disabled - the bound is a floor, not a window', async () => {
+  for (const months of [EARLIEST_MONTHS, EARLIEST_MONTHS + 1, EARLIEST_MONTHS + 24]) {
+    const { context, page } = await openAt(months);
+    try {
+      const seen = await probe(page);
+      assert.equal(seen.monthUpDisabled, false, `month up disabled at bound+${months - EARLIEST_MONTHS}`);
+      assert.equal(seen.yearUpDisabled, false, `year up disabled at bound+${months - EARLIEST_MONTHS}`);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+test('one month above the bound the month may step down and the year may not', async () => {
+  // The two controls take DIFFERENT bounds, because they move by different
+  // amounts. One month above the bound a month press lands on it; a year press
+  // would land eleven months under it.
+  const { context, page } = await openAt(EARLIEST_MONTHS + 1);
+  try {
+    const seen = await probe(page);
+    assert.equal(seen.monthDownDisabled, false, 'the month cannot reach the bound it is one step from');
+    assert.equal(seen.yearDownDisabled, true, 'a year press would drop eleven months under the bound');
+  } finally {
+    await context.close();
+  }
+});
+
+test('no sequence of presses reaches a date below the bound - month first, then year', async () => {
+  const { context, page } = await openAt(EARLIEST_MONTHS + 14);
+  try {
+    // Hammered rather than walked: every press is delivered through the DOM, so
+    // a disabled attribute alone does not carry the test - the handler's own
+    // guard has to hold too.
+    for (let i = 0; i < 20; i += 1) await press(page, 'step-month-down');
+    for (let i = 0; i < 5; i += 1) await press(page, 'step-year-down');
+    for (let i = 0; i < 20; i += 1) await press(page, 'step-month-down');
+    const seen = await probe(page);
+    const landed = monthsFromNow(seen.month, seen.year);
+    assert.ok(landed >= EARLIEST_MONTHS, `pressed down to ${seen.month}/${seen.year}, ${EARLIEST_MONTHS - landed} months below the bound`);
+  } finally {
+    await context.close();
+  }
+});
+
+test('no sequence of presses reaches a date below the bound - year first, then month', async () => {
+  const { context, page } = await openAt(EARLIEST_MONTHS + 14);
+  try {
+    for (let i = 0; i < 5; i += 1) await press(page, 'step-year-down');
+    for (let i = 0; i < 20; i += 1) await press(page, 'step-month-down');
+    for (let i = 0; i < 5; i += 1) await press(page, 'step-year-down');
+    const seen = await probe(page);
+    const landed = monthsFromNow(seen.month, seen.year);
+    assert.ok(landed >= EARLIEST_MONTHS, `pressed down to ${seen.month}/${seen.year}, ${EARLIEST_MONTHS - landed} months below the bound`);
+  } finally {
+    await context.close();
+  }
+});
+
+test('pressing down at the bound moves nothing at all', async () => {
+  // Not the same assertion as the two above. They say the date never goes
+  // under; this says a refused press does not move the date SIDEWAYS either -
+  // the year does not drop while the month is dragged up to compensate, which
+  // would change a value the participant set on a control they did not touch
+  // (G92's pattern, and D82's first open question).
+  const { context, page } = await openAt(EARLIEST_MONTHS);
+  try {
+    const before = await probe(page);
+    await press(page, 'step-year-down');
+    await press(page, 'step-month-down');
+    const after = await probe(page);
+    assert.equal(after.month, before.month, 'a refused press moved the month');
+    assert.equal(after.year, before.year, 'a refused press moved the year');
   } finally {
     await context.close();
   }
 });
 
 // ---------------------------------------------------------------------------
-// Option C's invariant: nothing the participant set is discarded. D80, D46.
+// A bound that moved while the participant was elsewhere. D82, D46.
 // ---------------------------------------------------------------------------
 
-test('pressing Continue over the ceiling commits nothing and goes nowhere', async () => {
+test('a date already below the bound is left standing, and Continue is disabled', async () => {
+  const { context, page } = await openAt(EARLIEST_MONTHS - 1);
+  try {
+    const seen = await probe(page);
+    const seeded = dateAtMonths(EARLIEST_MONTHS - 1);
+    // NOTHING IS REWRITTEN. This is the whole of D46 in one assertion: the
+    // participant's date is the date they set, not the nearest one that works.
+    assert.equal(seen.month, seeded.targetMonth, 'the stored month was moved to the bound');
+    assert.equal(seen.year, seeded.targetYear, 'the stored year was moved to the bound');
+    assert.equal(seen.disabled, true, 'Continue is live over a date the ceiling cannot meet');
+    // And the way out is open: down is refused, up is not.
+    assert.equal(seen.monthDownDisabled, true, 'the date can be pushed further out of range');
+    assert.equal(seen.monthUpDisabled, false, 'there is no way back toward the bound');
+  } finally {
+    await context.close();
+  }
+});
+
+test('pressing Continue below the bound commits nothing and goes nowhere', async () => {
   const { context, page } = await openAt(EARLIEST_MONTHS - 1);
   try {
     const before = await probe(page);
@@ -186,13 +296,11 @@ test('pressing Continue over the ceiling commits nothing and goes nowhere', asyn
     // which refuses a disabled button. Both guards are being tested: the
     // attribute AND the handler's own early return. A future change that drops
     // `disabled` would still have to leave the handler refusing.
-    await page.evaluate(() => document.querySelector('[data-action="continue"]').click());
-    await page.waitForTimeout(300);
+    await press(page, 'continue');
+    await page.waitForTimeout(200);
     const after = await probe(page);
-    assert.equal(await page.evaluate(() => window.location.hash), '#/calculator/saving', 'Continue navigated away from an error state');
-    assert.deepEqual(after.committed, before.committed, 'Continue wrote a figure while the ceiling error stood');
-    // And specifically that the seed's own committed range is untouched: this
-    // path may not clamp, reset or replace anything (option C).
+    assert.equal(await page.evaluate(() => window.location.hash), '#/calculator/saving', 'Continue navigated away from a date below the bound');
+    assert.deepEqual(after.committed, before.committed, 'Continue wrote a figure from a date below the bound');
     assert.deepEqual(after.committed.low, FULL['monthly-low'], 'monthly-low was rewritten on the date path');
     assert.deepEqual(after.committed.high, FULL['monthly-high'], 'monthly-high was rewritten on the date path');
     assert.deepEqual(after.committed.rate, FULL['savings-rate'], 'savings-rate was rewritten on the date path');
@@ -201,8 +309,68 @@ test('pressing Continue over the ceiling commits nothing and goes nowhere', asyn
   }
 });
 
+test('stepping the date does not commit anything either', async () => {
+  // The other half of the same invariant: only Continue writes on this path, so
+  // a participant who walks the stepper and leaves has changed no figure.
+  const { context, page } = await openAt(EARLIEST_MONTHS + 6);
+  try {
+    const before = await probe(page);
+    await press(page, 'step-month-down');
+    await press(page, 'step-year-up');
+    await press(page, 'step-month-up');
+    const after = await probe(page);
+    assert.deepEqual(after.committed, before.committed, 'a stepper press wrote a section 6 figure');
+  } finally {
+    await context.close();
+  }
+});
+
 // ---------------------------------------------------------------------------
-// The readout. G65.
+// The banner D82 superseded. GAPS.md G96's frame 10b case.
+// ---------------------------------------------------------------------------
+
+test('no ceiling banner is raised anywhere on the date path, at or below the bound', async () => {
+  // This is what closes G96's frame 10b case, and it replaces three tests that
+  // asserted the banner's presence, its interpolated slots and its role. A
+  // banner that cannot be raised cannot be asserted about - and cannot fall
+  // below the fold, which is the point.
+  const { default: content } = await import('../src/content.js');
+  const c = content['/calculator/saving'];
+  for (const months of [EARLIEST_MONTHS - 1, EARLIEST_MONTHS, EARLIEST_MONTHS + 6]) {
+    const { context, page } = await openAt(months);
+    try {
+      const seen = await probe(page);
+      assert.equal(seen.hasBanner, false, `a banner was drawn ${months - EARLIEST_MONTHS} months from the bound: "${seen.bannerText}"`);
+    } finally {
+      await context.close();
+    }
+  }
+  // The string itself is KEPT, unrendered, per D82 - so that if the bound is
+  // ever removed the case has its copy already written and copy-checked.
+  assert.ok(c.errorDateNeedsMoreThanLeftOver, 'the superseded string was deleted rather than kept');
+});
+
+test('the past-date banner still behaves the way D78 wired it', async () => {
+  // D78's treatment is asserted on the one error this screen can still raise,
+  // so the wiring stays covered on this route even though the ceiling banner is
+  // gone. `errorPastDate` is now reachable only from a stored date, not from a
+  // press - the bound stops the steppers well before today.
+  const now = new Date();
+  const { context, page } = await openAt(0, { targetMonth: 1, targetYear: now.getFullYear() - 1 });
+  try {
+    const seen = await probe(page);
+    assert.ok(seen.hasBanner, 'a date in the past raised nothing');
+    assert.equal(seen.bannerRole, 'alert');
+    assert.ok(seen.bannerId, 'the banner carries no id for Continue to reference');
+    assert.equal(seen.describedBy, seen.bannerId, 'Continue does not describe itself with the error explaining it');
+    assert.equal(seen.disabled, true);
+  } finally {
+    await context.close();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// The readout. G65 - unaffected by D82, and asserted so it stays that way.
 // ---------------------------------------------------------------------------
 
 test('the date path renders the monthly amount it solves, and it matches the model', async () => {
@@ -231,85 +399,23 @@ test('the readout is a live region, so stepping the date announces the new amoun
   }
 });
 
-test('the figure stays on screen while it is being refused', async () => {
-  // G65's own argument for why the ceiling check needs the readout beside it:
-  // an error saying "not this date" is not actionable if the participant cannot
-  // see the figure it is about.
+test('the figure stays on screen when the date is below the bound', async () => {
+  // G65's argument, applied to D82's one remaining refusal: a Continue that will
+  // not move is not actionable if the participant cannot see the figure it is
+  // refusing. The readout is the only thing on screen saying so until D82's
+  // second open question is filled.
   const { context, page } = await openAt(EARLIEST_MONTHS - 1);
   try {
     const seen = await probe(page);
-    assert.ok(seen.hasBanner && seen.hasReadout, 'the banner is drawn without the figure it refers to');
+    assert.ok(seen.hasReadout, 'the figure vanished on the one state that still refuses');
   } finally {
     await context.close();
   }
 });
 
 // ---------------------------------------------------------------------------
-// D78 consistency: this banner behaves like the other seven.
+// The slider path is untouched by any of this.
 // ---------------------------------------------------------------------------
-
-test('the banner is an alert and the disabled Continue points at it', async () => {
-  const { context, page } = await openAt(EARLIEST_MONTHS - 1);
-  try {
-    const seen = await probe(page);
-    assert.equal(seen.bannerRole, 'alert');
-    assert.ok(seen.bannerId, 'the banner carries no id for Continue to reference');
-    assert.equal(seen.describedBy, seen.bannerId, 'Continue does not describe itself with the error explaining it');
-  } finally {
-    await context.close();
-  }
-});
-
-// ---------------------------------------------------------------------------
-// The two paths keep their own copy. D80, D34 (Category B).
-// ---------------------------------------------------------------------------
-
-test('the date path does not reuse the slider path error string', async () => {
-  const { default: content } = await import('../src/content.js');
-  const c = content['/calculator/saving'];
-  const { context, page } = await openAt(EARLIEST_MONTHS - 1);
-  try {
-    const seen = await probe(page);
-    assert.notEqual(seen.bannerText, c.errorExceedsLeftOver, 'the date path is showing "Choose a smaller range" on a screen with no range control');
-    // NOT compared against the template, which is what this line did while the
-    // string was `[AWAITING COPY]` and had no slots to fill. The template now
-    // carries slots, so an equality check against it would only pass if the
-    // screen had stopped interpolating - the opposite of what this asserts.
-    assert.notEqual(seen.bannerText, c.errorDateNeedsMoreThanLeftOver, 'the banner rendered its own template, so no slot was filled');
-    assert.match(seen.bannerText, /^That date needs more than /, 'the banner is not the date path string at all');
-  } finally {
-    await context.close();
-  }
-});
-
-test('the banner fills {max} and {earliest}, and leaves no trace of the unused {amount}', async () => {
-  const { formatCurrency } = await import('../src/format.js');
-  const { context, page } = await openAt(EARLIEST_MONTHS - 1);
-  try {
-    const text = (await probe(page)).bannerText;
-    // {max} is the ceiling, formatted the way every other figure on this screen
-    // is - read through `format.js` rather than written here, so a change to the
-    // formatter cannot leave this passing while the banner shows something else.
-    assert.ok(text.includes(formatCurrency(CEILING)), `the banner does not name the ceiling: "${text}"`);
-    // {earliest} is the same month the boundary test pins, so the date the
-    // participant is TOLD is the earliest one is the date at which the screen
-    // actually stops refusing. D81.
-    const now = new Date();
-    const reached = new Date(now.getFullYear(), now.getMonth() + EARLIEST_MONTHS, 1);
-    const label = `${reached.toLocaleString('en-GB', { month: 'long' })} ${reached.getFullYear()}`;
-    assert.ok(text.includes(label), `the banner names a different earliest date than the boundary: expected "${label}" in "${text}"`);
-    // AND NOTHING IS LEFT OF THE SLOT THE COPY DOES NOT USE. `fill()` is a
-    // `String.replace` per key, so an unused slot is silently harmless - but a
-    // slot the copy DOES name and the screen stops passing would render as a
-    // literal, and a slot removed from the copy without its surrounding
-    // whitespace would double a space. Both are invisible in a screenshot.
-    assert.doesNotMatch(text, /\{[a-z]+\}/, `an unfilled slot reached the screen: "${text}"`);
-    assert.doesNotMatch(text, /\s{2,}/, `the banner carries doubled whitespace: "${text}"`);
-    assert.equal(text, text.trim(), 'the banner carries leading or trailing whitespace');
-  } finally {
-    await context.close();
-  }
-});
 
 test('the slider path still shows its own ceiling error, unchanged', async () => {
   const { default: content } = await import('../src/content.js');

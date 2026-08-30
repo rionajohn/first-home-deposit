@@ -18,6 +18,25 @@
  * savings-rate is solved from the chosen date, and monthly-low/monthly-high
  * are DERIVED from it at 0.9x/1.1x (rangeFromCentral).
  *
+ * THE DATE STEPPER IS BOUNDED (DECISIONS.md D82, superseding D80's option C).
+ * D80 let the participant set a date needing more than the ceiling and then
+ * refused it with a banner. The stepper's down controls now stop at the
+ * earliest date the goal is reachable by, so the impossible date cannot be
+ * set, there is nothing to refuse, and `errorDateNeedsMoreThanLeftOver` is no
+ * longer rendered by anything. D46 is satisfied more simply than it was: no
+ * value is discarded because none is ever taken.
+ *
+ * WHAT THE BOUND IS AND WHERE IT LIVES. `earliestWorkableMonths()` below, one
+ * number, recomputed on EVERY render - which is every entry to this screen,
+ * every stepper press, every segment switch and every back-navigation onto it.
+ * It has to be, because everything that moves it is committed on another
+ * screen (see that function's own note), so a value cached on entry would be
+ * stale the moment the participant edited a figure on frame 11 and came back.
+ *
+ * ONE SOURCE FOR THE BOUND AND THE DISABLE. `belowBound` and both down-control
+ * disable flags are the same comparison against the same number, so the button
+ * that refuses a press and the guard that refuses a commit cannot disagree.
+ *
  * THE CEILING APPLIES TO BOTH PATHS (DECISIONS.md D80, closing GAPS.md G64
  * and G65). It used to apply to one. The slider path measured every input
  * against `savingCeiling` and raised `errorExceedsLeftOver`; the date path
@@ -75,29 +94,40 @@ function monthsFromNow(targetMonth, targetYear) {
 }
 
 /**
- * The earliest month and year the goal is reachable at the ceiling, as a
- * label. `monthsToReachAmount` is `monthlyAmountFromDate`'s inverse over the
- * same annuity-due equation, so asking it for the months at `left-over` gives
- * exactly the date at which the solved amount stops exceeding the ceiling.
+ * THE BOUND: whole months from today to the earliest date the goal is
+ * reachable at the ceiling. `monthsToReachAmount` is `monthlyAmountFromDate`'s
+ * inverse over the same annuity-due equation, so the month it returns is
+ * exactly where the solved amount stops exceeding `left-over`.
  *
  * THE GOAL IS DERIVED, NOT READ, and that is deliberate.
  * `monthlyAmountFromDate` already derives `combinedGoal(state)` live, so the
- * date in the error and the amount the error is about come from ONE source and
- * cannot disagree. Reading the stored `combined-goal` here while the amount
- * beside it was derived is precisely the live-versus-stored split CLAUDE.md's
- * state rules and D38's third amendment name.
+ * bound and the amount the bound is about come from ONE source and cannot
+ * disagree. Reading the stored `combined-goal` here while the amount beside it
+ * was derived is precisely the live-versus-stored split CLAUDE.md's state
+ * rules and D38's third amendment name.
  *
  * ROUNDED UP to a whole month, D2's own rule for a month figure shown to a
  * participant: a date earlier than the maths gives is a date that does not
  * work.
  *
- * Returns null only for states this screen cannot render. `goal.error` is
- * already excluded by the caller - the same `combinedGoal` failure would have
- * made `previewAmount` an error first - and a non-finite month count needs a
- * ceiling at or below zero, which `left-over` cannot be: frame 05 refuses to
- * commit one, and the slider path above already divides by it.
+ * RECOMPUTED ON EVERY RENDER, NEVER CACHED (D82). Nothing this screen can edit
+ * moves it - every input does live somewhere else: `money-in` and
+ * `essential-spending` (and an entered override) on frame 05 through
+ * `left-over`; `property-value` and `deposit-pct` on frames 09 and 11 through
+ * `combinedGoal`; `saved-toward-deposit` on frames 03/06 and frame 11. So the
+ * bound cannot move WHILE the participant is on this screen, and it can differ
+ * between two visits to it. A value read once on entering date mode would be
+ * the stale one on the second visit, which is the case this is written to
+ * avoid rather than the one it looks like it is for.
+ *
+ * Returns null only for states this screen cannot render: `goal.error`, or a
+ * non-finite month count, which needs a ceiling at or below zero - and
+ * `left-over` cannot be, because frame 05 refuses to commit one and the slider
+ * path above already divides by it. A null bound bounds nothing, which is the
+ * safe direction: the screen behaves as it did before D82 rather than locking
+ * a control it cannot justify locking.
  */
-function earliestWorkableDateLabel(state, savingCeiling) {
+function earliestWorkableMonths(state, savingCeiling) {
   const goal = combinedGoal(state);
   if (goal.error) return null;
   const months = monthsToReachAmount({
@@ -106,9 +136,26 @@ function earliestWorkableDateLabel(state, savingCeiling) {
     monthlyAmount: savingCeiling,
   });
   if (!Number.isFinite(months)) return null;
-  const now = new Date();
-  const reached = new Date(now.getFullYear(), now.getMonth() + Math.ceil(months), 1);
-  return `${MONTH_NAMES[reached.getMonth()]} ${reached.getFullYear()}`;
+  return Math.max(0, Math.ceil(months));
+}
+
+// `monthsFromNow`'s INVERSE IS NOT HERE ANY MORE, and its absence is the point.
+// D80 needed it to name the earliest date inside the banner; nothing renders
+// that date now, so the three lines that built the label went with the string
+// that used them rather than sitting unused waiting to rot. Filling D82's
+// second open question - where the bound's explanation sits - brings both back,
+// and `earliestWorkableMonths` below is the half worth keeping either way.
+
+/**
+ * One month step in either direction, rolling the year. USED BOTH BY THE
+ * DISABLE CALCULATION AND BY THE HANDLER, so the button that refuses a press
+ * and the press it would have made are computed by the same two lines - the
+ * failure mode being avoided is a control disabled for one date while the
+ * handler moves to another.
+ */
+function monthStep(month, year, delta) {
+  const i = (month - 1) + delta;
+  return { month: ((i % 12) + 12) % 12 + 1, year: year + Math.floor(i / 12) };
 }
 
 // Neither "Savings interest rate" nor "Tax rate" has an owning editable
@@ -167,6 +214,31 @@ export function render(container, ctx) {
     monthlyHigh = { value: Math.min(seedHigh, savingCeiling), provenance: seedProvenance };
   }
 
+  // --- The bound (D82) -----------------------------------------------------
+  // Computed before anything reads it, and read by three things that must
+  // agree: whether Continue commits, whether each down control accepts a
+  // press, and where the stepper may go.
+  const boundMonths = earliestWorkableMonths(state, savingCeiling);
+  const monthsChosen = monthsFromNow(targetMonth, targetYear);
+  // A DATE ALREADY BELOW THE BOUND IS NOT A PRESS THE STEPPER LET THROUGH - it
+  // is a bound that moved. The participant sets a date here, goes back to frame
+  // 11, raises their property value, and returns: their date now needs more
+  // than the ceiling and the stepper had nothing to do with it.
+  //
+  // NOTHING IS REWRITTEN. Their month and year stand exactly as they set them
+  // (D46), the down controls are disabled so they cannot go further out of
+  // range, the up controls are live so the bound is one press-run away, and
+  // Continue is disabled so no impossible figure is committed - which is G64's
+  // invariant, kept without the banner that used to carry it. It is UNEXPLAINED
+  // on screen until the copy in D82's second open question lands; that is a
+  // known cost of this commit and is recorded rather than worked around.
+  const belowBound = boundMonths !== null && monthsChosen < boundMonths;
+  const downOneMonth = monthStep(targetMonth, targetYear, -1);
+  const monthDownDisabled = boundMonths !== null
+    && monthsFromNow(downOneMonth.month, downOneMonth.year) < boundMonths;
+  const yearDownDisabled = boundMonths !== null
+    && monthsFromNow(targetMonth, targetYear - 1) < boundMonths;
+
   let errorText = null;
   let previewAmount = null;
 
@@ -185,31 +257,13 @@ export function render(container, ctx) {
       errorText = c.errorPastDate;
     } else {
       previewAmount = monthlyAmountFromDate(state, months);
-      // THE CEILING, ON THE PATH THAT CAN PRODUCE A FIGURE PAST IT (D80,
-      // GAPS.md G64). One comparison, the same one the slider path makes,
-      // against the same `savingCeiling` - so the two variants of this screen
-      // accept and refuse the same figures rather than one of them having its
-      // own rules.
-      //
-      // RAISED HERE AND NOT ON THE SEGMENT SWITCH, and that is option C rather
-      // than the two declined with it: nothing is clamped, nothing is reset,
-      // the date and the figure both stand, and the participant is told why it
-      // cannot go forward. Continue is disabled by `errorText` below, so this
-      // path writes NOTHING - no `savings-rate`, no `monthly-low`, no
-      // `monthly-high`. D46 is satisfied because there is nothing to make
-      // visible: no value the participant set has been replaced.
-      //
-      // Guarded on `previewAmount.error` first. A failed solve carries a null
-      // value and `null > 640` is false, so the comparison would pass silently
-      // rather than raise - the state rule again: no figure is shown for a key
-      // the guard did not test.
-      if (!previewAmount.error && previewAmount.value > savingCeiling) {
-        errorText = fill(c.errorDateNeedsMoreThanLeftOver, {
-          amount: formatCurrency(previewAmount.value),
-          max: formatCurrency(savingCeiling),
-          earliest: earliestWorkableDateLabel(state, savingCeiling),
-        });
-      }
+      // NO CEILING BANNER HERE ANY MORE (D82, superseding D80's option C). The
+      // comparison that used to raise it - `previewAmount.value >
+      // savingCeiling` - is now `belowBound` above, computed from the same
+      // number the stepper's own bound uses, so the screen cannot refuse a
+      // figure the control would have allowed or allow one it refused. What it
+      // no longer does is raise a string: the date it would complain about
+      // cannot be reached by any press.
     }
   }
 
@@ -272,6 +326,8 @@ export function render(container, ctx) {
           yearAriaLabel: c.dateStepperYearAriaLabel,
           increaseLabel: content.shared.stepper.increaseLabel,
           decreaseLabel: content.shared.stepper.decreaseLabel,
+          monthDownDisabled,
+          yearDownDisabled,
         })}
         <!-- THE FIGURE THE DATE IMPLIES (D80, closing GAPS.md G65). It was
              computed on every render of this branch and read in exactly one
@@ -329,8 +385,11 @@ export function render(container, ctx) {
       primaryAction: 'continue',
       // An empty year disables Continue without raising an error, the same way
       // frame 09's empty property value does: nothing is wrong yet, the
-      // participant is simply part-way through typing.
-      primaryDisabled: !!errorText || yearCleared,
+      // participant is simply part-way through typing. `belowBound` disables it
+      // the same way and for the same kind of reason (D82): the date on screen
+      // is one the ceiling cannot reach, no press put it there, and nothing has
+      // been replaced to make it valid.
+      primaryDisabled: !!errorText || yearCleared || belowBound,
       // D78. Null while the year field is empty, for the reason on the line
       // above: a draft raises no banner, so there is nothing to point at.
       primaryDescribedBy: errorText ? 'error-saving' : null,
@@ -410,25 +469,43 @@ export function render(container, ctx) {
     }
 
     container.querySelector('[data-action="step-month-up"]').addEventListener('click', () => {
-      let m = targetMonth + 1, y = targetYear;
-      if (m > 12) { m = 1; y += 1; }
-      stepMonth(m, y);
+      // Never bounded: there is no ceiling on how far ahead a participant may
+      // plan, only a floor on how soon.
+      const { month, year } = monthStep(targetMonth, targetYear, 1);
+      stepMonth(month, year);
     });
     container.querySelector('[data-action="step-month-down"]').addEventListener('click', () => {
-      let m = targetMonth - 1, y = targetYear;
-      if (m < 1) { m = 12; y -= 1; }
-      stepMonth(m, y);
+      // GUARDED AS WELL AS DISABLED, the same belt-and-braces the Continue
+      // handler carries: the attribute stops the press, and this stops a press
+      // that reaches the handler anyway. Both read the same flag, and the step
+      // itself is `monthStep`, which is what the flag was computed from.
+      if (monthDownDisabled) return;
+      const { month, year } = downOneMonth;
+      stepMonth(month, year);
     });
-    // Both year chevrons resolve the draft as well as moving the year: they
-    // put a value back in the field, so the field is no longer empty. They stay
-    // unbounded in both directions, exactly as they were - the typed field
-    // introduces no bound the stepper does not have, so the two routes to a
-    // year cannot accept different values. GAPS.md G73.
+    // Both year chevrons resolve the draft as well as moving the year: they put
+    // a value back in the field, so the field is no longer empty.
+    //
+    // THE DOWN CHEVRON NOW STOPS AT THE BOUND AND THE TYPED FIELD DOES NOT, and
+    // G73's note that "the two routes to a year cannot accept different values"
+    // still holds where it matters. Neither route can COMMIT a date below the
+    // bound: `belowBound` disables Continue whichever way the year got there.
+    // What differs is the affordance - the chevron will not take you there, the
+    // field will let you type it and then sit refusing to go forward. Clamping
+    // the typed year to the bound would replace a number the participant just
+    // typed, in the field they typed it in, which is G74 exactly. D82.
     container.querySelector('[data-action="step-year-up"]').addEventListener('click', () => {
       const next = setState({ targetYear: targetYear + 1, targetYearCleared: false });
       rerenderInPlace(container, render, { ...ctx, state: next });
     });
     container.querySelector('[data-action="step-year-down"]').addEventListener('click', () => {
+      // THE YEAR REFUSES TO MOVE RATHER THAN DRAGGING THE MONTH UP WITH IT.
+      // That is what "disable the control at the bound" produces and it is not
+      // a choice made here: moving the year and pulling the month to the bound
+      // would change a value the participant set on a control they did not
+      // touch, which is G92's own pattern. See D82's first open question - the
+      // trade is real and it is not this build's to settle.
+      if (yearDownDisabled) return;
       const next = setState({ targetYear: targetYear - 1, targetYearCleared: false });
       rerenderInPlace(container, render, { ...ctx, state: next });
     });

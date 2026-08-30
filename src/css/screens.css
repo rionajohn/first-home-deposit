@@ -1056,6 +1056,17 @@
   cursor: pointer;
 }
 
+/* At the earliest reachable date the down control is disabled, not removed
+   (DECISIONS.md D82 - see dateStepperHTML for why removal is worse). The
+   treatment is `.button--primary:disabled`'s exactly, so a dead control looks
+   the same wherever it appears in this build rather than each one inventing
+   its own grey. The box keeps its full touch-target size: the control has not
+   gone anywhere, it has run out of room to move. */
+.date-stepper__step:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* The down control used to render the up chevron rotated 180deg. It renders
    chevronDown now — icons.js draws all four chevrons from the same geometry,
    so nothing has to depend on a transform to point the right way. */

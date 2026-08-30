@@ -3107,6 +3107,23 @@ because of the regulatory dimension above.*
 
 ## G96. Frame 10b's ceiling error is below the fold on first paint, so a disabled Continue has no visible explanation
 
+> **30 AUGUST 2026: THE FRAME 10b CASE IS CLOSED - `DECISIONS.md` D82. THE ENTRY STAYS OPEN FOR FRAMES
+> 10 AND 11.** D82 bounded the date stepper at the earliest reachable date, so the banner measured below
+> cannot be raised at all: a banner that cannot exist cannot fall below the fold. **The layout was not
+> fixed** - the space above the dock is unchanged and the readout still sits where it did. That
+> distinction is the same one G92 to G95 carry, and it matters for the same reason: if the bound is ever
+> removed the measurement below is true again, unchanged.
+>
+> The two other screens this entry records are **untouched by D82 and remain open** - frame 10's slider
+> ceiling error, cut 14px at Large, and frame 11's third stacked banner, cut 110px and 200px. Frame 11's
+> is the worst measured anywhere in the build and never had anything to do with D80's readout. **Do not
+> close this entry on D82.**
+>
+> D82 also removed the case for its own screen in the strongest available way, and that is worth naming
+> for whoever fixes the other two: the best fix for an error below the fold turned out to be not needing
+> the error. It is not available on frames 10 and 11, where the errors are raised by figures the
+> participant types rather than by a control that can be bounded.
+
 *Raised 30 August 2026. Measured during D81's copy pass and recorded there as a measurement of that
 change rather than as the record of a defect; opened here on instruction. **The first of G92 to G96
 that is REACHABLE.** G92, G93 and G94 need a state the build can no longer produce, and G95 needs a
@@ -3244,10 +3261,13 @@ this one can take.
 - **G89** above, same shape, open.
 - **D78** for `role="alert"` and the `aria-describedby` on the disabled primary.
 
-*Status: **open, and REACHABLE - unlike G92, G93, G94 and G95.** It occurs on first paint, in the
-current build, at a text size frame 33 offers, with no facilitator gesture and no seeded state. Do not
-file it beside the four unreachable entries above it and do not give it G89's "watch for it in testing"
-resolution: what it damages is the testing. Fixing it means one of - reserving the error's space above
-the dock, scrolling a raised banner into view, or moving the banner above the readout - and whichever
-is chosen applies to frames 10, 10b and 11 together, not to the screen named in the title.*
+*Status: **open for frames 10 and 11; the frame 10b case in the title is CLOSED - unreachable, not
+fixed (D82, 30 August 2026).** What remains is still REACHABLE, unlike G92 to G95: frame 10's slider
+ceiling error is cut 14px at Large and frame 11's third stacked banner is cut 110px and 200px, both on
+first paint, in the current build, with no facilitator gesture. Do not file the remainder beside the
+unreachable entries above it and do not give it G89's "watch for it in testing" resolution: what it
+damages is the testing. Fixing it means one of - reserving the error's space above the dock, scrolling a
+raised banner into view, or moving the banner above the figure it is about. D82's own fix, bounding the
+control so the error cannot arise, is NOT available on either remaining screen: both raise their errors
+from figures the participant types.*
 

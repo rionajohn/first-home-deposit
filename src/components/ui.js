@@ -872,7 +872,7 @@ export function segmentedControlHTML({ options, selected, action }) {
  * Input / Date stepper (frame 10b): a month control and a year control,
  * each with an up/down pair, plus a hint line beneath.
  */
-export function dateStepperHTML({ monthLabel, yearLabel, hint, monthAction, yearAction, monthAriaLabel, yearAriaLabel, increaseLabel, decreaseLabel, yearRole }) {
+export function dateStepperHTML({ monthLabel, yearLabel, hint, monthAction, yearAction, monthAriaLabel, yearAriaLabel, increaseLabel, decreaseLabel, yearRole, monthDownDisabled = false, yearDownDisabled = false }) {
   // THE YEAR IS TYPED AS WELL AS STEPPED; THE MONTH IS STEPPED ONLY.
   //
   // `yearRole` is what turns the year's readout into a field: pass it and the
@@ -897,7 +897,18 @@ export function dateStepperHTML({ monthLabel, yearLabel, hint, monthAction, year
   // `type="number"`, which is a second reason the pattern uses text), and it
   // constrains typing only - it does not touch `select()`, and it does not
   // touch a value set programmatically on re-render. See GAPS.md G73.
-  function control({ value, upAction, downAction, ariaLabel, role }) {
+  // ONLY THE DOWN DIRECTION TAKES A BOUND (DECISIONS.md D82). The floor is a
+  // date the goal is reachable by; there is no ceiling on how far ahead a
+  // participant may plan, so the up controls are never disabled and take no
+  // flag.
+  //
+  // DISABLED, NOT HIDDEN. A control that vanishes at the bound moves every
+  // control below it up by its own height, under the finger that is reaching
+  // for one of them - and it takes the participant's landmark with it, so the
+  // screen they are looking at is not the screen they looked away from. The
+  // greyed chevron stays where it was and says the same thing: this direction
+  // has run out.
+  function control({ value, upAction, downAction, ariaLabel, role, downDisabled }) {
     const readout = role
       ? `<input class="date-stepper__value date-stepper__value--input" type="text" inputmode="numeric" maxlength="4" data-role="${role}" value="${value}" aria-label="${ariaLabel}" />`
       : `<p class="date-stepper__value">${value}</p>`;
@@ -907,7 +918,7 @@ export function dateStepperHTML({ monthLabel, yearLabel, hint, monthAction, year
           ${chevronUp({ size: 'micro', weight: 'semibold' })}
         </button>
         ${readout}
-        <button type="button" class="date-stepper__step date-stepper__step--down" data-action="${downAction}" aria-label="${decreaseLabel} ${ariaLabel}">
+        <button type="button" class="date-stepper__step date-stepper__step--down" data-action="${downAction}" aria-label="${decreaseLabel} ${ariaLabel}"${downDisabled ? ' disabled' : ''}>
           ${chevronDown({ size: 'micro', weight: 'semibold' })}
         </button>
       </div>
@@ -916,8 +927,8 @@ export function dateStepperHTML({ monthLabel, yearLabel, hint, monthAction, year
   return `
     <div class="date-stepper">
       <div class="date-stepper__row">
-        ${control({ value: monthLabel, upAction: `${monthAction}-up`, downAction: `${monthAction}-down`, ariaLabel: monthAriaLabel })}
-        ${control({ value: yearLabel, upAction: `${yearAction}-up`, downAction: `${yearAction}-down`, ariaLabel: yearAriaLabel, role: yearRole })}
+        ${control({ value: monthLabel, upAction: `${monthAction}-up`, downAction: `${monthAction}-down`, ariaLabel: monthAriaLabel, downDisabled: monthDownDisabled })}
+        ${control({ value: yearLabel, upAction: `${yearAction}-up`, downAction: `${yearAction}-down`, ariaLabel: yearAriaLabel, role: yearRole, downDisabled: yearDownDisabled })}
       </div>
       <p class="date-stepper__hint">${hint}</p>
     </div>
