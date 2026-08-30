@@ -182,6 +182,21 @@ export function rangeFromCentral(central, spread = RATES.rangeSpread) {
  */
 export function onTrackFor(state) {
   const months = monthsToTarget(state);
+
+  // BEYOND-WINDOW KEEPS ITS VALUE; THE OTHER THREE HAVE NONE TO KEEP.
+  // `monthsToTarget` returns a months figure ALONGSIDE `beyond-window`
+  // deliberately - the projection succeeded, it just landed past the 60-month
+  // window - and this function used to discard it, so every caller saw an
+  // error with a null value and could say nothing more than "no date". The
+  // range is now derived and carried through `fail`'s third parameter, which
+  // exists for exactly this (`leftOver`'s `exceeds-money-in` uses it the same
+  // way). `non-numeric`, `unreachable` and `exceeds-left-over` all come back
+  // from `monthsToTarget` with a null value, so there is nothing to propagate
+  // and they are left as they were.
+  if (months.error === 'beyond-window') {
+    const beyond = rangeFromCentral(months.value);
+    return fail(months.error, months.provenance, { low: Math.ceil(beyond.low), high: Math.ceil(beyond.high) });
+  }
   if (months.error) return fail(months.error, months.provenance);
 
   const { low, high } = rangeFromCentral(months.value);

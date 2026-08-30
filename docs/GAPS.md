@@ -2207,3 +2207,75 @@ statement. None was left because it was hard.
 required lines that a lower-literacy participant is least likely to parse, and both would need a
 copy-check decision rather than an edit.*
 
+---
+
+**G80. The 60-month window is asserted in three places that agree by value, not by reference.**
+Raised with D68, 30 August 2026. **Open: reported, not fixed, because fixing it is a change to the
+model's API surface rather than to this row.**
+
+`CHART_WINDOW_MONTHS = 60` lives in `src/model/rates.js`. Three things depend on it and only one
+reads it:
+
+| Place | How it expresses the window |
+|---|---|
+| `model.js`, `monthsToTarget()` | `if (months > 60)` - a **hardcoded literal**. `model.js` does not import `CHART_WINDOW_MONTHS` at all. |
+| `calculator-result.js` (frame 12) | Imports and uses the constant for the chart's x-axis. |
+| Frame 12's `beyondWindowNote` | The words **"5 years"**, twice, in prose. |
+| The tracker's `onTrackBeyondWindowValue` and `onTrackBeyondWindowNote` (D68) | The words **"5 years"**, twice more, in prose. |
+
+**What breaks if the constant moves.** Changing `CHART_WINDOW_MONTHS` to, say, 84 would move frame
+12's chart to seven years while `monthsToTarget()` carried on returning `beyond-window` at 60. The
+model and the chart would disagree about where the window is, and **no test would catch it** -
+`stage.test.mjs` asserts `months-to-target > CHART_WINDOW_MONTHS`, which stays true at 107.6 months
+against either value. Both screens would then also keep saying "5 years" in copy while the chart drew
+seven.
+
+So three kinds of thing would have to move together: the literal in the model, the constant, and four
+prose strings across two screens.
+
+**Why it is not fixed here.** The literal is a one-word change; the prose is not. Deriving "5 years"
+from the constant means a template and a duration formatter in copy that is currently plain prose on
+frame 12 as well, so doing it properly touches a screen D68 was not asked to change. Doing it by
+halves - fixing the model and leaving the copy - would leave the desynchronisation in the words
+instead of the code, which is worse, because copy is what a participant reads.
+
+*Status: open. The smallest honest fix is all four at once: import the constant into `model.js`, and
+template the "5 years" in both screens' copy from a duration formatter over it.*
+
+---
+
+**G81. `on-track-for` can still be committed as a null, and nothing reads it.** Raised with D68, 30
+August 2026. **Open, and narrower than it was this morning.**
+
+`calculator-review.js` (frame 11) commits `'on-track-for': { value: onTrack.value, provenance }` when
+the participant presses Continue. Where `onTrackFor()` fails, `onTrack.value` is null, so the store
+takes a null under a real provenance - the `formatCurrency(null)` renders as £0 class of defect
+`CLAUDE.md`'s state rules and D46 exist to prevent.
+
+**D68 narrowed it.** Before, the opening session's own state was a producer: every session sat at
+`beyond-window`, so the value written was null on the path every participant takes. `onTrackFor()`
+now returns the range there, so that producer is gone.
+
+**What remains.** Three error codes still return a null value, and frame 11's Continue guard
+(`anyError = propertyError || pctError || monthlyError`) catches two of them:
+
+| Code | Blocked at frame 11? |
+|---|---|
+| `non-numeric` / `not-positive` target | Yes - `propertyError` and `pctError` |
+| `exceeds-left-over` | Yes - `monthlyError` tests `monthlyHigh > savingCeiling` |
+| `unreachable` (`savings-rate` is 0) | **No.** `monthlyError` tests only the UPPER bound. Nothing tests for zero. |
+
+So a participant who types 0 into frame 11's monthly range commits `on-track-for: null`. This is the
+same absent-lower-bound shape as **G76** on the neighbouring "Saved so far" field.
+
+**Confirmed unread, after D68 as before it.** Every reference to `'on-track-for'` in `src/` and
+`scripts/` is a writer (`calculator-review.js`, `skip-ahead.js`, `stage.js`), a key-list declaration
+(`state.js`, `stage.js`'s `STAGE_KEYS`, `skip-ahead.js`'s `DERIVED_STORED_KEYS`), a comment, or the
+harness seed. **No screen reads it** - the tracker calls `onTrackFor(state)` live on every render.
+So the null is latent rather than rendered: it is carried, persisted and restored, and nothing looks
+at it.
+
+*Status: open. Latent, not visible. It becomes a defect the moment any screen starts reading the
+stored key instead of re-deriving, which is exactly the change someone would make to save a
+recomputation.*
+

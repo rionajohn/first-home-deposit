@@ -115,12 +115,20 @@ test('"Saving" gives up the projection window, and does so knowingly', () => {
   assert.ok(saving['months-to-target'].value > CHART_WINDOW_MONTHS);
   assert.equal(monthsToTarget(saving).error, 'beyond-window');
 
-  // `onTrackFor()` has no range above the window, so the tracker's "On track
-  // for" row renders its beyond-window variant. Null is the correct stored
-  // value here, not a missing one: `fail()` carries the provenance through,
-  // which the provenance test below still asserts.
-  assert.equal(saving['on-track-for'].value, null);
+  // `onTrackFor()` NOW CARRIES ITS RANGE ABOVE THE WINDOW (DECISIONS.md D68).
+  // This used to assert null and call null correct. It is not correct any
+  // more, and the reason is the same one D68 acts on: `monthsToTarget` returns
+  // a months figure ALONGSIDE `beyond-window` deliberately, and `onTrackFor`
+  // was throwing it away, which left the tracker with nothing to render but an
+  // em dash under a caption claiming a derivation.
+  //
+  // What has NOT changed is the cost this test exists to assert. The error
+  // still says the window was missed, and the whole range still sits past it -
+  // both ends, not just the central figure. A change that silently restored
+  // the window would still fail above, at the `months-to-target` assertion.
   assert.equal(onTrackFor(saving).error, 'beyond-window');
+  assert.deepEqual(saving['on-track-for'].value, onTrackFor(saving).value);
+  assert.ok(saving['on-track-for'].value.low > CHART_WINDOW_MONTHS);
 });
 
 test('every derived figure matches what the model returns for the same state', () => {

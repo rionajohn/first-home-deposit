@@ -1035,13 +1035,21 @@ export function processTimelineHTML({ heading, headingId, steps, currentIndex })
  * `figureRowHTML`'s `trailing` mode, which has no caption line.
  */
 export function statRowHTML({ label, value, caption }) {
+  // THE CAPTION IS OPTIONAL, BECAUSE A PROVENANCE CLAIM OVER AN ABSENT FIGURE
+  // IS A FALSE ONE. This row was emitting its caption unconditionally, so the
+  // tracker's "On track for" row could render an em dash under
+  // "Worked out from what you're putting aside each month" - naming a
+  // derivation, and the input it ran on, for a figure that is not there. The
+  // guard is here rather than in the caller because the component owns what it
+  // draws; a caller with no figure to explain now passes no caption. D5's rule
+  // is unaffected: every figure that DOES render still carries its provenance.
   return `
     <div class="stat-row">
       <div class="stat-row__line">
         <p class="stat-row__label">${label}</p>
         <p class="stat-row__value">${value}</p>
       </div>
-      <p class="stat-row__caption">${caption}</p>
+      ${caption ? `<p class="stat-row__caption">${caption}</p>` : ''}
     </div>
   `;
 }

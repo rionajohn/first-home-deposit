@@ -36,6 +36,7 @@ import {
   bindAppBarLeading,
   actionBarHTML,
   flagRowHTML,
+  infoBannerHTML,
   infoLinkHTML,
   progressBarHTML,
   milestoneTrackerHTML,
@@ -95,6 +96,9 @@ export function render(container, ctx) {
   });
 
   const onTrack = onTrackFor(state);
+  // Beyond-window is the one error state with a figure behind it, so it is the
+  // one that renders a value rather than a dash. See DECISIONS.md D68.
+  const beyondWindow = onTrack.error === 'beyond-window';
 
   // Four icon states, never a flat complete/locked split: every earlier
   // milestone is 'done' (dark filled star), the milestone just reached is
@@ -279,9 +283,18 @@ export function render(container, ctx) {
         <hr class="divider" />
         ${statRowHTML({
           label: c.onTrackLabel,
-          value: onTrack.error ? '—' : formatMonthYearRange(onTrack.value.low, onTrack.value.high, RATES.asAt),
-          caption: c.onTrackCaption,
+          value: beyondWindow
+            ? c.onTrackBeyondWindowValue
+            : onTrack.error
+              ? '—'
+              : formatMonthYearRange(onTrack.value.low, onTrack.value.high, RATES.asAt),
+          // No caption where no figure renders: the remaining dash states have
+          // nothing for a provenance line to describe. Beyond-window DOES
+          // render a figure, and "what you're putting aside" is what produced
+          // it, so it keeps its caption.
+          caption: onTrack.error && !beyondWindow ? null : c.onTrackCaption,
         })}
+        ${beyondWindow ? infoBannerHTML(c.onTrackBeyondWindowNote) : ''}
         <button type="button" class="list-row" data-action="open-provenance-key">
           <span class="list-row__label">${c.provenanceKeyLabel}</span>
           ${chevronRight({ size: 'body', className: 'list-row__chevron' })}

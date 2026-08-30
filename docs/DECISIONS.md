@@ -4579,6 +4579,7 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 29 August 2026 (AER leaves the screen, and five terms with it) | **D65 recorded; G79 raised, open by decision.** `fca-copy-check` rule 5's acronym rule was breached on three screens: frames 12, 29 and 30 used **AER** with no expansion on them, the gloss (`shared.bankRateCaptionTemplate`) rendering only on 08, 10, 11 and 32. **Remedy chosen was removal, not explanation** - all three become "a year", so the acronym is gone rather than glossed a fourth time, and `bankRateCaptionTemplate` and the four screens carrying it are untouched. Rate basis verified per screen: same `RATES.bankRate`, same annual period, source attribution kept verbatim on 29 and 30. **Stated rather than glossed over:** AER also encodes compounding, and only frame 29 keeps that - its "compounds monthly" becomes "each month you earn interest on the interest already added", so 29 says MORE than before, while 12 and 30 lose the implied signal. 12 recovers it through 29, one tap away; 30 does not, and a one-clause fix was offered and not taken because the brief specified the "a year" remedy and nothing more. Five further plain-wording swaps applied, all single-clause and none regulatory: "product fees", "provider", "conveyancing", "net of it" and frame 19's bare "A soft search only". **Two could not be applied literally** - the conveyancing row read "Solicitor **and conveyancing** fees" so a word swap produced nonsense, and the student-loan clause substituted directly would have repeated the noun and attached "which" to the wrong referent; both rewritten whole, with rule 6A's double-counting point preserved exactly. Frame 03's "towards" reverted to "toward" for consistency with two strings on its own screen. Copy-checked over all six routes: **3 fixed, 1 flagged** (`report-issue`, pre-existing). Six terms deliberately NOT changed and recorded as **G79**, with the rejected alternative beside each. `CACHE_VERSION` v58, `BUILD_VERSION` v58. 270 tests passing. |
 | 29 August 2026 (regulatory lines stay identical) | **D66 recorded.** A copy-variation pass asked that repeated wording be varied screen to screen so the same meaning is met differently each time. Applied to the twelve genuinely duplicated explanatory clusters (**D67**); **refused for the nine shared keys**, and refused as a position rather than only as a constraint. **Architecturally** these are not duplicated strings but ONE key rendered on many render sites - `guidanceNotAdvice` on 23 screens, `mcob3aRepossessionWarning` on 7 - so "varying" them means splitting one key into N, which is the shape **D34** removed after three captions had drifted into being wrong rather than merely different: the savings rate naming two incompatible origins, essential spending described three ways including an averaging window nothing in the code performs, and frame 12 using one key for two derivations. That drift happened at two to four copies; the guidance line has 23. **For research**, identical wording lets a participant recognise a recurring line as the standard note and move past it, where varied wording obliges them to work out whether the MEANING changed - a new comprehension task, not a removed one, falling hardest on the lower-literacy participants the variation was meant to serve, and sitting badly with the Consumer Duty consumer understanding outcome. `CLAUDE.md`'s fixed-wording rule and `fca-copy-check` rule 9 both point the same way on A1-A4, rule 9 on process grounds: that object holds CHECKED wording, and rewriting it returns 36 regulatory strings to an unchecked state. **The position is about which copy, not about repetition as such** - twelve explanatory clusters were varied the same day. No code or copy changed by this entry. |
 | 29 August 2026 (twelve duplicated clusters varied) | **D67 recorded.** The counterpart to **D66**: where that entry refuses to vary the nine shared keys, this one varies the twelve clusters that are genuinely duplicated - separate keys holding byte-identical wording. 18 string values across frames 06, 08, 11, 12, 13, 13b, 15/16, 18, 21, 29, 30 and 32. **Detection was mechanical, not by eye**: all 615 string leaves flattened and clustered by token-set overlap, which found 29 candidate clusters and, critically, CANNOT see a shared key (one leaf, many render sites) - the distinction D66 turns on. **One inventory error corrected on the way**: `howWeWorkedIntro` was filed as three keys on three screens, but frames 20 and 21 read frame 06's, so it is three keys across FIVE render sites and 06's is itself shared; 06's was therefore left alone and only 12 and 13 varied. **Where a third instance already varied** (frames 31 and 19 on four clusters) the existing variant was read first and the new wording pitched as a third distinct phrasing rather than converging on either. **B8's five phrasings were read as a set**, being the cluster most able to drift: all five name the same frame 03 assignment through four verbs, none names a different account set, none adds a window or averaging claim, and none shifts the `read` provenance sense. B2, B5 and B12 carry regulatory or scope content and were checked element by element; none required softening, so none was left identical on those grounds. **Recorded as a limit on the value**: frames 20 and 21 are mutually exclusive (`mip-running.js` replaces the hash with one), so B2, B10, B11 and B12 vary copy no single participant can compare. Copy-checked over all twelve routes: **0 fixed, 1 flagged** (`report-issue`, pre-existing). `CACHE_VERSION` v59, `BUILD_VERSION` v59. 270 tests passing. |
+| 30 August 2026 (the tracker's "On track for" row) | **D68 recorded; G80 and G81 raised, both open.** The row rendered an **em dash** on every opening session, under a caption claiming a derivation, with no note anywhere saying why. Four changes, smallest first. **(1)** `onTrackFor()` propagated `beyond-window` through `fail()` and DISCARDED the months figure `monthsToTarget()` returns alongside it on purpose; it now carries the range through `fail`'s third parameter, the way `leftOver`'s `exceeds-money-in` already did. The other three error codes come back with a null value, so they are untouched. **(2)** The tracker renders **"More than 5 years"** rather than a dash, matching frame 12's threshold language so the two agree on one session. **Deliberately not the date range** the model can now supply: 60 months is where the projection stops being shown, so "August 2034 to June 2036" would be more precise than the window allows and would contradict frame 12. **(3)** `statRowHTML` guards its caption, so an absent figure no longer carries a provenance claim. **(4)** New `onTrackBeyondWindowNote`, frame 12's note rewritten for a screen with no chart - its second clause explains the missing DATE rather than the chart's limit, and "at what you're putting aside now" replaces "at your current rate" because a rates card sits just above it. **One test updated, not weakened**: `stage.test.mjs` asserted null was the correct stored value here, which D68 reverses; the projection-window COST it exists to assert is untouched and now also asserts the whole range sits past the window. **Reachability corrected**: the tracker redirects unless `deposit-target` and `checkpoint-amount` are set, so the two `setting-up` dash rows were never reachable on this screen and beyond-window was the only dash a participant could meet. Copy check on the new strings: **0 issues**. `CACHE_VERSION` v60, `BUILD_VERSION` v60. 270 tests passing. |
 
 ---
 
@@ -5039,4 +5040,97 @@ study, except where a moderator flips the outcome on frame 33. It was applied as
 limitation is written here so it is not later mistaken for an effect.
 
 **To reverse.** 18 string values in `content.js`. The keys are listed by frame in the commit.
+
+---
+
+## D68. The tracker's "On track for" row says what it knows, instead of an em dash
+
+**Date.** 30 August 2026.
+
+**Decision.** Four changes, in increasing scope: `onTrackFor()` keeps the value it was discarding;
+the tracker renders "More than 5 years" instead of a dash; `statRowHTML` stops emitting a caption
+when there is no figure; and the tracker gains a beyond-window note of its own.
+
+**The state being fixed.** At the opening session the seeded goal is 107.6 months away, past the
+60-month window, so `monthsToTarget()` returns `beyond-window`. The row rendered `—`, and underneath
+it, unconditionally, "Worked out from what you're putting aside each month". A caption naming a
+derivation and its input, over a figure that is not there. Nothing on the screen said why, where
+frame 12 in the same state renders an explanatory banner.
+
+### 1. The value existed and was being thrown away
+
+`monthsToTarget()` does not fail on beyond-window. It returns `{ value: months, provenance, error }`
+- the months figure alongside the error - because the projection succeeded, it just landed past the
+window. `onTrackFor()` then did `if (months.error) return fail(...)` for all four cases, which
+replaced that value with null.
+
+So the screen had no figure to render, not because none could be computed, but because the wrapper
+discarded it one line after it arrived. Beyond-window now derives its range and returns it through
+`fail()`'s third parameter - which exists for exactly this, and which `leftOver()`'s
+`exceeds-money-in` branch already uses the same way, keeping the typed value so the screen can show
+what the participant typed while they correct it.
+
+`non-numeric`, `unreachable` and `exceeds-left-over` all come back from `monthsToTarget()` with a
+null value. There is nothing to propagate, so they are unchanged.
+
+### 2. A threshold, not a date
+
+The row shows **"More than 5 years"**, which is the language frame 12 already uses, so the two
+screens say the same thing about the same session.
+
+**The date range is deliberately not rendered, although the model can now supply it.** It would be
+"August 2034 to June 2036". Sixty months is the point at which this build stops showing a projection
+at all, so quoting a month-and-year pair ten years out would state a precision the window exists to
+deny, and would contradict frame 12, which says only "more than 5 years" for the identical figure.
+The value is propagated so the row can make a threshold statement, not so it can be printed.
+
+### 3. A caption over nothing is a false claim
+
+`statRowHTML` emitted its caption unconditionally. The guard is in the component rather than the
+caller because the component owns what it draws; a caller with no figure to explain now passes no
+caption. D5 is unaffected - every figure that renders still carries its provenance.
+
+**What this reaches, corrected from the first reading.** The tracker redirects to
+`#/calculator/result` unless `deposit-target` and `checkpoint-amount` are both set, so the two
+`setting-up` positions never draw this screen at all and their dash was never reachable here. With
+beyond-window now rendering a value, the guard covers `unreachable` and `exceeds-left-over`. The
+first of those is genuinely reachable: frame 11's `monthlyError` tests only the UPPER bound against
+the saving ceiling, so a participant who types zero into the monthly range commits a zero
+`savings-rate` and meets a dash on the tracker.
+
+### 4. The note, written for a screen with no chart
+
+> "This could take more than 5 years at what you're putting aside now. We show a date once it's
+> closer than that."
+
+Frame 12's is "This could take more than 5 years at your current rate - the chart shows progress to 5
+years." Two differences, both forced by the screen:
+
+- **No chart to refer to.** Frame 12's second clause explains the chart's limit. Here it explains why
+  the row shows no date, which is the same job - accounting for what the screen is not showing - for
+  a screen without one.
+- **"at what you're putting aside now", not "at your current rate".** The tracker draws a rates card
+  a few hundred pixels above this row, headed "What rates are like at this Loan-to-Value" and showing
+  4.6% to 5.2%. "Your current rate" would read as the interest rate. The replacement also matches the
+  row's own caption.
+
+Rendered through `infoBannerHTML`, the same component frame 12 uses for the same content, so the
+limitation is no less prominent here than there.
+
+### The test that changed, and why it is not a weakening
+
+`stage.test.mjs`'s "Saving gives up the projection window" asserted
+`saving['on-track-for'].value === null` and its comment called null correct. D68 reverses that
+premise, so the assertion had to move.
+
+**What the test exists for is untouched.** Its own comment says it asserts the COST, so a later
+change that silently restored the projection window would fail here and be read alongside D45, D55
+and D60. Those assertions - `months-to-target` past `CHART_WINDOW_MONTHS`, and `monthsToTarget()`
+returning `beyond-window` - are unchanged. The replaced lines now assert more than they did: that the
+stored range matches what the model returns, and that its LOW end is past the window, so the whole
+range is beyond it rather than just the central figure.
+
+**To reverse.** The `beyond-window` branch in `onTrackFor()`, the caption guard in `statRowHTML`, the
+`beyondWindow` branch in `tracker.js`, two keys in `content.js`, and the three assertions in
+`stage.test.mjs`.
 

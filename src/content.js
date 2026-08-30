@@ -855,6 +855,27 @@ const content = {
     interestRowCaption: 'Read from your savings accounts',
     onTrackLabel: 'On track for',
     onTrackCaption: "Worked out from what you're putting aside each month",
+
+    // BEYOND THE 60-MONTH WINDOW (DECISIONS.md D68). The row used to render an
+    // em dash here, which said nothing and looked like a defect. It now states
+    // the threshold, in the same terms frame 12 uses, so the two screens agree
+    // on the same session.
+    //
+    // Deliberately NOT the date range the model can now supply: 60 months is
+    // where the projection stops being shown, so quoting "August 2034 to June
+    // 2036" would state a projection more precise than the window allows and
+    // would contradict frame 12, which says only "more than 5 years".
+    onTrackBeyondWindowValue: 'More than 5 years',
+
+    // Frame 12's `beyondWindowNote` written for a screen with no chart. Its
+    // second clause explains the CHART's limit; there is no chart here, so the
+    // clause explains why the row shows no date instead - the same job for a
+    // screen without one. "at what you're putting aside now" rather than frame
+    // 12's "at your current rate" because this screen draws a rates card a
+    // little above it, where "rate" means the mortgage interest rate; the
+    // wording also matches this row's own caption.
+    onTrackBeyondWindowNote:
+      "This could take more than 5 years at what you're putting aside now. We show a date once it's closer than that.",
     provenanceKeyLabel: 'How we worked out your monthly saving',
     flagLabel: "Something doesn't look right",
     // `belowCheckpointCta` IS DELETED (DECISIONS.md D51). It held "What a
