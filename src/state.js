@@ -93,7 +93,9 @@ const COLLAPSIBLE_DEFAULTS = {
   // the projection, so it is not a section 6 key and nothing in model/ reads
   // it. Defaults to the full window, which is what the chart drew before the
   // control existed.
-  chartRangeMonths: 60,
+  // null means the "To goal" chip: the range is the participant's own
+  // projection, resolved at render because it moves with their figures.
+  chartRangeMonths: null,
   // Frame 19 (Before you run the check) — its three chevron sections.
   mipAskedOpen: false,
   mipBenefitsOpen: false,

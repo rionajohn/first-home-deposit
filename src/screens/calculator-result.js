@@ -85,9 +85,6 @@ export function render(container, ctx) {
   // D72 deleted the range figure.
   const [lowPctValue, midPctValue] = CHART_DEPOSIT_PCTS;
 
-  // The chart's window, in months. A view setting (D73): it changes what the
-  // chart draws and never what the model projects.
-  const rangeMonths = state.chartRangeMonths ?? CHART_WINDOW_MONTHS;
 
   // The participant's own choice, which this screen leads with now (D72).
   const depositPctValue = state['deposit-pct'].value;
@@ -97,6 +94,18 @@ export function render(container, ctx) {
   const monthsResult = monthsToTarget(state);
   const unreachable = monthsResult.error === 'unreachable';
   const beyondWindow = monthsResult.error === 'beyond-window';
+  // The chart's window, in months. A view setting (D73): it changes what the
+  // chart draws and never what the model projects.
+  //
+  // NULL IS THE "To goal" CHIP, and it resolves to the participant's own
+  // projection rather than to a constant. `monthsToTarget` carries a months
+  // figure even when it reports `beyond-window` (D68), which is exactly the
+  // case that matters here - the seeded goal runs to 126.1 months - so the
+  // value is taken from `.value` rather than gated on `.error`. It falls back
+  // to the five-year window only when the projection has no figure at all,
+  // which is the unreachable case the chart is not drawn in anyway.
+  const rangeMonths = state.chartRangeMonths
+    ?? (monthsResult.value ? Math.ceil(monthsResult.value) : CHART_WINDOW_MONTHS);
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
@@ -173,14 +182,6 @@ export function render(container, ctx) {
 
       ${unreachable ? '' : `
         <h3 class="section-heading">${c.chartHeading}</h3>
-        <p class="visually-hidden" id="chart-range-legend">${c.chartRangeLegend}</p>
-        <div role="group" aria-labelledby="chart-range-legend">
-          ${chipRowHTML({
-            chips: c.chartRangeLabels.map((r) => ({ value: r.months, label: r.label, ariaLabel: r.ariaLabel })),
-            selected: rangeMonths,
-            action: 'select-chart-range',
-          })}
-        </div>
         ${(() => {
           // TWELVE TICKS ACROSS WHATEVER RANGE IS SHOWN, so the bar count and
           // spacing never change - only the months each bar stands for.
@@ -213,6 +214,19 @@ export function render(container, ctx) {
             yBottom: c.yAxisFloor,
           });
         })()}
+        <!-- BELOW THE CHART, NOT ABOVE IT (D73's amendment). A control reads
+             as belonging to the thing it follows, and above the chart it
+             separated the heading from what the heading names. -->
+        <p class="visually-hidden" id="chart-range-legend">${c.chartRangeLegend}</p>
+        <div role="group" aria-labelledby="chart-range-legend">
+          ${chipRowHTML({
+            chips: c.chartRangeLabels.map((r) => ({ value: r.months, label: r.label, ariaLabel: r.ariaLabel })),
+            // `selected` compares against the STORED value, so the "To goal"
+            // chip (null) is pressed exactly when nothing has been chosen.
+            selected: state.chartRangeMonths,
+            action: 'select-chart-range',
+          })}
+        </div>
         <p class="provenance-caption">${c.chartRangeNoteText}</p>
         <p class="visually-hidden" role="status" aria-live="polite">${fill(c.chartRangeAnnouncementTemplate, {
           range: formatMonthsDuration(rangeMonths),
@@ -270,7 +284,11 @@ export function render(container, ctx) {
   // of a screen the chart is already well down.
   container.querySelectorAll('[data-action="select-chart-range"]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const next = setState({ chartRangeMonths: Number(btn.dataset.value) });
+      // `data-value` is the string "null" for the "To goal" chip, since that
+      // is what the template interpolates. Anything non-numeric resolves to
+      // null, which is the stored form of "use my own projection".
+      const raw = btn.dataset.value;
+      const next = setState({ chartRangeMonths: raw === 'null' ? null : Number(raw) });
       rerenderInPlace(container, render, { ...ctx, state: next });
     });
   });

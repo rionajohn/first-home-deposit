@@ -694,11 +694,26 @@ const content = {
     //
     // The chips are abbreviations, so each carries a spoken accessible name -
     // "6 mo" announced as written is not a name a participant can act on.
+    // FIVE OPTIONS, AND THE LAST IS THE DEFAULT (D73's amendment). The chart
+    // opened at five years, which is a window rather than an answer; it now
+    // opens at the whole time the projection runs to, so a participant sees
+    // the shape of the thing before they narrow it.
+    //
+    // "To goal" IS A CHIP RATHER THAN AN UNPRESSED STATE. Leaving every chip
+    // unpressed at the default would give a group with nothing selected and,
+    // worse, no way back once one is pressed - the default would be reachable
+    // only by leaving the screen. Its `months` is null because the value is
+    // the participant's own projection, resolved at render.
+    //
+    // Its label is not a duration for the same reason: at the seeded figures
+    // it is 10 years 7 months, and a chip reading "10 yr 7 mo" would be both
+    // unwieldy and different for every participant.
     chartRangeLabels: [
       { months: 6, label: '6 mo', ariaLabel: 'Show 6 months' },
       { months: 12, label: '1 yr', ariaLabel: 'Show 1 year' },
       { months: 36, label: '3 yr', ariaLabel: 'Show 3 years' },
       { months: 60, label: '5 yr', ariaLabel: 'Show 5 years' },
+      { months: null, label: 'To goal', ariaLabel: 'Show the whole time to your goal' },
     ],
     chartRangeLegend: 'How far ahead',
     // WHAT THE CONTROL DOES NOT DO, said once. Switching to six months shows a

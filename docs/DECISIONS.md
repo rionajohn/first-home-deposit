@@ -6512,3 +6512,82 @@ The chips land **below the fold** at both text sizes - 837px at default and 1006
 732px visible. That is a discoverability cost, not a layout bug: the chips belong under the heading
 they control, and moving them above it would put a chart control on a screen before the chart. Whether
 participants find them is what a session will show. `GAPS.md` G89.
+
+### Amended, 30 August 2026: the chart opens at the whole projection, the chips move below it, and the hatch goes
+
+### A compliant grey pair exists, and the hatch was not needed after all
+
+D73 hatched the upper band because the two fills measured 2.67:1 in light and 2.36:1 in dark, under
+the 3:1 D70 recorded. That was true of **those two fills**. It was not true of the palette, and the
+palette was not searched before the hatch went in.
+
+Every ordered pair of the nine greys was tested against two conditions in both themes: 3:1 against
+each other, **and** 3:1 against the plot background. Three pairs clear both:
+
+| Pair | Light | Dark |
+|---|---|---|
+| `label` / `border-strong` | 5.56 | 3.21 |
+| **`label` / `border-control`** | **5.18** | **4.54** |
+| `label` / `label-tertiary` | 3.43 | 3.26 |
+
+`--color-label` with `--color-border-control` is the widest and is what the bands now use. The hatch
+is gone.
+
+**The second condition is what eliminates everything else, and it is easy to miss.**
+`accent-neutral` against `surface-raised` reaches 7.29:1 and 4.86:1 - comfortably apart from each
+other - but `surface-raised` is 1.06:1 against the page, so the upper band would have vanished
+wherever it did not overlap the lower one. A band has to be visible against the plot, not only
+against its neighbour. Every pair that failed, failed on that.
+
+**Both bands changed, not just the upper one.** No pair containing the old `accent-neutral` passes,
+so the lower band moved to `--color-label`. The chart is heavier for it, which is a real cost and the
+reason to record the measurement rather than the preference.
+
+The legend swatches take the two fills directly, closing `GAPS.md` G90 with colour rather than with
+hatch.
+
+### The default is the whole projection, and "To goal" is a chip
+
+The chart opened at five years, which is a window rather than an answer. It now opens at the time the
+participant's own projection runs to - `monthsToTarget`, the same figure the tracker's "On track for"
+row uses. At the seeded figures that is **126.1 months, so 10 years 7 months**, and the axis reads
+Now | 3 yr 7 mo | 7 yr 1 mo | 10 yr 7 mo.
+
+**"No chip selected" was rejected as the default state.** It would leave a group with nothing pressed
+and, worse, **no way back**: once a participant pressed 6 mo, the default would be reachable only by
+leaving the screen and returning. So the default is a fifth chip, `months: null`, resolved at render.
+
+Its label is not a duration on purpose. At the seeded figures the range is 10 years 7 months, and a
+chip reading "10 yr 7 mo" would be unwieldy and different for every participant. "To goal" says what
+it is at any figures.
+
+`monthsToTarget` carries a months value even when it reports `beyond-window` (D68), which is exactly
+this case - the seeded goal is past the 60-month boundary - so the range reads `.value` rather than
+being gated on `.error`. It falls back to the five-year window only when the projection has no figure
+at all, which is the unreachable case the chart is not drawn in.
+
+**The early growth is legible, but the two bands are not distinguishable at the left edge.** At the
+full range the first bar stands at 18-20% of the plot, against 31% at the old five-year default -
+lower, but clearly above the floor, and the rise across twelve bars reads plainly. What does not read
+is the gap between the two series in the first few bars: **4.6px of a 240px plot**. That is a property
+of two rates that have barely diverged after ten months, not of the range or the colours, and it is
+equally true at the five-year view (4.1px). Worth knowing before reading anything into the left of the
+chart.
+
+### The chips sit below the chart
+
+A control reads as belonging to what it follows. Above the chart they separated the heading from the
+thing the heading names.
+
+Five chips fit **one row at default text and wrap to two at Large** (widths 65/56/58/58/79 and
+70/60/62/62/86 against a 350px column). Wrapping is the correct behaviour under the auto-layout rule -
+nothing truncates - and costs one row at the larger size only.
+
+**`GAPS.md` G89 is unchanged in substance.** The chips were below the fold above the chart and are
+still below it underneath, now further down. The reasoning there stands: they belong with the chart,
+and whether participants find them is what a session will show.
+
+**One defect on the way, and it is the third of its kind.** `rangeMonths` was left declared above
+`monthsResult`, which it now reads - a temporal dead zone that blanked the screen. `node --check`
+passes it and every test passed. Third time this exact failure has been caught by looking rather than
+by the suite; the harness gap reported earlier is still the reason.

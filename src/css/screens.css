@@ -1179,25 +1179,28 @@
   align-items: center;
 }
 
+/* TWO GREYS THAT MEASURE, NOT TWO THAT LOOK DIFFERENT (D73's amendment).
+   The bands were `--color-accent-neutral` at two opacities, which resolves to
+   2.67:1 in light and 2.36:1 in dark - under 3:1, so a hatch was carrying the
+   distinction. An exhaustive search of the palette found three pairs that
+   clear 3:1 against EACH OTHER and 3:1 against the plot background in BOTH
+   themes, and this is the widest of them: 5.18:1 light, 4.54:1 dark.
+
+   The second test is what eliminates most pairs. `accent-neutral` against
+   `surface-raised` reaches 7.29:1 light and 4.86:1 dark, but `surface-raised`
+   is 1.06:1 against the page, so the upper band would vanish wherever it did
+   not overlap the lower one. A band has to be visible against the plot, not
+   only against its neighbour. */
 .growth-chart__bar {
   width: 60%;
-  background: var(--color-accent-neutral);
+  background: var(--color-label);
 }
 
-/* THE UPPER SEGMENT IS HATCHED, NOT JUST LIGHTER (D73). The two segments
-   resolve to 2.67:1 in light and 2.36:1 in dark - under 3:1, the same wall
-   D70 measured - so opacity alone cannot tell them apart. The hatch is the
-   non-colour cue, and it reads naturally on a stacked band: the solid part
-   is what the lower monthly amount reaches, the hatched part is the extra
-   the higher amount adds. */
+/* The upper band. The hatch it used to carry is gone: it existed because no
+   two fills in this palette reached 3:1, and now two do. */
 .growth-chart__bar--high {
   border-radius: 2px 2px 0 0;
-  opacity: 0.6;
-  background-image: repeating-linear-gradient(
-    45deg,
-    transparent 0 3px,
-    var(--color-surface) 3px 5px
-  );
+  background: var(--color-border-control);
 }
 
 .growth-chart__bar--low {
@@ -1239,25 +1242,18 @@
   color: var(--color-label-secondary);
 }
 
-/* MATCHING MODIFIERS, WHICH THIS DID NOT HAVE (D73). Both legend rows
-   rendered from this one class with no modifier, so the legend showed two
+/* MATCHING MODIFIERS, WHICH THIS DID NOT HAVE (GAPS.md G90). Both legend
+   rows rendered from one class with no modifier, so the legend showed two
    identical squares and nothing connected either row to either bar. Each row
-   now carries the treatment of the segment it names, hatch included. */
+   now takes the fill of the band it names. */
 .growth-chart__swatch {
   width: 12px;
   height: 12px;
   border-radius: 2px;
-  background: var(--color-accent-neutral);
+  background: var(--color-label);
 }
 
-.growth-chart__swatch--high {
-  opacity: 0.6;
-  background-image: repeating-linear-gradient(
-    45deg,
-    transparent 0 3px,
-    var(--color-surface) 3px 5px
-  );
-}
+.growth-chart__swatch--high { background: var(--color-border-control); }
 
 .timing-figures {
   display: flex;

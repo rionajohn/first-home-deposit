@@ -2620,6 +2620,11 @@ directly above it and hard to miss. If they never reach the chart, the chips are
 being missed, and the question becomes whether the chart earns its position rather than whether the
 chips do.
 
+**Amended 30 August 2026 (D73's amendment): the chips moved below the chart and are therefore further
+down, not nearer.** The substance is unchanged - they were below the fold above the chart and still
+are beneath it - and so is the reasoning: a control belongs with the thing it changes, and the
+alternative is demoting the comparison card D72 made the subject of the screen.
+
 *Status: open, deliberately unresolved. Watch for it in testing rather than pre-empting it.*
 
 ---
@@ -2641,7 +2646,8 @@ distinguishes nothing is not a weak legend - it is decoration in the shape of a 
 identical squares satisfy; `action-bar.test.mjs` never looks at the chart. It was found by measuring
 the bar colours for a different reason and reading the markup that renders them.
 
-*Status: closed. Both swatches now carry a modifier matching the segment they name -
-`--growth-chart__swatch--high` takes the same hatch and opacity as the upper band. Fixed alongside
-D73's hatch, but it was a defect in its own right and would have needed fixing whether or not the
-range control was ever built.*
+*Status: closed. Both swatches now carry a modifier matching the band they name, taking its fill
+directly - `--color-label` for the lower, `--color-border-control` for the upper. Fixed first
+alongside D73's hatch and then again when D73's amendment replaced the hatch with a measured grey
+pair; the swatches follow the bands either way. It was a defect in its own right and would have needed
+fixing whether or not the range control was ever built.*
