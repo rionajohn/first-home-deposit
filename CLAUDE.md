@@ -75,6 +75,12 @@ do not introduce a state management library.
   exists because three temporal-dead-zone defects blanked a screen while the whole suite passed;
   `overlap.test.mjs` passes 72/72 against a completely blank tracker, which was verified rather than
   assumed. ~29s. **Run this first when a screen "does not render".**)
+- Test the growth chart's ranges: `node --test scripts/chart-range.test.mjs` (drives Chromium;
+  frame 12 at savings positions near, at and past the goal, plus the 6 mo chip. Asserts SHAPE - bars
+  distinct and rising, x-axis labels distinct, the live region never announcing less than the
+  participant has saved - rather than figures, so it survives a re-scale. Every one of these states
+  rendered cleanly, so the smoke test passed on all of them: a chart can be wrong in every particular
+  and still be a chart. ~14s. D73's third amendment.)
 - Test screen layout: `node --test scripts/overlap.test.mjs` (all 36 frame rows x both text sizes; the last two, `/assumptions/costs` and `/learn/stamp-duty`, have no frame number of their own - GAPS.md G83 and G84; asserts no divider, border or rule crosses text and no box is squashed below its content)
 - Test the skip-ahead control: `node --test scripts/skip-ahead.test.mjs` (pure Node, no browser; asserts three round trips leave state identical and that the threshold stays a ratio of CHECKPOINT_FRACTION rather than an amount)
 - Test the draft invariant: `node --test scripts/g62.test.mjs` (pure Node, no browser; asserts that abandoning a draft changes no committed key, and that `gapToCheckpoint()` reads the stored checkpoint rather than re-deriving it)

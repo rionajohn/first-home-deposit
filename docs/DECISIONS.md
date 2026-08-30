@@ -6894,3 +6894,56 @@ available would have been one the rules forbid.
 segmented control rather than as five separate pills, which is heavier in area but more legible as one
 control. The remaining levers - font weight, fill, radius - were not touched, because none of them was
 asked for and the border and touch target are both fixed by measurements already recorded.
+
+### Amended, 30 August 2026: the "Max" range had no floor and no guard, and the points collapsed
+
+Four defects, all in how the chart's range was resolved, none of which any test could see because
+every one of them rendered a chart.
+
+**`Math.ceil(monthsResult.value)` was doing too much work.** It took whatever `monthsToTarget`
+returned and made it the window, and that function returns three things the range could not use:
+
+| Savings position | `monthsToTarget` | What the chart drew |
+|---|---|---|
+| £52,000 of £52,500 | 1.2 | A 2-month window - **narrower than the "6 mo" chip beside it** - with twelve sample points collapsed onto three distinct months, every bar at 87-89% of the plot and the upper band 0-1px |
+| £52,500 (met) | **0** | Falsy, so it fell through to the five-year fallback **by accident rather than by decision** |
+| £60,000 (passed) | **-17.5** | `Math.ceil` gave -17, and the chart **projected backwards**: bars descending, an x-axis of "Now, 0 mo, 0 mo, 0 mo", no upper band, and a live region announcing **£51,808 to a participant holding £60,000** |
+
+**The floor is six months, and it is the shortest chip.** `CHART_MIN_RANGE_MONTHS` in `rates.js`. The
+reasoning is not about readability: a chip labelled "the whole time to reach your goal" drawing a
+NARROWER window than the chip labelled "6 mo" next to it is incoherent whatever it is measuring. The
+constant carries a note that it must come down if `chartRangeLabels` ever offers something shorter.
+
+**Once the goal is met the chip is not offered at all.** "The whole time to reach your goal" names
+nothing when the goal is behind them, and the alternatives were worse: keeping the chip and giving it
+a different meaning makes the label lie, and keeping it with a fallback range makes it lie more
+quietly. The chart itself stays - "how your savings would build up" is still a real question - so the
+row becomes the four durations and the selection falls to five years. The stored `null` would
+otherwise match nothing, so the fallback is marked instead and the row is never left with no chip
+pressed.
+
+The truthy test became `> 0` on the same pass. Exactly-at-goal returning 0 was reaching the fallback
+by accident, and an accident that happens to produce the right answer is still going to produce a
+wrong one eventually.
+
+**Twelve points became `Math.min(12, rangeMonths)`.** `Math.round(i * rangeMonths / 12)` duplicates
+whenever the range is under twelve, so the "6 mo" chip drew **twelve bars in six identical pairs** at
+every savings position, not only near the goal. One point per month at short ranges; the bars get
+wider and nothing else changes.
+
+### The regression coverage is a separate file, and why
+
+`scripts/chart-range.test.mjs`, seven tests, about 14 seconds. **Not part of `smoke.test.mjs`**, and
+the reason is the point: every one of these states rendered. The screen mounted, `#app` filled,
+nothing threw, the route resolved - so all three smoke assertions passed while the chart drew a
+descending series and announced a balance lower than the participant's own. A chart can be wrong in
+every particular and still be a chart.
+
+It asserts SHAPE rather than figures - bars distinct and rising, x-axis labels distinct, the
+announcement never below the starting balance - so it catches the defects without becoming a
+change-detector that has to be updated whenever the axis rescales.
+
+**One of the seven was wrong when first written**, and worth recording: the floor was asserted by
+counting twelve bars, which the floor does not produce - a six-month range draws six. It now asserts
+the floor by comparing the "Max" axis against the "6 mo" axis directly, which is the property that
+actually matters.

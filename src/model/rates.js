@@ -118,6 +118,23 @@ export const CHART_DEPOSIT_PCTS = [0.05, 0.10, 0.15];
 export const CHART_WINDOW_MONTHS = 60;
 
 /**
+ * The shortest window frame 12's growth chart will draw (DECISIONS.md D73's
+ * third amendment).
+ *
+ * IT EXISTS FOR THE "Max" CHIP, which resolves to the participant's own
+ * projection and so can be any length. Near the goal that projection gets very
+ * short - at 500 short of a 52,500 goal it is 1.2 months - and a chip labelled
+ * "the whole time to reach your goal" would then draw a NARROWER window than
+ * the chip labelled "6 mo" sitting beside it. A range that is shorter than the
+ * shortest explicit option is incoherent whatever it is measuring.
+ *
+ * SO IT MATCHES THE SHORTEST CHIP, and must keep matching it: if
+ * `chartRangeLabels` in content.js ever offers something below six months,
+ * this has to come down with it.
+ */
+export const CHART_MIN_RANGE_MONTHS = 6;
+
+/**
  * Frame 12 / frame 16's checkpoint-amount rule (build-spec.md section 4:
  * "checkpoint-amount | 0.75 x deposit-target"), pulled out to a named
  * constant so frame 16's "You've passed the 75% checkpoint" copy can read

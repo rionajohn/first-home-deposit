@@ -44,7 +44,7 @@ import {
 } from '../components/ui.js';
 import { formatCurrency, formatPercent, formatMonthsDuration } from '../format.js';
 import { balanceAtMonth, monthsToReachAmount, checkpointAmount, monthsToTarget, stampDuty, combinedGoal } from '../model/model.js';
-import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS, neighbourPcts } from '../model/rates.js';
+import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS, CHART_MIN_RANGE_MONTHS, neighbourPcts } from '../model/rates.js';
 
 export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
 
@@ -94,18 +94,38 @@ export function render(container, ctx) {
   const monthsResult = monthsToTarget(state);
   const unreachable = monthsResult.error === 'unreachable';
   const beyondWindow = monthsResult.error === 'beyond-window';
+  // THE GOAL IS BEHIND THEM, so "the whole time to reach your goal" names
+  // nothing (D73's third amendment). `monthsToTarget` returns 0 at the goal and
+  // a NEGATIVE number past it - at 60,000 against a 52,500 goal it returns
+  // -17.5 - and `Math.ceil` carried that straight into the range, so the chart
+  // projected backwards: bars descending, an x-axis of "0 mo", and a live
+  // region announcing a figure lower than the participant already had.
+  const goalMet = savedTowardDeposit >= combinedGoalValue;
+
   // The chart's window, in months. A view setting (D73): it changes what the
   // chart draws and never what the model projects.
   //
-  // NULL IS THE "Max" CHIP, and it resolves to the participant's own
-  // projection rather than to a constant. `monthsToTarget` carries a months
-  // figure even when it reports `beyond-window` (D68), which is exactly the
-  // case that matters here - the seeded goal runs to 126.1 months - so the
-  // value is taken from `.value` rather than gated on `.error`. It falls back
-  // to the five-year window only when the projection has no figure at all,
-  // which is the unreachable case the chart is not drawn in anyway.
+  // THREE THINGS GUARD THE "Max" RESOLUTION, and each was a defect first.
+  //   `goalMet`      the chip is not offered at all, so the range cannot be
+  //                  derived from a projection that has nothing left to run.
+  //   `> 0`          rather than a truthy test. `monthsToTarget` returns
+  //                  exactly 0 at the goal, which is falsy, so the old test
+  //                  fell through to the five-year fallback by accident.
+  //   `Math.max`     the floor. Near the goal the projection is a month or
+  //                  two, and "the whole time" must not draw a shorter window
+  //                  than the "6 mo" chip beside it.
   const rangeMonths = state.chartRangeMonths
-    ?? (monthsResult.value ? Math.ceil(monthsResult.value) : CHART_WINDOW_MONTHS);
+    ?? (!goalMet && monthsResult.value > 0
+      ? Math.max(CHART_MIN_RANGE_MONTHS, Math.ceil(monthsResult.value))
+      : CHART_WINDOW_MONTHS);
+
+  // TWELVE POINTS UNLESS THERE ARE NOT TWELVE MONTHS (D73's third amendment).
+  // The months were `Math.round(i * rangeMonths / 12)`, which duplicates
+  // whenever the range is under twelve - the "6 mo" chip drew bars in identical
+  // pairs, six distinct months across twelve bars. One point per month at
+  // short ranges; the bars simply get wider.
+  const pointCount = Math.min(12, rangeMonths);
+
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
@@ -186,8 +206,8 @@ export function render(container, ctx) {
           // TWELVE TICKS ACROSS WHATEVER RANGE IS SHOWN, so the bar count and
           // spacing never change - only the months each bar stands for.
           const points = [];
-          for (let i = 1; i <= 12; i += 1) {
-            const months = Math.round((i * rangeMonths) / 12);
+          for (let i = 1; i <= pointCount; i += 1) {
+            const months = Math.round((i * rangeMonths) / pointCount);
             points.push({ months, low: balanceAtMonth({ startingBalance: savedTowardDeposit, monthlyAmount: monthlyLow, months }), high: balanceAtMonth({ startingBalance: savedTowardDeposit, monthlyAmount: monthlyHigh, months }) });
           }
           // THE AXIS FOLLOWS THE CURVE (D73). It used to be forced up to the
@@ -220,10 +240,18 @@ export function render(container, ctx) {
         <p class="visually-hidden" id="chart-range-legend">${c.chartRangeLegend}</p>
         <div role="group" aria-labelledby="chart-range-legend">
           ${chipRowHTML({
-            chips: c.chartRangeLabels.map((r) => ({ value: r.months, label: r.label, ariaLabel: r.ariaLabel })),
+            // The "Max" chip (months: null) is dropped once the goal is met -
+            // see `goalMet` above. Its label would otherwise name a journey
+            // that is over.
+            chips: c.chartRangeLabels
+              .filter((r) => !(goalMet && r.months === null))
+              .map((r) => ({ value: r.months, label: r.label, ariaLabel: r.ariaLabel })),
             // `selected` compares against the STORED value, so the "Max"
             // chip (null) is pressed exactly when nothing has been chosen.
-            selected: state.chartRangeMonths,
+            // With "Max" gone the stored null matches nothing, so the fallback
+            // range is marked instead and the row is never left with no
+            // selection.
+            selected: goalMet && state.chartRangeMonths === null ? CHART_WINDOW_MONTHS : state.chartRangeMonths,
             action: 'select-chart-range',
           })}
         </div>
