@@ -7355,3 +7355,151 @@ The MCOB risk-warning card is the one worth naming: it is the same `exclamationT
 on the error banner, drawing at 1.05:1 on eight screens because its own context class declares no
 colour either.
 
+---
+
+## D80. The ceiling applies to both paths through step 2, and the figure it refuses is now on screen
+
+**Date.** 30 August 2026. Closes `GAPS.md` G64 and G65, which close together or not at all.
+
+### The defect, in one line
+
+Frame 10's slider path measured every input against `left-over` and refused anything above it. Frame
+10b's date path solved a monthly amount from the chosen date - `monthlyAmountFromDate` is unbounded
+by construction, a nearer date simply means a larger payment - and committed it. **Step 2 let a
+participant leave with a figure the application already knew was impossible, and step 3 refused it.**
+The ceiling was enforced in three of the four places it could be, and missing from the one path that
+can generate a figure past it.
+
+Worse, and this is why the two gaps could not be closed separately: the date path computed
+`previewAmount` on every render and read it in exactly one place, the Continue handler. **It was never
+shown.** So a participant could not notice that £1,861 was more than they had left over, because the
+screen never said £1,861.
+
+### Option C, and why the other two were declined
+
+Three options were put forward. All three stop the impossible figure reaching step 3; they differ in
+what the participant loses.
+
+| | What they see | What they lose | D46 |
+| --- | --- | --- | --- |
+| A. Clamp on entering monthly-amount mode | The range snaps to at or under the ceiling as the segment changes | Their date. The screen then shows an amount that does not reach it, with nothing saying so, and `savings-rate` silently disagrees with the `targetMonth`/`targetYear` still in the store | **Fails.** The silent replacement D46 exists to prevent - and worse than G74's clamp, because the participant did not type this figure and is not looking at the field it lands in |
+| B. Reset to the seeded range | The seeded £200-£310 in place of their range, unannounced | Both the date and the amount, replaced by something they never chose | **Fails**, more plainly: it lands on a seeded constant rather than on a bound they set themselves, which is the one mitigation G74 records for the clamps that already exist |
+| **C. Leave the values, raise the error in target-date mode** | Their date, the amount it implies, and a banner saying why it cannot go forward | Nothing | **Satisfied.** Nothing is discarded, so nothing needs making visible |
+
+**C was chosen.** It is the only one that discards nothing, it needs no new state key, and it makes
+the two paths through one screen accept and refuse the same figures rather than giving one of them its
+own rules.
+
+**Nothing is written on this path, and that is the invariant to protect.** While the error stands,
+Continue is disabled and its handler returns early, so `savings-rate`, `monthly-low` and
+`monthly-high` keep whatever the participant last committed. `date-ceiling.test.mjs` asserts it by
+clicking the disabled button through the DOM - past Playwright's actionability check - so both the
+attribute and the handler's own guard are tested. If a future change finds itself writing one of those
+three keys on this path, it is no longer option C.
+
+### Raised in target-date mode, not on the segment switch
+
+The check sits in the `else if (!yearCleared)` branch that already raised `errorPastDate`. Raising it
+on the segment switch instead would put the error on a screen the participant had just left, about a
+control they were no longer looking at - and it would still leave the date path free to commit the
+figure on its own Continue.
+
+### The earliest workable date
+
+Refusing a date without naming one that works moves the failure a screen earlier rather than fixing
+it. `monthsToReachAmount({ startingBalance: saved, targetAmount: the goal, monthlyAmount: left-over })`
+already existed in `model.js` and is `monthlyAmountFromDate`'s exact inverse over the same annuity-due
+equation, so the month it returns is precisely the point at which the solved amount stops exceeding
+the ceiling. Rounded UP, D2's own rule: a date earlier than the maths gives is a date that does not
+work.
+
+**The goal is derived, not read from the store.** `monthlyAmountFromDate` already derives
+`combinedGoal(state)` live, so deriving it again for the earliest date keeps the amount and the date in
+one source. Reading the stored `combined-goal` beside a live-derived amount is exactly the
+live-versus-stored split `CLAUDE.md`'s state rules and D38's third amendment name; the two would
+eventually disagree, and the error would name a date that did not match the figure above it.
+
+### The readout, and the deviation from reference PNG 10b
+
+`previewAmount` is now rendered. **Reference PNG 10b draws no readout**, and G65 was right that the
+build was faithful to it. The deviation is recorded rather than hidden, and the reason it is a
+deviation worth taking is that **the frame predates the ceiling check existing**. Its silence was a
+decision about a screen that refused nothing, not about a screen that refuses dates. The frame owner
+approved the readout; the placement is this build's.
+
+**Placement: below the stepper, above the banner.** The slider variant puts its figures ABOVE its
+track because the participant sets them there; this one puts the figure BELOW the stepper because the
+stepper produces it. Reading order matches causality on both. And on both, the banner sits immediately
+under the figure it is about - which is what Continue's `aria-describedby` points at (D78).
+
+**Drawn with `figureDisplayHTML`, which already existed**: the static counterpart to frame 05's figure
+input, already rendering one large figure with a caption on frames 06 and 21. No new component and no
+new CSS. It gained an optional `live` flag, off by default so both existing callers are byte-identical,
+which makes the block a polite live region: the figure moves on every press of the date stepper, and
+without it a participant using a screen reader hears the month change but never the amount the press
+was for.
+
+### The error banner behaves like the other seven (D78)
+
+`role="alert"`, an id, and `aria-describedby` from the disabled Continue to it. Already true of this
+branch before this pass - D78 wired the whole date branch, including `errorPastDate` - and asserted
+here rather than assumed.
+
+### Copy: one key outstanding
+
+**`content['/calculator/saving'].errorDateNeedsMoreThanLeftOver`, currently `[AWAITING COPY]`.**
+
+It is deliberately not `errorExceedsLeftOver` and must not become it: that string ends "Choose a
+smaller range" and there is no range control on this variant - the participant is looking at a month
+and a year. Category B, so it may differ from the slider wording without touching D34.
+
+Three slots are built and the copy may use any subset, because `fill()` replaces a slot only where the
+template names it:
+
+| Slot | Value |
+| --- | --- |
+| `{amount}` | the monthly figure the chosen date implies, formatted |
+| `{max}` | what is left over each month - the same slot name `sliderRangeCaptionTemplate` already uses for it |
+| `{earliest}` | the earliest month and year reachable at `{max}`, e.g. "August 2029" |
+
+**One thing for the copy pass to look at while it is there.** The date stepper's hint still reads
+"We'll work out what you'd need to put aside each month" - future tense, and it now sits directly above
+the answer. It was correct when the answer was deferred to frame 11. It was not changed here, because
+changing it is writing copy.
+
+**And one reuse, flagged rather than hidden.** The readout's caption is `sliderCaption` ("Put aside
+each month"), which names the same figure on the same screen - reuse of an existing string, not a new
+one. The key name now under-describes its use. Renaming it would touch the slider path as well, so it
+is left for the copy pass to decide.
+
+### Verification
+
+`shots.mjs` gained a `saving-date-ceiling` error state, seeded three months out relative to TODAY
+rather than at a fixed year, so it cannot quietly become a past date and shoot `errorPastDate`
+instead. 20 shots: five step 2 states x two themes x two text sizes. `overlap.test.mjs` gained a
+`10b-over-ceiling` row on the same relative date, so the taller of the two date-path layouts is
+measured at Large text as well.
+
+`date-ceiling.test.mjs` is new and its assertions are shape rather than figures, derived from
+`model.js` at run time so they follow a re-seeded fixture instead of breaking on it. **Both defects
+were reintroduced and the tests confirmed to fail** - 5 of 10 with the ceiling check disabled, 3 of 10
+with the readout suppressed - which is D77's habit and the reason the file is worth having.
+
+Full suite: 365 tests, 364 passing, 1 skipped (G91), 0 failing.
+
+### What this does NOT close
+
+**G92 is now unreachable, not fixed.** The low handle's change handler still reads
+`Number(rangeHigh.value)`, which is the DOM value a range input clamps to its `max` while the number
+input beside it does not. Bounding the date path removes the only route by which `monthly-high` can be
+above the ceiling while the screen is drawn, so the two controls no longer diverge and the handler
+never reads the wrong number - but the handler is unchanged and still wrong. G64's own 29 August
+amendment is the precedent for stating this plainly: D57's re-seeding made G64 harder to find rather
+than smaller, and this is the same, one step further removed.
+
+Two further defects measured in the same pass are recorded nowhere and are deliberately left that way
+until asked: `.value-slider__track-fill` computes its offset with no bound and its parent has no
+`overflow: hidden`, so an out-of-range fill renders past the track and pushes `.screen-content`'s
+scrollWidth to 1,038px against a 390px viewport; and the slider's number inputs carry `max` but accept
+and hold values above it. Both are on the slider path and both are, like G92, now unreachable rather
+than fixed.

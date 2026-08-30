@@ -81,7 +81,13 @@ do not introduce a state management library.
   participant has saved - rather than figures, so it survives a re-scale. Every one of these states
   rendered cleanly, so the smoke test passed on all of them: a chart can be wrong in every particular
   and still be a chart. ~14s. D73's third amendment.)
-- Test screen layout: `node --test scripts/overlap.test.mjs` (all 36 frame rows x both text sizes; the last two, `/assumptions/costs` and `/learn/stamp-duty`, have no frame number of their own - GAPS.md G83 and G84; asserts no divider, border or rule crosses text and no box is squashed below its content)
+- Test screen layout: `node --test scripts/overlap.test.mjs` (all 37 frame rows x both text sizes; two of them, `/assumptions/costs` and `/learn/stamp-duty`, have no frame number of their own - GAPS.md G83 and G84; asserts no divider, border or rule crosses text and no box is squashed below its content)
+- Test frame 10b's ceiling and readout: `node --test scripts/date-ceiling.test.mjs` (drives Chromium;
+  the date path's own left-over ceiling and the monthly amount it solves. Asserts SHAPE, every expected
+  value derived from `model.js` at run time rather than written in the file, so it follows a re-seeded
+  fixture instead of breaking on one: the banner appears on exactly the month before the earliest
+  workable one and not on it, Continue commits nothing while the error stands, and the solved figure is
+  rendered and matches the model. ~10s. D80, closing GAPS.md G64 and G65.)
 - Test the skip-ahead control: `node --test scripts/skip-ahead.test.mjs` (pure Node, no browser; asserts three round trips leave state identical and that the threshold stays a ratio of CHECKPOINT_FRACTION rather than an amount)
 - Test the draft invariant: `node --test scripts/g62.test.mjs` (pure Node, no browser; asserts that abandoning a draft changes no committed key, and that `gapToCheckpoint()` reads the stored checkpoint rather than re-deriving it)
 - Test stale-session discard: `node --test scripts/stale-session.test.mjs` (drives Chromium; asserts a

@@ -578,6 +578,22 @@ const content = {
     flagLabel: "Something doesn't look right",
     errorExceedsLeftOver: "That's more than what's left over each month. Choose a smaller range.",
     errorPastDate: 'Pick a date in the future.',
+    // AWAITING COPY (DECISIONS.md D80, GAPS.md G64). The date path's own
+    // ceiling error. It is NOT errorExceedsLeftOver and must not become it:
+    // that string ends "Choose a smaller range" and there is no range control
+    // on this variant - the participant is looking at a month and a year.
+    // Category B, so it may differ from the slider wording without touching
+    // D34.
+    //
+    // THREE SLOTS ARE AVAILABLE AND THE COPY MAY USE ANY SUBSET. `fill()`
+    // replaces a slot only where the template names it, so an unused one costs
+    // nothing:
+    //   {amount}   the monthly figure the chosen date implies, formatted
+    //   {max}      what is left over each month - the same {max} slot
+    //              sliderRangeCaptionTemplate above already uses for it
+    //   {earliest} the earliest month and year reachable at {max}, e.g.
+    //              "August 2029"
+    errorDateNeedsMoreThanLeftOver: '[AWAITING COPY]',
     primaryCta: 'Continue',
     secondaryCta: 'Save and exit',
   },

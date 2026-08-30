@@ -18,6 +18,17 @@
  * savings-rate is solved from the chosen date, and monthly-low/monthly-high
  * are DERIVED from it at 0.9x/1.1x (rangeFromCentral).
  *
+ * THE CEILING APPLIES TO BOTH PATHS (DECISIONS.md D80, closing GAPS.md G64
+ * and G65). It used to apply to one. The slider path measured every input
+ * against `savingCeiling` and raised `errorExceedsLeftOver`; the date path
+ * solved a monthly amount from the chosen date - which `monthlyAmountFromDate`
+ * leaves unbounded by construction - and committed it, so step 2 let a
+ * participant leave with a figure the app already knew was impossible and step
+ * 3 refused it. The date path now compares the figure it solves against the
+ * same ceiling, names the earliest date that does work, and RENDERS the solved
+ * amount, which it previously computed and never showed (G65). Nothing the
+ * participant set is discarded on either path.
+ *
  * THE SLIDER'S CEILING (GAPS.md G50, DECISIONS.md D24, amended by D28)
  * `savingCeiling` is what the monthly-saving slider measures against, and it
  * is `left-over` - what is left each month once essentials are covered. That
@@ -35,12 +46,13 @@ import {
   flagRowHTML,
   segmentedControlHTML,
   dateStepperHTML,
+  figureDisplayHTML,
   reviewRowHTML,
   warningBannerHTML,
   rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
-import { monthlyAmountFromDate, rangeFromCentral } from '../model/model.js';
+import { monthlyAmountFromDate, rangeFromCentral, monthsToReachAmount, combinedGoal } from '../model/model.js';
 import { RATES } from '../model/rates.js';
 import { MOCK_POSITION } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
@@ -60,6 +72,43 @@ function clamp(value, min, max) {
 function monthsFromNow(targetMonth, targetYear) {
   const now = new Date();
   return (targetYear - now.getFullYear()) * 12 + (targetMonth - 1 - now.getMonth());
+}
+
+/**
+ * The earliest month and year the goal is reachable at the ceiling, as a
+ * label. `monthsToReachAmount` is `monthlyAmountFromDate`'s inverse over the
+ * same annuity-due equation, so asking it for the months at `left-over` gives
+ * exactly the date at which the solved amount stops exceeding the ceiling.
+ *
+ * THE GOAL IS DERIVED, NOT READ, and that is deliberate.
+ * `monthlyAmountFromDate` already derives `combinedGoal(state)` live, so the
+ * date in the error and the amount the error is about come from ONE source and
+ * cannot disagree. Reading the stored `combined-goal` here while the amount
+ * beside it was derived is precisely the live-versus-stored split CLAUDE.md's
+ * state rules and D38's third amendment name.
+ *
+ * ROUNDED UP to a whole month, D2's own rule for a month figure shown to a
+ * participant: a date earlier than the maths gives is a date that does not
+ * work.
+ *
+ * Returns null only for states this screen cannot render. `goal.error` is
+ * already excluded by the caller - the same `combinedGoal` failure would have
+ * made `previewAmount` an error first - and a non-finite month count needs a
+ * ceiling at or below zero, which `left-over` cannot be: frame 05 refuses to
+ * commit one, and the slider path above already divides by it.
+ */
+function earliestWorkableDateLabel(state, savingCeiling) {
+  const goal = combinedGoal(state);
+  if (goal.error) return null;
+  const months = monthsToReachAmount({
+    startingBalance: state['saved-toward-deposit'].value ?? 0,
+    targetAmount: goal.value,
+    monthlyAmount: savingCeiling,
+  });
+  if (!Number.isFinite(months)) return null;
+  const now = new Date();
+  const reached = new Date(now.getFullYear(), now.getMonth() + Math.ceil(months), 1);
+  return `${MONTH_NAMES[reached.getMonth()]} ${reached.getFullYear()}`;
 }
 
 // Neither "Savings interest rate" nor "Tax rate" has an owning editable
@@ -136,6 +185,31 @@ export function render(container, ctx) {
       errorText = c.errorPastDate;
     } else {
       previewAmount = monthlyAmountFromDate(state, months);
+      // THE CEILING, ON THE PATH THAT CAN PRODUCE A FIGURE PAST IT (D80,
+      // GAPS.md G64). One comparison, the same one the slider path makes,
+      // against the same `savingCeiling` - so the two variants of this screen
+      // accept and refuse the same figures rather than one of them having its
+      // own rules.
+      //
+      // RAISED HERE AND NOT ON THE SEGMENT SWITCH, and that is option C rather
+      // than the two declined with it: nothing is clamped, nothing is reset,
+      // the date and the figure both stand, and the participant is told why it
+      // cannot go forward. Continue is disabled by `errorText` below, so this
+      // path writes NOTHING - no `savings-rate`, no `monthly-low`, no
+      // `monthly-high`. D46 is satisfied because there is nothing to make
+      // visible: no value the participant set has been replaced.
+      //
+      // Guarded on `previewAmount.error` first. A failed solve carries a null
+      // value and `null > 640` is false, so the comparison would pass silently
+      // rather than raise - the state rule again: no figure is shown for a key
+      // the guard did not test.
+      if (!previewAmount.error && previewAmount.value > savingCeiling) {
+        errorText = fill(c.errorDateNeedsMoreThanLeftOver, {
+          amount: formatCurrency(previewAmount.value),
+          max: formatCurrency(savingCeiling),
+          earliest: earliestWorkableDateLabel(state, savingCeiling),
+        });
+      }
     }
   }
 
@@ -199,6 +273,32 @@ export function render(container, ctx) {
           increaseLabel: content.shared.stepper.increaseLabel,
           decreaseLabel: content.shared.stepper.decreaseLabel,
         })}
+        <!-- THE FIGURE THE DATE IMPLIES (D80, closing GAPS.md G65). It was
+             computed on every render of this branch and read in exactly one
+             place - the Continue handler - so the screen asked for a date,
+             solved a monthly amount, and showed the participant nothing until
+             step 3. Reference PNG 10b draws no readout; rendering it is a
+             recorded deviation, not an oversight in the build (D80).
+
+             BELOW THE STEPPER, above the banner. The slider variant puts its
+             figures ABOVE its track because the participant sets them there;
+             this one puts the figure BELOW the stepper because the stepper
+             produces it. Reading order matches causality on both, and in both
+             the banner sits immediately under the figure it is about - which
+             is what Continue's aria-describedby points at (D78).
+
+             Drawn with figureDisplayHTML, not a new component: it is the
+             static counterpart to frame 05's figure input and already renders
+             a single large figure with a caption on frames 06 and 21.
+
+             NO BACKTICKS ANYWHERE IN THIS COMMENT. It sits inside a template
+             literal, where a backtick ends the string and the rest of the
+             render function becomes a syntax error. -->
+        ${previewAmount && !previewAmount.error ? figureDisplayHTML({
+          value: formatCurrency(previewAmount.value),
+          caption: c.sliderCaption,
+          live: true,
+        }) : ''}
         ${errorText ? warningBannerHTML(errorText, { id: 'error-saving' }) : ''}
       `}
 

@@ -99,6 +99,8 @@
  *                left-over-zero        frame 05, left over at or below zero
  *                property-non-numeric  frame 09, a value the model rejects
  *                saving-ceiling        frame 10, the range above left over
+ *                saving-date-ceiling   frame 10b, a date needing more than
+ *                                      what is left over each month
  *                saving-past-date      frame 10b, a target date behind today
  *                review-property       frame 11, the property row
  *                review-pct            frame 11, the deposit % row
@@ -259,6 +261,13 @@ function parseArgs(argv) {
 }
 
 const list = (value) => value.split(',').map((s) => s.trim()).filter(Boolean);
+
+/** The month/year a date `n` months from today lands on - for the 10b error states. */
+function monthsFromToday(n) {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + n, 1);
+  return { targetMonth: d.getMonth() + 1, targetYear: d.getFullYear() };
+}
 
 const args = parseArgs(process.argv.slice(2));
 
@@ -434,6 +443,15 @@ const ERROR_STATES = {
   'saving-ceiling': () => ({
     'monthly-low': { value: FULL['left-over'].value + 100, provenance: 'entered' },
     'monthly-high': { value: FULL['left-over'].value + 400, provenance: 'entered' },
+  }),
+  'saving-date-ceiling': () => ({
+    // D80 / GAPS.md G64: the date path's own ceiling error, with the solved
+    // amount rendered above it (G65). Three months out needs several times
+    // the seed's left-over whatever the seed is, so this breaches without a
+    // figure being written here - and, being relative to today rather than a
+    // fixed year, it cannot quietly become a past date and shoot
+    // `errorPastDate` instead.
+    ...monthsFromToday(3),
   }),
   'saving-past-date': () => ({
     targetMonth: 1,

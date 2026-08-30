@@ -641,10 +641,21 @@ export function figureInputHTML({ id, value, caption, ariaLabel }) {
   `;
 }
 
-/** Static (non-editable) counterpart to figureInputHTML — frame 06's deposit-saved headline. */
-export function figureDisplayHTML({ value, caption }) {
+/**
+ * Static (non-editable) counterpart to figureInputHTML — frame 06's
+ * deposit-saved headline.
+ *
+ * `live` makes the block a polite live region (DECISIONS.md D80). Pass it when
+ * the figure is DERIVED from a control on the same screen and changes as that
+ * control is used - frame 10b's solved monthly amount, which moves on every
+ * press of the date stepper. Without it a participant using a screen reader
+ * presses a chevron and hears the month change but never the amount, which is
+ * the figure the press was for. Off by default, so the two callers that render
+ * a figure the screen arrived with (frames 06 and 21) are unchanged.
+ */
+export function figureDisplayHTML({ value, caption, live = false }) {
   return `
-    <div class="figure-input">
+    <div class="figure-input"${live ? ' role="status" aria-live="polite"' : ''}>
       <p class="figure-display">${value}</p>
       <p class="figure-input__caption">${caption}</p>
     </div>

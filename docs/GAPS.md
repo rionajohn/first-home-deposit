@@ -1485,7 +1485,7 @@ call for whoever owns the reference set.
 ---
 
 **G64. Frame 10b's date path has no ceiling, so a target date can commit a monthly amount above
-what is left over. OPEN.**
+what is left over. CLOSED 30 August 2026 - DECISIONS.md D80.**
 
 Raised while splitting G61. It is not G61: G61 was about a default that is too high, this is about
 no upper bound existing at all on a second path through the same screen.
@@ -1524,8 +1524,40 @@ find, not smaller** - do not read the recipe's going quiet as the bounds questio
 
 ---
 
+**CLOSED 30 AUGUST 2026. DECISIONS.md D80.** The decision the entry above said was needed - which of
+the two paths owns the ceiling rule - was taken: **both do, and they measure against the same
+figure.** `calculator-saving.js`'s date branch now compares the amount `monthlyAmountFromDate` solves
+against `savingCeiling`, in the same `else if (!yearCleared)` branch that already raised
+`errorPastDate`. One comparison, no new state key, no new component.
+
+**Option C of the three that were put forward, and the two declined were declined on D46.** Clamping
+the values on entering monthly-amount mode, and resetting them to the seeded range, both replace a
+figure the participant set without saying so - the first landing on a bound they never chose, the
+second on a seeded constant. This option discards nothing: the date stands, the figure stands,
+Continue is disabled and the participant is told why. **Nothing is written on this path** -
+`savings-rate`, `monthly-low` and `monthly-high` are untouched while the error stands, asserted by
+`date-ceiling.test.mjs`.
+
+**And it names the earliest date that works,** rather than only refusing the one chosen.
+`monthsToReachAmount` at the ceiling is `monthlyAmountFromDate`'s own inverse, so the date it returns
+is exactly the point at which the solved amount stops exceeding the ceiling. Closed together with G65
+for the reason G65 gives: a bound the participant cannot see is a bound they cannot act on, so the
+error and the readout had to land in one pass.
+
+`monthsToTarget()`'s `exceeds-left-over` guard is untouched and stays where it is. It is now
+unreachable through this screen - which is the correct relationship between a screen's validation and
+a model's, not a redundancy to remove: the guard exists so no caller can produce a projection from an
+impossible rate, and this screen is one caller.
+
+**The copy is outstanding.** The banner renders `content.js`'s
+`['/calculator/saving'].errorDateNeedsMoreThanLeftOver`, currently `[AWAITING COPY]`. It is
+deliberately NOT `errorExceedsLeftOver`, which ends "Choose a smaller range" on a screen that has no
+range control.
+
+---
+
 **G65. Frame 10b computes the monthly amount and never shows it, so a participant commits to a
-figure they have not seen. OPEN.**
+figure they have not seen. CLOSED 30 August 2026 - DECISIONS.md D80.**
 
 Raised in the same pass as G64, on the same screen, and reachable the same way.
 
@@ -1554,6 +1586,33 @@ relative to the stepper, on a frame whose reference deliberately has neither. Th
 for the design owner rather than something to invent in a build pass - and the £331 to £404 case
 under G64 is the argument for putting it to them, because a bound the participant cannot see is a
 bound they cannot act on.
+
+---
+
+**CLOSED 30 AUGUST 2026. DECISIONS.md D80.** The "Confirm" above was put to the frame owner and the
+readout was approved. `previewAmount` is now rendered, so the screen shows the figure it solves
+instead of deferring it to frame 11.
+
+**Placement: below the stepper, above the banner.** The slider variant puts its figures ABOVE its
+track because the participant sets them there; this one puts the figure BELOW the stepper because the
+stepper produces it. Reading order matches causality on both, and on both the error banner sits
+immediately under the figure it is about - which is what Continue's `aria-describedby` points at
+(D78).
+
+**Drawn with `figureDisplayHTML`, which already existed** - the static counterpart to frame 05's
+figure input, already rendering a single large figure with a caption on frames 06 and 21. It gained
+an optional `live` flag here so the block is a polite live region: the figure moves on every press of
+the date stepper, and without it a participant using a screen reader hears the month change but never
+the amount the press was for.
+
+**The deviation from reference PNG 10b is deliberate and recorded.** The frame draws no readout, and
+the entry above is right that the build was faithful to it. What changed is that the frame predates
+the ceiling check existing, so its silence on the readout was not a decision about a screen that
+refuses dates - it was a decision about a screen that refused nothing. See D80.
+
+**No copy was invented for it.** The caption reuses `sliderCaption` ("Put aside each month"), which
+names the same figure on the same screen. The key name now under-describes its use; flagged for the
+copy pass rather than renamed here, because renaming it touches the slider path too.
 
 **G62. Frame 15/16's gap sentence reads "You're £0 away" while the headline shows £8,950 against a
 £28,000 goal. CLOSED 27 August 2026 - DECISIONS.md D46.**

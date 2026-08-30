@@ -44,6 +44,14 @@ import { chromium } from 'playwright';
 // to it: a key that selects the variant THIS script looks at belongs in this
 // file's own override list, not in the shared one.
 import { FULL, f } from './session-seed.mjs';
+
+/** The month/year a date `n` months from today lands on, for the 10b rows. */
+function monthsFromToday(n) {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + n, 1);
+  return { targetMonth: d.getMonth() + 1, targetYear: d.getFullYear() };
+}
+
 import { BUILD_VERSION } from '../src/cache-version.js';
 // Every seed below carries `buildVersion` (DECISIONS.md D59). `state.js` now
 // DISCARDS a stored session whose stamp is not the running build's, so an
@@ -109,6 +117,16 @@ const FRAMES = [
   ['09b', '/calculator/property', { 'property-value': f(480000, 'entered'), lisaCapBreached: true }],
   ['10', '/calculator/saving', { solveFor: 'date' }],
   ['10b', '/calculator/saving', { solveFor: 'amount', targetMonth: 6, targetYear: 2028 }],
+  // 10b OVER THE CEILING (DECISIONS.md D80). The row above lays out the date
+  // path at a workable date - stepper, solved-amount readout, no banner. This
+  // one lays out the same screen with the banner as well, which is the taller
+  // of the two and the one that can push the readout into it at Large text.
+  //
+  // RELATIVE TO TODAY, not a fixed year like the row above. Three months out
+  // needs several times the seed's left-over whatever the seed is, so the
+  // banner is guaranteed - and unlike a hard-coded 2028 this cannot quietly
+  // become a past date and start testing `errorPastDate` instead.
+  ['10b-over-ceiling', '/calculator/saving', { solveFor: 'amount', ...monthsFromToday(3) }],
   ['10c', '/calculator/exit', {}],
   ['11', '/calculator/review', {}],
   ['12', '/calculator/result', {}],
