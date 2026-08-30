@@ -6252,9 +6252,47 @@ one-letter one - which is the same mismatch that sent `mon` back, and the only c
 would have been moving `yr` to `y` as well. `10 y 7 m` is terse to the point where the units read as
 placeholders.
 
-**So: `mo` stays, and this is the record that it has now survived two attempts to shorten it.** If a
-third is proposed, the question to answer first is what is going wrong on screen that the length is
-causing - because twice now the answer has been nothing.
+**`mo` survived two attempts to shorten it, and then a third succeeded on a different argument.
+30 August 2026: the abbreviated branch is `m`, and this closes the question.**
+
+The million objection is the one that had stopped it, and it was answered rather than overruled.
+**Every string this branch produces at over a year leads with the year unit** - "24 yr 11 m",
+"7 yr 2 m" - so `yr` has established that the sentence is about time before the reader reaches `m`.
+The single surface with no leading year is the chip, and it sits in a row beside "1 YR" and "3 YR",
+which does the same work by adjacency. The ambiguity was real in isolation and does not survive
+context.
+
+**All three options were measured first**, against the 350px chip column, the comparison card's 316px
+inner width, and the 350px axis:
+
+| | Chips, default / Large | Comparison value | Axis, default / Large |
+|---|---|---|---|
+| **`m`** | 301 / 322 - fits | 121px, label column intact | 181 / 207 - fits |
+| `mo` | 311 / 334 - fits | 130px, label column shrinks 6px | 204 / 234 - fits |
+| spelled out | **416 / 454 - wraps** | **187 / 215px** | 339 fits / **391 overflows** |
+
+Spelling it out was the option worth wanting - no abbreviation to misread, plainest for a
+lower-literacy participant - and it fails on all three surfaces. The chips are over by 66px and 104px,
+and **not because of the uppercase transform**: in sentence case they are still 376px and 408px, over
+by 26px and 58px. At Large text the comparison value takes 215px of a 316px card, leaving 89px for a
+currency label that needs 163px, so £67,500 would break across two lines. And the axis overflows by
+41px. `m` is the only option that fits every surface with room to spare.
+
+**What moved, and what deliberately did not.** The abbreviated branch of `formatMonthsDuration`, which
+carries both its call sites together - frame 12's comparison rows and the chart's x-axis - and the
+one chip label in `chartRangeLabels`. Verified that nothing else in `content.js` hardcodes a month
+abbreviation, so no surface is left behind.
+
+The unabbreviated branch is untouched, and three things still spell the unit in full: the chart's
+point labels ("1 year 10 months"), frame 12's live region ("Showing 21 years 6 months"), and frame
+21's step caption. **The chips' accessible names spell it too** - "6 m, six months" - because a screen
+reader announcing "6 M" would be worse than the visible label, and because WCAG 2.5.3 needs the
+accessible name to contain the visible one.
+
+**This closes it.** The question has now been asked four times and answered from every direction:
+shortening for its own sake was declined twice because nothing on screen was going wrong, spelling out
+was declined on measurements, and `m` was declined once on ambiguity and then applied once the
+ambiguity was shown not to survive the surrounding string. There is no fifth position left to take.
 
 **Reported, not fixed: the growth chart's y-axis label overlaps its top threshold label.** `£70,875`
 is `.growth-chart__y-label--top`, positioned at the top-left of the plot; `15% - £67,500` is a

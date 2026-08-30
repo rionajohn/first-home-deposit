@@ -693,7 +693,7 @@ const content = {
     // are no lines now, and the comparison card carries deposit context.
     //
     // The chips are abbreviations, so each carries a spoken accessible name -
-    // "6 mo" announced as written is not a name a participant can act on.
+    // "6 m" announced as written is not a name a participant can act on.
     // FIVE OPTIONS, AND THE LAST IS THE DEFAULT (D73's amendment). The chart
     // opened at five years, which is a window rather than an answer; it now
     // opens at the whole time the projection runs to, so a participant sees
@@ -706,7 +706,7 @@ const content = {
     // the participant's own projection, resolved at render.
     //
     // Its label is not a duration for the same reason: at the seeded figures
-    // it is 10 years 7 months, and a chip reading "10 yr 7 mo" would be both
+    // it is 10 years 7 months, and a chip reading "10 yr 7 m" would be both
     // unwieldy and different for every participant. It was "To goal" and is
     // now "Max" - shorter, and it no longer competes for width with the four
     // durations beside it.
@@ -715,14 +715,14 @@ const content = {
     // REPLACES the button's text for the accessible name, so a speech-input
     // participant saying "click 5 yr" could not activate a button named "Show
     // 5 years". Four of the five failed that on the pass that introduced them:
-    // only "6 mo" happened to survive, because it is a prefix of "6 months".
+    // only "6 mo" survived, being a prefix of "6 months"; "6 m" still is.
     //
     // The elaboration after the comma is what the abbreviation does not say.
     // "Max" alone says nothing at all about the range, which is why it needs
     // the longest of them - and why it names no duration: the range is the
     // participant's own projection and differs for each of them.
     chartRangeLabels: [
-      { months: 6, label: '6 mo', ariaLabel: '6 mo, six months' },
+      { months: 6, label: '6 m', ariaLabel: '6 m, six months' },
       { months: 12, label: '1 yr', ariaLabel: '1 yr, one year' },
       { months: 36, label: '3 yr', ariaLabel: '3 yr, three years' },
       { months: 60, label: '5 yr', ariaLabel: '5 yr, five years' },

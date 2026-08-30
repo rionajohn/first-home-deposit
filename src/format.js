@@ -85,7 +85,7 @@ export function formatDigits(value) {
 
 /**
  * Whole-months duration as "X years Y months" (frame 12's timing rows) or,
- * abbreviated, "X yr Y mo" (frame 12's growth-chart x-axis). `months` is
+ * abbreviated, "X yr Y m" (frame 12's growth-chart x-axis). `months` is
  * always rounded up first (Math.ceil) — the same convention DECISIONS.md D2
  * uses for on-track-for, since a participant should never be told they're
  * there a fraction of a month early.
@@ -96,14 +96,20 @@ export function formatMonthsDuration(months, { abbreviated = false } = {}) {
   const remainderMonths = whole % 12;
 
   const yearUnit = abbreviated ? 'yr' : years === 1 ? 'year' : 'years';
-  // 'mo', AND IT WENT TO 'mon' AND CAME BACK (D72's amendment). The longer
-  // form was tried while frame 12's comparison values looked clipped; the
-  // cause turned out to be that card's missing padding, and once that was
-  // fixed the string change was doing no work. 'mo' also keeps both
-  // abbreviations two letters - 'yr' with 'mon' left a live mismatch, and the
-  // ways out of it are worse, since 'yrs' would pair a plural with a singular
-  // and this function deliberately does not inflect its abbreviated forms.
-  const monthUnit = abbreviated ? 'mo' : remainderMonths === 1 ? 'month' : 'months';
+  // 'm'. THIS STRING HAS A HISTORY AND D72 CARRIES IT: 'mo' to 'mon' to 'mo'
+  // to 'm', with 'm' itself declined once before being applied. The objection
+  // to it was that `m` reads as MILLION beside currency, and frame 12's
+  // comparison card is full of currency - £22,500, £45,000, £67,500.
+  //
+  // WHAT ANSWERS THAT IS THE YEAR UNIT IN FRONT OF IT. Every string this
+  // branch produces at more than a year reads "24 yr 11 m", so `yr` has
+  // already established that the sentence is about time before the reader
+  // reaches `m`. The one surface without a leading year - the chips - sits in
+  // a row beside "1 YR" and "3 YR", which does the same job by adjacency.
+  //
+  // The unabbreviated branch below is untouched, so the chart's point labels,
+  // frame 12's live region and frame 21's step caption all still spell it.
+  const monthUnit = abbreviated ? 'm' : remainderMonths === 1 ? 'month' : 'months';
 
   if (years === 0) return `${remainderMonths} ${monthUnit}`;
   if (remainderMonths === 0) return `${years} ${yearUnit}`;
