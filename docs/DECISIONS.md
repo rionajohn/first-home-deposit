@@ -5622,3 +5622,192 @@ Found while tracing where stamp duty is first introduced. Frame 12 fills "Your g
 two figures, two screens - D34's failure mode, opened by this decision and **not** closed by it.
 Raised as `GAPS.md` G85 with the two candidate resolutions and the reason it is a decision about what
 frame 12 is about rather than a string swap. It needs resolving before participant sessions.
+
+---
+
+## D71. The tracker's bar keeps two segments and a disclosure: three marked points do not fit this track
+
+**Date.** 30 August 2026.
+
+**A decision NOT to build.** Nothing changed in `src/`. It is recorded because the proposal was
+sound, the reasons it was rejected are measurements rather than opinions, and without them written
+down the same sketch will be proposed again and re-measured from scratch.
+
+### What was proposed
+
+Replace the two-segment bar plus its "What makes up your goal" disclosure (D70's second amendment)
+with **three marked points on a single track**: markers at the deposit (45,000) and at the deposit
+plus stamp duty (52,500), with the fill showing the saved amount (8,950) proportionally against the
+full goal. Per-marker detail would be revealed on tap.
+
+### The geometry, measured rather than estimated
+
+Measured on the rendered screen at a 390px viewport, both text sizes. **The track is 287.4px, not
+350px** - it gave about 55px to the goal figure when that moved onto its row in D70's second
+amendment, and the figure grows with the text scale, so the track shrinks as the type gets bigger.
+
+| | Default | Large |
+|---|---|---|
+| Content column | 390.0px | 390.0px |
+| Track | **287.4px** | **279.3px** |
+| Goal figure at the end | 54.6px | 62.8px |
+
+Marker positions, as shares of a 52,500 goal (saved 17.05%, checkpoint 75%, deposit 85.71%, goal
+100%):
+
+| Point | Default | Large |
+|---|---|---|
+| saved 8,950 | 49.0px | 47.6px |
+| checkpoint | 215.6px | 209.4px |
+| deposit 45,000 | 246.4px | 239.4px |
+| goal 52,500 | 287.4px | 279.3px |
+
+| Adjacent pair | Default | Large | Meets 48px? |
+|---|---|---|---|
+| saved to checkpoint | 166.6px | 161.8px | yes |
+| **checkpoint to deposit** | **30.8px** | **29.9px** | **no** |
+| **deposit to goal** | **41.1px** | **39.9px** | **no** |
+
+### Why that settles the interaction
+
+DESIGN.md's rule 2 requires 48px of every control and forbids shrinking one to match a design.
+Adjacent 48px targets centred 30.8px and 41.1px apart **overlap by 17.2px and 6.9px**. A tap in the
+overlap resolves to whichever element wins the hit test, not the one aimed at, and it does so
+silently - which is worse than no interaction at all, because nothing on screen tells the participant
+they hit the wrong thing.
+
+**It is not an artefact of the seeded figures.** The three right-hand points are permanently squeezed
+into the last quarter of the track: the checkpoint is fixed at 75% and the tax is a small share of
+the goal at every plausible property value. It gets tighter as that share falls - at a 350,000
+property the tax is 6.7% of the goal and the deposit marker sits about 19px from the end.
+
+**Both gaps get worse at Large text**, which is the setting a participant with a visual impairment
+would be using. The failure lands hardest on the people the 48px rule exists for, which is the
+strongest form this objection takes.
+
+### Why labels do not rescue it
+
+Measured label widths:
+
+| String | Default | Large |
+|---|---|---|
+| `£45,000` | 54.8px | 63.0px |
+| `£52,500` | 54.6px | 62.8px |
+| `£8,950` | 46.3px | 53.2px |
+| `Checkpoint` | 73.0px | 84.0px |
+
+Labels centred at their points collide before the targets do: `£45,000` at 54.8px in the 41.1px
+deposit-to-goal gap **overlaps by about 13.7px**, and `Checkpoint` at 73.0px in the 30.8px gap
+**overlaps by about 42px**. Three labelled points do not fit in the last quarter of a 287.4px track
+at either text size.
+
+### The segment-labelled variant, and a correction to its reported figures
+
+A further variant was proposed: labels under the SEGMENTS rather than at the points - "Deposit
+£45,000" centred under the wide left segment, "Stamp duty £7,500" right-aligned at the track end,
+"Checkpoint" on a second row. It was reported as clearing by about 2px at default text and going
+negative at Large.
+
+**Measured as specified, it collides at BOTH sizes**, not only at Large:
+
+| | Default | Large |
+|---|---|---|
+| `Deposit £45,000` | 105.6px | 121.4px |
+| `Stamp duty £7,500` | 119.1px | 137.0px |
+| Clearance | **-7.7px** | **-38.1px** |
+
+The difference is sensitive to the centring assumption rather than to the strings: left-aligning the
+first label instead of centring it under its segment clears at both sizes (about +63px and +21px).
+Recorded because the figure was going into a permanent record, not because it changes the outcome -
+the variant was already rejected for two reasons that hold whatever the clearance is. It saves only
+about 12px against the 48px disclosure it would replace, and it turns the bar into a small table
+drawn under a track.
+
+### Discoverability, and what it would cost
+
+**There is no tooltip, popover or bubble pattern anywhere in `src/`** - verified by search. So the
+affordance would have to be invented, and the design question is what makes a 2px marker look
+pressable. Every answer (an enlarged dot, a ring, a caret) adds visual weight at exactly the three
+points that are already too close together.
+
+The disclosure it would replace announces itself: a labelled control with a chevron, in the build's
+existing idiom. Unlabelled markers announce nothing, and the likely session outcome is that nobody
+taps them - the breakdown functionally absent while still costing the space.
+
+**It saves no vertical space either.** Measured block heights:
+
+| Element | Default | Large |
+|---|---|---|
+| Progress bar (track row + "Checkpoint") | 40.0px | 45.4px |
+| Disclosure, closed | 48.0px | 50.3px |
+| Stamp duty note above the bar | 54.0px | 82.8px |
+
+Markers large enough to read as tappable add weight inside the bar row without removing the
+"Checkpoint" row beneath it.
+
+### Screen readers: the visible list is the mechanism, not the fallback
+
+A marker is a positioned `div`. To be reachable it becomes a `button` with an `aria-label`, and a
+screen reader user then arrows through three controls announcing "Deposit £45,000", "Stamp duty
+£7,500", "Checkpoint" in DOM order, with no container explaining what they belong to and none of the
+spatial relationship a sighted user reads off the bar.
+
+The bubble is the harder half. A transient overlay needs `role="tooltip"` with `aria-describedby`, or
+a `role="dialog"`, and either way must be dismissible, focus-managed, and not clipped by the track's
+own `overflow: hidden`. `ui.js`'s entire ARIA vocabulary today is `aria-label` (15), `aria-current`
+(8), `aria-hidden` (5), `aria-pressed` (3), `aria-disabled` (3), `aria-live` (2), `aria-expanded` (2)
+and `aria-controls` (2) - the disclosure idiom and nothing resembling a popover.
+
+So a visible list is not a fallback under the markers; it IS the mechanism, with the markers as a
+redundant visual layer over it. Which is what the disclosure already is, minus the markers.
+
+### Four marked points would read as two systems
+
+This argument stands independently of every measurement above, and is the reason the decision would
+be the same on a wider track **at this number of points**.
+
+The bar would carry three different kinds of fact on one axis:
+
+| Point | What kind of fact |
+|---|---|
+| The fill's edge, 8,950 | a **position** - where the participant is |
+| The checkpoint, 75% | a **milestone** - it decides which tracker variant renders and what the Mortgage in Principle flow returns |
+| 45,000 and 52,500 | **structure** - what the goal is made of |
+
+Nothing visually distinguishes the three kinds, so a participant has to work out that 75% means
+something categorically different from 85.71%. And the two points that most need to read as different
+kinds of thing - the checkpoint and the deposit marker - are the 30.8px pair, the hardest to tell
+apart.
+
+The current arrangement keeps one channel per kind of fact: the fill is the position, the marker with
+its own label is the milestone, and the shaded region plus the disclosure is the structure.
+
+### The rejection is specific to this geometry, not to the idea
+
+**On a wider track the sketch would be a better design than what is built.** Three marked points is a
+clearer picture of a composite goal than a shaded region plus a collapsed list, and the reason to say
+so here is that a future change which widens the track - a larger viewport target, a different
+placement for the goal figure - reopens it as a real option. What it cannot survive is a 287.4px
+track carrying four points, three of them in the last quarter.
+
+### Two routes were offered and both declined, with reasons worth keeping
+
+- **Move the goal figure off the bar's row** to return the track to about 350px. Declined: it undoes
+  D70's second amendment deliberately made two commits earlier, and it fixes the label collisions
+  without fixing the touch targets - the checkpoint-to-deposit gap would reach only about 37px
+  against the 48px minimum.
+- **Drop the checkpoint marker**, roughly doubling the tightest gap. Declined: it trades a working
+  element for a speculative one, and the checkpoint still decides the tracker variant and the
+  Mortgage in Principle result, so it would need somewhere else to live. D51 already records what its
+  becoming less legible costs.
+
+### Nothing is raised in GAPS.md
+
+Deliberately. `GAPS.md` records defects, unresolved questions and known deviations from the spec.
+This is a decision not to build a thing that was never in the spec, and the bar as built is correct.
+Filing it there would turn a closed question into an open one.
+
+### To reverse
+
+Nothing to reverse. If the track ever widens, re-measure the three gaps against 48px before reopening
+this - the numbers above are specific to a 287.4px track at a 390px viewport.
