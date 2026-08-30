@@ -52,7 +52,7 @@ import {
 } from '../components/ui.js';
 import { formatCurrency, formatPercent, formatMonthYearRange } from '../format.js';
 import { onTrackFor, rateBandForDepositPct } from '../model/model.js';
-import { RATES, CHART_DEPOSIT_PCTS, CHECKPOINT_FRACTION } from '../model/rates.js';
+import { RATES, CHART_DEPOSIT_PCTS } from '../model/rates.js';
 import { MOCK_POSITION } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
 import { isRootEntry } from '../router.js';
@@ -171,7 +171,17 @@ export function render(container, ctx) {
     ? ['done', 'done', 'done', 'available']
     : ['done', 'done', 'current', 'available'];
 
-  const checkpointPctLabel = formatPercent(CHECKPOINT_FRACTION, 0);
+
+  // THE MILESTONE ROW'S SUBTEXT, NOT A PARAGRAPH OF ITS OWN (D51's third
+  // amendment). This selected a standalone block beneath the goal disclosure;
+  // it now feeds the Mortgage in Principle row directly, which is the row the
+  // copy was always about. The three states are unchanged and each still
+  // renders where it rendered before.
+  const mipRowBody = variant === 'below-checkpoint'
+    ? c.mipRowBelowCheckpoint
+    : variant === 'checkpoint-reached'
+      ? c.mipRowCheckpointReached
+      : c.mipRowGoalMet;
 
   const milestones = [
     {
@@ -215,7 +225,7 @@ export function render(container, ctx) {
     // string, and no `fill()`: `mipBody` carries no placeholder.
     {
       title: c.mipTitle,
-      body: c.mipBody,
+      body: mipRowBody,
       state: milestoneStates[3],
     },
   ];
@@ -225,11 +235,6 @@ export function render(container, ctx) {
   // name: `mipBody` was renamed on the same pass because it also changed slot
   // and meaning, but this key is the same string in the same place, and a
   // rename here would make a one-line copy change read as a structural one.
-  const bodyText = variant === 'below-checkpoint'
-    ? c.belowCheckpointBodyTemplate
-    : variant === 'checkpoint-reached'
-      ? fill(c.checkpointReachedBodyTemplate, { pct: checkpointPctLabel })
-      : c.goalMetBody;
 
   // --- THE BACK CHEVRON, AND WHY IT IS CONDITIONAL HERE (DECISIONS.md D41) ---
   //
@@ -335,8 +340,6 @@ export function render(container, ctx) {
           </p>
         `,
       }) : ''}
-
-      <p class="body-text">${bodyText}</p>
 
       ${milestoneTrackerHTML(milestones)}
 

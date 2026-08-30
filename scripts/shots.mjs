@@ -118,7 +118,10 @@
  *              it. That is D12 working correctly, not a bug to route around.
  *              Same reason `--state=ahead` and `--stage` press their controls.
  *                                                       default none
- *   --scroll   `top` or `end` - where the screen's scroller is left before the
+ *   --scroll   `top`, `end`, or a CSS selector (anything starting `.` or `#`),
+ *              which is centred in the viewport - for an element in the middle
+ *              of a long screen that neither end reaches.
+ *              Otherwise: where the screen's scroller is left before the
  *              shot. An axis like the others, so `--scroll=top,end` shoots
  *              both. Added for the screens whose bottom edge is the thing
  *              under review: what clears the tab bar at the end of a long
@@ -390,8 +393,8 @@ for (const state of STATES) {
   }
 }
 for (const scroll of SCROLLS) {
-  if (scroll !== 'top' && scroll !== 'end') {
-    console.error(`Unknown --scroll "${scroll}". One of: top, end.`);
+  if (scroll !== 'top' && scroll !== 'end' && !scroll.startsWith('.') && !scroll.startsWith('#')) {
+    console.error(`Unknown --scroll "${scroll}". One of: top, end, or a CSS selector starting . or #.`);
     process.exit(1);
   }
 }
@@ -732,7 +735,21 @@ try {
               for (const scroll of SCROLLS) {
                 await page.evaluate((where) => {
                   const s = document.querySelector('.bottom-sheet__content, .screen-content');
-                  if (s) s.scrollTop = where === 'end' ? s.scrollHeight : 0;
+                  if (!s) return;
+                  // A SELECTOR SCROLLS TO AN ELEMENT. `top` and `end` reach the
+                  // two ends of a screen, which is all most shots need, but an
+                  // element in the middle of a long screen is unreachable by
+                  // either - and the tracker's milestone rows are exactly that.
+                  // Anything beginning `.` or `#` is treated as a selector and
+                  // centred in the viewport.
+                  if (where.startsWith('.') || where.startsWith('#')) {
+                    const el = document.querySelector(where);
+                    if (el) {
+                      s.scrollTop = el.offsetTop - s.clientHeight / 2 + el.offsetHeight / 2;
+                    }
+                    return;
+                  }
+                  s.scrollTop = where === 'end' ? s.scrollHeight : 0;
                 }, scroll);
                 await page.waitForTimeout(300);
 

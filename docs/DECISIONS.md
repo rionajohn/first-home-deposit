@@ -3765,6 +3765,101 @@ deposit, not three quarters of it. Both are raised as `GAPS.md` G86 rather than 
 the frame 17 arithmetic should be closed before participant sessions. Neither was fixed here: frame
 17 is inside the Mortgage in Principle flow, which this change was scoped out of.
 
+### Amended again, 30 August 2026: the Mortgage in Principle copy is one block, on the row
+
+The tracker was explaining a Mortgage in Principle in **two places at once**: a standalone paragraph
+beneath the goal disclosure, and the subtext of the milestone row named after it. The paragraph moved
+into the row. One block where there were two, on the element the copy was always about.
+
+**What each block held before the move:**
+
+| | Standalone paragraph | Milestone row subtext |
+|---|---|---|
+| Below checkpoint | "A Mortgage in Principle is a lender's estimate, worked out before you choose a property. You can run one at any point." | "Not run yet. The estimate uses the deposit you have on the day you run it." |
+| Checkpoint reached | "You've passed the 75% checkpoint. You can now check whether a Mortgage in Principle is likely to be approved." | *the same string* |
+| Goal met | "You've saved your full deposit goal. You can check whether a Mortgage in Principle is likely to be approved whenever you're ready." | *the same string* |
+
+Two things worth noting from that table. The paragraph had **three** states, not two - the goal-met
+variant is easy to miss. And the row had **none**: D51's first amendment had already collapsed its two
+keys into one, because both variants render the same `available` icon state.
+
+### Nothing from the replaced subtext was dropped, and both halves needed different homes
+
+**"Not run yet" stays, and it is not decoration.** The milestone row's state is carried by its ICON
+and by nothing else - there is no `aria-label`, no visually-hidden text, and `lockedRowAriaSuffix` in
+`content.js` has no reader anywhere in `src/`. So that clause is the only thing telling a
+screen-reader participant the check has not been done. It now opens all three replacements.
+
+**"The estimate uses the deposit you have on the day you run it" moved down one element**, into
+`mipCaption`. Verified by search that this was the **only** place in the whole of `content.js` where
+that fact appeared. `mipCaption` glosses what the check is and is not - "An indication of what a
+lender might lend you... Not a decision, and not an application" - so a property of the estimate
+belongs there better than in a status line. It now reads "An indication of what a lender might lend
+you, based on the deposit you have on the day you run it. Not a decision, and not an application."
+
+### The standalone block was carrying no structural work
+
+Checked before removing it. It carried **no required statement**: `guidanceNotAdvice` renders at
+`.legal-text` near the foot of the screen and `mcob3aRepossessionWarning` through `riskWarningHTML`
+above the "This month" card, and neither is this paragraph. It separated the disclosure from the
+milestone list, but that gap is `.screen-content`'s own 16px row-gap and does not depend on anything
+sitting in it.
+
+**Recovered 82.0px at default text and 91.9px at Large** - the paragraph's own 66.0px / 75.9px plus
+the 16px flow gap it occupied.
+
+### The checkpoint-reached wording had two faults, not one
+
+It read "You've passed the 75% checkpoint. You can now check whether a Mortgage in Principle is
+likely to be approved."
+
+1. **It cited a marker that no longer exists.** D51's second amendment removed the 75% marker from the
+   progress bar, so the sentence congratulated the participant on passing something they had never
+   been shown (`GAPS.md` G86).
+2. **"You can NOW check" asserts a gate this very decision removed.** D51's original override made the
+   check available at either position. Nothing becomes possible at the checkpoint that was not
+   possible before it, so "now" was false on its own terms and had been since D51 was written.
+
+The replacement states the position the participant **can** see - the fill is past three quarters of
+the track - without naming a figure, without implying a gate, and without hinting which way the result
+will go, which D51 rejected an earlier candidate for doing:
+
+> "Not run yet. You're most of the way to your goal. You can run a check whenever you want to."
+
+**This closes the frame 16 half of G86** and takes the last reference to 75% off the screen entirely:
+`CHECKPOINT_FRACTION` is no longer imported by `tracker.js`. Frame 17's "You've saved three quarters
+of your deposit" is untouched and still wrong; it is inside the Mortgage in Principle flow, which this
+task was scoped out of, and G86 carries it.
+
+### Also corrected, and it was overdue
+
+`goalMetBody` said "You've saved your full **deposit** goal". The goal has included stamp duty since
+D70, so that was false about £7,500 of it - the same correction `goalCaptionTemplate` took at the
+time and this string was missed. It now reads "your full goal".
+
+### The three keys were renamed, and the three states stayed
+
+`belowCheckpointBodyTemplate`, `checkpointReachedBodyTemplate` and `goalMetBody` became
+`mipRowBelowCheckpoint`, `mipRowCheckpointReached` and `mipRowGoalMet`. Renamed because they changed
+slot as well as wording, which is the convention D51's first amendment set when it renamed `mipBody`
+for the same reason; the `...Template` suffix went with the placeholder none of them carries now.
+Each still renders in exactly the state it rendered in before.
+
+The three are deliberately parallel - status, then where the participant is, then what they can do -
+so crossing a threshold reads as one clause changing rather than the row being replaced. That is D42's
+reasoning for the milestone rows generally, applied to the row it had not yet reached.
+
+**One defect on the way, worth recording.** Hoisting: `mipRowBody` was left declared where the old
+`bodyText` had been, which is *after* the `milestones` array that now consumes it - a temporal dead
+zone that rendered the whole screen blank with `Cannot access 'mipRowBody' before initialization`.
+`node --check` passes it, every test passed, and the only thing that caught it was looking at a
+screenshot. The same lesson as D70's progress-bar defect: this build's tests assert layout and state,
+not that a screen rendered at all.
+
+`shots.mjs` gained a selector form for `--scroll` on the same pass - `--scroll=.milestone-tracker` -
+because `top` and `end` cannot reach an element in the middle of a long screen, and the row this
+decision is about is exactly that.
+
 ---
 
 ## D52. Frame 21 ends the flow too: D50's treatment applied to the not-yet result

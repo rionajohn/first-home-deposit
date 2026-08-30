@@ -2491,5 +2491,13 @@ a correction.
 and `gapToCheckpoint()` are all live, the skip-ahead control still lands on the checkpoint exactly,
 and `/mip/running` still branches on it.
 
-*Status: open. The frame 17 arithmetic should be closed before participant sessions; the frame 16
-wording can wait for a decision about whether the checkpoint is shown at all.*
+*Status: **half closed** 30 August 2026. `DECISIONS.md` D51's third amendment resolved the frame 16
+half: `checkpointReachedBodyTemplate` was moved into the Mortgage in Principle milestone row and
+rewritten as `mipRowCheckpointReached`, which names no figure at all. It also removed the last
+reference to 75% anywhere on screen - `CHECKPOINT_FRACTION` is no longer imported by `tracker.js`.*
+
+***Frame 17 remains open, and it is the half that matters.*** `/mip`'s `body` still reads "You've
+saved three quarters of your deposit, so this is now open to you.", which is arithmetically wrong -
+at the checkpoint a participant has saved 87.5% of their deposit - and now also asserts a gate D51
+removed. It is untouched because it is inside the Mortgage in Principle flow, which both tasks that
+came near it were scoped out of. **Fix before participant sessions.***

@@ -854,12 +854,52 @@ const content = {
     // easily, but "the result moves as your deposit grows" hints at the
     // direction of the result, and its first sentence repeats the wording of the
     // button immediately below it.
-    belowCheckpointBodyTemplate:
-      "A Mortgage in Principle is a lender's estimate, worked out before you choose a property. You can run one at any point.",
-    checkpointReachedBodyTemplate:
-      "You've passed the {pct} checkpoint. You can now check whether a Mortgage in Principle is likely to be approved.",
-    goalMetBody:
-      "You've saved your full deposit goal. You can check whether a Mortgage in Principle is likely to be approved whenever you're ready.",
+    // --- THE MORTGAGE IN PRINCIPLE ROW'S SUBTEXT, ALL THREE STATES ---------
+    //
+    // These three were a standalone paragraph beneath the goal disclosure and
+    // are now the milestone row's own subtext, replacing `mipBody`
+    // ("Not run yet. The estimate uses the deposit you have on the day you run
+    // it."). One block where there were two, on the row the copy was always
+    // about. See D51's third amendment.
+    //
+    // RENAMED, because they changed slot as well as wording - the repo's own
+    // convention, and the reason D51 renamed `mipBody` on the pass that moved
+    // it. The `...Template` suffix goes with the placeholder: none of the three
+    // carries one now.
+    //
+    // "NOT RUN YET" OPENS ALL THREE, AND IT IS NOT DECORATION. The milestone
+    // row's state is carried by its ICON and by nothing else - there is no
+    // aria-label, no visually-hidden text, and `lockedRowAriaSuffix` has no
+    // reader. So this clause is the only thing telling a screen-reader
+    // participant the check has not been done. It was in `mipBody` and it stays.
+    //
+    // THE THREE ARE PARALLEL ON PURPOSE: status, then where the participant is,
+    // then what they can do. Only the middle clause changes between states, so
+    // crossing a threshold reads as one clause changing rather than the row
+    // being replaced - which is D42's reasoning for the milestone rows
+    // generally.
+    mipRowBelowCheckpoint:
+      "Not run yet. A Mortgage in Principle is a lender's estimate, worked out before you choose a property. You can run one at any point.",
+    // NO "75% CHECKPOINT", AND NO FIGURE AT ALL (D51's third amendment). This
+    // read "You've passed the 75% checkpoint. You can now check whether a
+    // Mortgage in Principle is likely to be approved." Two things were wrong
+    // with it by the time it was moved. The 75% marker is no longer drawn on
+    // the progress bar, so the sentence congratulated the participant on
+    // passing something they had never been shown (GAPS.md G86). And "you can
+    // NOW check" asserts a gate D51 itself removed - the check is offered at
+    // either position, so nothing becomes possible here that was not before.
+    //
+    // What replaced it states the position the participant can actually see -
+    // the fill is past three quarters of the track - without naming a figure,
+    // without implying a gate, and without hinting which way the result will
+    // go, which D51 rejected an earlier candidate for doing.
+    mipRowCheckpointReached:
+      "Not run yet. You're most of the way to your goal. You can run a check whenever you want to.",
+    // "your full goal", NOT "your full deposit goal" - the goal includes the
+    // stamp duty since D70, so the old wording was false about £7,500 of it.
+    // The same correction `goalCaptionTemplate` took.
+    mipRowGoalMet:
+      "Not run yet. You've saved your full goal. You can run a check whenever you want to.",
     accountsLinkedTitle: 'Accounts linked',
     accountsLinkedBody: 'Connected already, so we work from your real figures rather than a form you fill in.',
     accountsSortedTitle: 'Accounts sorted',
@@ -905,7 +945,17 @@ const content = {
     // `/mip/pre-check`'s `softSearchWarning`, inside the flow where it applies.
     //
     // NOT a `...Template`: it carries no placeholder, and the name says so.
-    mipBody: 'Not run yet. The estimate uses the deposit you have on the day you run it.',
+    // `mipBody` IS DELETED (D51's third amendment). It held "Not run yet. The
+    // estimate uses the deposit you have on the day you run it." and the three
+    // `mipRow*` strings above take its slot.
+    //
+    // NEITHER HALF OF IT WAS DROPPED. "Not run yet" opens all three
+    // replacements, for the accessibility reason recorded there. The second
+    // sentence was the ONLY place in the whole of content.js that said the
+    // estimate is sized on the deposit held on the day - verified by search -
+    // so it moved down one element into `mipCaption`, which is the gloss of
+    // what the check is and is not, and therefore a better home for a property
+    // of the estimate than a status line ever was.
     // The caption under the milestone list: what the participant gets from a
     // Mortgage in Principle, and the two things it is not.
     //
@@ -931,7 +981,7 @@ const content = {
     // screen, beside `mipTitle` and `mipBody` above. D35's copy table in
     // DECISIONS.md records this line's previous wording under the old key name.
     mipCaption:
-      'An indication of what a lender might lend you. Not a decision, and not an application.',
+      'An indication of what a lender might lend you, based on the deposit you have on the day you run it. Not a decision, and not an application.',
     ratesCardHeading: 'What rates are like at this Loan-to-Value',
     ratesCaptionTemplate: 'Typical market rates at {ltv} Loan-to-Value',
     ratesDisclosureText: 'Subject to further checks and your individual circumstances. Not an offer.',
