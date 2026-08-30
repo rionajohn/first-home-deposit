@@ -636,15 +636,54 @@ const content = {
 
   '/calculator/result': {
     appBarTitle: 'Your results',
-    headlineTemplate: 'A deposit on a {property} home could be {low} to {high}',
-    rangeCaptionTemplate: 'Depending on whether you put down {lowPct} or {highPct}',
-    goalTrackLabelTemplate: 'Your goal - {target}',
-    rangeProvenanceCaption: 'Worked out from the property value you set',
+    // LEADS WITH THE FIGURE THEY CHOSE (DECISIONS.md D72). It used to open
+    // "A deposit on a {property} home could be {low} to {high}" - a 5-to-15%
+    // range, on a screen reached by choosing a percentage, which put three
+    // numbers in one sentence and none of them the participant's own. The
+    // amount comes first and the basis follows it as a caption.
+    headlineTemplate: 'Your deposit would be {amount}',
+    // A LABEL, NOT A SENTENCE, which is why it carries two numbers where
+    // copy-check rule 5 would stop a sentence doing so. It states the basis of
+    // the figure above it in the fewest words that stay unambiguous.
+    depositBasisCaptionTemplate: '{pct} of {property}',
+    // `goalTrackLabelTemplate` IS DELETED, AND THAT IS THE FIX FOR GAPS.md G85
+    // (D72). It held "Your goal - {target}" filled from `deposit-target`, so
+    // frame 12 called 45,000 "your goal" while /tracker called 52,500 the same
+    // thing - one phrase, two figures, two screens, which is D34's failure mode.
+    // The phrase is not reworded here, it is GONE: the range figure it labelled
+    // is gone with it, and the goal now appears on this screen under its own
+    // heading, carrying the same figure the tracker carries.
+    //
+    // `rangeCaptionTemplate` and `rangeProvenanceCaption` go with the range
+    // figure for the same reason - they described a 5-to-15% band this screen
+    // no longer presents.
     provenanceCaption: "Worked out from what you've set aside and what you're putting away",
-    assumptionsLinkLabel: 'How we worked out the deposit range',
-    timingWithinTemplate: '{pct} - within {months}',
-    timingRangeTemplate: '{pct} - {low} to {high}',
-    timingAlreadyTemplate: "{pct} - you've already saved this",
+    assumptionsLinkLabel: 'How we worked out these figures',
+
+    // --- What the goal is, stated once and agreeing with /tracker (D72) -----
+    // Step 6 of the brief: the deposit figure and the goal figure must not be
+    // confusable. Three rows and a total do that better than any wording could
+    // - the participant sees 45,000 and 7,500 make 52,500, and meets the goal
+    // here rather than for the first time on the tracker.
+    goalHeading: 'What you would save toward',
+    goalDepositLabel: 'Your deposit',
+    goalStampDutyLabel: 'Stamp duty',
+    goalTotalLabel: 'Total to save',
+    goalStampDutyCaption: 'Stamp duty is worked out at first-time buyer rates.',
+
+    // --- The comparison that replaced the range (D72) -----------------------
+    // Every chip frame 09 offers gets a row, so a participant who chose 20% or
+    // 25% sees their own choice rather than a band that stops at 15%.
+    compareHeading: 'How this compares',
+    compareRowSublabelTemplate: '{pct} deposit',
+    // THE SELECTED ROW SAYS SO IN WORDS. `rate-band-row--highlighted` marks it
+    // visually, but colour and weight must not be the only carriers (WCAG
+    // 1.4.1), and this is the one row on the screen whose meaning depends on
+    // being told apart from the others.
+    compareRowSelectedSublabelTemplate: '{pct} deposit - your choice',
+    compareWithinTemplate: 'within {months}',
+    compareAlreadyLabel: 'already saved',
+    compareProvenanceCaption: 'Time to save each one, at what you are putting away now',
     chartHeading: 'How your savings would build up',
     chartCaptionTemplate: 'With interest at {aer} a year. Illustrative.',
     thresholdLabelTemplate: '{pct} - {amount}',

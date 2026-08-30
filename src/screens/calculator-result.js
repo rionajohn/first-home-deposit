@@ -29,16 +29,17 @@ import {
   bindAppBarLeading,
   infoBannerHTML,
   flagRowHTML,
-  rangeFigureHTML,
   growthChartHTML,
+  rateBandRowHTML,
+  figureRowHTML,
   infoLinkHTML,
   howThisWorksCardHTML,
   emptyStateCardHTML,
   rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent, formatMonthsDuration } from '../format.js';
-import { balanceAtMonth, monthsToReachAmount, checkpointAmount, monthsToTarget } from '../model/model.js';
-import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS } from '../model/rates.js';
+import { balanceAtMonth, monthsToReachAmount, checkpointAmount, monthsToTarget, stampDuty, combinedGoal } from '../model/model.js';
+import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS, DEPOSIT_PCT_OPTIONS } from '../model/rates.js';
 
 export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
 
@@ -52,7 +53,15 @@ export function render(container, ctx) {
   const summaryContent = content['/position/summary'];
   const reg = content.shared.regulatory;
 
-  if (state['deposit-target'].value === null || state['months-to-target'].provenance === null) {
+  // `combined-goal` AND `stamp-duty` JOIN THE GUARD because this screen now
+  // displays both (D72). Same rule as /tracker's: a screen may only show a
+  // figure derived from a key its own guard tested.
+  if (
+    state['deposit-target'].value === null
+    || state['combined-goal'].value === null
+    || state['stamp-duty'].value === null
+    || state['months-to-target'].provenance === null
+  ) {
     window.location.replace('#/calculator/review');
     return;
   }
@@ -67,7 +76,15 @@ export function render(container, ctx) {
 
   const [lowPctValue, midPctValue, highPctValue] = CHART_DEPOSIT_PCTS;
   const rangeLowAmount = propertyValue * lowPctValue;
+  // STILL DERIVED, STILL USED - by the growth chart's own scale and threshold
+  // lines, which build-spec.md fixes at 5/10/15% regardless of what the
+  // participant chose. It no longer feeds a headline or a range figure.
   const rangeHighAmount = propertyValue * highPctValue;
+
+  // The participant's own choice, which this screen leads with now (D72).
+  const depositPctValue = state['deposit-pct'].value;
+  const stampDutyValue = state['stamp-duty'].value;
+  const combinedGoalValue = state['combined-goal'].value;
 
   const monthsResult = monthsToTarget(state);
   const unreachable = monthsResult.error === 'unreachable';
@@ -76,49 +93,64 @@ export function render(container, ctx) {
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
     <main class="screen-content" role="main">
-      <h2 class="screen-title">${fill(c.headlineTemplate, { property: formatCurrency(propertyValue), low: formatCurrency(rangeLowAmount), high: formatCurrency(rangeHighAmount) })}</h2>
-
-      ${rangeFigureHTML({
-        lowText: formatCurrency(rangeLowAmount),
-        highText: formatCurrency(rangeHighAmount),
-        caption: fill(c.rangeCaptionTemplate, { lowPct: formatPercent(lowPctValue, 0), highPct: formatPercent(highPctValue, 0) }),
-        markerPct: ((depositTargetValue - rangeLowAmount) / (rangeHighAmount - rangeLowAmount)) * 100,
-        trackLabel: fill(c.goalTrackLabelTemplate, { target: formatCurrency(depositTargetValue) }),
-      })}
-      <p class="provenance-caption">${c.rangeProvenanceCaption}</p>
+      <h2 class="screen-title">${fill(c.headlineTemplate, { amount: formatCurrency(depositTargetValue) })}</h2>
+      <p class="provenance-caption">${fill(c.depositBasisCaptionTemplate, { pct: formatPercent(depositPctValue, 0), property: formatCurrency(propertyValue) })}</p>
       ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions-deposit' })}
 
-      ${unreachable ? emptyStateCardHTML({ title: c.unreachableHeadline, body: c.unreachableBody, ctaLabel: c.unreachableCta, ctaAction: 'set-amount' }) : `
-        <div class="timing-figures">
-          ${CHART_DEPOSIT_PCTS.map((pct) => {
-            const targetAmount = propertyValue * pct;
-            const monthsSoon = monthsToReachAmount({ startingBalance: savedTowardDeposit, targetAmount, monthlyAmount: monthlyHigh });
-            const monthsLater = monthsToReachAmount({ startingBalance: savedTowardDeposit, targetAmount, monthlyAmount: monthlyLow });
-            const pctLabel = formatPercent(pct, 0);
-            if (savedTowardDeposit >= targetAmount) {
-              return `<p>${fill(c.timingAlreadyTemplate, { pct: pctLabel })}</p>`;
-            }
-            const soonText = formatMonthsDuration(monthsSoon);
-            // monthly-low can be dragged to £0 (monthly-high can't, while
-            // unreachable's own guard above still lets savings-rate's
-            // midpoint be positive) — Infinity months at that end isn't
-            // shown as a range partner, just the achievable end.
-            if (!Number.isFinite(monthsLater)) {
-              return `<p>${fill(c.timingWithinTemplate, { pct: pctLabel, months: soonText })}</p>`;
-            }
-            const laterText = formatMonthsDuration(monthsLater);
-            // Under a year, a two-sided range (e.g. "2 months to 3 months")
-            // is fussier than it is informative — collapse to a single,
-            // conservative "within" statement using the slower end. At a
-            // year or more the gap between ends is worth showing in full.
-            if (soonText === laterText || Math.ceil(monthsLater) < 12) {
-              return `<p>${fill(c.timingWithinTemplate, { pct: pctLabel, months: laterText })}</p>`;
-            }
-            return `<p>${fill(c.timingRangeTemplate, { pct: pctLabel, low: soonText, high: laterText })}</p>`;
-          }).join('')}
-        </div>
-        <p class="provenance-caption">${c.provenanceCaption}</p>
-      `}
+      <!-- WHAT THEY WOULD SAVE TOWARD, and the answer to GAPS.md G85 (D72).
+           The deposit and the goal are different figures and this screen shows
+           both, so they are shown as an addition rather than as two headline
+           numbers a participant has to reconcile. The total is the same figure
+           /tracker states, from the same key. -->
+      <h3 class="section-heading">${c.goalHeading}</h3>
+      <div class="assumptions-list">
+        ${figureRowHTML({ label: c.goalDepositLabel, trailing: formatCurrency(depositTargetValue) })}
+        ${figureRowHTML({ label: c.goalStampDutyLabel, trailing: formatCurrency(stampDutyValue), caption: c.goalStampDutyCaption })}
+        ${figureRowHTML({ label: c.goalTotalLabel, trailing: formatCurrency(combinedGoalValue) })}
+      </div>
+
+      <!-- EVERY CHIP FRAME 09 OFFERS, not the fixed 5/10/15 band (D72). A
+           participant who chose 20% or 25% had no row of their own before. -->
+      <h3 class="section-heading">${c.compareHeading}</h3>
+      <div class="card">
+        ${DEPOSIT_PCT_OPTIONS.map((pct, i) => {
+          const amount = propertyValue * pct;
+          const goalAtPct = amount + stampDutyValue;
+          const selected = pct === depositPctValue;
+          const pctLabel = formatPercent(pct, 0);
+          const sublabel = fill(
+            selected ? c.compareRowSelectedSublabelTemplate : c.compareRowSublabelTemplate,
+            { pct: pctLabel },
+          );
+          // The SLOWER end, deliberately: one figure rather than a two-sided
+          // range in a narrow value column, and the conservative end is the
+          // one that cannot disappoint. `monthly-low` can be dragged to zero,
+          // which is the non-finite case.
+          const monthsLater = monthsToReachAmount({ startingBalance: savedTowardDeposit, targetAmount: goalAtPct, monthlyAmount: monthlyLow });
+          const value = savedTowardDeposit >= goalAtPct
+            ? c.compareAlreadyLabel
+            : Number.isFinite(monthsLater)
+              ? fill(c.compareWithinTemplate, { months: formatMonthsDuration(Math.ceil(monthsLater), { abbreviated: true }) })
+              : '—';
+          return `
+            ${rateBandRowHTML({ label: formatCurrency(amount), sublabel, value, highlighted: selected })}
+            ${i < DEPOSIT_PCT_OPTIONS.length - 1 ? '<hr class="divider" />' : ''}
+          `;
+        }).join('')}
+      </div>
+      <p class="provenance-caption">${c.compareProvenanceCaption}</p>
+
+      <!-- THE 5/10/15 TIMING ROWS ARE GONE (D72). They stated a timeframe for
+           three fixed percentages, two of which the participant may not have
+           chosen and two of frame 09's chips they never covered. The comparison
+           above does the same job for all five, with the participant's own
+           choice marked. "timingWithinTemplate", "timingRangeTemplate" and
+           "timingAlreadyTemplate" went with them.
+
+           The unreachable empty state stays: at a zero savings rate there is no
+           timeframe for any percentage, and the card says so once rather than
+           the comparison saying it five times. -->
+      ${unreachable ? emptyStateCardHTML({ title: c.unreachableHeadline, body: c.unreachableBody, ctaLabel: c.unreachableCta, ctaAction: 'set-amount' }) : ''}
 
       <p class="legal-text">${reg.estimateDisclosure}</p>
 

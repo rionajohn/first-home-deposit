@@ -2423,4 +2423,9 @@ than a patch:
 the good case; one who does not notice and simply loses confidence in the figures is the bad one, and
 this prototype is an instrument for measuring exactly that kind of confidence.
 
-*Status: open. Needs a decision on what frame 12 is about before the wording follows.*
+*Status: **closed** 30 August 2026 by `DECISIONS.md` D72, which took the first of the two options
+above. Frame 12 leads with the deposit for the chosen percentage; the phrase "Your goal - {target}"
+is deleted rather than reworded, along with the range figure it labelled. The goal appears on the
+screen under "What you would save toward", carrying `combined-goal` - the same key and therefore the
+same figure `/tracker` states. D72 records the phrase-by-phrase check confirming no wording renders
+on both screens against different figures.*

@@ -5811,3 +5811,124 @@ Filing it there would turn a closed question into an open one.
 
 Nothing to reverse. If the track ever widens, re-measure the three gaps against 48px before reopening
 this - the numbers above are specific to a 287.4px track at a 390px viewport.
+
+---
+
+## D72. Frame 12 leads with the deposit the participant chose, and stops calling it "your goal"
+
+**Date.** 30 August 2026. Closes `GAPS.md` G85.
+
+### What the screen was
+
+It sat at the end of the deposit calculator, immediately after the participant picked a percentage
+from frame 09's chips, and led with a **range they had not chosen**: "A deposit on a £450,000 home
+could be £22,500 to £67,500". Their own figure appeared only as a small marker label under the range
+track. Three timing rows beneath were fixed at 5/10/15%, so a participant who chose **20% or 25% saw
+no row for their own selection at all** - two of the five chips frame 09 offers.
+
+Three numbers in the headline sentence, none of them theirs.
+
+### The choice this turned on, and why the deposit won
+
+Two readings were possible, and they are not interchangeable because they decide what the whole
+screen is about.
+
+**Lead with the combined goal (£52,500).** Rejected. Stamp duty does not vary with the deposit
+percentage - it is a function of the property value alone - so every comparison row would carry the
+same constant £7,500. Adding a constant to five rows carries no comparative information and destroys
+the arithmetic relationship the comparison exists to show: 5% to 10% is a doubling of the deposit,
+and 30,000 to 52,500 is not a doubling of anything. It would also put a goal figure at the head of a
+screen whose "Why a bigger deposit helps" card, its Loan-to-Value link and its borrowing content are
+all sized against the deposit alone (D70).
+
+**Lead with the deposit for the chosen percentage (£45,000).** Chosen. This screen is the last step
+of the **deposit calculator**, reached by choosing a deposit percentage. Its subject is that choice.
+The quantity that varies across the comparison is the deposit; the tax is constant. And the goal is
+the tracker's subject - the tracker is where saving is measured, and this is where the deposit is
+decided.
+
+So: **the deposit leads, and the goal appears beneath it under its own heading**, which is how the
+participant meets £52,500 here rather than for the first time on the tracker.
+
+### How G85 is closed, and why by deletion rather than rewording
+
+G85 was `goalTrackLabelTemplate` - "Your goal - {target}" - filled from `deposit-target`, so frame 12
+called 45,000 "your goal" while `/tracker` called 52,500 the same thing. One phrase, two figures, two
+screens: D34's failure mode.
+
+**The phrase is deleted, not reworded.** The range figure it labelled is gone, and with it
+`rangeCaptionTemplate` and `rangeProvenanceCaption`. Rewording it to "Your deposit - £45,000" would
+have satisfied the letter of D34 while leaving a second, smaller copy of a figure the headline now
+states - the duplication D34 is actually about.
+
+**D34's rule is satisfied rather than worked around, and the check is mechanical.** No phrase renders
+on both screens carrying different figures:
+
+| Phrase | Frame 12 | `/tracker` |
+|---|---|---|
+| "Your deposit would be" / "Your deposit" | 45,000 | not used |
+| "Total to save" | **52,500** | not used |
+| "of your {target} goal" | not used | **52,500** |
+| "Your goal includes an estimated {amount} of stamp duty" | not used | 7,500 |
+| "Stamp duty" | 7,500 | 7,500 (disclosure) |
+
+The only figures appearing on both screens are 52,500 and 7,500, and both read from the same stored
+keys - `combined-goal` and `stamp-duty` - so they cannot disagree. The word "goal" now appears on
+frame 12 only in "What you would save toward", attached to the total, which is the tracker's figure.
+
+### What replaced the range
+
+**A comparison across every chip frame 09 offers**, built from `rateBandRowHTML` - the component the
+tracker already uses for its Loan-to-Value band table, with its `highlighted` state marking the
+participant's own row. No new component.
+
+Each row is the deposit amount, the percentage as a sublabel, and the time to save that goal at the
+slower of the two monthly figures. The slower end deliberately: one figure rather than a two-sided
+range in a narrow value column, and the conservative end is the one that cannot disappoint.
+
+**The selected row says "your choice" in words**, not only in the highlight. WCAG 1.4.1 again, and
+this is the one row whose meaning depends on being told apart from the others.
+
+### Every percentage is beyond the projection window at the seeded figures
+
+Reported rather than fixed, because it is a property of the seed and not of this screen. At the
+saving stage's own committed figures (450,000 property, 8,950 saved, 200-310 a month):
+
+| Chip | Deposit | Goal with tax | At 310 a month | At 200 a month |
+|---|---|---|---|---|
+| 5% | 22,500 | 30,000 | 57.0 months | 81.4 |
+| 10% | 45,000 | 52,500 | 108.6 | 150.5 |
+| 15% | 67,500 | 75,000 | 153.1 | 207.4 |
+| 20% | 90,000 | 97,500 | 192.3 | 255.9 |
+| 25% | 112,500 | 120,000 | 227.3 | 298.1 |
+
+**All five exceed the 60-month chart window**, at both monthly figures. That is expected and renders
+correctly: the comparison rows state durations rather than plotting positions, so they are unaffected
+by the window, and the growth chart still plots to five years carrying `beyondWindowNote` exactly as
+D68 left it. It is recorded because a facilitator seeing "within 19 yr" on the 25% row should know it
+is the seed's monthly figures talking and not a defect.
+
+### The £70,875 mystery is solved, and it was never a deposit figure
+
+Carried over as open from the previous round. `£70,875` is the growth chart's **y-axis ceiling**:
+`maxScale = Math.max(rangeHighAmount, ...points) * 1.05`, and 67,500 x 1.05 = 70,875. It is 5%
+headroom above the 15% threshold line so the topmost gridline is not flush with the chart's edge. Not
+5, 10 or 15% of anything, and not a figure the participant is meant to read as an amount they might
+save. No change made: the chart's own scale is allowed a ceiling, and `yTop` labelling it is what
+makes the gridlines legible.
+
+### Also changed
+
+- `assumptionsLinkLabel` was "How we worked out the deposit range". There is no range now, so it
+  reads "How we worked out these figures". Its destination, frame 30, is unchanged.
+- The guard gains `combined-goal` and `stamp-duty`, because the screen now displays both - the same
+  rule `/tracker`'s guard follows, and the same one D46 and D38's third amendment were written after.
+- `rangeHighAmount` is still derived and still used: the growth chart's scale and its three threshold
+  lines are fixed at 5/10/15% by `build-spec.md` regardless of the participant's choice. Only the
+  headline and the range figure stopped reading it.
+
+### To reverse
+
+`headlineTemplate`, `depositBasisCaptionTemplate`, the `goal*` and `compare*` keys in `content.js`;
+the headline, goal block and comparison in `calculator-result.js`, restoring `rangeFigureHTML` and
+the `timing*` templates; and the guard's two extra keys. `CACHE_VERSION` v66.
