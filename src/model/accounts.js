@@ -78,6 +78,19 @@ export const MOCK_ACCOUNTS = [
     balance: 2400,
     group: 'unassigned',
     captionKey: 'stocksIsaCaption',
+    // THE ONLY CAPTION ON THIS SCREEN THAT ASKS FOR SOMETHING. It ends "Tap to
+    // tell us", so once the participant HAS told us it invites an action they
+    // have already taken. Rendered only while this account is unsorted.
+    //
+    // A FLAG RATHER THAN A BLANKET RULE, because the other three captions are
+    // the opposite kind of string and none of their accounts is ever
+    // unassigned. `lifetimeIsaCaption` explains why an account IS counted and
+    // offers a move; `emergencyFundCaption` and `currentAccountCaption` state
+    // what a pot is for. Gating every caption on "unsorted" would delete all
+    // three outright, since Lifetime ISA opens in `deposit`, Emergency fund in
+    // `emergency` and Current account in `excluded`. What is being corrected
+    // is the PROMPT pattern, and this is its only instance.
+    captionWhileUnsorted: true,
     movable: true,
   },
   {

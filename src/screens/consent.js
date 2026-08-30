@@ -100,7 +100,26 @@ function checkboxRow({ checked, title, body, action, trailing = '', trailingRole
  * checkboxes all called nothing.
  */
 function accountRow(account, content) {
-  const caption = account.captionKey ? content.accountCaptions[account.captionKey] : null;
+  // A PROMPT GOES ONCE ITS QUESTION IS ANSWERED. `captionWhileUnsorted` marks a
+  // caption that asks the participant to file the account, so it renders only
+  // while the account is still unfiled - and "answered" means EITHER answer:
+  // counted toward the deposit, kept for emergencies or left out, all three
+  // settle the question the caption asks.
+  //
+  // Read from `account.group` rather than from a flag set when the participant
+  // acts, so this is a function of where the account IS and not of how it got
+  // there. If a route back to `unassigned` is ever added, the caption returns
+  // on its own; none exists today (frame 03b offers only the three filed
+  // groups, and unticking a checkbox clears the included flag while leaving
+  // the filing alone - see `toggleAccountPatch`).
+  //
+  // This puts the caption under the same condition as the two other things
+  // that belong to an unsorted account: the "Not sorted yet" group header and
+  // its "Sort this out" button, both of which `groupSection` already drops
+  // when the group empties. All three now appear and disappear together.
+  const captionApplies = account.captionKey
+    && (!account.captionWhileUnsorted || account.group === 'unassigned');
+  const caption = captionApplies ? content.accountCaptions[account.captionKey] : null;
   const disabled = !account.movable;
   const selectLabel = content.accountSelectLabelTemplate.replace('{account}', account.name);
 

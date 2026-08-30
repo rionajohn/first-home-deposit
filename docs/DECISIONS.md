@@ -4581,6 +4581,7 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 | 29 August 2026 (twelve duplicated clusters varied) | **D67 recorded.** The counterpart to **D66**: where that entry refuses to vary the nine shared keys, this one varies the twelve clusters that are genuinely duplicated - separate keys holding byte-identical wording. 18 string values across frames 06, 08, 11, 12, 13, 13b, 15/16, 18, 21, 29, 30 and 32. **Detection was mechanical, not by eye**: all 615 string leaves flattened and clustered by token-set overlap, which found 29 candidate clusters and, critically, CANNOT see a shared key (one leaf, many render sites) - the distinction D66 turns on. **One inventory error corrected on the way**: `howWeWorkedIntro` was filed as three keys on three screens, but frames 20 and 21 read frame 06's, so it is three keys across FIVE render sites and 06's is itself shared; 06's was therefore left alone and only 12 and 13 varied. **Where a third instance already varied** (frames 31 and 19 on four clusters) the existing variant was read first and the new wording pitched as a third distinct phrasing rather than converging on either. **B8's five phrasings were read as a set**, being the cluster most able to drift: all five name the same frame 03 assignment through four verbs, none names a different account set, none adds a window or averaging claim, and none shifts the `read` provenance sense. B2, B5 and B12 carry regulatory or scope content and were checked element by element; none required softening, so none was left identical on those grounds. **Recorded as a limit on the value**: frames 20 and 21 are mutually exclusive (`mip-running.js` replaces the hash with one), so B2, B10, B11 and B12 vary copy no single participant can compare. Copy-checked over all twelve routes: **0 fixed, 1 flagged** (`report-issue`, pre-existing). `CACHE_VERSION` v59, `BUILD_VERSION` v59. 270 tests passing. |
 | 30 August 2026 (the tracker's "On track for" row) | **D68 recorded; G80 and G81 raised, both open.** The row rendered an **em dash** on every opening session, under a caption claiming a derivation, with no note anywhere saying why. Four changes, smallest first. **(1)** `onTrackFor()` propagated `beyond-window` through `fail()` and DISCARDED the months figure `monthsToTarget()` returns alongside it on purpose; it now carries the range through `fail`'s third parameter, the way `leftOver`'s `exceeds-money-in` already did. The other three error codes come back with a null value, so they are untouched. **(2)** The tracker renders **"More than 5 years"** rather than a dash, matching frame 12's threshold language so the two agree on one session. **Deliberately not the date range** the model can now supply: 60 months is where the projection stops being shown, so "August 2034 to June 2036" would be more precise than the window allows and would contradict frame 12. **(3)** `statRowHTML` guards its caption, so an absent figure no longer carries a provenance claim. **(4)** New `onTrackBeyondWindowNote`, frame 12's note rewritten for a screen with no chart - its second clause explains the missing DATE rather than the chart's limit, and "at what you're putting aside now" replaces "at your current rate" because a rates card sits just above it. **One test updated, not weakened**: `stage.test.mjs` asserted null was the correct stored value here, which D68 reverses; the projection-window COST it exists to assert is untouched and now also asserts the whole range sits past the window. **Reachability corrected**: the tracker redirects unless `deposit-target` and `checkpoint-amount` are set, so the two `setting-up` dash rows were never reachable on this screen and beyond-window was the only dash a participant could meet. Copy check on the new strings: **0 issues**. `CACHE_VERSION` v60, `BUILD_VERSION` v60. 270 tests passing. |
 | 30 August 2026 (D68 change 2 reversed) | **D68 amended, not replaced.** The tracker's beyond-window row renders **the date range** ("August 2034 to June 2036" at the seed) rather than the threshold string "More than 5 years" that D68 shipped hours earlier. **The reason is a value judgement, and it went the other way on second look:** the model had computed a figure and the screen was declining to show it, which is withholding rather than protecting - a participant reading "More than 5 years" cannot tell whether the app does not know or will not say. Transparency preferred over withholding a computed figure; the original reasoning is kept in the entry rather than overwritten, because the trade is the useful part. `onTrackBeyondWindowValue` deleted; the render branch SIMPLIFIED to `onTrack.value ? range : dash`, so the value decides rather than the error code, and the caption guard follows the value. The note stays and its job changed - it used to explain a missing date, it now qualifies a present one: **"These dates are an estimate based on what you're putting aside now. They move if that changes."**, echoing `estimateDisclosure`'s framing rather than inventing a second phrasing. **Frame 12 reported and NOT changed**: neither clause of its `beyondWindowNote` becomes false, so nothing contradicts, but the disclosure is now asymmetric - it declines to name a date the tracker names. **Reported, not fixed:** the tracker renders a projected figure and carries no `estimateDisclosure`, a pre-existing `fca-copy-check` rule 2 breach that this change makes more consequential, and the month-precise endpoints of a 22-month band overstate what a 10% spread on a nine-year projection warrants. Logged as **G82**. `CACHE_VERSION` v61, `BUILD_VERSION` v61. 270 tests passing. |
+| 30 August 2026 (frame 03's prompt caption) | **D69 recorded.** `stocksIsaCaption` ("...Tap to tell us.") rendered whatever group its account was in, so once a participant had filed the Stocks and shares ISA it went on inviting an action they had just taken. Cause: `captionKey` is a STATIC property of the account in `accounts.js`, read unconditionally by `accountRow`, so nothing tied the caption to the state it describes. Fixed with a per-account `captionWhileUnsorted` flag gating on `account.group === 'unassigned'`. **A flag, NOT a blanket rule, and that is the whole judgement**: the screen's other three captions are the opposite kind of string - `lifetimeIsaCaption` explains why an account IS counted, `emergencyFundCaption` and `currentAccountCaption` say what a pot is for - and none of their accounts is ever unassigned, so gating every caption on "unsorted" would have deleted all three outright. The prompt pattern has exactly one instance. **Item 5 answered**: the "Not sorted yet" header, its "We can't tell what this is for" subtitle and the "Sort this out" button were ALREADY governed together by `groupSection`'s empty-group return and its `group === 'unassigned'` test; the caption was the one piece outside that condition, and is now inside it. Verified by shot: all three present together unsorted, all three gone together once filed, in both themes at both text sizes. **Suppression is state-derived, not a one-way flag**, so the caption returns if the account ever returns to `unassigned` - which no control can do today (frame 03b offers only the three filed groups; unticking clears `included` and leaves the filing alone). **No layout risk**: `.account-row` keeps `min-height: 64px` and its own `border-bottom`, `.account-row-wrap` uses `gap` so nothing is left behind, and four accounts already render caption-free. `shots.mjs` gained `--assign`, without which frame 03's filed states are unshootable. `CACHE_VERSION` v62, `BUILD_VERSION` v62. 270 tests passing. |
 
 ---
 
@@ -5183,4 +5184,91 @@ in-window range at `ready-to-check` has always shipped unqualified - which this 
 consequential, because the unqualified figure is now nine years out rather than two and a half. The
 note supplies estimate framing in the beyond-window case alone.
 
+---
+
+## D69. A caption that asks a question goes once the question is answered
+
+**Date.** 30 August 2026.
+
+**Decision.** `stocksIsaCaption` renders only while its account is unsorted. One flag on the account
+in `accounts.js`, one condition in `consent.js`. No copy changed, no layout changed, no figure
+changed.
+
+**The defect.** The caption reads "Some people are saving this toward a home, some aren't. **Tap to
+tell us.**" It rendered in every group, so a participant who had filed the Stocks and shares ISA
+under "Toward your deposit" - by ticking it, or through frame 03b - saw the row sit under that
+heading, ticked, still asking them to tell us what it was for.
+
+**The cause is structural rather than a missed condition.** `captionKey` is a static property of the
+account in `MOCK_ACCOUNTS`, and `accountRow` read it unconditionally:
+
+```js
+const caption = account.captionKey ? content.accountCaptions[account.captionKey] : null;
+```
+
+Nothing connected the caption to the state it describes, because nothing ever needed to: three of the
+four captions on this screen are true regardless of state.
+
+### Why a flag and not a blanket rule
+
+This is the part worth keeping. The obvious fix - render no caption unless the account is unassigned
+- would have deleted three of the four captions outright, because none of their accounts is ever
+unassigned:
+
+| Caption | Account opens in | What it does |
+|---|---|---|
+| `stocksIsaCaption` | `unassigned` | **Asks** the participant to file the account |
+| `lifetimeIsaCaption` | `deposit` | Explains why it IS counted, and offers a move |
+| `emergencyFundCaption` | `emergency` | States what the pot holds |
+| `currentAccountCaption` | `excluded` | States what the account is, and that it is not in the total |
+
+Only the first is a prompt. The other three are standing explanations that are as true after filing
+as before, and two of them describe accounts a participant may never touch. `CLAUDE.md`'s rule that a
+correction applies everywhere the same pattern appears is satisfied by fixing one instance here,
+because the pattern - **a caption that invites an action** - has exactly one instance.
+
+Hence `captionWhileUnsorted: true` on the account, and a condition that leaves a caption without the
+flag alone.
+
+### Either answer counts as an answer
+
+Suppression is on `group === 'unassigned'`, so all three filings settle it: counted toward the
+deposit, kept for emergencies, or left out. The caption asks "is this for a home?", and "no" answers
+it as completely as "yes".
+
+**It is derived from where the account IS, not from a flag set when the participant acted.** So if a
+route back to `unassigned` is ever added, the caption returns with no further change. None exists
+today: frame 03b offers only `deposit`, `emergency` and `excluded`, and `toggleAccountPatch`'s
+unticking "clears the flag and leaves the filing alone". The behaviour is therefore *would return,
+unreachable today*, which is the honest answer to whether it comes back.
+
+### The three things that now move together
+
+`groupSection` already dropped the "Not sorted yet" header, its "We can't tell what this is for"
+subtitle and the "Sort this out" button together - the first two through `if (accounts.length === 0)
+return ''`, the button through `group === 'unassigned'`. The caption was the only piece of the
+unsorted state outside that condition, which is why the before shot shows it standing alone with the
+heading and button already gone. All four are now governed by the same fact.
+
+### Layout
+
+Nothing new was introduced. `.account-row` keeps `min-height: 64px` and its own `border-bottom`, so
+the row cannot collapse and the list rhythm is unchanged. `.account-row-wrap` is a flex column with
+`gap`, which applies only between children, so removing the caption leaves no residual space.
+Strongest evidence: **four accounts already render with no caption** - House pot, Instant saver, Cash
+ISA and Holiday pot - so the caption-free row is the list's existing default, not a new state.
+Confirmed by shot in both themes at both text sizes.
+
+### Harness
+
+`scripts/shots.mjs` gained `--assign=<accountId>:<group>`, validated against the real account ids and
+`GROUP_ORDER`. Without it frame 03's filed states cannot be shot at all: the seed always opens with
+the Stocks and shares ISA unsorted, so every shot of that screen showed the same row in the same
+state - which is why the defect survived to be found by reading rather than by looking. It writes
+`accountSelectionEdited` alongside the assignment, because a filing the participant did is what that
+flag records, and leaving it false would seed a session claiming `read` provenance for figures a
+participant moved (D5).
+
+**To reverse.** The `captionWhileUnsorted` flag on `stocks-isa` and the `captionApplies` condition in
+`accountRow`.
 

@@ -56,6 +56,15 @@
  *              shoot both sides of any screen that branches on whether a goal
  *              exists - `/goals` has three states off it (D44).
  *                                                       default set
+ *   --assign   `<accountId>:<group>`, e.g. `stocks-isa:deposit`. Files one
+ *              account into a group before the first paint, the way a
+ *              participant filing it on frame 03 or 03b would. It exists
+ *              because frame 03's own states are otherwise unshootable: the
+ *              seed always opens with the Stocks and shares ISA unsorted, so
+ *              every shot of that screen shows the same row in the same state
+ *              and the sorted variants cannot be looked at. Groups are the
+ *              four in GROUP_ORDER. Repeatable with commas.
+ *                                                       default none
  *   --draft    `none` or `property-cleared`. `property-cleared` puts frame 09's
  *              property field in the cleared-but-not-committed state - the
  *              session GAPS.md G62 was reported against. It is a state no seed
@@ -129,6 +138,7 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 import { FULL } from './session-seed.mjs';
 import { STAGES } from '../src/stage.js';
+import { MOCK_ACCOUNTS, GROUP_ORDER } from '../src/model/accounts.js';
 import { BUILD_VERSION } from '../src/cache-version.js';
 // Every seed below carries `buildVersion` (DECISIONS.md D59). `state.js` now
 // DISCARDS a stored session whose stamp is not the running build's, so an
@@ -159,6 +169,7 @@ const DEFAULTS = {
   saved: '',
   goal: 'set',
   draft: 'none',
+  assign: '',
   solve: 'date',
   scroll: 'top',
   stage: '',
@@ -247,6 +258,34 @@ if (!GOAL_STATES.includes(args.goal)) {
   process.exit(1);
 }
 const NO_GOAL_KEYS = ['property-value', 'deposit-pct', 'deposit-target', 'checkpoint-amount'];
+
+/**
+ * `--assign=stocks-isa:deposit` files an account before the first paint.
+ *
+ * Validated against the real account ids and the real GROUP_ORDER rather than
+ * a list typed here, so a renamed account or a new group fails loudly at the
+ * argument instead of silently seeding an assignment no screen reads.
+ *
+ * It writes `accountSelectionEdited` alongside, because a filing the
+ * participant did is exactly what that flag records - leaving it false would
+ * seed a session claiming 'read' provenance for figures a participant moved
+ * (DECISIONS.md D5), which is the state the app itself never produces.
+ */
+const ASSIGN = {};
+if (args.assign !== '') {
+  for (const pair of list(args.assign)) {
+    const [id, group] = pair.split(':');
+    if (!MOCK_ACCOUNTS.some((a) => a.id === id)) {
+      console.error(`--assign: no account "${id}". Known: ${MOCK_ACCOUNTS.map((a) => a.id).join(', ')}.`);
+      process.exit(1);
+    }
+    if (!GROUP_ORDER.includes(group)) {
+      console.error(`--assign: no group "${group}". One of: ${GROUP_ORDER.join(', ')}.`);
+      process.exit(1);
+    }
+    ASSIGN[id] = group;
+  }
+}
 
 /**
  * `--draft=property-cleared` is deliberately NOT a figure change, and that is
@@ -519,6 +558,14 @@ try {
                 for (const key of NO_GOAL_KEYS) seed[key] = { value: null, provenance: null };
               }
               if (args.draft === 'property-cleared') seed.propertyValueCleared = true;
+              if (Object.keys(ASSIGN).length > 0) {
+                seed.accountAssignments = { ...(FULL.accountAssignments ?? {}), ...ASSIGN };
+                seed.accountIncluded = { ...(FULL.accountIncluded ?? {}) };
+                for (const [id, group] of Object.entries(ASSIGN)) {
+                  if (group === 'deposit') seed.accountIncluded[id] = true;
+                }
+                seed.accountSelectionEdited = true;
+              }
               seed.solveFor = args.solve;
               await context.addInitScript((v) => {
                 try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {}
