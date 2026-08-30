@@ -3320,3 +3320,78 @@ computed, not invented, and is the half of the range that matters.
 not the spec's number, because the spec has none. Confirm it, replace it, or record it as intentionally
 this build's own. If it is replaced, the constant is the only place it lives.*
 
+---
+
+## G98. Far enough out, the date path shows a NEGATIVE monthly amount
+
+*Raised 30 August 2026 while verifying `DECISIONS.md` D84, and not caused by it. Recorded here rather
+than left in a report, which is the principle G92 to G96 were promoted on: a decision record is where a
+decision lives, not where a live defect lives.*
+
+### What is on screen
+
+`/calculator/saving` in target-date mode, at a date far enough ahead:
+
+> **-£39**
+> Put aside each month
+
+Reproduced in a browser on the shared seed at December 2042, which the year list offers.
+
+### The arithmetic is right and the screen is wrong
+
+`monthlyAmountFromDate` solves the annuity-due equation for the payment needed to reach the goal by a
+given month. With £21,000 already saved at the Bank Rate against a £28,000 combined goal, compound
+interest alone passes the goal at about **94 months** - so from there the "required" payment is
+negative, and grows more negative the further out the date goes.
+
+| Months out | Solved amount |
+| --- | --- |
+| 6 (the floor) | £1,089.87 |
+| 60 | £41.77 |
+| **94** | **first negative** |
+| 120 | -£16.15 |
+| 240 | -£44.62 |
+
+The model is not wrong: a negative payment is the correct answer to "what must I add each month", when
+the answer is "nothing, and you could take some out". **The screen is wrong**, because it renders that
+answer under the caption "Put aside each month", which no participant can read as anything but an
+instruction to save a negative amount.
+
+### It is reachable, and D84's control is not what made it so
+
+Three decisions compound into it and none of them is a defect on its own:
+
+- **D80** rendered `previewAmount`, which closed G65 - before that the figure was never shown at all.
+- **D83** replaced an unbounded year stepper with a LIST, which needed a horizon; `YEAR_LIST_SPAN = 20`
+  is the invented figure that gives it one (G97).
+- **D84** changed how the list is drawn and nothing about what it contains.
+
+So the reachable range is twenty years and the sign flips at under eight. **Roughly twelve of the
+twenty years the control offers produce a negative figure on this seed** - it is not an edge of the
+range, it is most of it.
+
+### It moves with the session, which is why no fixed cut-off answers it
+
+The flip point is a function of `saved-toward-deposit`, `combined-goal` and the Bank Rate, all of which
+differ per session. A participant with less saved may never reach it inside twenty years; one with more
+reaches it sooner. Shortening `YEAR_LIST_SPAN` would hide it on some sessions and not others, which is
+worse than either extreme.
+
+### Not fixed here, and the options are not equivalent
+
+This pass was scoped to the control and told explicitly to leave the floor, the horizon and the readout
+alone. Sketching what closing it would mean, so the next pass does not start cold:
+
+- **A ceiling on the date**, the mirror of the floor - stop the list where the solved amount reaches
+  zero. Symmetrical with what is already there, and it removes the state rather than explaining it.
+  Costs a participant a date they might have wanted, and needs the inverse solve.
+- **Clamp the figure at zero and say what it means** - the goal is already reached by interest. Honest,
+  keeps every date, and needs copy that stays the guidance side of MCOB 4.8A.
+- **Leave it.** Not recommended: a research instrument showing "-£39 put aside each month" in a
+  think-aloud session produces a participant reaction to a defect, which is data about the prototype
+  rather than about the design.
+
+*Status: **open, and REACHABLE** - on first paint if a session's stored date is far enough out, and
+within a few taps otherwise. No facilitator gesture, no seeded state, both text sizes, both palettes. Do
+not file it beside the unreachable entries above it.*
+

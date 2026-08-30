@@ -249,7 +249,8 @@ test('mid-session persistence still carries a typed calculator value across a re
  * THE SELECTED TARGET YEAR (frame 10b).
  *
  * WAS "THE TYPED TARGET YEAR" UNTIL D83. The year was a text field between D61
- * and D82 and is a `<select>` now, so the attribute contract this test used to
+ * and D82 and is a listbox now (a `<select>` under D83, custom since D84), so
+ * the attribute contract this test used to
  * pin - `type="text"`, `inputmode="numeric"`, `maxlength="4"` - describes a
  * control that no longer exists, and so does the empty-field draft it asserted:
  * a `<select>` always holds one of its own options, which is why `state.js`'s
@@ -292,18 +293,24 @@ test('a selected target year survives a reload and a back navigation, and drives
     await page.click('[data-action="select-solve-for"][data-value="amount"]');
     await page.waitForTimeout(300);
 
-    const yearSelect = await page.$('[data-action="select-year"]');
-    assert.ok(yearSelect, 'frame 10b year select is present');
+    const yearTrigger = await page.$('[data-list="year"]');
+    assert.ok(yearTrigger, 'frame 10b year control is present');
 
     // PICKED FROM WHAT THE CONTROL OFFERS, not written here. The list is
     // floored at the earliest reachable date (D83), so a year chosen by
     // arithmetic in this file could sit outside it and fail for the wrong
     // reason. The last option is always well clear of the floor.
+    //
+    // OPENED AND TAPPED, not set (D84). The control is a custom listbox now, so
+    // there is no `.value` to assign - and going through the trigger is what a
+    // participant does.
     const chosenYear = await page.evaluate(() => {
-      const el = document.querySelector('[data-action="select-year"]');
-      return Number(el.options[el.options.length - 1].value);
+      const options = document.querySelectorAll('[data-popover="year"] [role="option"]');
+      return Number(options[options.length - 1].dataset.value);
     });
-    await page.selectOption('[data-action="select-year"]', String(chosenYear));
+    await page.click('[data-list="year"]');
+    await page.waitForTimeout(160);
+    await page.click(`[data-popover="year"] [role="option"][data-value="${chosenYear}"]`);
     await page.waitForTimeout(300);
 
     let stored = await readStored(page);
@@ -317,7 +324,7 @@ test('a selected target year survives a reload and a back navigation, and drives
     assert.equal(stored.targetYear, chosenYear, 'the chosen year survived the reload');
     assert.equal(stored.buildVersion, BUILD_VERSION);
     assert.equal(
-      await page.evaluate(() => document.querySelector('[data-action="select-year"]').value),
+      await page.evaluate(() => document.querySelector('[data-list="year"] .date-select__value').textContent),
       String(chosenYear),
       'and the control is repopulated with it',
     );
@@ -358,7 +365,7 @@ test('a selected target year survives a reload and a back navigation, and drives
     await page.goBack();
     await page.waitForTimeout(500);
     assert.equal(
-      await page.evaluate(() => document.querySelector('[data-action="select-year"]').value),
+      await page.evaluate(() => document.querySelector('[data-list="year"] .date-select__value').textContent),
       String(chosenYear),
       'the year is still there after a back navigation',
     );

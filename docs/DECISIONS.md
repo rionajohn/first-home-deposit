@@ -7977,3 +7977,159 @@ drives `savings-rate`.
 
 Full suite: 372 tests, 371 passing, 1 skipped (G91), 0 failing.
 
+---
+
+## D84. The date lists become a custom listbox, and everything native was giving away becomes ours
+
+**Date.** 30 August 2026. Replaces D83's two native `<select>` elements. The floor, the moved-floor
+disclosure, the seeded default and `YEAR_LIST_SPAN` are untouched.
+
+### What changed, and what deliberately did not
+
+**Only the control.** The month and year lists are now a custom listbox that opens as an overlay
+anchored to its own trigger. D83's structural argument survives the change intact and is the reason
+this is a swap rather than a rewrite: **a list cannot render an option it was not given**, so the floor
+is still enforced by which options are built and not by a guard that can drift. The option lists arrive
+at the component already filtered; it applies no bound of its own; there is still no `belowBound`, no
+disable flag and no handler re-check.
+
+D83's other objection - that a picker sheet would mean inventing two routes, because every sheet in
+this build is its own route and `router.js` throws for a path outside the screen inventory - does not
+apply to an inline overlay. This is neither a route nor a sheet.
+
+### This is a new component
+
+**Nothing in the build drew an overlay anchored to a control.** Checked rather than assumed: there is
+no popover, menu, tooltip or dropdown of any kind. `.sheet-overlay` is the only thing that renders
+above `.screen-content` (`position: absolute; inset: 0; z-index: 10`) and it is a full-screen scrim for
+a sheet ROUTE - a different thing entirely, and not reusable here. So `dateSelectHTML` /
+`bindDateSelect` is a new component, and this record names it as one.
+
+### What it costs
+
+A native `<select>` came with its own popup, keyboard handling, focus management and screen reader
+semantics. **All four are now this build's**, and the whole of section 3 below exists because getting
+listbox semantics wrong is worse for a screen reader user than the control it replaces.
+
+What is bought back is the thing D83 recorded as its own cost: the open list is no longer a platform
+popup outside the page. It can be styled, it can be captured in a screenshot, and it can carry a
+position indicator - none of which was possible before.
+
+### Where it opens, and why that is measured rather than fixed
+
+`.screen-content` computes `overflow: auto` on **both** axes - a non-visible overflow on one axis makes
+the other `auto` - so an overlay positioned inside it is clipped by it. The bottom of that clip box is
+not the fold either: the scroller extends **137px below the dock** by design (D82's negative margin),
+and everything in that band sits behind an opaque bar. Measuring to the scroller's own bottom would
+"fit" a list into a region the participant cannot see.
+
+So the side and the height are decided per open, from the space between the scroller's top and the
+**dock's** top:
+
+| State | Trigger at | Room below (to the dock) | A five-option list needs | Opens |
+| --- | --- | --- | --- | --- |
+| Ordinary visit | y=299 | 292px | 242px | **below** |
+| Moved-floor disclosure showing, default text | y=429 | 162px | 242px | **above** |
+| Moved-floor disclosure showing, Large text | y=454 | 137px | 242px | **above** |
+
+**The flip is necessary, not decorative**: D83's own disclosure is what pushes the trigger past the
+point where the list fits beneath it. The height is clamped to whichever side is used, so the list can
+never reach the clip.
+
+**An overlay, not an expansion.** Expanding in place would push the solved-amount readout and the dock
+down on every open, which is the class of defect `GAPS.md` G96 records. Asserted: opening the list
+moves neither.
+
+### No scrim, and what follows from it
+
+A scrim would dim the readout, and the readout is the figure the participant is choosing against - the
+whole reason G65 required it on screen. The popover's shadow does the separating.
+
+**The consequence, recorded because it is a real one:** with no scrim there is nothing to swallow an
+outside tap, so a tap on another control both dismisses the list *and* activates that control. A tap on
+"Continue" while a list is open will continue. A native `<select>` was modal and would have eaten that
+tap. Left as it is - an invisible barrier that costs a tap is its own surprise - but it is the trade the
+no-scrim decision carries.
+
+### The keyboard and screen reader contract
+
+| | |
+| --- | --- |
+| Trigger | `aria-haspopup="listbox"`, `aria-expanded`, `aria-controls` pointing at the list's id |
+| List | `role="listbox"`, `tabindex="-1"`, `aria-activedescendant` naming a real option |
+| Options | `role="option"`, a unique id each, `aria-selected` on exactly one |
+| Open | click, or ArrowDown / ArrowUp on the trigger. Focus moves into the list |
+| Move | ArrowDown / ArrowUp one at a time, Home and End to the ends. **Moving commits nothing** |
+| Select | Enter or Space on the active option, or a tap |
+| Dismiss without selecting | Escape |
+| Focus on every dismiss | back to the trigger |
+
+**Two defects were found by driving it, not by reading it**, and both are the kind an assurance would
+have missed:
+
+1. **The active option came back where it was abandoned.** Arrow around, press Escape, reopen - and the
+   highlight was several rows from the value the trigger was showing, while the SCROLL went to the
+   selection. The two disagreed on screen. `open()` now resets the active option to the selection every
+   time.
+2. **An outside tap dropped focus on `<body>`** - the exact thing the contract forbids. Returning focus
+   to the trigger was not enough: a mousedown on anything non-focusable (the headline, a caption, the
+   background) clears focus *after* the handler runs and undid it. Focus is now re-asserted on the next
+   frame, and only if focus actually ended up nowhere, so a tap that moved it to a real control still
+   leaves it there.
+
+**How it was tested.** Driven in Chromium through the real DOM - trigger presses, arrow keys, Escape,
+Enter, an outside tap on the headline - reading `aria-expanded`, `aria-activedescendant`,
+`aria-selected` and `document.activeElement` back at each step, and asserting the store did not move.
+Eleven assertions in `date-ceiling.test.mjs` under "THE LISTBOX CONTRACT". The roles are read from the
+same attributes a screen reader reads, so a test cannot pass while the control announces something
+else. What this does **not** do is run an actual screen reader; the contract is asserted at the ARIA
+layer, and that limit is stated rather than glossed.
+
+### The selection is marked twice
+
+A tick as well as the background tint - colour is not the only marker, which is WCAG 1.4.1 and the same
+constraint D78 applied to the banner icons, where the answer was a different shape. The keyboard's
+active option is a third, separate mark (an outline), because where the keyboard is is not the same
+thing as what is selected.
+
+### The scroll indicator is drawn, and had to be
+
+Twenty-one years in five rows: a participant on 2045 has to see *where* in the list they are. The
+browser's own scrollbar cannot do that here, and both routes to it were tried and measured rather than
+assumed:
+
+- `scrollbar-width: thin` puts Blink on its standard scrollbar path, where `::-webkit-scrollbar` is
+  ignored entirely - and its thin scrollbar is an **overlay**, invisible at rest.
+- `::-webkit-scrollbar` alone still produced a **zero gutter** and painted nothing.
+
+So the indicator is a track and a thumb sized from `scrollTop` and `scrollHeight`, updated on open and
+on scroll. Visible at rest, in a screenshot, and on both mobile engines. `aria-hidden`, because
+`aria-activedescendant` already tells a screen reader the same thing.
+
+**One cascade note worth keeping**, because it failed silently: shell.css hides every scrollbar under
+`.screen *`, which is the same specificity as a bare class and later in the cascade, so a
+`.date-select__list` rule lost without any sign of it.
+
+### Verification
+
+Twenty shots across five states, two themes, two text sizes: the closed control, the year list open at
+the seeded selection, open at the floor, the month list open at the floor year showing its bounded
+start, and the year list with the selection far down and the thumb showing position. **The open list is
+in them**, which D83 could not manage.
+
+`date-ceiling.test.mjs`: 17 tests to 28. Everything that read `.value` or `.options` was rewritten
+against `[role="option"]` and `aria-selected`, and `pick()` now opens the trigger and taps an option
+rather than setting a value - so the open path is exercised by every test that changes a date.
+`stale-session.test.mjs`'s selected-year test moved the same way. **The floor's own tests did not change
+at all**, which is the point.
+
+Full suite: 383 tests, 382 passing, 1 skipped (G91), 0 failing.
+
+### Found while verifying, and NOT fixed here
+
+The solved amount goes **negative** at about 94 months on the shared seed - £21,000 at the Bank Rate
+outgrows a £28,000 goal - and the year list offers twenty years, so a participant can reach a readout
+saying "-£39 put aside each month". It predates this pass (D80 rendered the readout, D83 set the
+horizon) and is out of this pass's scope, which explicitly leaves both alone. Recorded as `GAPS.md`
+G98 rather than left in a report.
+

@@ -88,6 +88,7 @@ import {
   flagRowHTML,
   segmentedControlHTML,
   dateSelectHTML,
+  bindDateSelect,
   figureDisplayHTML,
   reviewRowHTML,
   warningBannerHTML,
@@ -373,8 +374,8 @@ export function render(container, ctx) {
           yearOptions,
           yearValue: targetYear,
           hint: c.dateStepperHint,
-          monthAction: 'select-month',
-          yearAction: 'select-year',
+          monthAction: 'open-month-list',
+          yearAction: 'open-year-list',
           monthAriaLabel: c.dateStepperMonthAriaLabel,
           yearAriaLabel: c.dateStepperYearAriaLabel,
         })}
@@ -502,9 +503,9 @@ export function render(container, ctx) {
       commit(Number(figureLow.value), clamp(Number(figureHigh.value) || 0, Number(figureLow.value), savingCeiling));
     });
   } else {
-    // TWO SELECTS, ONE COMMIT EACH, AND NO BOUND CHECKED HERE (D83). The lists
-    // were built to the floor above, so a `change` event can only carry a value
-    // the floor allowed - there is nothing for a handler guard to re-check and
+    // TWO LISTBOXES, ONE COMMIT EACH, AND NO BOUND CHECKED HERE (D83, D84). The
+    // lists were built to the floor above, so a pick can only carry a value the
+    // floor allowed - there is nothing for a handler guard to re-check and
     // nothing that can disagree with the control.
     //
     // `dateMovedToEarliest: false` ON BOTH. The disclosure says the app moved
@@ -516,26 +517,27 @@ export function render(container, ctx) {
       rerenderInPlace(container, render, { ...ctx, state: next });
     }
 
-    container.querySelector('[data-action="select-month"]').addEventListener('change', (e) => {
-      commitDate({ targetMonth: Number(e.target.value) });
-    });
-
-    // CHANGING THE YEAR RE-DERIVES THE MONTH LIST, and the one case where that
-    // costs the participant their month is handled here rather than left to
-    // produce a value outside the list. Picking the floor's year while holding a
-    // month before the floor's month leaves the selected month off the new list;
-    // it is raised to the floor's month.
-    //
-    // THIS IS THE RESIDUE OF D82'S FIRST OPEN QUESTION, and it is a smaller
-    // thing than that question was. There the year press moved the month with
-    // no list to show why; here both values are in view, the participant is
-    // actively working the date control, and the month list visibly no longer
-    // contains the month they had. It is still a change to a value they set, so
-    // it is written down rather than passed over - see D83.
-    container.querySelector('[data-action="select-year"]').addEventListener('change', (e) => {
-      const year = Number(e.target.value);
-      const lowest = floor !== null && year === floor.year ? floor.month : 1;
-      commitDate({ targetYear: year, targetMonth: Math.max(targetMonth, lowest) });
+    // ONE BINDING FOR BOTH LISTS (D84). Open, close, arrow keys, Escape, focus
+    // return and the outside tap all live in `bindDateSelect`; this decides only
+    // what a pick MEANS, which is the same split the component's own note
+    // describes. No bound is re-checked here: the lists were built to the floor
+    // above, so a pick can only carry a value the floor allowed.
+    bindDateSelect(container, {
+      onPick: (name, value) => {
+        if (name === 'month') { commitDate({ targetMonth: value }); return; }
+        // CHANGING THE YEAR RE-DERIVES THE MONTH LIST, and the one case where
+        // that costs the participant their month is handled here rather than
+        // left to produce a value outside the list. Picking the floor's year
+        // while holding a month before the floor's month leaves the selected
+        // month off the new list; it is raised to the floor's month.
+        //
+        // THIS IS THE RESIDUE OF D82'S FIRST OPEN QUESTION, unchanged by D84 and
+        // smaller than that question was: both values are in view, the
+        // participant is working the date control, and the month list visibly no
+        // longer contains the month they had. See D83.
+        const lowest = floor !== null && value === floor.year ? floor.month : 1;
+        commitDate({ targetYear: value, targetMonth: Math.max(targetMonth, lowest) });
+      },
     });
   }
 

@@ -127,6 +127,14 @@
  *              integer is months from today. Only meaningful with
  *              `--solve=amount`.
  *                                                       default none
+ *   --list     `month` or `year`: opens that date list before the shot, by
+ *              pressing the real trigger the way `--open` presses a real
+ *              disclosure header. It exists because D84 replaced the native
+ *              `<select>` with an in-page listbox - under D83 the open list was
+ *              a platform popup outside the page and could not be captured at
+ *              all, which is a thing this harness can now do and could not
+ *              before. Only meaningful with `--solve=amount`.
+ *                                                       default none
  *   --session  `seeded` or `opening`. `seeded` writes the shared seed into
  *              sessionStorage before the first paint, which is what every
  *              option above is described against. `opening` writes NOTHING and
@@ -244,6 +252,7 @@ const DEFAULTS = {
   assign: '',
   solve: 'date',
   date: '',
+  list: '',
   error: 'none',
   scroll: 'top',
   stage: '',
@@ -430,6 +439,12 @@ if (!DRAFT_STATES.includes(args.draft)) {
  * in that script's own overrides. `overlap.test.mjs` and `action-bar.test.mjs`
  * already pass it in their own row lists for the same reason.
  */
+const DATE_LISTS = ['', 'month', 'year'];
+if (!DATE_LISTS.includes(args.list)) {
+  console.error(`Unknown --list "${args.list}". One of: ${DATE_LISTS.filter(Boolean).join(', ')}.`);
+  process.exit(1);
+}
+
 const SOLVE_FOR = ['date', 'amount'];
 if (!SOLVE_FOR.includes(args.solve)) {
   console.error(`Unknown --solve "${args.solve}". One of: ${SOLVE_FOR.join(', ')}.`);
@@ -656,6 +671,23 @@ async function openDisclosure(page) {
   await page.waitForTimeout(250);
 }
 
+/**
+ * Open one of frame 10b's date lists by PRESSING its trigger, for the same
+ * reason `openDisclosure` presses a real header: the list's placement is
+ * decided at open time from the space measured then (D84), so a shot of a list
+ * forced open any other way would be a shot of a state the app never produces.
+ */
+async function openDateList(page) {
+  if (args.list === '') return;
+  const trigger = await page.$(`[data-list="${args.list}"]`);
+  if (!trigger) {
+    console.warn(`  note: --list=${args.list} found no date list on this screen; shot taken closed.`);
+    return;
+  }
+  await trigger.click();
+  await page.waitForTimeout(250);
+}
+
 const slug = (route) => route.replace(/^\//, '').replace(/\//g, '-') || 'root';
 
 function shotName({ route, entry, state, theme, text, scroll }) {
@@ -665,6 +697,7 @@ function shotName({ route, entry, state, theme, text, scroll }) {
   if (args.solve !== 'date') parts.splice(1, 0, `solve-${args.solve}`);
   if (args.error !== 'none') parts.splice(1, 0, `error-${args.error}`);
   if (args.date !== '') parts.splice(1, 0, `date-${args.date.replace('+', 'plus')}`);
+  if (args.list !== '') parts.splice(1, 0, `list-${args.list}`);
   if (text !== 'default') parts.push(text);
   if (scroll !== 'top') parts.push(`scroll-${scroll}`);
   if (args.full) parts.push('full');
@@ -875,6 +908,7 @@ try {
               // After the redirect check, so a shot that never reached its
               // screen does not report a missing disclosure as well.
               await openDisclosure(page);
+              await openDateList(page);
 
               if (state === 'ahead' && entry !== 'mip') {
                 const control = await page.$('[data-action="set-skip-ahead"][data-value="ahead"]');

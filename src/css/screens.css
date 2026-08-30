@@ -993,12 +993,10 @@
   display: flex;
 }
 
-/* `appearance: none` strips the platform's own closed-state chrome so the
-   control matches the box the stepper drew; the OPEN list is still the
-   platform's and is deliberately untouched (see dateSelectHTML). Everything
-   visible below - the 56px box, the surface, the subtle border, the 17px
-   semibold centred value - carries over from the stepper's control box
-   unchanged, so the frame reads as it did.
+/* The closed trigger. It is a `<button>` since D84 and was a `<select>` under
+   D83 and two chevron buttons under D82; the BOX has not changed through any of
+   it - the 56px height, the surface, the subtle border and the 17px semibold
+   centred value are the stepper's, so the frame reads as it always did.
 
    The horizontal padding is asymmetric on purpose: the right side is wide
    enough for the chevron to sit inside the box without the value ever running
@@ -1020,14 +1018,18 @@
   font-weight: 600;
   color: var(--color-label);
   text-align: center;
-  text-align-last: center;
   cursor: pointer;
 }
 
-/* THE ONE AFFORDANCE `appearance: none` REMOVES AND THIS PUTS BACK. Without a
-   chevron the control is a bordered box with a word in it, which is what a
-   read-only readout looks like everywhere else on this screen. Drawn from
-   icons.js like every other icon rather than as a background image, and
+.date-select__value {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+/* Without a chevron the trigger is a bordered box with a word in it, which is
+   what a read-only readout looks like everywhere else on this screen. Drawn
+   from icons.js like every other icon rather than as a background image, and
    `pointer-events: none` so the whole box stays one tap target. */
 .date-select__chevron {
   position: absolute;
@@ -1036,6 +1038,109 @@
   transform: translateY(-50%);
   pointer-events: none;
   color: var(--color-label-secondary);
+}
+
+/* --- The open list (DECISIONS.md D84) ---------------------------------------
+   AN OVERLAY, NOT AN EXPANSION. It is taken out of flow so the readout below it
+   and the dock below that do not move when it opens - expanding in place would
+   push both toward the fold on every open, which is GAPS.md G96's own defect.
+
+   HALF THE ROW, ANCHORED TO ITS OWN TRIGGER. `left: 0; right: 0` inside
+   `.date-select__field`, which is one of two equal columns, so the year list
+   never spans the row and the month stays readable while the year is chosen.
+
+   `--above` FLIPS IT, and which one is used is decided per open from the space
+   actually measured (see `bindDateSelect`). The two rules differ only in which
+   edge is pinned; the height is clamped in JS either way, so neither can reach
+   `.screen-content`'s clip. */
+.date-select__popover {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + var(--space-sm));
+  z-index: 5;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.10);
+  overflow: hidden;
+}
+
+.date-select__popover--above {
+  top: auto;
+  bottom: calc(100% + var(--space-sm));
+}
+
+/* THE ONLY SCROLLBAR IN THE BUILD THAT IS DELIBERATELY VISIBLE. shell.css hides
+   every scrollbar under `.screen *` because a persistent track inside a phone
+   mock reads as a browser artefact. This list is the exception and needs to be:
+   it holds twenty-one years in five rows, and a participant on 2045 has to be
+   able to see WHERE in the list they are, not merely that it moves. The
+   selector is more specific than shell.css's, which is what lets it win. */
+.date-select__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* THE SCROLL INDICATOR IS DRAWN RATHER THAN THE BROWSER'S - see `updateThumb`
+   in ui.js for why neither `scrollbar-width` nor `::-webkit-scrollbar` painted
+   anything here. The track sits inside the popover's padding, over the list's
+   right edge, so it costs the options no width. */
+.date-select__scrolltrack {
+  position: absolute;
+  top: 4px;
+  right: 3px;
+  bottom: 4px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--color-border-subtle);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.date-select__scrollthumb {
+  width: 100%;
+  border-radius: 2px;
+  background: var(--color-border-strong);
+}
+
+.date-select__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: var(--touch-target-min);
+  padding: var(--space-xs) var(--space-lg) var(--space-xs) var(--space-md);
+  font-size: calc(17px * var(--text-scale));
+  line-height: calc(24px * var(--text-scale));
+  color: var(--color-label);
+  cursor: pointer;
+}
+
+/* TWO MARKERS, NOT ONE. The tint alone would make colour the sole carrier of
+   which option is selected, which WCAG 1.4.1 does not allow - the same
+   constraint D78 applied to the banner icons, where the answer was a different
+   SHAPE rather than a different colour. Here the second marker is the tick. */
+.date-select__option--selected {
+  background: var(--color-surface-raised);
+  font-weight: 600;
+}
+
+.date-select__tick {
+  flex: 0 0 auto;
+  color: var(--color-label);
+}
+
+/* The KEYBOARD's position in the list, which is not the same thing as the
+   selection: an arrow key moves this and commits nothing (D84). Drawn as an
+   outline rather than a fill so it can sit on top of the selected row's tint
+   without either one hiding the other. */
+.date-select__option--active {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: -2px;
 }
 
 .date-select__hint {

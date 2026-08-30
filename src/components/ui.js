@@ -886,54 +886,285 @@ export function segmentedControlHTML({ options, selected, action }) {
 }
 
 /**
- * Input / Date select (frame 10b only). DECISIONS.md D83, replacing the two
- * chevron steppers D82 bounded.
+ * Input / Date select (frame 10b only). DECISIONS.md D84, replacing D83's two
+ * native `<select>` elements with a custom listbox that opens as an overlay.
  *
- * WHY A NATIVE `<select>` AND NOT A CUSTOM SHEET. Two reasons, and the first is
- * the one that decided it: **a list cannot render an option it was not given**,
- * so the floor at the earliest reachable date is enforced by the control's own
- * structure rather than by a guard bolted to it. D82 needed a disable flag, a
- * handler guard and a Continue guard, all reading one number and all able to
- * drift apart; this needs the list to be built correctly and nothing else.
+ * THE FLOOR IS STILL ENFORCED BY CONSTRUCTION, which was D83's whole structural
+ * argument and is unchanged: `monthOptions` and `yearOptions` arrive already
+ * filtered by the caller, this component applies no bound of its own, and an
+ * option that was never built cannot be chosen. What changed is only who draws
+ * the open list.
  *
- * The second is cost. Every sheet in this build is its own ROUTE - `router.js`
- * throws for a path outside `build-spec.md`'s screen inventory - so a picker
- * sheet would mean inventing two frames nobody drew, plus drag-dismiss, scrim,
- * focus trap and `returnFrame` handling, and the participant would lose sight
- * of the solved amount while choosing. A `<select>` is zero new screens and
- * inherits the platform's own picker, its keyboard handling and its screen
- * reader support.
+ * WHAT THAT COSTS, STATED PLAINLY. A native `<select>` came with its own popup,
+ * keyboard handling, focus management and screen reader semantics. All four are
+ * now this build's responsibility - see `bindDateSelect` below for the contract
+ * and D84 for how it was checked. Getting listbox semantics wrong is worse for a
+ * screen reader user than the control it replaces, which is why the roles are
+ * asserted rather than assumed.
  *
- * WHAT IT COSTS. The open list is drawn by iOS and Android, so it looks
- * different on each and cannot be styled. For a research instrument run on
- * participants' own phones that is closer to right than a bespoke list would
- * be - it is what their phone actually does - and it is the same trade the
- * slider already takes with `input[type=range]` rather than drawing its own
- * handles. Only the CLOSED control is styled here, to match the box the
- * stepper drew.
+ * THE OPEN LIST IS AN OVERLAY, NOT AN EXPANSION. It floats above the content
+ * beneath it. Expanding in place would push the solved-amount readout and the
+ * dock down on every open, which is exactly the class of defect GAPS.md G96
+ * records.
  *
- * `monthOptions` and `yearOptions` are `[{ value, label }]`, already filtered
- * to the floor by the caller: this component applies no bound of its own, so
- * there is exactly one place the floor is computed.
+ * NO SCRIM. A scrim would dim the readout, and the readout is the figure the
+ * participant is choosing against - the whole reason the date screen shows it
+ * (G65). The popover's own shadow does the separating.
+ *
+ * The closed trigger keeps the box `.date-select__control` already drew, so the
+ * frame reads as it did through three control changes now.
  */
 export function dateSelectHTML({ monthOptions, monthValue, yearOptions, yearValue, hint, monthAction, yearAction, monthAriaLabel, yearAriaLabel }) {
-  const field = ({ options, value, action, ariaLabel }) => `
-    <div class="date-select__field">
-      <select class="date-select__control" data-action="${action}" aria-label="${ariaLabel}">
-        ${options.map((o) => `<option value="${o.value}"${o.value === value ? ' selected' : ''}>${o.label}</option>`).join('')}
-      </select>
-      ${chevronDown({ size: 'micro', weight: 'semibold', className: 'date-select__chevron' })}
-    </div>
-  `;
+  const field = ({ options, value, action, ariaLabel, name }) => {
+    const listId = `date-${name}-list`;
+    const optId = (v) => `date-${name}-opt-${v}`;
+    return `
+      <div class="date-select__field">
+        <button type="button" class="date-select__control" data-action="${action}" data-list="${name}"
+                aria-haspopup="listbox" aria-expanded="false" aria-controls="${listId}" aria-label="${ariaLabel}">
+          <span class="date-select__value">${options.find((o) => o.value === value)?.label ?? ''}</span>
+          ${chevronDown({ size: 'micro', weight: 'semibold', className: 'date-select__chevron' })}
+        </button>
+        <div class="date-select__popover" data-popover="${name}" hidden>
+          <div class="date-select__scrolltrack" data-scrolltrack aria-hidden="true" hidden>
+            <div class="date-select__scrollthumb" data-scrollthumb></div>
+          </div>
+          <ul class="date-select__list" role="listbox" id="${listId}" tabindex="-1"
+              aria-label="${ariaLabel}" aria-activedescendant="${optId(value)}">
+            ${options.map((o) => `
+              <li class="date-select__option${o.value === value ? ' date-select__option--selected' : ''}"
+                  role="option" id="${optId(o.value)}" aria-selected="${o.value === value}" data-value="${o.value}">
+                <span class="date-select__option-label">${o.label}</span>
+                ${o.value === value ? checkmark({ size: 'body', weight: 'semibold', className: 'date-select__tick' }) : ''}
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+      </div>
+    `;
+  };
   return `
     <div class="date-select">
       <div class="date-select__row">
-        ${field({ options: monthOptions, value: monthValue, action: monthAction, ariaLabel: monthAriaLabel })}
-        ${field({ options: yearOptions, value: yearValue, action: yearAction, ariaLabel: yearAriaLabel })}
+        ${field({ options: monthOptions, value: monthValue, action: monthAction, ariaLabel: monthAriaLabel, name: 'month' })}
+        ${field({ options: yearOptions, value: yearValue, action: yearAction, ariaLabel: yearAriaLabel, name: 'year' })}
       </div>
       <p class="date-select__hint">${hint}</p>
     </div>
   `;
+}
+
+/**
+ * THE LISTBOX'S BEHAVIOUR, AND THE WHOLE OF WHAT NATIVE USED TO PROVIDE (D84).
+ *
+ * `onPick(name, value)` is called with the chosen value and nothing else - the
+ * screen decides what a pick means, and this decides nothing about dates.
+ *
+ * OPEN AND CLOSE ARE DOM-ONLY, NEVER STATE. A re-render rebuilds the whole
+ * screen (`rerenderInPlace`), so routing every arrow key through `setState`
+ * would rebuild forty options to move a highlight and would fight the caret
+ * restoration on the way. Only a PICK commits, and the re-render that follows
+ * rebuilds the trigger closed - which is why nothing here has to close it
+ * afterwards.
+ *
+ * WHICH SIDE IT OPENS ON IS MEASURED, NOT FIXED. Frame 10b's control sits at
+ * y=299 on an ordinary visit and at y=429 (default text) or y=454 (Large) when
+ * D83's moved-date disclosure is above it, and a five-option list is 242px: it
+ * fits below the trigger in the first case and does not in the second. So the
+ * side is chosen per open from the space actually available, and the height is
+ * clamped to what that side offers - the list can therefore never be cut off by
+ * `.screen-content`, which computes `overflow: auto` on BOTH axes and would
+ * otherwise clip it (D84).
+ *
+ * THE BOTTOM EDGE IS THE DOCK, NOT THE SCROLLER. `.screen-content` extends
+ * 137px below the dock by design (D82's negative margin), and everything in
+ * that band is behind an opaque bar. Measuring to the scroller's own bottom
+ * would "fit" a list into a region the participant cannot see.
+ */
+export function bindDateSelect(container, { onPick }) {
+  const root = container.querySelector('.date-select');
+  if (!root) return;
+  const scroller = container.querySelector('.screen-content');
+  const dock = container.querySelector('.action-bar-dock');
+  let openName = null;
+  let onOutside = null;
+
+  const partsFor = (name) => ({
+    trigger: root.querySelector(`[data-list="${name}"]`),
+    popover: root.querySelector(`[data-popover="${name}"]`),
+    list: root.querySelector(`[data-popover="${name}"] [role="listbox"]`),
+    track: root.querySelector(`[data-popover="${name}"] [data-scrolltrack]`),
+    thumb: root.querySelector(`[data-popover="${name}"] [data-scrollthumb]`),
+  });
+
+  /**
+   * THE SCROLL INDICATOR IS DRAWN, NOT THE BROWSER'S.
+   *
+   * The list holds twenty-one years in five rows, and a participant on 2045 has
+   * to be able to see WHERE in it they are - not merely that it moves. The
+   * browser's own scrollbar cannot do that here: Blink uses OVERLAY scrollbars,
+   * which are invisible at rest and appear only while a scroll is in flight, and
+   * `scrollbar-width: thin` puts it on the standard path where
+   * `::-webkit-scrollbar` is ignored entirely. Both were tried and neither
+   * painted anything - measured as a zero gutter, not guessed from a screenshot.
+   *
+   * So this is a track and a thumb sized from `scrollTop` and `scrollHeight`,
+   * which is the one version that is visible at rest, in a screenshot, and on
+   * both mobile engines. `aria-hidden`, because it duplicates what
+   * `aria-activedescendant` already tells a screen reader.
+   */
+  function updateThumb(name) {
+    const { list, track, thumb } = partsFor(name);
+    if (!track) return;
+    const overflows = list.scrollHeight > list.clientHeight + 1;
+    track.hidden = !overflows;
+    if (!overflows) return;
+    const trackH = list.clientHeight;
+    const ratio = list.clientHeight / list.scrollHeight;
+    const h = Math.max(24, Math.round(trackH * ratio));
+    const top = Math.round((trackH - h) * (list.scrollTop / (list.scrollHeight - list.clientHeight)));
+    thumb.style.height = `${h}px`;
+    thumb.style.transform = `translateY(${top}px)`;
+  }
+
+  function close() {
+    if (!openName) return;
+    const { trigger, popover } = partsFor(openName);
+    // WHETHER FOCUS COMES BACK IS DECIDED BY WHERE IT IS, not by which caller
+    // is closing. Hiding the element that holds focus drops it on `<body>` -
+    // the top of the document, which is where a keyboard or screen reader user
+    // then has to start again from - and that happens on EVERY dismiss path,
+    // including the outside tap, because the list is what holds focus while it
+    // is open. Asked before hiding, because after hiding the answer is always
+    // `<body>`.
+    //
+    // AND ONLY THEN. A pointer user who tapped a different control should be
+    // left on that control, not dragged back here; if the tap moved focus out
+    // of the popover already, this leaves it alone. On a tap that focuses
+    // nothing, the browser's own handling runs after this and focus stays on
+    // the trigger.
+    const bringFocusBack = popover.contains(document.activeElement);
+    popover.hidden = true;
+    popover.classList.remove('date-select__popover--above');
+    trigger.setAttribute('aria-expanded', 'false');
+    if (onOutside) { document.removeEventListener('pointerdown', onOutside, true); onOutside = null; }
+    openName = null;
+    if (!bringFocusBack) return;
+    trigger.focus();
+    // AND AGAIN AFTER THE POINTER'S OWN FOCUS HANDLING, which runs after this
+    // and undoes it: a mousedown on anything non-focusable - the headline, the
+    // caption, the page background - clears focus to `<body>`, so the outside
+    // tap was landing exactly where this is written to prevent. Re-asserted
+    // only if focus actually ended up nowhere, so a tap that moved it to a real
+    // control still leaves it there.
+    requestAnimationFrame(() => {
+      if (document.activeElement === document.body && document.contains(trigger)) trigger.focus();
+    });
+  }
+
+  function open(name) {
+    if (openName === name) { close(); return; }
+    if (openName) close();
+    const { trigger, popover, list } = partsFor(name);
+    popover.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
+    openName = name;
+
+    // --- Which side, and how tall ------------------------------------------
+    const t = trigger.getBoundingClientRect();
+    const top = scroller ? scroller.getBoundingClientRect().top : 0;
+    const bottom = dock ? dock.getBoundingClientRect().top : window.innerHeight;
+    const gap = 8;
+    const rows = list.querySelectorAll('[role="option"]');
+    const rowH = rows.length ? rows[0].getBoundingClientRect().height : 48;
+    const wanted = rowH * 5 + 2;
+    const below = bottom - t.bottom - gap;
+    const above = t.top - top - gap;
+    const useAbove = below < wanted && above > below;
+    popover.classList.toggle('date-select__popover--above', useAbove);
+    list.style.maxHeight = `${Math.max(rowH * 2, Math.min(wanted, useAbove ? above : below))}px`;
+
+    // --- Opens ON the selection, with what is above it in view -------------
+    // A participant on 2045 must see 2045, not 2027. One row of headroom, so
+    // near the floor `scrollTop` clamps to 0 and the first option reads as
+    // where the list BEGINS rather than as something scrolled off.
+    // THE ACTIVE OPTION IS RESET TO THE SELECTION ON EVERY OPEN, and it has to
+    // be reset rather than left: arrowing around, pressing Escape and reopening
+    // used to come back with the highlight wherever it was abandoned, several
+    // rows from the value the trigger was showing. The scroll goes to the
+    // selection either way, so the two would have disagreed on screen.
+    const selected = list.querySelector('[aria-selected="true"]');
+    if (selected) {
+      setActive(list, selected);
+      list.scrollTop = Math.max(0, selected.offsetTop - rowH);
+    }
+
+    updateThumb(name);
+    list.focus({ preventScroll: true });
+
+    // Registered on the way down so a tap on the trigger that opened this one
+    // is not the tap that closes it again.
+    onOutside = (e) => {
+      if (!document.contains(trigger)) { close(); return; }
+      if (!popover.contains(e.target) && !trigger.contains(e.target)) close();
+    };
+    document.addEventListener('pointerdown', onOutside, true);
+  }
+
+  function setActive(list, next) {
+    if (!next) return;
+    list.setAttribute('aria-activedescendant', next.id);
+    next.classList.add('date-select__option--active');
+    list.querySelectorAll('.date-select__option--active').forEach((el) => { if (el !== next) el.classList.remove('date-select__option--active'); });
+    // `scrollIntoView({ block: 'nearest' })` moves the LIST only when the
+    // option is outside it, which is what keeps a held arrow key from
+    // scrolling the screen behind the popover as well.
+    next.scrollIntoView({ block: 'nearest' });
+  }
+
+  for (const name of ['month', 'year']) {
+    const { trigger, popover, list } = partsFor(name);
+    if (!trigger) continue;
+
+    list.addEventListener('scroll', () => updateThumb(name), { passive: true });
+    trigger.addEventListener('click', () => open(name));
+    trigger.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); open(name); }
+    });
+
+    // A pick is a click on an option, or Enter/Space on the active one. Both
+    // end in the same call, so there is one commit path and not two.
+    popover.addEventListener('click', (e) => {
+      const option = e.target.closest('[role="option"]');
+      // CLOSED BEFORE THE COMMIT, so focus is back on the trigger by the time
+      // the re-render captures it - `rerenderInPlace` restores whatever held
+      // focus when it started, and that has to be a real control rather than
+      // `<body>`.
+      if (option) { close(); onPick(name, Number(option.dataset.value)); }
+    });
+
+    list.addEventListener('keydown', (e) => {
+      const options = [...list.querySelectorAll('[role="option"]')];
+      const current = list.querySelector(`#${CSS.escape(list.getAttribute('aria-activedescendant'))}`) ?? options[0];
+      const i = options.indexOf(current);
+      switch (e.key) {
+        case 'ArrowDown': e.preventDefault(); setActive(list, options[Math.min(i + 1, options.length - 1)]); break;
+        case 'ArrowUp': e.preventDefault(); setActive(list, options[Math.max(i - 1, 0)]); break;
+        case 'Home': e.preventDefault(); setActive(list, options[0]); break;
+        case 'End': e.preventDefault(); setActive(list, options[options.length - 1]); break;
+        case 'Enter': case ' ':
+          e.preventDefault();
+          close();
+          onPick(name, Number(current.dataset.value));
+          break;
+        // ESCAPE DISMISSES WITHOUT SELECTING, and the distinction is the point:
+        // the active option may have moved several times, and none of that is a
+        // choice until it is committed.
+        case 'Escape': e.preventDefault(); close(); break;
+        default: break;
+      }
+    });
+  }
 }
 
 /**

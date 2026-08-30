@@ -11,6 +11,14 @@
  * exactly: an assertion that passes for a reason unrelated to what it claims to
  * test is worse than none, because it is counted.
  *
+ * WHAT D84 CHANGED HERE. The control is a custom listbox now, not a native
+ * `<select>`, so every assertion that read `.value` or `.options` had to be
+ * rewritten against `[role="option"]` - and the semantics native used to
+ * provide for free became this build's, so they are asserted rather than
+ * assumed. **The floor's own tests did not change at all**, which is the point:
+ * the floor is enforced by which options are built, and that is the one thing
+ * D84 deliberately did not touch.
+ *
  * WHAT CHANGED UNDER D83, AND WHAT THIS FILE NOW ASSERTS. D80 let the date be
  * set and refused it; D82 bounded the steppers so it could not be set; D83
  * replaced the steppers with dropdowns floored at the same date. **The
@@ -117,17 +125,23 @@ async function openAt(months, extra = {}) {
 }
 
 const probe = (page) => page.evaluate(() => {
-  const month = document.querySelector('[data-action="select-month"]');
-  const year = document.querySelector('[data-action="select-year"]');
+  // READ OFF THE LISTBOX, NOT OFF A `<select>` (D84). The selected value is the
+  // option carrying `aria-selected`, which is the same attribute a screen
+  // reader reads - so this cannot pass while the control is announcing
+  // something else.
+  const list = (n) => document.querySelector(`[data-popover="${n}"] [role="listbox"]`);
+  const selectedIn = (n) => Number(list(n).querySelector('[aria-selected="true"]').dataset.value);
+  const optionsIn = (n) => [...list(n).querySelectorAll('[role="option"]')].map((o) => Number(o.dataset.value));
   const moved = document.querySelector('.info-banner#date-moved');
   const figure = document.querySelector('.figure-input[role="status"]');
   const stored = JSON.parse(sessionStorage.getItem('yfh-state') || '{}');
-  const opts = (el) => [...el.options].map((o) => Number(o.value));
   return {
-    monthValue: Number(month.value),
-    yearValue: Number(year.value),
-    monthOptions: opts(month),
-    yearOptions: opts(year),
+    monthValue: selectedIn('month'),
+    yearValue: selectedIn('year'),
+    monthOptions: optionsIn('month'),
+    yearOptions: optionsIn('year'),
+    monthLabel: document.querySelector('[data-list="month"] .date-select__value').textContent,
+    yearLabel: document.querySelector('[data-list="year"] .date-select__value').textContent,
     hasMoved: !!moved,
     movedText: moved?.querySelector('p')?.textContent ?? null,
     movedRole: moved?.getAttribute('role') ?? null,
@@ -142,9 +156,17 @@ const probe = (page) => page.evaluate(() => {
   };
 });
 
-const pick = async (page, action, value) => {
-  await page.selectOption(`[data-action="${action}"]`, String(value));
-  await page.waitForTimeout(180);
+/**
+ * OPEN THE LIST AND TAP AN OPTION, which is what a participant does. D83's
+ * `page.selectOption` set a `<select>`'s value directly and never opened
+ * anything; going through the trigger means the open path, the option markup
+ * and the pick handler are all exercised by every test that changes a date.
+ */
+const pick = async (page, name, value) => {
+  await page.click(`[data-list="${name}"]`);
+  await page.waitForTimeout(140);
+  await page.click(`[data-popover="${name}"] [role="option"][data-value="${value}"]`);
+  await page.waitForTimeout(200);
 };
 
 // ---------------------------------------------------------------------------
@@ -214,9 +236,9 @@ test('changing the year re-derives the month list', async () => {
   try {
     const floor = dateAtMonths(EARLIEST_MONTHS);
     assert.equal((await probe(page)).monthOptions[0], floor.targetMonth);
-    await pick(page, 'select-year', floor.targetYear + 1);
+    await pick(page, 'year', floor.targetYear + 1);
     assert.equal((await probe(page)).monthOptions[0], 1, 'the month list kept the floor year bound in a later year');
-    await pick(page, 'select-year', floor.targetYear);
+    await pick(page, 'year', floor.targetYear);
     assert.equal((await probe(page)).monthOptions[0], floor.targetMonth, 'coming back to the floor year did not re-apply the month floor');
   } finally {
     await context.close();
@@ -230,9 +252,9 @@ test('picking the floor year while holding an earlier month raises the month to 
   const { context, page } = await openAt(EARLIEST_MONTHS + 24);
   try {
     const floor = dateAtMonths(EARLIEST_MONTHS);
-    await pick(page, 'select-month', 1);
+    await pick(page, 'month', 1);
     assert.equal((await probe(page)).monthValue, 1);
-    await pick(page, 'select-year', floor.targetYear);
+    await pick(page, 'year', floor.targetYear);
     const seen = await probe(page);
     assert.equal(seen.yearValue, floor.targetYear);
     assert.equal(seen.monthValue, floor.targetMonth, 'a month below the floor survived a year change into the floor year');
@@ -314,7 +336,7 @@ test('the disclosure names the date it moved to, and clears when the participant
     assert.doesNotMatch(seen.movedText, /\{[a-z]+\}/, 'an unfilled slot reached the screen');
     assert.notEqual(seen.movedText, c.dateMovedToEarliest, 'the template rendered without its slot filled');
 
-    await pick(page, 'select-year', floor.targetYear + 2);
+    await pick(page, 'year', floor.targetYear + 2);
     const after = await probe(page);
     assert.equal(after.hasMoved, false, 'the disclosure survived the participant picking their own date');
     assert.equal(after.stored.movedFlag, false, 'the flag survived the participant picking their own date');
@@ -331,8 +353,8 @@ test('selecting a date commits no figure', async () => {
   const { context, page } = await openAt(EARLIEST_MONTHS + 6);
   try {
     const before = await probe(page);
-    await pick(page, 'select-month', 12);
-    await pick(page, 'select-year', before.yearValue + 1);
+    await pick(page, 'month', 12);
+    await pick(page, 'year', before.yearValue + 1);
     const after = await probe(page);
     assert.deepEqual(after.committed, before.committed, 'a selection wrote a section 6 figure');
   } finally {
@@ -458,6 +480,285 @@ test('the slider path still shows its own ceiling error, unchanged', async () =>
     }));
     assert.equal(seen.text, c.errorExceedsLeftOver);
     assert.equal(seen.disabled, true);
+  } finally {
+    await context.close();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// THE LISTBOX CONTRACT. D84 - everything the native `<select>` used to give
+// away, asserted rather than assumed, because getting it wrong is worse for a
+// screen reader user than the control it replaces.
+// ---------------------------------------------------------------------------
+
+const listState = (page, name) => page.evaluate((n) => {
+  const trigger = document.querySelector(`[data-list="${n}"]`);
+  const popover = document.querySelector(`[data-popover="${n}"]`);
+  const list = popover.querySelector('[role="listbox"]');
+  const options = [...list.querySelectorAll('[role="option"]')];
+  const readout = document.querySelector('.figure-display');
+  const dock = document.querySelector('.action-bar-dock').getBoundingClientRect();
+  const scroller = document.querySelector('.screen-content').getBoundingClientRect();
+  const rect = popover.getBoundingClientRect();
+  const active = list.getAttribute('aria-activedescendant');
+  return {
+    hidden: popover.hidden,
+    expanded: trigger.getAttribute('aria-expanded'),
+    haspopup: trigger.getAttribute('aria-haspopup'),
+    controls: trigger.getAttribute('aria-controls'),
+    listId: list.id,
+    listRole: list.getAttribute('role'),
+    everyOptionHasRole: options.length > 0 && options.every((o) => o.getAttribute('role') === 'option'),
+    everyOptionHasId: options.every((o) => !!o.id),
+    selectedCount: options.filter((o) => o.getAttribute('aria-selected') === 'true').length,
+    tickCount: list.querySelectorAll('.date-select__tick').length,
+    activeDescendant: active,
+    activeIsReal: !!(active && list.querySelector(`#${CSS.escape(active)}`)),
+    focusIsList: document.activeElement === list,
+    focusIsTrigger: document.activeElement === trigger,
+    focusIsBody: document.activeElement === document.body,
+    aboveTrigger: popover.classList.contains('date-select__popover--above'),
+    withinVisibleArea: rect.top >= scroller.top - 1 && rect.bottom <= dock.top + 1,
+    widthRatio: rect.width / document.querySelector('.date-select__row').getBoundingClientRect().width,
+    readoutTop: readout ? Math.round(readout.getBoundingClientRect().top) : null,
+    dockTop: Math.round(dock.top),
+    scrollTop: Math.round(list.scrollTop),
+    scrollHeight: list.scrollHeight,
+    clientHeight: list.clientHeight,
+  };
+}, name);
+
+test('the closed trigger and the open list carry the listbox roles', async () => {
+  const { context, page } = await openAt(EARLIEST_MONTHS + 24);
+  try {
+    let seen = await listState(page, 'year');
+    assert.equal(seen.hidden, true, 'the list is open before it is opened');
+    assert.equal(seen.expanded, 'false');
+    assert.equal(seen.haspopup, 'listbox');
+    assert.equal(seen.controls, seen.listId, 'the trigger does not point at the list it opens');
+
+    await page.click('[data-list="year"]');
+    await page.waitForTimeout(160);
+    seen = await listState(page, 'year');
+    assert.equal(seen.hidden, false);
+    assert.equal(seen.expanded, 'true');
+    assert.equal(seen.listRole, 'listbox');
+    assert.ok(seen.everyOptionHasRole, 'not every option carries role="option"');
+    assert.ok(seen.everyOptionHasId, 'an option has no id, so aria-activedescendant cannot name it');
+    assert.equal(seen.selectedCount, 1, 'aria-selected is not on exactly one option');
+    assert.ok(seen.activeIsReal, `aria-activedescendant "${seen.activeDescendant}" names no option in the list`);
+    assert.ok(seen.focusIsList, 'focus did not move into the list');
+  } finally {
+    await context.close();
+  }
+});
+
+test('the selection is marked twice - a tick as well as the tint', async () => {
+  // WCAG 1.4.1: colour may not be the only carrier. The same constraint D78
+  // applied to the banner icons, where the answer was a different shape.
+  const { context, page } = await openAt(EARLIEST_MONTHS + 24);
+  try {
+    await page.click('[data-list="year"]');
+    await page.waitForTimeout(160);
+    const seen = await listState(page, 'year');
+    assert.equal(seen.tickCount, 1, 'the selected option carries no tick, so the tint is the only marker');
+    const tinted = await page.evaluate(() => {
+      const sel = document.querySelector('[data-popover="year"] [aria-selected="true"]');
+      const other = document.querySelector('[data-popover="year"] [aria-selected="false"]');
+      return getComputedStyle(sel).backgroundColor !== getComputedStyle(other).backgroundColor;
+    });
+    assert.ok(tinted, 'the selected option is not tinted either');
+  } finally {
+    await context.close();
+  }
+});
+
+test('the overlay floats: it pushes neither the readout nor the dock, and is not clipped', async () => {
+  for (const months of [EARLIEST_MONTHS + 24, EARLIEST_MONTHS - 1]) {
+    const { context, page } = await openAt(months);
+    try {
+      const before = await listState(page, 'year');
+      await page.click('[data-list="year"]');
+      await page.waitForTimeout(180);
+      const after = await listState(page, 'year');
+      assert.equal(after.readoutTop, before.readoutTop, 'opening the list moved the readout');
+      assert.equal(after.dockTop, before.dockTop, 'opening the list moved the dock');
+      assert.ok(after.withinVisibleArea, 'the list reaches outside the visible area, where .screen-content would clip it');
+      assert.ok(after.widthRatio < 0.6, `the list spans ${Math.round(after.widthRatio * 100)}% of the row, so it covers the month`);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+test('the list flips above the trigger when there is no room below it', async () => {
+  // D83's moved-date disclosure sits above the control and pushes it down far
+  // enough that a five-option list does not fit beneath it. Measured, not
+  // assumed: this is the state that makes the flip necessary rather than nice.
+  // AWAITED INSIDE THE `try`, not returned from it: a returned promise settles
+  // after `finally` has already closed the context, which fails as "target
+  // closed" and looks like a defect in the control rather than in the harness.
+  const openAndRead = async (months) => {
+    const { context, page } = await openAt(months);
+    try {
+      await page.click('[data-list="year"]');
+      await page.waitForTimeout(180);
+      return await listState(page, 'year');
+    } finally { await context.close(); }
+  };
+  const below = await openAndRead(EARLIEST_MONTHS + 24);
+  const moved = await openAndRead(EARLIEST_MONTHS - 1);
+  assert.equal(below.aboveTrigger, false, 'the list flipped above the trigger where there was room below it');
+  assert.equal(moved.aboveTrigger, true, 'the list opened below the trigger where it does not fit');
+  assert.ok(below.withinVisibleArea && moved.withinVisibleArea);
+});
+
+test('the list opens on the current selection, with what is above it in view', async () => {
+  const { context, page } = await openAt(EARLIEST_MONTHS + 24);
+  try {
+    await page.click('[data-list="year"]');
+    await page.waitForTimeout(180);
+    const seen = await listState(page, 'year');
+    assert.ok(seen.scrollHeight > seen.clientHeight, 'the year list does not scroll, so this asserts nothing');
+    const selectedVisible = await page.evaluate(() => {
+      const list = document.querySelector('[data-popover="year"] [role="listbox"]');
+      const sel = list.querySelector('[aria-selected="true"]');
+      const lr = list.getBoundingClientRect(); const sr = sel.getBoundingClientRect();
+      return sr.top >= lr.top - 1 && sr.bottom <= lr.bottom + 1;
+    });
+    assert.ok(selectedVisible, 'the list opened without the selected option in view');
+    assert.ok(seen.scrollTop > 0, 'the list opened at the top rather than on the selection');
+  } finally {
+    await context.close();
+  }
+});
+
+test('near the floor the list opens at the top, so the floor reads as where it begins', async () => {
+  const { context, page } = await openAt(EARLIEST_MONTHS);
+  try {
+    await page.click('[data-list="year"]');
+    await page.waitForTimeout(180);
+    assert.equal((await listState(page, 'year')).scrollTop, 0, 'the floor is scrolled out of view on open');
+  } finally {
+    await context.close();
+  }
+});
+
+test('the keyboard moves the active option without committing anything', async () => {
+  const { context, page } = await openAt(EARLIEST_MONTHS + 24);
+  try {
+    const before = await probe(page);
+    await page.focus('[data-list="year"]');
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(180);
+    const opened = await listState(page, 'year');
+    assert.equal(opened.expanded, 'true', 'ArrowDown on the trigger did not open the list');
+    const startedOn = opened.activeDescendant;
+
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(120);
+    const moved = await listState(page, 'year');
+    assert.notEqual(moved.activeDescendant, startedOn, 'ArrowDown did not move the active option');
+    assert.deepEqual((await probe(page)).committed, before.committed, 'an arrow key committed a figure');
+    assert.equal((await probe(page)).yearValue, before.yearValue, 'an arrow key changed the selection');
+
+    await page.keyboard.press('End');
+    await page.waitForTimeout(120);
+    const end = await listState(page, 'year');
+    await page.keyboard.press('Home');
+    await page.waitForTimeout(120);
+    const home = await listState(page, 'year');
+    assert.notEqual(end.activeDescendant, home.activeDescendant, 'Home and End land on the same option');
+    assert.ok(home.activeIsReal && end.activeIsReal);
+  } finally {
+    await context.close();
+  }
+});
+
+test('Escape dismisses without selecting and returns focus to the trigger', async () => {
+  const { context, page } = await openAt(EARLIEST_MONTHS + 24);
+  try {
+    const before = await probe(page);
+    await page.focus('[data-list="year"]');
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(180);
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(140);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(180);
+    const seen = await listState(page, 'year');
+    assert.equal(seen.hidden, true, 'Escape left the list open');
+    assert.equal(seen.expanded, 'false');
+    assert.equal(seen.focusIsTrigger, true, 'Escape dropped focus somewhere other than the trigger');
+    assert.equal(seen.focusIsBody, false);
+    assert.equal((await probe(page)).yearValue, before.yearValue, 'Escape committed the option the arrows had reached');
+  } finally {
+    await context.close();
+  }
+});
+
+test('reopening puts the active option back on the selection', async () => {
+  // It used to come back wherever the arrows had abandoned it, several rows
+  // from the value the trigger was showing - while the SCROLL went to the
+  // selection, so the two disagreed on screen. D84.
+  const { context, page } = await openAt(EARLIEST_MONTHS + 24);
+  try {
+    await page.focus('[data-list="year"]');
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(180);
+    await page.keyboard.press('End');
+    await page.waitForTimeout(140);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(160);
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(200);
+    const seen = await listState(page, 'year');
+    const selectedId = await page.evaluate(() => document.querySelector('[data-popover="year"] [aria-selected="true"]').id);
+    assert.equal(seen.activeDescendant, selectedId, 'the active option came back where it was left, not on the selection');
+  } finally {
+    await context.close();
+  }
+});
+
+test('Enter selects the active option, and focus lands on the trigger', async () => {
+  const { context, page } = await openAt(EARLIEST_MONTHS + 24);
+  try {
+    const before = await probe(page);
+    await page.focus('[data-list="year"]');
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(180);
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(140);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(260);
+    const after = await probe(page);
+    assert.notEqual(after.yearValue, before.yearValue, 'Enter committed nothing');
+    assert.ok(monthsFromNow(after.monthValue, after.yearValue) >= EARLIEST_MONTHS, 'Enter reached a date below the floor');
+    assert.equal((await listState(page, 'year')).focusIsTrigger, true, 'focus was dropped after a keyboard pick');
+    assert.deepEqual(after.committed, before.committed, 'a pick committed a section 6 figure');
+  } finally {
+    await context.close();
+  }
+});
+
+test('an outside tap dismisses the list and does not drop focus on the document', async () => {
+  const { context, page } = await openAt(EARLIEST_MONTHS + 24);
+  try {
+    const before = await probe(page);
+    await page.click('[data-list="month"]');
+    await page.waitForTimeout(160);
+    assert.equal((await listState(page, 'month')).hidden, false);
+    // The screen headline: outside the popover, and not itself focusable -
+    // which is the case that used to clear focus to `<body>`.
+    await page.click('.screen-title');
+    await page.waitForTimeout(220);
+    const seen = await listState(page, 'month');
+    assert.equal(seen.hidden, true, 'the list survived a tap outside it');
+    assert.equal(seen.expanded, 'false');
+    assert.equal(seen.focusIsBody, false, 'the outside tap dropped focus at the top of the document');
+    assert.equal(seen.focusIsTrigger, true);
+    assert.equal((await probe(page)).monthValue, before.monthValue, 'an outside tap changed the selection');
   } finally {
     await context.close();
   }

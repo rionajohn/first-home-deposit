@@ -82,13 +82,15 @@ do not introduce a state management library.
   rendered cleanly, so the smoke test passed on all of them: a chart can be wrong in every particular
   and still be a chart. ~14s. D73's third amendment.)
 - Test screen layout: `node --test scripts/overlap.test.mjs` (all 37 frame rows x both text sizes; two of them, `/assumptions/costs` and `/learn/stamp-duty`, have no frame number of their own - GAPS.md G83 and G84; asserts no divider, border or rule crosses text and no box is squashed below its content)
-- Test frame 10b's floor and readout: `node --test scripts/date-ceiling.test.mjs` (drives Chromium;
-  the date dropdowns' floor at the earliest reachable date, and the monthly amount they solve. Asserts
-  SHAPE, every expected value derived from `model.js` at run time rather than written in the file, so it
-  follows a re-seeded fixture instead of breaking on one: the floor is the list's first entry and NOT
-  the selection, no offered year/month pair is below it, changing the year re-derives the month list, a
-  date the floor has moved past is moved to it and disclosed, and the solved figure is rendered and
-  matches the model. ~33s. D83, superseding D82; closes GAPS.md G64, G65 and G96's frame 10b case.)
+- Test frame 10b's floor, listbox and readout: `node --test scripts/date-ceiling.test.mjs` (drives
+  Chromium; the date lists' floor at the earliest reachable date, the custom listbox that offers them,
+  and the monthly amount they solve. Asserts SHAPE, every expected value derived from `model.js` at run
+  time rather than written in the file, so it follows a re-seeded fixture instead of breaking on one:
+  the floor is the list's first entry and NOT the selection, no offered year/month pair is below it,
+  changing the year re-derives the month list, a date the floor has moved past is moved to it and
+  disclosed, and the solved figure is rendered and matches the model. Its last eleven are D84's listbox
+  contract - roles, `aria-activedescendant`, keyboard, focus return - read off the same attributes a
+  screen reader reads. ~41s. D84, superseding D83; closes GAPS.md G64, G65 and G96's frame 10b case.)
 - Test the skip-ahead control: `node --test scripts/skip-ahead.test.mjs` (pure Node, no browser; asserts three round trips leave state identical and that the threshold stays a ratio of CHECKPOINT_FRACTION rather than an amount)
 - Test the draft invariant: `node --test scripts/g62.test.mjs` (pure Node, no browser; asserts that abandoning a draft changes no committed key, and that `gapToCheckpoint()` reads the stored checkpoint rather than re-deriving it)
 - Test stale-session discard: `node --test scripts/stale-session.test.mjs` (drives Chromium; asserts a
