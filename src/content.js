@@ -520,6 +520,19 @@ const content = {
     // DECISIONS.md D56.
     areaAverageCaption: 'In {region}, first-time buyers paid around {amount} on average in {period}.',
     areaAverageSourceCaption: 'Source: {source}, {period}.',
+    // THE STAMP DUTY CLIFF (DECISIONS.md D70). Above £500,000 first-time buyer
+    // relief is lost outright and standard rates apply to the whole price, so
+    // the tax in the goal steps up by £5,000 for one extra pound - more than
+    // the preceding £50,000 of property value moves it. Without this the step
+    // is silent, and a participant typing upward through this range has already
+    // crossed the Lifetime ISA cap 50k below and been told about that one.
+    //
+    // INFORMATION, NOT A WARNING, AND NOT A STEER. It says what the rule is and
+    // why the figure moved. It does not suggest buying below the threshold,
+    // which would be advice, and it does not tell the participant to check
+    // anything. One number per sentence.
+    stampDutyCliffBannerText:
+      'First-time buyer stamp duty relief applies up to £500,000. Above that, standard rates apply to the whole price, which is why the stamp duty in your goal steps up here.',
     depositQuestionHeading: 'How much would you put down?',
     comparisonHeaderText: 'What each one means',
     comparisonSublabelTemplate: '{pct} deposit',
@@ -749,6 +762,13 @@ const content = {
     stampDutyNoteTemplate:
       'Your goal includes an estimated {amount} of stamp duty, at first-time buyer rates. Whether those apply is confirmed when you buy.',
     checkpointProgressLabel: 'Checkpoint',
+    // THE PROGRESS BAR'S LEGEND (DECISIONS.md D70). Each names one portion of
+    // the goal and its amount, because colour cannot identify them - WCAG
+    // 1.4.1, and in this palette no second shade could carry it even if the
+    // rule allowed. Both are suppressed with the bar's division when the tax is
+    // zero: "Stamp duty £0" explains nothing.
+    legendDepositLabelTemplate: 'Deposit {amount}',
+    legendStampDutyLabelTemplate: 'Stamp duty {amount}',
 
     // NO FIGURE, AND NO DIRECTION (DECISIONS.md D51). This used to read
     // "You're {gap} away from the point where checking a Mortgage in Principle

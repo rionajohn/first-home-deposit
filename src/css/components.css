@@ -2229,6 +2229,76 @@
   background: var(--color-accent-neutral);
 }
 
+/* --- The divided bar (DECISIONS.md D70) ---------------------------------
+   Only the tracker draws this, and only when the stamp duty portion is
+   non-zero. The undivided bar above is untouched: a single fill is still
+   absolutely positioned at left 0, and nothing here applies to it.
+
+   A DIVIDED TRACK IS A FLEX ROW, so the segments size each other rather
+   than each being positioned from the left edge. The marker stays
+   absolute over the top of them, at the checkpoint, exactly as before. */
+.progress-bar__track--divided {
+  display: flex;
+  align-items: stretch;
+}
+
+.progress-bar__track--divided .progress-bar__fill {
+  position: relative;
+  border-radius: 0;
+  flex: 0 0 auto;
+}
+
+/* The rounded ends belong to the bar, not to the segments, so only the
+   outermost corners are rounded. */
+.progress-bar__track--divided .progress-bar__fill:first-child {
+  border-top-left-radius: var(--radius-full);
+  border-bottom-left-radius: var(--radius-full);
+}
+
+.progress-bar__fill--primary { background: var(--color-accent-neutral); }
+.progress-bar__fill--muted { background: var(--color-accent-neutral-muted); }
+
+/* RULE 2 IN ui.js: the join is marked without colour. Same 1px-of-surface
+   device as `.progress-bar__marker`, so the division reads at any contrast
+   and survives a palette change. `flex: 0 0 1px` rather than a border, so
+   it cannot be collapsed by a neighbouring segment's own rounding. */
+.progress-bar__join {
+  flex: 0 0 1px;
+  background: var(--color-surface);
+}
+
+/* RULE 1 IN ui.js: the legend, not the colour, says which part is which.
+   Wraps rather than truncating - at Large text the two items do not fit on
+   one 350px line, and CLAUDE.md's auto-layout rule is that nothing
+   truncates or overflows. */
+.progress-bar__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-md);
+}
+
+.progress-bar__legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.progress-bar__swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex: 0 0 auto;
+}
+
+.progress-bar__swatch--primary { background: var(--color-accent-neutral); }
+.progress-bar__swatch--muted { background: var(--color-accent-neutral-muted); }
+
+.progress-bar__legend-label {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  color: var(--color-label-secondary);
+}
+
 .progress-bar__marker {
   position: absolute;
   top: 0;

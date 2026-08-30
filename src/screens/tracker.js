@@ -93,6 +93,14 @@ export function render(container, ctx) {
   const combinedGoalValue = state['combined-goal'].value;
   const stampDutyValue = state['stamp-duty'].value;
   const checkpointAmountValue = state['checkpoint-amount'].value;
+  // ONE TEST, TWO SUPPRESSIONS (DECISIONS.md D70). Below the 300,000 nil-rate
+  // band there is no tax, and both the sentence explaining it and the legend
+  // naming it are dropped. A line reading "an estimated £0 of stamp duty" and
+  // a legend entry reading "Stamp duty £0" have the same defect: they explain
+  // a component that is not there, and invite the participant to wonder what
+  // they have missed. The costs link BELOW is not suppressed - the other five
+  // costs exist at any property value.
+  const hasStampDuty = stampDutyValue > 0;
   const depositPct = state['deposit-pct'].value;
   const propertyValue = state['property-value'].value;
 
@@ -257,13 +265,35 @@ export function render(container, ctx) {
            establishes in-line qualification as the treatment here. The second
            sentence is what stops "at first-time buyer rates" reading as a
            claim that the participant will get the relief - nothing in this app
-           asks whether they qualify. -->
-      <p class="provenance-caption provenance-caption--center">${fill(c.stampDutyNoteTemplate, { amount: formatCurrency(stampDutyValue) })}</p>
+           asks whether they qualify.
+
+           DRAWN ONLY WHERE THERE IS A TAX TO EXPLAIN - see hasStampDuty
+           above the render. -->
+      ${hasStampDuty ? `<p class="provenance-caption provenance-caption--center">${fill(c.stampDutyNoteTemplate, { amount: formatCurrency(stampDutyValue) })}</p>` : ''}
 
       ${progressBarHTML({
         fillPct: (savedTowardDeposit / combinedGoalValue) * 100,
         markerPct: CHECKPOINT_FRACTION * 100,
         label: c.checkpointProgressLabel,
+        // THE GOAL'S COMPOSITION, NOT THE SAVING POSITION (D70). These two
+        // widths are the deposit and the tax as shares of the goal, so the bar
+        // shows what the goal is made of underneath the fill that shows how far
+        // along it is. At zero tax `progressBarHTML` drops the empty segment,
+        // suppresses the legend and renders an ordinary single fill - which is
+        // why this is passed unconditionally and the omission is not repeated
+        // here. One rule, in one place.
+        segments: [
+          {
+            widthPct: (depositTargetValue / combinedGoalValue) * 100,
+            shade: 'primary',
+            label: fill(c.legendDepositLabelTemplate, { amount: formatCurrency(depositTargetValue) }),
+          },
+          {
+            widthPct: (stampDutyValue / combinedGoalValue) * 100,
+            shade: 'muted',
+            label: fill(c.legendStampDutyLabelTemplate, { amount: formatCurrency(stampDutyValue) }),
+          },
+        ],
       })}
 
       <p class="body-text">${bodyText}</p>

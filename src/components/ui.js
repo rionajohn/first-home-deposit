@@ -885,19 +885,76 @@ export function riskWarningHTML(text) {
 }
 
 /**
- * Content / Progress bar (frames 15, 16): a filled track toward
- * deposit-target, with a fixed marker at the checkpoint position and a label
- * naming what the marker is.
+ * Content / Progress bar (frames 15, 16): a filled track toward the goal, with
+ * a fixed marker at the checkpoint position and a label naming what the marker
+ * is.
+ *
+ * DIVIDED, OPTIONALLY, SINCE DECISIONS.md D70. Pass `segments` to split the
+ * track into named parts - `/tracker` passes the deposit and the stamp duty
+ * that make up the goal, so the tax reads as part of the same goal rather than
+ * a second one beside it. Omit it and the bar is exactly what it was: one
+ * fill, one marker, one label.
+ *
+ * `segments` is `[{ widthPct, shade, label }]` in track order. `shade` is
+ * 'primary' or 'muted', the two shades of one colour (`--color-accent-neutral`
+ * and `--color-accent-neutral-muted`).
+ *
+ * THREE RULES THIS FUNCTION ENFORCES, and they are not stylistic:
+ *
+ *   1. COLOUR NEVER CARRIES THE MEANING. Every segment with a label gets a
+ *      legend entry naming it and its amount (WCAG 1.4.1). The palette cannot
+ *      do it with colour anyway - see the token comments in tokens.css - but
+ *      the legend would be required even if it could.
+ *   2. THE JOIN IS MARKED WITHOUT COLOUR. A 1px `--color-surface` separator
+ *      sits at each internal boundary, the same device `.progress-bar__marker`
+ *      already uses, so the division survives at any contrast.
+ *   3. A ZERO PART COLLAPSES. A segment with no width is dropped, and if that
+ *      leaves one segment the legend is suppressed entirely and the bar
+ *      renders as an ordinary single fill. A legend naming a zero portion has
+ *      the same defect as a sentence explaining one: it invites the reader to
+ *      wonder what they missed. `/tracker` relies on this below the 300,000
+ *      nil-rate band, where the tax genuinely is nothing.
  */
-export function progressBarHTML({ fillPct, markerPct, label }) {
+export function progressBarHTML({ fillPct, markerPct, label, segments = null }) {
   const clampedFill = Math.max(0, Math.min(100, fillPct));
   const clampedMarker = Math.max(0, Math.min(100, markerPct));
+
+  // Rule 3, applied before anything is measured: a part with no width is not a
+  // part. `> 0` rather than a tolerance - these come from real amounts, and an
+  // amount is either zero or it is not.
+  const drawn = (segments || []).filter((seg) => seg.widthPct > 0);
+  const divided = drawn.length > 1;
+
+  const fillHTML = divided
+    ? drawn.map((seg, i) => `
+        <div
+          class="progress-bar__fill progress-bar__fill--${seg.shade}"
+          style="width:${Math.max(0, Math.min(100, seg.widthPct))}%"
+        ></div>
+        ${i < drawn.length - 1 ? '<div class="progress-bar__join"></div>' : ''}
+      `).join('')
+    : `<div class="progress-bar__fill" style="width:${clampedFill}%"></div>`;
+
+  const legendHTML = divided
+    ? `
+      <div class="progress-bar__legend">
+        ${drawn.map((seg) => `
+          <span class="progress-bar__legend-item">
+            <span class="progress-bar__swatch progress-bar__swatch--${seg.shade}"></span>
+            <span class="progress-bar__legend-label">${seg.label}</span>
+          </span>
+        `).join('')}
+      </div>
+    `
+    : '';
+
   return `
     <div class="progress-bar">
-      <div class="progress-bar__track">
-        <div class="progress-bar__fill" style="width:${clampedFill}%"></div>
+      <div class="progress-bar__track${divided ? ' progress-bar__track--divided' : ''}">
+        ${fillHTML}
         <div class="progress-bar__marker" style="left:${clampedMarker}%"></div>
       </div>
+      ${legendHTML}
       <p class="progress-bar__label">${label}</p>
     </div>
   `;

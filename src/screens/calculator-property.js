@@ -38,7 +38,7 @@ import {
   rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
-import { depositTarget, loanAmount, ltv, stampDuty, combinedGoal } from '../model/model.js';
+import { depositTarget, loanAmount, ltv, stampDuty, combinedGoal, ftbReliefLost } from '../model/model.js';
 import { AREA_AVERAGE_PROPERTY_VALUE, DEPOSIT_PCT_OPTIONS, DEFAULT_DEPOSIT_PCT, LISA_CAP_PROPERTY_VALUE } from '../model/rates.js';
 
 export const anchors = ['guidanceNotAdvice'];
@@ -66,6 +66,10 @@ export function render(container, ctx) {
   // 09a for both, but only the first is a figure - the second is a draft, and
   // must not touch `property-value`. See DECISIONS.md D46.
   const isEmpty = state.propertyValueCleared || propertyValue.value === null;
+  // D70. Derived live from the field's own committed value, exactly as
+  // `isAboveLisaCap` below is - both banners appear as soon as the value
+  // commits, and neither reads a stored flag.
+  const reliefLost = ftbReliefLost({ 'property-value': propertyValue });
 
   let errorText = null;
   let comparisonRows = [];
@@ -112,6 +116,12 @@ export function render(container, ctx) {
       })}
       ${errorText ? warningBannerHTML(errorText) : ''}
       ${isAboveLisaCap ? infoBannerHTML(fill(c.lisaCapBannerText, { cap: formatCurrency(LISA_CAP_PROPERTY_VALUE) })) : ''}
+      <!-- CAP FIRST, THEN TAX (DECISIONS.md D70), which is the order a
+           participant typing upward crosses them: the Lifetime ISA cap at
+           450,000, the stamp duty cliff at 500,000. Above 500,000 both are
+           drawn and both are true. Between the two only the cap shows, which is
+           correct - nothing about the tax changes there. -->
+      ${reliefLost ? infoBannerHTML(c.stampDutyCliffBannerText) : ''}
       <p class="entry-card__body">${fill(c.areaAverageCaption, {
         region: AREA_AVERAGE_PROPERTY_VALUE.region,
         amount: formatCurrency(AREA_AVERAGE_PROPERTY_VALUE.value),

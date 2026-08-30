@@ -46,6 +46,13 @@
  *                                                       default default
  *   --width    Viewport width in px.                     default 390
  *   --height   Viewport height in px.                    default 844
+ *   --property Property value to seed, in pounds. Re-derives the whole goal
+ *              through the model - deposit target, stamp duty, combined goal,
+ *              checkpoint, loan and Loan-to-Value - so a shot can be taken at
+ *              a price with no stamp duty (under 300,000), with first-time
+ *              buyer relief (up to 500,000) or with it lost (above 500,000).
+ *              See DECISIONS.md D70.
+ *                                                default the seed's own value
  *   --saved    Deposit balance to seed, in pounds. The shared seed sits
  *              exactly AT the checkpoint, where both skip-ahead positions show
  *              the same figure; `--saved=12000` puts the session below it so
@@ -140,6 +147,14 @@ import { FULL } from './session-seed.mjs';
 import { STAGES } from '../src/stage.js';
 import { MOCK_ACCOUNTS, GROUP_ORDER } from '../src/model/accounts.js';
 import { BUILD_VERSION } from '../src/cache-version.js';
+import {
+  depositTarget,
+  stampDuty,
+  combinedGoal,
+  checkpointAmount,
+  loanAmount,
+  ltv,
+} from '../src/model/model.js';
 // Every seed below carries `buildVersion` (DECISIONS.md D59). `state.js` now
 // DISCARDS a stored session whose stamp is not the running build's, so an
 // unstamped seed would be thrown away and the harness would silently measure
@@ -167,6 +182,7 @@ const DEFAULTS = {
   out: '.screenshots/shots',
   scale: '2',
   saved: '',
+  property: '',
   goal: 'set',
   draft: 'none',
   assign: '',
@@ -236,6 +252,26 @@ const ROUTES = list(args.routes).map((r) => (r.startsWith('/') ? r : `/${r}`));
  * this changes nothing unless it is asked for.
  */
 const SAVED = args.saved === '' ? null : Number(args.saved);
+
+/**
+ * `--property` re-derives the whole deposit goal from a property value, so a
+ * shot can be taken at a price the shared seed does not cover (DECISIONS.md
+ * D70). Added because the stamp duty in the goal is a FUNCTION of the property
+ * value and has three regions worth looking at - below the 300,000 nil-rate
+ * band where there is no tax at all, between there and 500,000 where
+ * first-time buyer relief applies, and above 500,000 where it is lost - and
+ * `--saved` moves the position within a goal rather than the goal itself.
+ *
+ * EVERY DEPENDENT FIGURE IS RE-DERIVED THROUGH THE MODEL, not typed here, so a
+ * shot cannot show a goal the model would not have produced. That is the whole
+ * point: a fixture that disagreed with `combinedGoal()` would make a screenshot
+ * evidence of nothing.
+ */
+const PROPERTY = args.property === '' ? null : Number(args.property);
+if (args.property !== '' && !Number.isFinite(PROPERTY)) {
+  console.error('--property must be a number, e.g. --property=500001.');
+  process.exit(1);
+}
 if (SAVED !== null && !Number.isFinite(SAVED)) {
   console.error('--saved must be a number, e.g. --saved=12000.');
   process.exit(1);
@@ -551,6 +587,27 @@ try {
               // Deferred to `openSession` below, after the page exists.
             } else {
               const seed = { ...FULL, theme: theme === 'dark' ? 'dark' : 'greyscale', textSize: text };
+              if (PROPERTY !== null) {
+                const pair = {
+                  'property-value': { value: PROPERTY, provenance: 'entered' },
+                  'deposit-pct': FULL['deposit-pct'],
+                };
+                const target = depositTarget(pair);
+                const tax = stampDuty(pair);
+                const goal = combinedGoal(pair);
+                const checkpoint = checkpointAmount(pair);
+                const loan = loanAmount(pair);
+                const value = ltv(pair);
+                Object.assign(seed, {
+                  'property-value': pair['property-value'],
+                  'deposit-target': { value: target.value, provenance: target.provenance },
+                  'stamp-duty': { value: tax.value, provenance: tax.provenance },
+                  'combined-goal': { value: goal.value, provenance: goal.provenance },
+                  'checkpoint-amount': { value: checkpoint.value, provenance: checkpoint.provenance },
+                  'loan-amount': { value: loan.value, provenance: loan.provenance },
+                  ltv: { value: value.value, provenance: value.provenance },
+                });
+              }
               if (SAVED !== null) {
                 seed['saved-toward-deposit'] = { ...FULL['saved-toward-deposit'], value: SAVED };
               }

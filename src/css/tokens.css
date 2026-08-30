@@ -226,6 +226,7 @@
   --color-action-secondary-border: #8f8f96; /* accessibility pass: was #a8a8b0 (2.21:1, failed 3:1), same fix as border-strong (secondary-button borders are the same "unselected control needs a visible boundary" case) */
   --color-accent: #007aff;           /* systemBlue — reserved for a future "Brand" theme, unused while the default Greyscale theme (frame 33) is in effect */
   --color-accent-neutral: #4d4d55;   /* accent/brand — the Greyscale theme's own "on" colour for checkboxes, the Yes/No choice buttons and slider fill, read from the project's Figma variables */
+  --color-accent-neutral-muted: #9a9aa2; /* DECISIONS.md D70 — the SECOND shade of the tracker's progress fill, for the stamp duty portion of the goal. Chosen to maximise separation from accent-neutral (3.00:1), which is the pairing the legend has to disambiguate; it cannot also clear 3:1 against the empty track (2.16:1), and nothing can - the fill and the track are only 6.48:1 apart here, and 3 x 3 exceeds that. Colour ranks the two portions; the legend and a 1px surface separator identify them. */
   --color-warning: #d63228;          /* systemRed — accessibility pass: darkened from #ff3b30 (3.31:1 on page, failed AA's 4.5:1 for the MCOB repossession-warning body text this renders) to >=4.51:1 */
   --color-canvas: #e5e5ea;           /* page behind the device frame at >=768px, shell.css only */
 }
@@ -341,6 +342,7 @@
   --color-action-secondary-border: #67676a; /* accessibility pass: same fix as border-strong */
   --color-accent: #0a84ff;
   --color-accent-neutral: #98989f;
+  --color-accent-neutral-muted: #75757d; /* D70 — see the light-mode comment. Tighter still in this theme: the fill and track are 4.08:1 apart, so nothing reaches 3:1 against the fill at any point on the scale (this is 1.59:1). The legend and the separator are doing the work, which is why they are not optional. */
   --color-warning: #ff453a;
   --color-canvas: #1c1c1e;
 }

@@ -5396,11 +5396,8 @@ assumptions link already on that screen now reaches an assumption that explains 
 
 ### 7. What is deferred, and why it is listed rather than done
 
-- **The segmented progress bar** (deposit portion and tax portion in two shades of one colour). Held
-  pending the design-rule amendment, which must land first so the rule is accurate before new work is
-  judged against it. The bar's denominator has already moved to `combined-goal`, so it is correct
-  today as a single fill.
-- **The 500,000 cliff copy.** Drafted, not applied, by instruction.
+- ~~**The segmented progress bar.**~~ **Built** - see section 9 below.
+- ~~**The 500,000 cliff copy.**~~ **Built** - see section 9 below.
 - **Contrast, recorded now because the measurement is the reasoning.** No third shade can reach 3:1
   from **both** the deposit fill and the empty track, in either theme, because the two ends are only
   6.48:1 apart in light and 4.08:1 in dark - and 3 x 3 exceeds both. In dark, nothing reaches 3:1
@@ -5420,3 +5417,82 @@ assumptions link already on that screen now reaches an assumption that explains 
 `calculator-property.js`, `calculator-review.js` and `stage.js`; `assumptions-costs.js` with its
 route in `app.js` and its two entries in `router.js`; the tracker's guard, variant, fill, one caption
 and one info link; and frames 29 and 30's rows. `CACHE_VERSION` v63.
+
+### 9. Amended, 30 August 2026: the bar is divided, and a zero tax collapses it
+
+The three items section 7 listed as deferred are built. The design-rule amendment landed first, as
+its own commit, so the rule was accurate before this work was judged against it.
+
+**The bar is one bar.** `progressBarHTML` takes an optional `segments` list and the tracker passes
+the deposit and the tax as shares of the goal, in two shades of one colour, so the tax reads as part
+of the same goal rather than a second one beside it. The fill still shows how far along the
+participant is; the division shows what they are heading toward. Undivided callers are untouched -
+omit `segments` and the function is exactly what it was.
+
+**Colour carries emphasis only, and the measurement is why.** No third shade can reach 3:1 from both
+the deposit fill and the empty track, in either theme: the two ends are only 6.48:1 apart in light
+and 4.08:1 in dark, and 3 x 3 exceeds both. In dark, nothing reaches 3:1 against the fill at any
+point on the scale. `--color-accent-neutral-muted` is light `#9a9aa2` (3.00:1 against the fill,
+2.16:1 against the track) and dark `#75757d` (1.59:1 and 2.56:1) - chosen to maximise separation
+from the fill, because that is the pairing the legend has to disambiguate.
+
+So the meaning is carried by two things that are not colour: a legend naming each portion and its
+amount, and a 1px `--color-surface` separator at the join, the same device `.progress-bar__marker`
+already uses. This is not a workaround for a palette limitation. WCAG 1.4.1 requires it of any
+divided bar regardless of contrast, which is why it is now in the design rule rather than only here.
+
+**A zero tax collapses the whole thing.** Below the 300,000 nil-rate band there is no stamp duty, and
+three things are suppressed together: the sentence explaining it, the bar's division, and the legend.
+The bar renders as an ordinary single fill.
+
+The reasoning, because it decided the shape of the code. A line reading "Your goal includes an
+estimated £0 of stamp duty" explains a component that is not there, and a legend entry reading
+"Stamp duty £0" does the same in fewer words. Both invite the participant to wonder what they
+missed - the opposite of what the line was added to do. **And this state is more likely to be seen
+in a session than the seeded one**: three of `ROUTES.md`'s four tracker recipes (280,000, 200,000 and
+150,000) sit below the threshold, so a facilitator following the documented recipes meets the zero
+case before they meet the 450,000 one.
+
+The collapse rule lives in `progressBarHTML`, not in the tracker: a segment with no width is dropped
+there, and if that leaves one segment the legend goes with it. The tracker passes both segments
+unconditionally and tests `stampDutyValue > 0` only for the sentence. One rule, one place, and a
+future caller cannot forget it.
+
+`shots.mjs` gained `--property` for this, rather than a harness written inline: the tax is a
+FUNCTION of the property value with three regions worth looking at (no tax, relief, relief lost), and
+`--saved` moves the position within a goal rather than the goal itself. It re-derives every dependent
+figure through the model, so a screenshot cannot show a goal the model would not have produced.
+
+**The costs link is NOT suppressed.** The other five costs exist at any property value, so the row
+naming them is drawn whether or not there is any tax. Only the stamp duty content is conditional.
+
+**Frame 09 gains the cliff banner, ordered cap-then-tax.** That is the order a participant typing
+upward crosses them - the Lifetime ISA cap at 450,000, the relief cliff at 500,000 - and above
+500,000 both are drawn because both are true. Between the two only the cap shows, which is correct:
+nothing about the tax changes in that range. The banner says what the rule is and why the figure
+moved; it does not suggest buying below the threshold, which would be advice.
+
+### 10. The defect the tests found and reading did not
+
+`STAGE_KEYS` in `stage.js` did not list `stamp-duty` or `combined-goal`, so selecting "Setting up"
+cleared the property value and the deposit target but **left the previous stage's stamp duty and
+combined goal in the store**. A session would then hold a null property value beside a 7,500 tax and
+a 52,500 goal derived from a property that was no longer set.
+
+That is precisely the failure mode CLAUDE.md's state rules describe - "the store holding a state no
+screen expects" - and it is the same shape as D46 and D38's third amendment. It would have reached a
+screen as a real figure rather than as an error, because `formatCurrency` renders a stale number as
+readily as a fresh one.
+
+**Reading would not have caught it.** The commit sites were all correct: frames 09 and 11 and the
+stage each wrote both new keys beside `deposit-target`, which is what a review looks for. The bug was
+in a *reset* list a hundred lines away from any of them, whose job is to name every key a stage
+change must clear - a list that is correct by omission until a figure is added. `stage.test.mjs`'s
+"every stage is reachable from every other, with nothing left behind" caught it on the first run.
+
+**The general lesson, recorded because it will recur.** Adding a section 6 figure means touching two
+kinds of place: everywhere it is written, and everywhere state is *cleared*. The first kind is
+obvious from the feature; the second is only obvious from the test. `STAGE_KEYS`, `STASHED_KEYS` in
+`skip-ahead.js` and `SECTION_6_KEYS` in `state.js` are the three lists of the second kind in this
+build. `skip-ahead.js` needed no change here - neither new key depends on the savings position - but
+it was checked for the same reason.
