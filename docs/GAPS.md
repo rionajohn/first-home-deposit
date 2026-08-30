@@ -3103,3 +3103,151 @@ meant to read as neutral (its component note says neutral, so `--color-label` ma
 the same one-line fix D78 and D79 each made. Decide it with the other twelve in D79, or ahead of them
 because of the regulatory dimension above.*
 
+---
+
+## G96. Frame 10b's ceiling error is below the fold on first paint, so a disabled Continue has no visible explanation
+
+*Raised 30 August 2026. Measured during D81's copy pass and recorded there as a measurement of that
+change rather than as the record of a defect; opened here on instruction. **The first of G92 to G96
+that is REACHABLE.** G92, G93 and G94 need a state the build can no longer produce, and G95 needs a
+palette frame 33 does not offer. This one happens on first paint, in the shipped build, at a text size
+frame 33 does offer.*
+
+### The measurement
+
+`/calculator/saving` in target-date mode (`solveFor: 'amount'`), at a date requiring more than
+`left-over`. 390x844 viewport, first paint, before any scroll:
+
+| Text size | Banner top | Banner height | Banner bottom | Dock top | **Cut by** |
+| --- | --- | --- | --- | --- | --- |
+| Default | 575px | 114px (4 lines) | 689px | 651px | **38px** |
+| Large | 606px | 152px (5 lines) | 758px | 651px | **107px** |
+
+Both figures are FIRST-PAINT positions with `scrollTop` at 0. They are also where a participant who
+steps the date into the error lands, and that is not a separate case: `rerenderInPlace` preserves
+`scrollTop` across a re-render on purpose (so a field commit does not jump the screen under the
+participant's fingers), so a banner raised by a stepper press appears below the fold and the screen
+does not move to it. Nothing anywhere in this build scrolls to a raised banner - the only two scroll
+writes in `src/` are that preservation.
+
+Geometry is identical in both palettes; the dark palette changes no size.
+
+### What is between the stepper and the banner, and what put it there
+
+Measured, so the space is accounted for rather than guessed at:
+
+| Block | Default | Large |
+| --- | --- | --- |
+| Date stepper (including its hint) | top 299px, height 178px | top 311px, height 187px |
+| stack gap | 16px | 16px |
+| **Solved-amount readout** (figure + caption) | top 493px, height 66px | top 514px, height 75px |
+| stack gap | 16px | 16px |
+| Ceiling banner | top 575px | top 606px |
+
+There is nothing else between them. **The readout and its two gaps are 98px of that space at default
+text and 107px at Large** - and 107px is exactly the amount by which the banner is cut at Large.
+
+**D80's readout is what pushed the banner down, and it is load-bearing.** Say it plainly here so that
+whoever fixes this does not reach for it first: that readout is what closed **G65**. Before it, frame
+10b solved a monthly amount from the chosen date, read it in exactly one place - the Continue handler -
+and showed the participant nothing until frame 11. An error saying "not this date" above a figure the
+participant cannot see is what G64 and G65 were closed together to avoid. **The readout is not a
+candidate for removal.**
+
+**And removing it would not buy enough anyway.** Subtracting its 98px / 107px footprint from the
+measured positions puts the banner's bottom at 591px (default, 60px of headroom) and **651px at Large -
+flush with the dock, zero headroom.** So even with the readout gone, the banner at Large text only just
+fits. The copy is five lines at Large; the space above the dock is what it is. This is a layout
+problem, not a readout problem and not a copy-length problem.
+
+### Why the two mitigations do not settle it
+
+Both are real and neither closes this:
+
+- **It reads in full once the screen is scrolled.** True - the banner is not clipped, truncated or
+  overflowing; `.screen-content` scrolls and the whole thing is legible about a thumb-flick down. That
+  makes it a first-paint problem rather than a permanent one, which is a smaller defect than truncation
+  would be. It is not smaller in the case below, because the case below is about the moment before the
+  participant knows there is anything to scroll to.
+- **`role="alert"` announces it regardless (D78).** True, and it is why this is not an accessibility
+  failure: a participant using a screen reader is told the error the moment it is raised. That covers
+  the participant who is NOT looking at the screen. It does nothing for the participant who is.
+
+### The research consequence, which is why this is urgent rather than filed
+
+This is an instrument for moderated think-aloud usability sessions, and this defect damages the
+instrument rather than only the experience.
+
+**What the participant does:** presses Continue. Nothing happens. The button is grey. The sentence
+explaining why is off the bottom of the screen.
+
+**What that looks like on the recording:** a participant who pressed a disabled control, paused, and
+did not say why - which is *indistinguishable from* a participant who read the constraint and did not
+understand it. Those are two completely different findings. One is a layout defect in the prototype;
+the other is a comprehension failure in the copy, and the copy is what several of these sessions exist
+to test. **The data cannot be told apart after the fact**, and a moderator prompt ("what do you think
+is happening there?") changes the participant's behaviour at exactly the moment being measured.
+
+That is the difference between this and a defect that merely degrades the experience: **it contaminates
+the data**. A finding drawn from a contaminated trial is worse than a missing one, because it is
+counted - which is D77's finding about tests, applied to sessions.
+
+**107px at Large is the worse case, for the obvious reason.** A participant who has set the text size
+to Large has already told the study they need larger text. They meet a *larger* blank space where the
+explanation should be, and they are the participant least able to spot a partially-visible line at the
+screen's edge. The build's own accessibility setting makes its own error message harder to find.
+
+### Frame 10b is not the only one
+
+Found by sweeping every banner-raising state in the build at both text sizes, first paint. Two more
+ERROR banners are cut, and neither was recorded anywhere:
+
+| Screen | State | Default | Large |
+| --- | --- | --- | --- |
+| **10b** `/calculator/saving` | date above the ceiling | **cut 38px** | **cut 107px** |
+| **10** `/calculator/saving` | slider above the ceiling | visible | **cut 14px** |
+| **11** `/calculator/review` | all three row errors at once (the third banner) | **cut 110px** | **cut 200px** |
+
+The other seven error states - frame 05's two, frame 09's, frame 10b's past date, and frame 11's three
+rows raised singly - are fully visible at both text sizes.
+
+**They are recorded here rather than given numbers of their own**, because they are one defect in three
+places and splitting them would invite fixing one screen and calling it closed - which is the
+`CLAUDE.md` rule that a correction applies everywhere the pattern appears. Frame 11's case is the worst
+measured anywhere in the build (200px at Large) and has nothing to do with D80: it is simply three
+banners stacked in one column. Split them into their own entries if the fix turns out to be per-screen
+rather than shared.
+
+*Informational banners were swept in the same pass and are deliberately excluded.* Eight routes carry
+an `.info-banner` below the fold on first paint, at cuts from 203px to 1,442px. That is ordinary
+long-screen content - an informational banner blocks nothing and explains no disabled control - and
+treating it as the same defect would bury the three above in a list of eleven.
+
+### G89 is the same shape, and it is open
+
+`GAPS.md` **G89, "Frame 12's chart range chips sit below the fold" - open, deliberately unresolved.**
+Nothing fixed it, so there is no fix to borrow. Its status line reads "watch for it in testing rather
+than pre-empting it", and D73's amendment moved the chips further down rather than nearer.
+
+**That resolution is available to G89 and is not available here**, which is the distinction worth
+carrying: G89 is a *control* the participant has to find in order to use an optional feature, on a
+screen they can scroll at leisure, and the argument for leaving it was that a session would settle
+whether they reach the chart at all. G96 is the *explanation of a blocked action*, and the thing it
+would be watched for in testing is the thing it corrupts. "Watch for it in a session" is not a status
+this one can take.
+
+### Cross-references
+
+- **D80** built the readout, and closed G64 and G65 together for the reason quoted above.
+- **D81** measured this during the copy pass and stated explicitly that it was recording a measurement
+  and not a defect. That note now points here.
+- **G89** above, same shape, open.
+- **D78** for `role="alert"` and the `aria-describedby` on the disabled primary.
+
+*Status: **open, and REACHABLE - unlike G92, G93, G94 and G95.** It occurs on first paint, in the
+current build, at a text size frame 33 offers, with no facilitator gesture and no seeded state. Do not
+file it beside the four unreachable entries above it and do not give it G89's "watch for it in testing"
+resolution: what it damages is the testing. Fixing it means one of - reserving the error's space above
+the dock, scrolling a raised banner into view, or moving the banner above the readout - and whichever
+is chosen applies to frames 10, 10b and 11 together, not to the screen named in the title.*
+

@@ -7637,11 +7637,17 @@ the screen had stopped interpolating.
 (default) / 281px (Large) with a matching `scrollWidth`, wrapping to 4 and 5 lines. `.screen-content`
 `scrollWidth` stays at 390px in every combination - no sideways scroll.
 
-**Vertically it does not fit above the fold, and that is reported rather than recorded here.** On first
-paint the banner's last line falls 38px below the action bar dock at default text and 107px at Large,
-so a participant meets a disabled Continue with the error partly or wholly off-screen. It is legible in
-full as soon as the screen is scrolled, and `role="alert"` announces it regardless (D78). This is a
-layout question, not a copy one - a shorter string is not the answer, and changing the layout is not
-what this pass was for. **Recorded as a measurement of this change, not as the record of a defect**:
-if it is to be tracked it belongs in `GAPS.md` beside G89, which is the same shape.
+**Vertically it does not fit above the fold. That is now `GAPS.md` G96**, and this note is a pointer
+rather than the record - the same reconciliation D79 and D80 were given when G93, G94 and G95 were
+promoted out of them.
+
+On first paint the banner's last line falls 38px below the action bar dock at default text and 107px at
+Large, so a participant meets a disabled Continue with the error partly or wholly off-screen. It is a
+layout question rather than a copy one: a shorter string is not the answer, and G96 records the
+arithmetic showing that removing this pass's readout would not buy enough headroom at Large either.
+
+**G96 is REACHABLE, which none of G92 to G95 are.** It also turned out not to be confined to this
+screen - the sweep that opened it found frame 10's slider ceiling error cut at Large and frame 11's
+third stacked banner cut at both sizes. See G96 for all three and for the research consequence, which
+is the part that makes it urgent rather than filed.
 
