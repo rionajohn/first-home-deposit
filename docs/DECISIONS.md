@@ -7178,3 +7178,104 @@ no amount of assertion would have replaced that: a screenshot showed a bar chart
 held tap showed a dead button. What it argues for is narrower - **know what each assertion would have
 to see to fail, and check that it can** - and for keeping a cheap manual pass in the loop, because on
 this project it out-performed the suite four times out of five.
+
+---
+
+## D78. The error banner gets an error icon, and tells a screen reader why Continue is dead
+
+**Date.** 30 August 2026.
+
+### The defect
+
+Frame 11's ceiling-breach banner drew an **information icon** while being an error: red border, red
+text, "See what this means" disabled. Every other banner of the same class did too - the icon was
+`infoCircle` in `warningBannerHTML` and `infoCircle` in `infoBannerHTML`, the same glyph in both, so
+the only thing separating an error from a note was colour.
+
+That is a WCAG 1.4.1 failure and not a cosmetic one. A participant who cannot separate red from grey
+met the same symbol in both places and had nothing else to go on. The measured contrast made it
+worse in the dark palette: the icon inherited `--color-label` from `body`, where `.theme-dark`'s
+override does not reach, so it drew **#17171c on #1c1c1e - 1.05:1**, against 1.4.11's 3:1 for
+non-text content. It was invisible in the state that most needed to be seen.
+
+### What was checked before anything changed
+
+**`warningBannerHTML` and `infoBannerHTML` are already separate components, and every one of the
+seven `warningBannerHTML` call sites is an error that disables the screen's primary action.** Listed
+in full, because the point of listing them was to find out whether the change could be scoped:
+
+| Screen | State | Primary action |
+| --- | --- | --- |
+| 05 `/position` | left over above money in | Continue disabled |
+| 05 `/position` | left over at or below zero | Continue disabled |
+| 09 `/calculator/property` | a property value the model rejects | Continue disabled |
+| 10 `/calculator/saving` | the range above what is left over | Continue disabled |
+| 10b `/calculator/saving` | a target date behind today | Continue disabled |
+| 11 `/calculator/review` | the property row | Work it out disabled |
+| 11 `/calculator/review` | the deposit % row | Work it out disabled |
+| 11 `/calculator/review` | the monthly range row | Work it out disabled |
+
+There is no soft-warning call site, and no call site where the banner sits beside an enabled button.
+So this is not a component serving two purposes that needed splitting: the two banners were already
+distinct in everything except the glyph, which is the one thing they shared and the one thing
+changed. No informational banner is touched, in either theme - verified in a browser, not reasoned
+about.
+
+### The decision
+
+**The error banner draws `exclamationTriangle`, in `--color-warning`.** The icon already existed in
+`icons.js` (drawn for the MCOB risk-warning card) so nothing new was added to the set. It is a
+different SHAPE, not a recoloured circle, which is what 1.4.1 asks for; the colour is what puts it in
+agreement with the border and the text it sits beside rather than what carries the meaning.
+
+Measured against the banner's own `--color-surface` background:
+
+| | before | after | 1.4.11 needs |
+| --- | --- | --- | --- |
+| Light `#d63228` on `#ffffff` | 17.86:1 (`#17171c`) | **4.83:1** | 3:1 |
+| Dark `#ff453a` on `#1c1c1e` | 1.05:1 (`#17171c`) | **4.99:1** | 3:1 |
+
+The light figure goes down and that is correct: it was high because the icon was the wrong colour,
+not because it was well designed. Both now clear the threshold, and the dark one clears it for the
+first time.
+
+### The accessible role, which was the larger half
+
+The banner had **no role at all**. Every screen here re-renders by replacing `container.innerHTML`,
+so the banner is inserted after load - and an inserted `<div>` with no live-region role announces
+nothing. A participant using a screen reader met a Continue that had silently gone dead, with no
+announcement of the error and nothing on the button saying why.
+
+Two changes, both scoped to the error variant:
+
+1. **`role="alert"` on the banner.** It is inserted by a re-render, which is exactly the case the
+   role exists for. It re-announces on each re-render while the error stands, which is correct: the
+   error is still true.
+2. **`aria-describedby` from the disabled primary button to the banner.** `actionBarHTML` takes a
+   `primaryDescribedBy`, accepts a list, and renders nothing when there is none - so no screen emits
+   a dangling reference to a banner it did not draw. Frame 11 names all three of its banners, because
+   it is the one screen that can raise more than one at a time.
+
+**The button keeps `disabled` rather than moving to `aria-disabled`.** Swapping them would make the
+button focusable by Tab and would need a click guard on every screen using the shared component - a
+change to twenty screens and seven sheets, for a benefit the mobile screen readers this study
+actually runs on do not need: VoiceOver and TalkBack both reach a disabled button by swipe and read
+its description. A draft deliberately contributes no `describedby`: an empty field disables the
+button *without* raising a banner, because nothing is wrong yet (D46), and there is nothing to point
+at.
+
+### What was NOT done, and why it is recorded here
+
+**The informational banner's icon is still `#17171c` in the dark palette** - 1.18:1 on `#000000`,
+the same inherited-colour mechanism described above. It is out of this change's scope by
+construction: the brief was to separate the error variant, and recolouring the informational banner
+would be the blanket change it ruled out. The dark palette is also not currently selectable (frame
+33 offers Greyscale and Brand only; see `tokens.css`). Recorded so it is not lost.
+
+### Verification
+
+`shots.mjs` gained `--error`, naming the eight error states above and seeding the out-of-range
+FIGURE rather than the error, so the screen's own validation raises the banner and a shot cannot show
+an error the app would not itself draw. 32 shots: eight states x two themes x two text sizes, plus
+two informational shots for comparison. Full suite: 353 tests, 352 passing, 1 skipped (G91), 0
+failing.

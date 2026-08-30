@@ -144,7 +144,7 @@ export function render(container, ctx) {
             ariaLabel: c.propertyValueAriaLabel,
           }],
         })}
-        ${propertyError ? warningBannerHTML(propertyError) : ''}
+        ${propertyError ? warningBannerHTML(propertyError, { id: 'error-property-value' }) : ''}
         ${reviewRowHTML({
           label: c.depositPctLabel,
           fields: [{
@@ -154,7 +154,7 @@ export function render(container, ctx) {
             ariaLabel: c.depositPctAriaLabel,
           }],
         })}
-        ${pctError ? warningBannerHTML(pctError) : ''}
+        ${pctError ? warningBannerHTML(pctError, { id: 'error-deposit-pct' }) : ''}
         ${reviewRowHTML({
           label: c.savedSoFarLabel,
           // THE ONE ROW THAT KEEPS ITS CAPTION, and the reason the other two
@@ -199,7 +199,7 @@ export function render(container, ctx) {
             },
           ],
         })}
-        ${monthlyError ? warningBannerHTML(monthlyError) : ''}
+        ${monthlyError ? warningBannerHTML(monthlyError, { id: 'error-monthly-range' }) : ''}
         ${reviewRowHTML({
           label: c.savingsInterestLabel,
           value: `${formatPercent(RATES.bankRate)} AER`,
@@ -229,6 +229,14 @@ export function render(container, ctx) {
       // With every row a field, this is the screen's only guard against
       // `formatCurrency(null)` reaching frames 12, 15 and 16 as £0.
       primaryDisabled: anyError || anyDraft,
+      // D78. THE ONLY SCREEN THAT CAN RAISE MORE THAN ONE AT ONCE, so it names
+      // every banner it actually drew rather than the first. A row in draft
+      // contributes nothing here: it disables the button without a banner.
+      primaryDescribedBy: [
+        propertyError ? 'error-property-value' : null,
+        pctError ? 'error-deposit-pct' : null,
+        monthlyError ? 'error-monthly-range' : null,
+      ],
       secondaryLabel: c.secondaryCta,
       secondaryAction: 'exit',
     })}

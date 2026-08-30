@@ -185,7 +185,7 @@ export function render(container, ctx) {
           c.sliderRangeCaptionTemplate,
           { max: formatCurrency(savingCeiling), suggested: formatCurrency(seedHigh) },
         )}</p>
-        ${errorText ? warningBannerHTML(errorText) : ''}
+        ${errorText ? warningBannerHTML(errorText, { id: 'error-saving' }) : ''}
       ` : `
         ${dateStepperHTML({
           monthLabel: MONTH_NAMES[targetMonth - 1],
@@ -199,7 +199,7 @@ export function render(container, ctx) {
           increaseLabel: content.shared.stepper.increaseLabel,
           decreaseLabel: content.shared.stepper.decreaseLabel,
         })}
-        ${errorText ? warningBannerHTML(errorText) : ''}
+        ${errorText ? warningBannerHTML(errorText, { id: 'error-saving' }) : ''}
       `}
 
       <div class="card filled-in-details-card">
@@ -231,6 +231,9 @@ export function render(container, ctx) {
       // frame 09's empty property value does: nothing is wrong yet, the
       // participant is simply part-way through typing.
       primaryDisabled: !!errorText || yearCleared,
+      // D78. Null while the year field is empty, for the reason on the line
+      // above: a draft raises no banner, so there is nothing to point at.
+      primaryDescribedBy: errorText ? 'error-saving' : null,
       secondaryLabel: c.secondaryCta,
       secondaryAction: 'exit',
     })}

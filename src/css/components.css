@@ -1504,9 +1504,17 @@
   box-sizing: border-box;
 }
 
+/* THE ICON TAKES THE BANNER'S OWN COLOUR (DECISIONS.md D78). Every icon in
+   this build is stroked in `currentColor`, and this one used to inherit
+   --color-label from the page, so the banner drew a neutral symbol inside a
+   red border above red text. Naming the colour here puts the three in
+   agreement. Measured against the banner's own --color-surface background:
+   4.83:1 light (#d63228 on #ffffff), 4.99:1 dark (#ff453a on #1c1c1e), both
+   past WCAG 1.4.11's 3:1 for non-text content. */
 .warning-banner__icon {
   flex: 0 0 auto;
   margin-top: 2px;
+  color: var(--color-warning);
 }
 
 .warning-banner__text {

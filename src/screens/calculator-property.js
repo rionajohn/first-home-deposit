@@ -110,7 +110,7 @@ export function render(container, ctx) {
         hint: isEmpty ? c.propertyValueHintEmpty : c.propertyValueHintFilled,
         ariaLabel: c.propertyValueAriaLabel,
       })}
-      ${errorText ? warningBannerHTML(errorText) : ''}
+      ${errorText ? warningBannerHTML(errorText, { id: 'error-property-value' }) : ''}
       ${isAboveLisaCap ? infoBannerHTML(fill(c.lisaCapBannerText, { cap: formatCurrency(LISA_CAP_PROPERTY_VALUE) })) : ''}
       <!-- CAP FIRST, THEN TAX (DECISIONS.md D70), which is the order a
            participant typing upward crosses them: the Lifetime ISA cap at
@@ -149,6 +149,10 @@ export function render(container, ctx) {
       primaryLabel: c.primaryCta,
       primaryAction: 'continue',
       primaryDisabled: isEmpty || !!errorText,
+      // D78: the disabled Continue names the error explaining it. Null while
+      // the field is merely empty - that is a draft, not an error, and there
+      // is no banner to point at.
+      primaryDescribedBy: errorText ? 'error-property-value' : null,
       secondaryLabel: c.secondaryCta,
       secondaryAction: 'exit',
     })}

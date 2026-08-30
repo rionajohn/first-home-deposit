@@ -364,15 +364,26 @@ export function bindAppBarLeading(container) {
  * that's either a bordered button (frame 04) or a plain text link (frames
  * 02, 03). `secondary` is omitted entirely on screens with only one action.
  */
-export function actionBarHTML({ primaryLabel, primaryAction, secondaryLabel, secondaryAction, secondaryStyle = 'text', primaryDisabled = false }) {
+export function actionBarHTML({ primaryLabel, primaryAction, secondaryLabel, secondaryAction, secondaryStyle = 'text', primaryDisabled = false, primaryDescribedBy = null }) {
   const secondaryMarkup = secondaryLabel
     ? secondaryStyle === 'button'
       ? `<button type="button" class="button button--secondary" data-action="${secondaryAction}">${secondaryLabel}</button>`
       : `<button type="button" class="text-action" data-action="${secondaryAction}">${secondaryLabel}</button>`
     : '';
 
+  // WHY THE DISABLED BUTTON POINTS AT THE ERROR (D78). A disabled Continue
+  // says nothing about why it is disabled, and the banner explaining it is
+  // several elements up the page. `aria-describedby` puts the reason on the
+  // button, so a participant swiping through the screen meets "Continue,
+  // dimmed" followed by the error rather than a dead end. Accepts a list, so
+  // frame 11 - which can raise three row errors at once - names all of them.
+  // Empty and null are both treated as "no reason", so no screen renders a
+  // dangling reference to a banner it did not draw.
+  const ids = Array.isArray(primaryDescribedBy) ? primaryDescribedBy.filter(Boolean) : (primaryDescribedBy ? [primaryDescribedBy] : []);
+  const describedBy = ids.length ? ` aria-describedby="${ids.join(' ')}"` : '';
+
   return actionBarDockHTML(`
-    <button type="button" class="button button--primary" data-action="${primaryAction}" ${primaryDisabled ? 'disabled' : ''}>${primaryLabel}</button>
+    <button type="button" class="button button--primary" data-action="${primaryAction}"${describedBy} ${primaryDisabled ? 'disabled' : ''}>${primaryLabel}</button>
     ${secondaryMarkup}
   `);
 }
@@ -561,14 +572,34 @@ export function infoLinkHTML({ label, action }) {
 }
 
 /**
- * Warning banner (DECISIONS.md D7 fallback component): the same shape as
- * infoBannerHTML but in the warning colour, for the "No frame drawn" error
- * variants (e.g. frame 05's left-over error state).
+ * THE ERROR BANNER (DECISIONS.md D7 fallback component, D78).
+ *
+ * Every one of this function's call sites is an ERROR that disables the
+ * screen's primary action - frame 05's left-over error, frame 09's
+ * non-numeric property value, frame 10's ceiling breach and past date, and
+ * frame 11's three row errors. It is not a soft warning and it never draws
+ * beside an enabled Continue. `infoBannerHTML` above is the informational
+ * banner and is a separate component; the two were only ever the same in
+ * their icon, which is the thing D78 separates.
+ *
+ * WHY THE ICON CHANGED. Both banners drew `infoCircle`, so the only thing
+ * marking an error was colour - the red border and red text. WCAG 1.4.1 does
+ * not allow colour to be the sole carrier of a state, and a participant who
+ * cannot separate red from grey saw the same symbol on both. The triangle is
+ * a different SHAPE, not a recoloured circle, and it now takes
+ * `--color-warning` so it matches the border and the text it sits with.
+ *
+ * `role="alert"` because the banner is inserted by a re-render, not present
+ * at load: without it nothing announces, and the participant using a screen
+ * reader meets a Continue that has silently gone dead. Pass `id` and hand the
+ * same id to `actionBarHTML`'s `primaryDescribedBy` so the disabled button
+ * carries the reason with it - see D78 for why the button keeps `disabled`
+ * rather than switching to `aria-disabled`.
  */
-export function warningBannerHTML(text) {
+export function warningBannerHTML(text, { id = null } = {}) {
   return `
-    <div class="warning-banner">
-      ${infoCircle({ size: 'body', className: 'warning-banner__icon' })}
+    <div class="warning-banner" role="alert"${id ? ` id="${id}"` : ''}>
+      ${exclamationTriangle({ size: 'body', className: 'warning-banner__icon' })}
       <p class="warning-banner__text">${text}</p>
     </div>
   `;

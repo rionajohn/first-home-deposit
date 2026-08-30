@@ -87,6 +87,28 @@
  *              is the only way to shoot 10b - and 10b's year is now a typed
  *              field, so it is the variant a presentation check has to look at.
  *                                                       default date
+ *   --error    Names an ERROR state the app can draw, seeded so a screenshot
+ *              pass can look at it. Every one is a banner beside a disabled
+ *              primary action, and every one is otherwise unreachable from a
+ *              seed: they exist only after a participant has typed a figure
+ *              the screen rejects, and the shared seed is by definition a
+ *              coherent session. `review-all` is the three frame 11 rows at
+ *              once - the only screen that can raise more than one.
+ *
+ *                left-over-exceeds     frame 05, left over above money in
+ *                property-non-numeric  frame 09, a value the model rejects
+ *                saving-ceiling        frame 10, the range above left over
+ *                saving-past-date      frame 10b, a target date behind today
+ *                review-property       frame 11, the property row
+ *                review-pct            frame 11, the deposit % row
+ *                review-monthly        frame 11, the monthly range row
+ *                review-all            frame 11, all three at once
+ *
+ *              Each seeds the FIGURE the screen rejects, not the error - the
+ *              banner is then raised by the screen's own validation, so a shot
+ *              cannot show an error the app would not itself have drawn. It
+ *              seeds, so it is refused with `--session=opening`.
+ *                                                       default none
  *   --session  `seeded` or `opening`. `seeded` writes the shared seed into
  *              sessionStorage before the first paint, which is what every
  *              option above is described against. `opening` writes NOTHING and
@@ -202,6 +224,7 @@ const DEFAULTS = {
   draft: 'none',
   assign: '',
   solve: 'date',
+  error: 'none',
   scroll: 'top',
   stage: '',
   open: '',
@@ -369,6 +392,63 @@ if (!SOLVE_FOR.includes(args.solve)) {
   console.error(`Unknown --solve "${args.solve}". One of: ${SOLVE_FOR.join(', ')}.`);
   process.exit(1);
 }
+
+/**
+ * THE SEVEN ERROR STATES, SEEDED AS FIGURES RATHER THAN AS ERRORS (D78).
+ *
+ * Each entry writes the out-of-range FIGURE a participant would have typed and
+ * stops there. No entry writes a banner, a flag or an error string: the screen
+ * runs its own validation over what it finds and raises the banner itself, so
+ * a shot taken this way is a shot of the app's behaviour and not of a fixture
+ * dressed up as one. That matters more here than usual, because the whole
+ * point of the pass these were added for is to look at what the error state
+ * draws.
+ *
+ * Every value is measured against the shared seed's own figures - `money-in`
+ * 2600 and `left-over` 1150 - rather than being a constant chosen here, so a
+ * change to `session-seed.mjs` cannot leave one of these quietly in range.
+ * `deposit-pct` is put outside DEPOSIT_PCT_OPTIONS' ends the same way.
+ *
+ * `saving-past-date` is the one that is not a figure: frame 10b's error is
+ * raised from a calendar comparison, so the seed is the year itself.
+ */
+const ERROR_STATES = {
+  none: () => ({}),
+  'left-over-exceeds': () => ({
+    // frame 05 re-runs `leftOver()` over an 'entered' override, which fails
+    // when it is above money in. Value kept, not nulled - that is the model's
+    // own behaviour, so the field can still show what was typed.
+    'left-over': { value: FULL['money-in'].value + 1000, provenance: 'entered' },
+  }),
+  'property-non-numeric': () => ({
+    // `depositTarget()` rejects a non-positive property value.
+    'property-value': { value: 0, provenance: 'entered' },
+  }),
+  'saving-ceiling': () => ({
+    'monthly-low': { value: FULL['left-over'].value + 100, provenance: 'entered' },
+    'monthly-high': { value: FULL['left-over'].value + 400, provenance: 'entered' },
+  }),
+  'saving-past-date': () => ({
+    targetMonth: 1,
+    targetYear: new Date().getFullYear() - 1,
+  }),
+  'review-property': () => ({ 'property-value': { value: 0, provenance: 'entered' } }),
+  'review-pct': () => ({ 'deposit-pct': { value: 0.99, provenance: 'entered' } }),
+  'review-monthly': () => ({
+    'monthly-low': { value: FULL['left-over'].value + 100, provenance: 'entered' },
+    'monthly-high': { value: FULL['left-over'].value + 400, provenance: 'entered' },
+  }),
+  'review-all': () => ({
+    'property-value': { value: 0, provenance: 'entered' },
+    'deposit-pct': { value: 0.99, provenance: 'entered' },
+    'monthly-low': { value: FULL['left-over'].value + 100, provenance: 'entered' },
+    'monthly-high': { value: FULL['left-over'].value + 400, provenance: 'entered' },
+  }),
+};
+if (!(args.error in ERROR_STATES)) {
+  console.error(`Unknown --error "${args.error}". One of: ${Object.keys(ERROR_STATES).join(', ')}.`);
+  process.exit(1);
+}
 const ENTRIES = list(args.entry);
 const STATES = list(args.state);
 const THEMES = list(args.theme);
@@ -513,6 +593,7 @@ function shotName({ route, entry, state, theme, text, scroll }) {
   if (args.goal === 'none') parts.splice(1, 0, 'no-goal');
   if (args.draft !== 'none') parts.splice(1, 0, args.draft);
   if (args.solve !== 'date') parts.splice(1, 0, `solve-${args.solve}`);
+  if (args.error !== 'none') parts.splice(1, 0, `error-${args.error}`);
   if (text !== 'default') parts.push(text);
   if (scroll !== 'top') parts.push(`scroll-${scroll}`);
   if (args.full) parts.push('full');
@@ -538,6 +619,7 @@ if (OPENING) {
     args.goal !== 'set' && '--goal',
     args.draft !== 'none' && '--draft',
     args.solve !== 'date' && '--solve',
+    args.error !== 'none' && '--error',
   ].filter(Boolean);
   if (seeding.length) {
     console.error(
@@ -659,6 +741,11 @@ try {
                 seed.accountSelectionEdited = true;
               }
               seed.solveFor = args.solve;
+              // LAST, so an error state's figure is not overwritten by
+              // `--property`'s re-derivation above. `--error` and `--property`
+              // both write `property-value`, and the error is the thing the
+              // run asked for.
+              Object.assign(seed, ERROR_STATES[args.error]());
               await context.addInitScript((v) => {
                 try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {}
               }, { ...seed, buildVersion: BUILD_VERSION });

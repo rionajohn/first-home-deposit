@@ -29,7 +29,7 @@
  * src/cache-version.js's BUILD_VERSION in step with the version
  * below; see that file's own comment for why the two are separate.
  */
-const CACHE_VERSION = 'v86';
+const CACHE_VERSION = 'v87';
 const CACHE_NAME = `yfh-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [

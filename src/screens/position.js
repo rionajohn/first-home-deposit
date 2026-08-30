@@ -91,7 +91,7 @@ export function render(container, ctx) {
       <p class="entry-card__body">${c.body}</p>
       ${figureInputHTML({ id: 'left-over', value: displayValue, caption: c.figureCaption, ariaLabel: c.figureAriaLabel })}
       <p class="provenance-caption provenance-caption--center">${storedLeftOver.provenance === 'entered' ? c.enteredCaption : content.shared.leftOverCaption}</p>
-      ${errorText ? warningBannerHTML(errorText) : ''}
+      ${errorText ? warningBannerHTML(errorText, { id: 'error-left-over' }) : ''}
       ${disclosureHTML({ id: 'breakdown', title: disclosureTitle, open: state.breakdownOpen, contentHtml: disclosureContent })}
       <button type="button" class="list-row" data-action="open-sources">
         <span class="list-row__label">${c.whereFiguresLabel}</span>
@@ -100,7 +100,7 @@ export function render(container, ctx) {
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
     </main>
-    ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'continue', primaryDisabled: !!errorText })}
+    ${actionBarHTML({ primaryLabel: c.primaryCta, primaryAction: 'continue', primaryDisabled: !!errorText, primaryDescribedBy: errorText ? 'error-left-over' : null })}
   `;
 
   bindAppBarLeading(container);
