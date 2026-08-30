@@ -173,7 +173,7 @@
 }
 
 .app-bar__title {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   text-align: center;
   font-size: var(--text-headline-size);
@@ -340,6 +340,22 @@
   appearance: none;
   border: none;
   border-radius: var(--radius-md);
+  /* THE ROW SPANS THE COLUMN (D75's amendment). The chips sat at their natural
+     widths, left-packed, leaving up to 54px of slack at the end.
+     `flex: 1 1 auto` shares that slack out between them, so five chips fill the
+     content column exactly with nothing left over.
+
+     `auto` RATHER THAN `0`, AND THE DIFFERENCE MATTERS. `flex: 1 1 0` makes
+     every chip the same width - 64px for five in a 350px column - and the
+     widest label does not fit that: "6 MO" needs 39px of text at Large against
+     a 38px content box, so the label wrapped and the chip grew to 59px, taking
+     the row off the 48px it is supposed to hold. With `auto` the base is the
+     content and only the slack is shared, so widths vary slightly with label
+     length (57-68px measured) and nothing wraps at either text size.
+
+     `min-width` still holds the floor: a chip can grow past 48px but never
+     shrink below it, so the touch target survives a narrower column. */
+  flex: 1 1 auto;
   min-height: var(--touch-target-min);
   min-width: var(--touch-target-min);
   padding: 0 var(--space-lg);
@@ -663,7 +679,7 @@
 }
 
 .info-banner__text {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   margin: 0;
   font-size: var(--text-subheadline-size);
@@ -695,7 +711,7 @@
 }
 
 .flag-row__label {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   font-size: var(--text-subheadline-size);
   line-height: var(--text-subheadline-line);
@@ -902,7 +918,7 @@
 }
 
 .checkbox-row__text {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -983,7 +999,7 @@
 }
 
 .radio-option__text {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -1067,7 +1083,7 @@
    deliberate, and cheap: nobody has a reason to select a tab label. Remove it
    with the gesture, not on its own. */
 .bottom-nav__tab {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   user-select: none;
   -webkit-user-select: none;
@@ -1254,7 +1270,7 @@
 }
 
 .disclosure__title {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   font-size: var(--text-headline-size);
   line-height: var(--text-headline-line);
@@ -1373,7 +1389,7 @@
    single word, collapsing a label like "What we might have missed" into
    one word per line. */
 .figure-row--inline .figure-row__label {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -1396,7 +1412,7 @@
 }
 
 .figure-row__content {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -1494,7 +1510,7 @@
 }
 
 .warning-banner__text {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   margin: 0;
   font-size: var(--text-subheadline-size);
@@ -1748,7 +1764,7 @@
 }
 
 .how-this-works-card__nav-label {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   font-size: var(--text-subheadline-size);
   line-height: var(--text-subheadline-line);
@@ -1808,7 +1824,7 @@
 }
 
 .form-step-header__title {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   margin: 0;
   text-align: center;
@@ -1884,7 +1900,7 @@
 }
 
 .currency-input__value {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   border: none;
   background: none;
@@ -1911,6 +1927,13 @@
 /* --- Chip row (Inputs / Chip row — frames 09, 09a, 09b) --- */
 .chip-row {
   display: flex;
+  /* WRAPPING IS KEPT AS A SAFETY NET, NOT AS A LAYOUT. With `flex: 1 1 0` on
+     the chips a partly-filled second row stretches its chips to fill it, so a
+     single chip left over would be drawn full width - which looks like a
+     button, not a chip. Nothing wraps at either supported text size (the
+     widest row is 334px of a 350px column), so the case is unreachable today;
+     it is left wrapping rather than `nowrap` because the alternative is chips
+     shrinking under their own 48px floor, which is worse. See D75. */
   flex-wrap: wrap;
   gap: var(--space-sm);
   width: 100%;
@@ -1922,6 +1945,22 @@
      line box, 16px of vertical padding, 2px of border - so the last 12px is
      the touch target and nothing else. DESIGN.md's rule 2 forbids shrinking a
      control below it in terms. Horizontal padding is what came down instead. */
+  /* THE ROW SPANS THE COLUMN (D75's amendment). The chips sat at their natural
+     widths, left-packed, leaving up to 54px of slack at the end.
+     `flex: 1 1 auto` shares that slack out between them, so five chips fill the
+     content column exactly with nothing left over.
+
+     `auto` RATHER THAN `0`, AND THE DIFFERENCE MATTERS. `flex: 1 1 0` makes
+     every chip the same width - 64px for five in a 350px column - and the
+     widest label does not fit that: "6 MO" needs 39px of text at Large against
+     a 38px content box, so the label wrapped and the chip grew to 59px, taking
+     the row off the 48px it is supposed to hold. With `auto` the base is the
+     content and only the slack is shared, so widths vary slightly with label
+     length (57-68px measured) and nothing wraps at either text size.
+
+     `min-width` still holds the floor: a chip can grow past 48px but never
+     shrink below it, so the touch target survives a narrower column. */
+  flex: 1 1 auto;
   min-height: var(--touch-target-min);
   min-width: var(--touch-target-min);
   /* HORIZONTAL PADDING IS --space-md, NOT --space-lg (D75). It was 16px, which
@@ -2067,7 +2106,7 @@
 }
 
 .review-row__content {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -2217,7 +2256,7 @@
 }
 
 .risk-warning-card__text {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   margin: 0;
   font-size: var(--text-subheadline-size);
@@ -2380,7 +2419,7 @@ button.milestone-row {
 }
 
 .milestone-row__content {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -2549,7 +2588,7 @@ button.milestone-row {
 
 .stat-row__label {
   margin: 0;
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   font-size: var(--text-subheadline-size);
   line-height: var(--text-subheadline-line);
@@ -2613,7 +2652,7 @@ button.milestone-row {
 }
 
 .rate-band-row__content {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -2657,7 +2696,7 @@ button.milestone-row {
 }
 
 .segmented-control__segment {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   min-height: var(--touch-target-min);
   border: none;
@@ -2709,7 +2748,7 @@ button.milestone-row {
 
 .tick-list__text {
   margin: 0;
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   font-size: var(--text-subheadline-size);
   line-height: var(--text-subheadline-line);
@@ -2740,7 +2779,7 @@ button.milestone-row {
 }
 
 .checklist-row__content {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -2844,7 +2883,7 @@ button.milestone-row {
 }
 
 .next-steps-card__content {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -2993,7 +3032,7 @@ button.milestone-row {
 }
 
 .pill-segments__option {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   min-height: var(--touch-target-min);
   display: flex;

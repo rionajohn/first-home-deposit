@@ -6857,3 +6857,40 @@ problem on the way.
 
 The tightest case is now frame 12 at Large with 16px to spare, against zero before. Still not
 generous, and the reason the note about a knife-edge fit stays on the record above.
+
+### Amended, 30 August 2026: the chip row spans the column, and the height stays
+
+**The row was left-packed with slack at the end** - `display: flex` with the chips at their natural
+widths, leaving up to 54px unused on frame 09 at default text. `flex: 1 1 auto` on the chip shares
+that slack between them, so the row now fills the 350px content column exactly, measured at zero slack
+on both screens at both text sizes.
+
+**`auto` rather than `0`, and the first attempt proved why.** `flex: 1 1 0` makes every chip the same
+width - 64px for five in a 350px column - and the widest label does not fit it: "6 MO" needs 39px of
+text at Large against a 38px content box, so the label wrapped and the chip grew to **59px**, taking
+the row off the 48px it exists to hold. With `auto` the flex base is the content and only the slack is
+shared, so widths vary a little with label length (57-68px measured) and nothing wraps.
+
+That is a slightly weaker reading of "spaced equally" - the chips are not identical widths - but the
+stronger reading cannot be had without either a wrapped label or a chip below the touch target.
+
+**Wrapping is kept as a safety net rather than a layout.** With the chips flexing, a partly-filled
+second row would stretch its chips to fill it, and a single leftover chip would be drawn full width -
+a button, not a chip. Nothing wraps at either supported text size, so the case is unreachable today;
+`nowrap` was rejected because the alternative failure is chips shrinking under their own 48px floor,
+which is worse.
+
+### The height stays at 48px, and the text is nowhere near the edges
+
+Checked before deciding, across all twenty chips on both screens at both text sizes. The **smallest
+clearance anywhere is 13px horizontally and 15px vertically**, against a 48px box holding a 15-18px
+line of text. Nothing crowds, nothing overlaps, and nothing is close to doing so.
+
+So the height is left alone, which is also what `DESIGN.md`'s rule 2 requires: the content needs 36px
+and the last 12px is the touch target. There is no visual problem to solve here, and the only change
+available would have been one the rules forbid.
+
+**Nothing further was changed for weight.** With the row spanning the column the chips read as a
+segmented control rather than as five separate pills, which is heavier in area but more legible as one
+control. The remaining levers - font weight, fill, radius - were not touched, because none of them was
+asked for and the border and touch target are both fixed by measurements already recorded.
