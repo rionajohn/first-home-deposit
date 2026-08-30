@@ -3391,7 +3391,213 @@ alone. Sketching what closing it would mean, so the next pass does not start col
   think-aloud session produces a participant reaction to a defect, which is data about the prototype
   rather than about the design.
 
+---
+
+## AMENDED 30 AUGUST 2026: MEASURED, AND IT IS NOT A DISPLAY DEFECT
+
+*Report-only pass. Nothing was changed. The three closes sketched above are costed at the foot of this
+amendment, with a recommendation.*
+
+### The negative is COMMITTED and carried forward
+
+This is the finding that reclassifies the entry. Driven in a browser at a date 150 months out on the
+shared seed:
+
+| | |
+| --- | --- |
+| Frame 10b readout | **-£28**, Continue **enabled** |
+| Continue commits | `savings-rate` **-27.63**, `monthly-low` **-24.87**, `monthly-high` **-30.40** |
+| D2's range invariant | **BROKEN** - `monthly-low` is GREATER than `monthly-high`. `rangeFromCentral` documents its guarantee as holding "for any central > 0", and nothing enforces the precondition |
+| Frame 11 | shows "-25" and "-30" in its editable fields, raises **no error**, "Work it out" **enabled** |
+| Frame 11 commits | `months-to-target` 150, `on-track-for` {low 135, high 165}, `checkpoint-amount` 21,000 |
+| Frame 12 | renders, no page errors |
+| The tracker | renders from those figures, no page errors |
+
+**`monthsToTarget`'s two guards both miss it.** It rejects a savings-rate of exactly zero
+(`unreachable`) and one above `left-over` (`exceeds-left-over`); a negative is neither, so it proceeds
+and returns the participant's own date back to them (150 -> 150.000) flagged `beyond-window`. The model
+is internally consistent throughout - it is answering a question that stopped applying, correctly, at
+every step.
+
+**Frame 12's growth chart draws inverted bands.** With `monthly-low` above `monthly-high`, the series
+named "low" plots above the series named "high" at every point:
+
+| Months | "low" band | "high" band |
+| --- | --- | --- |
+| 12 | £21,483 | £21,415 |
+| 60 | £23,603 | £23,239 |
+
+Both series still RISE, because interest outpaces the small negative contribution - so
+`chart-range.test.mjs`, which asserts bars are "distinct and rising", **passes**. That is D77's finding
+again: an assertion that holds for a reason unrelated to what it claims to test.
+
+**One consumer is saved by accident.** Frame 21 (`mip-result-not-yet.js`) does
+`savingsRate ? monthsToReachAmount(...) : Infinity`; a negative is truthy, so it calls through - and
+`monthsToReachAmount`'s own `monthlyAmount <= 0` guard returns `Infinity`. Frame 21 therefore behaves
+as it does for a zero rate. It is caught by a guard written for a different reason, not by anything on
+this path.
+
+**So this is a state defect, not a display defect**, and it is larger than the entry above describes.
+
+### 1.1 The flip point has a closed form, and no function to call
+
+`monthlyAmountFromDate` returns `pmt = ((goal - p0 x g) x r) / ((1+r)(g-1))` where `g = (1+r)^n`. That
+is zero exactly when `goal = p0 x g`, so:
+
+    flipMonths = ln(goal / p0) / ln(1 + r)
+
+Checked against a search: closed form **93.7738**, first month whose solve is negative **94**. The solve
+at 94 months is -0.18 and at 93 months is +0.62, so the two agree.
+
+**`monthsToReachAmount` cannot supply it.** It returns `Infinity` for `monthlyAmount <= 0`, deliberately
+and with a comment saying so. The flip point would need its own function; three lines, and it belongs in
+`model.js` beside the equation it inverts rather than in the screen.
+
+### 1.2 It moves with the participant, and NOT with the same inputs as the floor
+
+| Edit | Goal | Floor | Flip | Flip shift |
+| --- | --- | --- | --- | --- |
+| baseline (shared seed) | 28,000 | 6 | 93.8 | - |
+| saved so far 21,000 -> 15,000 | 28,000 | 11 | 203.5 | **+109.7 months** |
+| saved so far 21,000 -> 26,000 | 28,000 | 2 | 24.2 | **-69.6** |
+| property 280,000 -> 350,000 | 37,500 | 14 | 189.0 | **+95.2** |
+| property 280,000 -> 220,000 | 22,000 | 1 | 15.2 | **-78.6** |
+| deposit % 10 -> 15 | 42,000 | 17 | 225.9 | **+132.2** |
+| deposit % 10 -> 5 | 14,000 | 0 | **-132.2** | -225.9 |
+| **left-over 1,150 -> 400** | 28,000 | 15 | **93.8** | **0.0** |
+
+Bank Rate sensitivity, for completeness (it is a dated constant, not a participant input): 2% -> 174
+months, 3.75% -> 94, 5% -> 71.
+
+**The last row is the structural point.** `left-over` moves the FLOOR and does not move the flip at all
+- the flip is the date the balance reaches the goal with no contribution, so what the participant could
+afford is irrelevant to it. The two bounds are functions of overlapping but different inputs, which is
+worth knowing before either is described as "the other end of the floor".
+
+### 1.3 It can be absent, and it can be already passed
+
+Three regimes, all reachable:
+
+| Saved so far | Floor | Flip | What the cap would have to do |
+| --- | --- | --- | --- |
+| **0** (no accounts assigned) | 24 | **Infinity** | nothing to cap - fall back to a constant |
+| 1,000 | 23 | 1,086 | cap far past any list |
+| 21,000 (the seed) | 6 | 93.8 | cap inside the list |
+| 28,000 (= the goal) | 0 | 0.0 | floor and cap coincide |
+| **30,000 (> the goal)** | 0 | **-22.5** | **cap BEFORE the floor** |
+
+`saved-toward-deposit` of zero is not hypothetical: a participant who assigns no accounts to their
+deposit on frame 03/06 has it, and then the balance never grows unaided and there is no flip point at
+all.
+
+### 2.1 Floor and cap in the same list
+
+Options offered as the two close, taking the floor at 6 months:
+
+| Separation | Valid dates | Year options | Month options in the floor year |
+| --- | --- | --- | --- |
+| 24 months | 25 | 3 | 11 |
+| 12 months | 13 | 2 | 11 |
+| 6 months | 7 | **1** | 7 - **both bounds in ONE year** |
+| 3 months | 4 | 1 | 4 |
+| 1 month | 2 | 1 | 2 |
+| 0 months | **1** | 1 | **1** |
+
+When both bounds fall in one year the year list has a single option and the month list is bounded at
+BOTH ends - the pair rule D83 built handles the bottom and would need the same at the top. At zero
+separation the control offers one date, which is a listbox with nothing to choose: it still works, but
+"pick a target date" has stopped being a question.
+
+### 2.2 They cannot cross while the goal is unmet - and they DO cross once it is met
+
+**Not while the goal is ahead.** `monthsToReachAmount` is monotonically decreasing in the monthly
+amount; the floor is taken at `left-over` and the flip is the same target at zero, so for any positive
+`left-over` the floor is at or below the flip. Swept over `saved-toward-deposit` from 500 to 27,900 in
+100s: never crossed, narrowest separation **1.09 months** at 27,900.
+
+**But they cross the moment the goal is already met.** At saved 30,000 against a 28,000 goal the floor
+is 0 and the flip is -22.5. Reachable on the shared seed by choosing a 5% deposit on frame 09: goal
+14,000 against 21,000 saved. Driven in a browser - **the readout reads -£248 on arrival**, the year list
+starts at the current year, and Continue is enabled.
+
+**That is the state with no valid dates at all, and the screen has no behaviour for it.** It is not
+created by a cap - it exists now - but a cap is what would surface it, because a cap earlier than the
+floor is an empty list. Any close has to answer it.
+
+### 2.3 A moved cap needs D83's pattern, mirrored
+
+An upstream edit that moves the flip point PAST a selected date is the same shape as the one D83
+already handles at the bottom: raise the deposit percentage, and a date that was fine becomes one where
+the answer is trivial. `dateMovedToEarliest` moves the date to the new floor and discloses it, per D46.
+The mirror would need a second flag and a second string ("we've moved your date back to..."), or one
+generalised pair. It would also need the empty-list case above, since an edit can move the cap past the
+floor as well as past the selection.
+
+---
+
+## THE THREE CLOSES, COSTED
+
+### A. Cap the horizon at the flip point - **RECOMMENDED**
+
+| | |
+| --- | --- |
+| Participant cost | Loses dates past the flip. Those are exactly the dates where the answer is "nothing", which the readout cannot express anyway |
+| Build cost | One model function (the closed form above), the pair rule extended to bound the month list at the top as well as the bottom, and an answer for the empty-list case in 2.2 |
+| Copy cost | **None.** It removes the state rather than explaining it |
+
+**It is symmetrical with what is already there.** The floor declines dates that do not work; this
+declines dates where the question does not apply. One rule, both ends, and the same derivation - both
+are `monthsToReachAmount`-shaped answers about when the balance meets the goal, one at `left-over` and
+one at zero.
+
+**It closes the downstream defect for free**, because a date that cannot be picked cannot be committed:
+the negative `savings-rate`, the inverted `monthly-low`/`monthly-high`, and frame 12's inverted bands
+all become unreachable. **Unreachable, not fixed** - the same distinction G92 to G95 carry, and it
+should be recorded that way rather than as a repair. `rangeFromCentral` would still invert on a negative
+input and `monthsToTarget` would still miss it.
+
+**It does NOT fully close G97, and that should not be claimed.** `YEAR_LIST_SPAN = 20` was invented
+because `build-spec.md` gives no horizon, and a flip-point cap is a horizon derived from the model - so
+for the ordinary session the constant is gone and G97 closes. But **`saved-toward-deposit` of zero has
+no flip point**, and that session still needs a horizon from somewhere. The constant survives as the
+fallback for that case: demoted from the rule to the exception, which is a real improvement and a
+smaller claim than "closed".
+
+### B. Keep the dates, change what the readout says past the flip
+
+| | |
+| --- | --- |
+| Participant cost | None on the dates; they keep every year |
+| Build cost | The commit still has to be guarded separately - **this option does not stop the negative reaching `savings-rate`**, so the state defect above survives it |
+| Copy cost | A new string, and the space for it is the binding constraint |
+
+**Where it would sit and what it displaces.** The readout is the natural place - replacing the figure,
+not sitting beside it, since the figure is the thing that is wrong. Sitting beneath it instead would
+land in the same band D83's disclosure uses, where G96's measurement gives **92px at default text and
+61px at Large** between the readout and the dock, so **two lines at Large** is the budget. D81's
+superseded banner was five lines at Large, for scale.
+
+**Not recommended as a sole close**, for the reason in the build-cost row: it makes the screen honest
+and leaves the store wrong.
+
+### C. Clamp to zero
+
+**"£0 / Put aside each month" reads as a bug, not an answer** - a calculator that has produced no
+number. And it is worse than it looks: `monthsToTarget` rejects a savings-rate of exactly zero as
+**`unreachable`**, so frame 12 would render its "you will not get there" variant for a participant whose
+goal is already met by interest alone. It converts a nonsensical figure into a confident wrong
+statement. Recorded for completeness; not recommended.
+
+---
+
 *Status: **open, and REACHABLE** - on first paint if a session's stored date is far enough out, and
 within a few taps otherwise. No facilitator gesture, no seeded state, both text sizes, both palettes. Do
 not file it beside the unreachable entries above it.*
+
+***And it is a STATE defect, not a display defect.*** The negative is committed to `savings-rate`,
+`monthly-low` and `monthly-high`, breaks D2's low-below-high invariant, passes both of
+`monthsToTarget`'s guards, reaches `months-to-target`, `on-track-for` and `checkpoint-amount`, and draws
+frame 12's growth chart with its two named bands swapped - with no error raised on any screen and
+nothing in the suite failing. **Recommendation: close A**, with the empty-list case in 2.2 answered in
+the same pass, and with what it makes unreachable recorded as unreachable rather than fixed.
 
