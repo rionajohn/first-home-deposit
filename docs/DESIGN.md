@@ -417,6 +417,31 @@ reset-on-navigation rules will not reach it.
 | `.progress-bar` | Track + fill + marker + label |
 | `.visually-hidden` | Clipped to 1px but left in the accessibility tree - for a visual cue a screen reader would otherwise never receive (09's selected row). Never `display: none` / `visibility: hidden`, which remove it from the tree entirely |
 
+### Bars: what is excluded, and why
+
+Two components use a horizontal track, and both are legitimate: `.progress-bar` measures a real
+quantity against a goal the participant chose, and `.proportion-row` shows one amount as a share of
+another. What is excluded is a bar that measures **progress through the app's own process** - steps
+in a form, stages of a journey, a completeness score. Those are sequences, not quantities, and
+filling a track turns a sequence into a score the participant can be behind on.
+
+This rule previously read "no linear progress bars, no segmented bars for proportions", which
+forbade both shipped components and described no build since frames 05, 06, 15 and 16 were drawn. It
+is restated rather than deleted, because the thing it was protecting is real: [D36](DECISIONS.md)
+records frame 18's `.process-timeline` being at risk of deletion by someone reading "four connected
+steps" as "a bar". That component is deliberately vertical, unfilled and undivided, and remains the
+correct answer whenever the subject is a process. D36's own table is the test to apply.
+
+A divided bar carries a further requirement, from WCAG 1.4.1 and independently of any contrast
+measurement: **each part needs a label or legend giving its name and its amount.** Colour may rank
+the parts; it may not identify them. See D70 for the measured reason this is not optional in this
+palette - the deposit fill and the empty track are only 6.48:1 apart in light and 4.08:1 in dark, so
+no third shade can reach 3:1 from both ends, and in dark nothing reaches 3:1 against the fill at all.
+
+**A divided bar must also collapse.** Where a part is zero, the bar renders as a single undivided
+fill and the legend is suppressed with it - a legend naming a £0 portion has the same defect as a
+sentence explaining one. `/tracker` is the worked example (D70).
+
 ---
 
 ## 9. Icons

@@ -22,8 +22,12 @@ do not introduce a state management library.
 
 ## Design rules
 - No Source badges. Use provenance captions instead.
-- No linear progress bars.
-- No segmented bars for proportions.
+- Bars measure quantities, not journeys. A horizontal track may show a figure against a goal the
+  participant set (`.progress-bar`, frames 15/16) or one amount as a share of another
+  (`.proportion-row`, frames 05/06). It must never show progress through the app's own process, a
+  form, or the journey. See DESIGN.md and DECISIONS.md D36.
+- A divided bar needs a label or legend naming each part. Colour ranks the parts; it never
+  identifies them.
 - Icons must be real vectors, never emoji or images of icons.
 - All text must fit via auto layout. Nothing truncates or overflows.
 - A row is either editable or explanatory, never both.
