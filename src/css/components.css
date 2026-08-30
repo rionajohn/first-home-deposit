@@ -1932,6 +1932,18 @@
   font-weight: 500;
   color: var(--color-label);
   cursor: pointer;
+  /* UPPERCASED IN CSS, NEVER IN THE CONTENT STRINGS. `content.js` keeps
+     "6 mo" and the accessible names keep "6 mo, six months", so the copy and
+     the announced name stay in sentence case - a screen reader given an
+     uppercased string can spell it out letter by letter. Every chip that
+     carries letters also carries an `ariaLabel`, so the accessible name is
+     computed from that and never from the transformed text.
+
+     NO WRITTEN RULE FORBIDS THIS - neither DESIGN.md nor CLAUDE.md carries a
+     sentence-case rule, and fca-copy-check's rule 8 is about Title Case - but
+     it is the first `text-transform` in the build and the first departure from
+     the sentence case DESIGN.md's Apple HIG framing implies. See D75. */
+  text-transform: uppercase;
 }
 
 .chip--selected {

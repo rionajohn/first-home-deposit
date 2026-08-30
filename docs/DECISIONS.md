@@ -6727,3 +6727,71 @@ At Large the row spans 350px in a 350px column - **zero margin**. It fits, and i
 on any change that widened a chip by a pixel: a longer label, a wider gap, a font substitution on a
 device that lacks the loaded face. Recorded because "it fits at Large" is true today and fragile, and
 the next person to touch these labels should know they have no room.
+
+---
+
+## D75. The chips are uppercased in CSS, and that is the only one of the four changes that could be made
+
+**Date.** 30 August 2026. Four changes were asked of the shared chip component; one was already done,
+one is applied here, and two are reported rather than applied because they need a decision that is
+not mine.
+
+### Uppercase: no rule forbids it, and it is still a first
+
+**Neither `DESIGN.md` nor `CLAUDE.md` carries a sentence-case rule.** The only case rule anywhere is
+`fca-copy-check`'s rule 8 - "Title Case in headings or buttons where sentence case is required" -
+which is about Title Case rather than uppercase, and is conditional on a requirement stated nowhere.
+So there is nothing to breach and no reason to stop.
+
+Two things are worth recording anyway. `DESIGN.md` names Apple's Human Interface Guidelines as the
+design language, and HIG sets controls in sentence case. And there is **no `text-transform` anywhere
+else in `src/css`** - this is the first, so it is a new idiom rather than an application of an
+existing one.
+
+**It is done in CSS and never in the strings.** `content.js` still holds "6 mo" and the accessible
+names still read "6 mo, six months", so the copy and the announced name stay in sentence case. Every
+chip carrying letters also carries an `ariaLabel`, so the accessible name is computed from that and
+cannot pick up the transform - which matters, because a screen reader given an uppercased string can
+spell it out letter by letter.
+
+**It changes one of the two screens.** Frame 09's chips are "5%" through "25%" - no letters, so
+`text-transform: uppercase` leaves them pixel-identical, confirmed by screenshot. Only frame 12's
+range chips change. A shared-component change with a visible effect on exactly one consumer.
+
+**It costs a row, and that is a real regression.** Uppercase glyphs are wider, so the range chips grew
+from 65/56/58/58/60 to 68/61/63/63/64 - 351px of gaps and chips against a 350px column. The row that
+fitted on one line at default text now **wraps, orphaning MAX alone on a second row**. At Large it
+was already wrapping. Nothing truncates, so the auto-layout rule is satisfied, but the row reads worse
+than it did.
+
+The fix for that is the padding reduction reported below and not applied, which would return about
+40px across the five chips - more than enough to restore one line.
+
+### The chip is already at the floor, so it cannot be made shorter
+
+Measured: **48px tall**, from `min-height: var(--touch-target-min)`. Its content needs only 36px - an
+18px line box, 16px of vertical padding, 2px of border - so the last 12px is the touch target and
+nothing else. `DESIGN.md`'s rule 2 forbids shrinking a control below 48px and forbids it in terms
+("Never shrink a target to match Figma"), so **a shorter chip is not available**.
+
+Of the three ways to make it read lighter without touching the target:
+
+- **Reduced horizontal padding**, `--space-lg` to `--space-md`, 16px to 12px. Narrows each chip by
+  8px and takes about 40px out of the row, which also undoes the wrap uppercase introduced. The only
+  one of the three with no cost recorded against it.
+- **A lighter border must not happen.** `--color-border-subtle` measures **1.29:1** against the chip
+  fill in light and 1.45:1 in dark, against WCAG 1.4.11's 3:1. The current `--color-border-control`
+  measures 3.45:1 and 3.75:1, and the comment above the rule records that it was chosen in the
+  accessibility pass for exactly this reason: an unselected chip's fill matches its surroundings, so
+  the border is the only thing marking its boundary.
+- **A smaller corner radius** takes the chip from a pill to a rounded rectangle. That is a change of
+  shape rather than of weight, and a rectangle generally reads heavier than a pill, so it works
+  against the stated aim.
+
+### The abbreviation is not changed again
+
+"mo" to "m" was asked for and is reported rather than applied, because this abbreviation has now
+moved three times in two days - "mo" to "mon" to "mo" - and the last move was a revert of the one
+before it. The call sites are two, both on frame 12, and the `yr`/`y` question that comes with it is a
+separate decision about whether the pair should stay two letters or both become one. Both are set out
+in the handover rather than guessed at.
