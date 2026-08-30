@@ -96,6 +96,7 @@
  *              once - the only screen that can raise more than one.
  *
  *                left-over-exceeds     frame 05, left over above money in
+ *                left-over-zero        frame 05, left over at or below zero
  *                property-non-numeric  frame 09, a value the model rejects
  *                saving-ceiling        frame 10, the range above left over
  *                saving-past-date      frame 10b, a target date behind today
@@ -419,6 +420,12 @@ const ERROR_STATES = {
     // when it is above money in. Value kept, not nulled - that is the model's
     // own behaviour, so the field can still show what was typed.
     'left-over': { value: FULL['money-in'].value + 1000, provenance: 'entered' },
+  }),
+  'left-over-zero': () => ({
+    // The model's second rejection on the same figure: `leftOver()` fails
+    // 'not-positive' at or below zero, and keeps the value so the field can
+    // still show what was typed.
+    'left-over': { value: 0, provenance: 'entered' },
   }),
   'property-non-numeric': () => ({
     // `depositTarget()` rejects a non-positive property value.

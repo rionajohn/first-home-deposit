@@ -7274,8 +7274,8 @@ would be the blanket change it ruled out. The dark palette is also not currently
 
 ### Verification
 
-`shots.mjs` gained `--error`, naming the eight error states above and seeding the out-of-range
-FIGURE rather than the error, so the screen's own validation raises the banner and a shot cannot show
-an error the app would not itself draw. 32 shots: eight states x two themes x two text sizes, plus
-two informational shots for comparison. Full suite: 353 tests, 352 passing, 1 skipped (G91), 0
+`shots.mjs` gained `--error`, naming the error states above and seeding the out-of-range FIGURE
+rather than the error, so the screen's own validation raises the banner and a shot cannot show an
+error the app would not itself draw. 36 shots: all eight states plus frame 11's three-at-once, each
+in two themes at two text sizes, and two informational shots for comparison. Full suite: 353 tests, 352 passing, 1 skipped (G91), 0
 failing.
