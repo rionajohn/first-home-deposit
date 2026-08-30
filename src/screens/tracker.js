@@ -327,8 +327,14 @@ export function render(container, ctx) {
         title: c.goalBreakdownDisclosureTitle,
         open: state.goalBreakdownOpen,
         contentHtml: `
-          <p class="goal-breakdown__row">${fill(c.legendDepositLabelTemplate, { amount: formatCurrency(depositTargetValue) })}</p>
-          <p class="goal-breakdown__row">${fill(c.legendStampDutyLabelTemplate, { amount: formatCurrency(stampDutyValue) })}</p>
+          <p class="goal-breakdown__row">
+            <span class="goal-breakdown__swatch goal-breakdown__swatch--deposit" aria-hidden="true"></span>
+            ${fill(c.legendDepositLabelTemplate, { amount: formatCurrency(depositTargetValue) })}
+          </p>
+          <p class="goal-breakdown__row">
+            <span class="goal-breakdown__swatch goal-breakdown__swatch--stamp-duty" aria-hidden="true"></span>
+            ${fill(c.legendStampDutyLabelTemplate, { amount: formatCurrency(stampDutyValue) })}
+          </p>
         `,
       }) : ''}
 

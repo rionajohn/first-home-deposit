@@ -5623,6 +5623,102 @@ two figures, two screens - D34's failure mode, opened by this decision and **not
 Raised as `GAPS.md` G85 with the two candidate resolutions and the reason it is a decision about what
 frame 12 is about rather than a string swap. It needs resolving before participant sessions.
 
+### 12. Amended, 30 August 2026: the track is one bar, and the disclosure rows carry swatches
+
+The bar read as three disconnected chunks rather than one track with regions inside it. Three rules
+were producing that, and only one of them was the obvious suspect.
+
+**What was actually causing it, rule by rule:**
+
+| Rule | File | Line | What it did |
+|---|---|---|---|
+| `border-radius: var(--radius-full)` on `.progress-bar__fill` | `src/css/components.css` | 2228 | Put a **rounded cap on the fill's leading edge**, so the saved portion read as a short bar sitting inside a longer one rather than as a filled region of one track |
+| `background: var(--color-surface)` on `.progress-bar__join` | `src/css/components.css` | 2268 | A 1px slit at the deposit/tax boundary |
+| `background: var(--color-surface)` on `.progress-bar__marker` | `src/css/components.css` | 2311 | A 2px slit at the checkpoint |
+
+**Ruled out, and worth recording so it is not re-investigated:** there is no flex gap anywhere along
+the track. `.progress-bar` has `gap: var(--space-xs)` (line 2210) but it is a **column** gap between
+the track row and the label beneath it. `.progress-bar__row`'s `gap: var(--space-sm)` (line 2288) sits
+between the track and the goal figure, outside the track. `.progress-bar__segments` is a flex row with
+**no gap at all**, and `.progress-bar__segment` carries no `border-radius` - per-segment rounding was
+never the cause. The rounding that mattered was on the fill.
+
+**The two slits were the same mistake made twice.** `--color-surface` is `#ffffff` on a page that is
+`--color-bg` `#f7f7f8` - **1.06:1**, indistinguishable. So a separator drawn in it did not read as a
+line drawn on the bar; it read as a hole through the bar to the page behind. The comment above
+`.progress-bar__join` even called it "marked without colour", which was true of the intent and false
+of the result.
+
+**The fix is ink rather than background.** Both are now `--color-label`, which is the opposite of the
+page in each theme - `#17171c` on light, `#ffffff` on dark - so neither can ever read as background
+showing through. Measured against every neighbour either can touch:
+
+| | vs bare track | vs muted band | vs fill |
+|---|---|---|---|
+| Light `#17171c` | 13.83 | 6.39 | 2.13 |
+| Dark `#ffffff` | 11.70 | 4.57 | 2.87 |
+
+The weakest case is a hairline crossing the fill, which only happens once the participant has saved
+past the point in question, and it still clears 2:1 in both themes.
+
+**The marker stays twice the join's width, and that is deliberate.** They are different kinds of fact
+- the join is a boundary between parts of the goal, the marker is the checkpoint milestone - and D71
+records that this bar must not blur kinds of fact together on one axis. Colour no longer separates
+them, so weight does, and the marker alone carries a label beneath the track.
+
+**The fill lost its own radius entirely.** It needs none: `.progress-bar__track` is `overflow: hidden`
+with `border-radius: var(--radius-full)`, so the fill's left end is still clipped round by its parent.
+The rounding that belongs to the bar is kept and the rounding that belonged to the fill is gone, which
+leaves a square leading edge that reads as an edge within the track. Verified from computed style:
+`border-radius: 0px` on the fill, `999px` and `hidden` on the track.
+
+### The disclosure rows gain swatches, and D70's finding is unchanged rather than reversed
+
+Each row in "What makes up your goal" now carries an 8px dot in the shade of the region it names -
+`--color-accent-neutral` for the deposit, `--color-accent-neutral-muted` for the stamp duty.
+
+**This does not disturb section 9's finding, and it is worth being explicit about why**, because the
+change looks superficially like a reversal. Section 9 records that the two regions cannot be
+distinguished by colour to 3:1 in either theme, and that colour therefore carries emphasis only. That
+is still true and nothing here depends on it being false:
+
+- The rows already name each portion and its amount in text. **Remove all colour and both rows read
+  exactly as before** - "Deposit £45,000", "Stamp duty £7,500".
+- The swatches are marked `aria-hidden="true"`, so the accessible text of each row is the string and
+  nothing else. Verified from the rendered DOM: the row text is `Deposit £45,000` and
+  `Stamp duty £7,500`, unchanged from before the swatches existed.
+- What they add is a **link between the disclosure and the bar** for a sighted reader who has opened
+  it - which is reinforcement of a mapping the proportions already carry, not a new carrier of it.
+
+So the reasoning is unchanged: colour still carries emphasis only, size and text still carry the
+identification, and a reader who cannot use colour loses nothing.
+
+**The shades are the bar's own tokens, not restated literals.**
+`.goal-breakdown__swatch--deposit` uses `var(--color-accent-neutral)`, which is exactly what
+`.progress-bar__fill` paints, and `.goal-breakdown__swatch--stamp-duty` uses
+`var(--color-accent-neutral-muted)`, which is exactly what `.progress-bar__segment--muted` paints. A
+change to either token moves the bar and its swatch together. Verified from computed style: the
+deposit swatch resolves to `rgb(77, 77, 85)`, byte-identical to the fill's own computed background.
+
+**One honest note on the deposit swatch.** The region it points at is the left-hand part of the track,
+which is painted in two states - the fill where the participant has saved, the bare track where they
+have not. The swatch takes the fill's shade because that is the region's darkest and most legible
+representative, not because the deposit portion is uniformly that colour. The text carries the
+meaning, so nothing turns on the distinction, but it is recorded rather than glossed.
+
+### `shots.mjs` gained `--open`, and it presses rather than seeds
+
+A disclosure closed by default cannot be photographed, so the harness could not show this change at
+all. `--open=<data-disclosure-id>` opens one before the shot.
+
+**It presses the real control, because seeding does not work and should not.** `resetCollapsibles()`
+runs on every hash-driven navigation (`router.js`), so a seeded `goalBreakdownOpen: true` is false
+again before the screen first reads it. That is D12 working exactly as designed - a disclosure a
+participant never chose to open must not be open - and the harness follows `--state=ahead` and
+`--stage` in pressing the control the participant would press. The first attempt seeded the flag,
+produced a closed disclosure, and is recorded here because the failure looked like a harness bug and
+was not.
+
 ---
 
 ## D71. The tracker's bar keeps two segments and a disclosure: three marked points do not fit this track

@@ -932,9 +932,13 @@ export function riskWarningHTML(text) {
  *      shades and independently of any legend. `segments` therefore carries no
  *      labels any more; `/tracker` renders the same two strings in a
  *      disclosure below the bar, closed by default.
- *   2. THE JOIN IS MARKED WITHOUT COLOUR. A 1px `--color-surface` separator
- *      sits at each internal boundary, the same device `.progress-bar__marker`
- *      already uses, so the division survives at any contrast.
+ *   2. THE JOIN IS MARKED WITHOUT RELYING ON THE TWO SHADES. A 1px
+ *      `--color-label` hairline sits at each internal boundary, so the division
+ *      survives at any contrast. It was `--color-surface`, which on a light
+ *      page is within 1.06:1 of the page itself, so it read as a slit through
+ *      the bar rather than a line drawn on it and broke the track into chunks
+ *      (D70's third amendment). Ink, not background: `--color-label` is the
+ *      opposite of the page in both themes.
  *   3. A ZERO PART COLLAPSES. A segment with no width is dropped, and if that
  *      leaves one segment the bar renders as an ordinary single undivided
  *      fill. `/tracker` relies on this below the 300,000 nil-rate band, where

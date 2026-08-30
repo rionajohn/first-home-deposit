@@ -106,6 +106,18 @@
  *              and `ready-to-check` is the only way to a checkpoint-reached
  *              Mortgage in Principle result at the seed's own property value.
  *                                        default none, i.e. leave the stage alone
+ *   --open     A `data-disclosure-id` to open before the shot, e.g.
+ *              `--open=goal-breakdown`. Every disclosure starts closed (D12)
+ *              and `resetCollapsibles()` re-closes them on every hash-driven
+ *              navigation, so a screenshot cannot otherwise show what is
+ *              behind one.
+ *
+ *              PRESSES THE REAL CONTROL, and has to. Seeding the state key
+ *              does nothing: router.js calls `resetCollapsibles()` on the way
+ *              in and the flag is false again before the screen first reads
+ *              it. That is D12 working correctly, not a bug to route around.
+ *              Same reason `--state=ahead` and `--stage` press their controls.
+ *                                                       default none
  *   --scroll   `top` or `end` - where the screen's scroller is left before the
  *              shot. An axis like the others, so `--scroll=top,end` shoots
  *              both. Added for the screens whose bottom edge is the thing
@@ -189,6 +201,7 @@ const DEFAULTS = {
   solve: 'date',
   scroll: 'top',
   stage: '',
+  open: '',
 };
 
 /**
@@ -471,6 +484,25 @@ async function navigate(page, base, route, entry, state) {
   await page.waitForTimeout(350);
 }
 
+/**
+ * Open a disclosure by PRESSING its header, after the screen has settled.
+ * Seeding its state key does nothing - `resetCollapsibles()` runs on every
+ * hash-driven navigation (D12) and the flag is false again before the screen
+ * reads it - so this presses the control the participant would press, the
+ * same way `--state=ahead` and `--stage` do.
+ */
+async function openDisclosure(page) {
+  if (args.open === '') return;
+  const sel = `[data-action="toggle-disclosure"][data-disclosure-id="${args.open}"]`;
+  const btn = await page.$(sel);
+  if (!btn) {
+    console.warn(`  note: --open=${args.open} found no disclosure on this screen; shot taken closed.`);
+    return;
+  }
+  await btn.click();
+  await page.waitForTimeout(250);
+}
+
 const slug = (route) => route.replace(/^\//, '').replace(/\//g, '-') || 'root';
 
 function shotName({ route, entry, state, theme, text, scroll }) {
@@ -676,6 +708,10 @@ try {
                 skipped.push(`${route} via ${entry} - the app redirected to ${landed || '#'}`);
                 continue;
               }
+
+              // After the redirect check, so a shot that never reached its
+              // screen does not report a missing disclosure as well.
+              await openDisclosure(page);
 
               if (state === 'ahead' && entry !== 'mip') {
                 const control = await page.$('[data-action="set-skip-ahead"][data-value="ahead"]');
