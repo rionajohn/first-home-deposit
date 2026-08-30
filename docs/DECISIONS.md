@@ -7455,9 +7455,14 @@ was for.
 branch before this pass - D78 wired the whole date branch, including `errorPastDate` - and asserted
 here rather than assumed.
 
-### Copy: one key outstanding
+### Copy: one key outstanding - **SUPPLIED AND APPLIED 30 AUGUST 2026, D81**
 
-**`content['/calculator/saving'].errorDateNeedsMoreThanLeftOver`, currently `[AWAITING COPY]`.**
+**This section is settled. All three questions it raised were answered in D81** - the key was filled,
+the stepper hint was rewritten, and `sliderCaption` was confirmed shared. Nothing here is outstanding.
+The slot table below still describes what the screen passes, so it is kept.
+
+**`content['/calculator/saving'].errorDateNeedsMoreThanLeftOver`, `[AWAITING COPY]` when this decision
+was taken.**
 
 It is deliberately not `errorExceedsLeftOver` and must not become it: that string ends "Choose a
 smaller range" and there is no range control on this variant - the participant is looking at a month
@@ -7475,12 +7480,13 @@ template names it:
 **One thing for the copy pass to look at while it is there.** The date stepper's hint still reads
 "We'll work out what you'd need to put aside each month" - future tense, and it now sits directly above
 the answer. It was correct when the answer was deferred to frame 11. It was not changed here, because
-changing it is writing copy.
+changing it is writing copy. **RESOLVED in D81: it now reads "Change the date to see what you'd need
+to put aside each month."**
 
 **And one reuse, flagged rather than hidden.** The readout's caption is `sliderCaption` ("Put aside
 each month"), which names the same figure on the same screen - reuse of an existing string, not a new
 one. The key name now under-describes its use. Renaming it would touch the slider path as well, so it
-is left for the copy pass to decide.
+is left for the copy pass to decide. **RESOLVED in D81: it stays shared, and is not renamed.**
 
 ### Verification
 
@@ -7517,3 +7523,125 @@ that was the wrong place to leave them: a decision record says what was decided,
 was decided - they are live defects with no participant-reachable route, which is exactly what G92 was
 promoted for. Each entry carries its own status line, its own measured figures, and its own instruction
 not to close it on the strength of this decision.
+
+---
+
+## D81. The date path's copy, and why the caption stays shared between two readouts
+
+**Date.** 30 August 2026. Fills the one key D80 left `[AWAITING COPY]` and settles the two questions it
+flagged beside it. Three strings, all Category B, so none touches D34.
+
+### 1. The ceiling error
+
+> That date needs more than the {max} you have left over each month. Even putting all of it aside, the
+> earliest you could reach your goal is {earliest}.
+
+**It uses two of the three slots the screen passes. `{amount}` is deliberately unused**, and it is
+worth writing down why rather than leaving it looking like an oversight:
+
+- **The readout sits directly above the banner.** D80 put the solved figure there. Restating it inside
+  the error would read as introducing a number the participant has not seen, when in fact it is the
+  number their eye has just left.
+- **It would put two figures in one sentence.** The copy check's plain-language rule refuses that, and
+  the first sentence already carries `{max}`. Splitting the message across two sentences is what keeps
+  each to one figure - the ceiling in the first, the date in the second.
+
+The slot stays available in the fill call and in `content.js`'s comment. Nothing has to change in the
+screen if a later copy pass wants it.
+
+**What it does, in order.** It names the constraint (`{max}`, the participant's own left-over), then
+the consequence at the limit (`{earliest}`). It does not say the date is wrong, does not say the
+participant cannot afford it, and does not tell them what date to pick - it gives them the boundary and
+leaves the choice where D80 left it. "Even putting all of it aside" is the extreme case establishing
+the bound, not a suggested contribution: the rule against system-proposed amounts is about proposing
+one, and this proposes nothing.
+
+### 2. The stepper hint
+
+> Change the date to see what you'd need to put aside each month.
+
+Replacing "We'll work out what you'd need to put aside each month". **The old line was not wrong when
+it was written and is wrong now.** It was correct while the answer was deferred to frame 11 (which is
+what G65 recorded); D80 rendered the solved amount directly beneath it, and a hint promising an answer
+sitting on top of that answer tells the participant the figure below is still coming.
+
+Present tense, and it names the control rather than the app: the participant changes the date, the
+figure follows. That is what the screen now does.
+
+### 3. `sliderCaption` stays shared, and is not renamed
+
+Both readouts carry "Put aside each month" from one key. The slider variant captions the range the
+participant SETS; the date variant captions the amount their date IMPLIES.
+
+**The argument for splitting it, stated fairly.** The two figures have different provenance. One is
+chosen, one is derived. Elsewhere in this build that difference is carried in copy - D5's provenance
+captions exist precisely to say where a figure came from, and D62 kept "Saved so far"'s caption on
+frame 11 for exactly this reason: it was the one figure the participant had not typed.
+
+**Why it stays shared anyway.**
+
+- **The caption answers "what is this number", not "where did it come from".** "Put aside each month"
+  is true of both figures in the same words. D5's provenance captions are a separate device and say a
+  separate thing; this is a label.
+- **The screen already says which mode it is in.** The segmented control is two taps above, one option
+  selected, and the stepper hint immediately above the readout now says the figure follows the date.
+  A participant reading the date variant has passed two statements that it is derived before reaching
+  the caption.
+- **Two keys holding identical words is the pair that drifts.** `shared.bankRateCaptionTemplate` was
+  made shared for this reason and `MOCK_POSITION`'s comment records the same argument. One of two
+  identical strings gets edited and the other does not, and the screens then disagree about the same
+  figure.
+- **Renaming it is not free.** `sliderCaption` is also the `aria-label` prefix on all four slider
+  controls. Renaming reaches the slider path, which nothing in this pass is changing.
+
+**The key name under-describes its use, and that is accepted rather than fixed.** It is a code-side
+name, not a participant-facing one, and `content.js` now carries a comment at the key saying both
+readouts use it.
+
+*Whether the caption should signal derived-versus-chosen at all was considered with all three strings
+in view, which is the only way it could be: the answer turned on what the hint directly above it now
+says. If a later pass gives the date readout its own caption, the argument to reopen is the provenance
+one above, not the naming one.*
+
+### Copy check
+
+Both new strings were run through `.claude/skills/fca-copy-check` before being applied, against the
+guidance-versus-advice boundary (MCOB 4.8A, PERG 4.6) and the Consumer Duty consumer understanding
+outcome. Neither string was altered. The findings worth recording:
+
+- **Advice boundary (rule 1).** No recommendation, no "you should". "you could reach" is the permitted
+  form. "Change the date" is an interface instruction naming a control, not a steer toward one option -
+  the same shape as `errorPastDate` ("Pick a date in the future") and `pickOneCaption`, both already on
+  this screen.
+- **System-proposed amounts (rule 1A).** The error proposes no contribution. It states a bound the
+  participant's own date crossed.
+- **Plain language (rule 5).** One figure per sentence, which is what drove `{amount}`'s exclusion. No
+  acronyms.
+- **Tone (rule 6).** The subject of the first sentence is "That date", not the participant. No
+  shortfall framing, no "you don't have enough", no urgency. "your goal" keeps the goal theirs.
+- **Estimate disclosure (rule 2), checked and not required.** `shared.regulatory.estimateDisclosure` is
+  carried by frames 12, 20 and 21 - the screens that output a result. Frame 10b is an input screen, it
+  carries `guidanceNotAdvice`, and its own `interestBannerText` ("Interest is included in the estimate.
+  Rates can change.") is its estimate framing, exactly as the slider variant has always had. Adding the
+  shared line here would extend SPEC.md's four-key set on a decision nobody has taken.
+
+### Verification
+
+Measured in fresh tabs, both themes, both text sizes. The banner renders `£1,150` and `February 2027`
+from the seeded session; no literal `{amount}` and no doubled whitespace survives the unused slot, and
+`date-ceiling.test.mjs` now asserts all of that rather than comparing the rendered text against its own
+template - which is what it did while the string had no slots to fill, and which would now pass only if
+the screen had stopped interpolating.
+
+**Horizontally it fits at both text sizes**: banner 350px in a 350px container, text box 284px
+(default) / 281px (Large) with a matching `scrollWidth`, wrapping to 4 and 5 lines. `.screen-content`
+`scrollWidth` stays at 390px in every combination - no sideways scroll.
+
+**Vertically it does not fit above the fold, and that is reported rather than recorded here.** On first
+paint the banner's last line falls 38px below the action bar dock at default text and 107px at Large,
+so a participant meets a disabled Continue with the error partly or wholly off-screen. It is legible in
+full as soon as the screen is scrolled, and `role="alert"` announces it regardless (D78). This is a
+layout question, not a copy one - a shorter string is not the answer, and changing the layout is not
+what this pass was for. **Recorded as a measurement of this change, not as the record of a defect**:
+if it is to be tracked it belongs in `GAPS.md` beside G89, which is the same shape.
+

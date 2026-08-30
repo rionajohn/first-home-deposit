@@ -558,11 +558,21 @@ const content = {
     segmentMonthlyLabel: 'Set a monthly amount',
     segmentDateLabel: 'Set a target date',
     pickOneCaption: "Pick one and we'll work out the other.",
+    // SHARED BY BOTH READOUTS, DELIBERATELY (DECISIONS.md D81). The slider
+    // variant captions the range the participant sets; the date variant
+    // captions the amount their date implies. Same figure, same screen, same
+    // words - so one key, not two, and the key is not renamed. See D81 for why
+    // the caption does not signal derived-versus-chosen.
     sliderCaption: 'Put aside each month',
     sliderLowerAmountLabel: 'lower amount',
     sliderUpperAmountLabel: 'upper amount',
     sliderRangeCaptionTemplate: "{max} is what's left each month once your essentials are covered. {suggested} is what you've been putting aside lately.",
-    dateStepperHint: "We'll work out what you'd need to put aside each month",
+    // PRESENT TENSE SINCE D81, AND IT HAS TO BE. The old line read "We'll work
+    // out what you'd need to put aside each month" - correct while the answer
+    // was deferred to frame 11, and wrong the moment D80 rendered the solved
+    // amount directly beneath it. A hint promising an answer, sitting on top of
+    // that answer, tells the participant the figure below is still coming.
+    dateStepperHint: "Change the date to see what you'd need to put aside each month.",
     dateStepperMonthAriaLabel: 'target month',
     dateStepperYearAriaLabel: 'target year',
     filledInHeading: 'Already filled in from your accounts',
@@ -578,22 +588,25 @@ const content = {
     flagLabel: "Something doesn't look right",
     errorExceedsLeftOver: "That's more than what's left over each month. Choose a smaller range.",
     errorPastDate: 'Pick a date in the future.',
-    // AWAITING COPY (DECISIONS.md D80, GAPS.md G64). The date path's own
-    // ceiling error. It is NOT errorExceedsLeftOver and must not become it:
-    // that string ends "Choose a smaller range" and there is no range control
-    // on this variant - the participant is looking at a month and a year.
-    // Category B, so it may differ from the slider wording without touching
-    // D34.
+    // The date path's own ceiling error (DECISIONS.md D80, D81; GAPS.md G64).
+    // NOT errorExceedsLeftOver, and it must not become it: that string ends
+    // "Choose a smaller range" and there is no range control on this variant -
+    // the participant is looking at a month and a year. Category B, so the two
+    // differ without touching D34.
     //
-    // THREE SLOTS ARE AVAILABLE AND THE COPY MAY USE ANY SUBSET. `fill()`
-    // replaces a slot only where the template names it, so an unused one costs
-    // nothing:
-    //   {amount}   the monthly figure the chosen date implies, formatted
+    // TWO OF THE THREE SLOTS ARE USED. `fill()` replaces a slot only where the
+    // template names it, so the third costs nothing and stays available:
     //   {max}      what is left over each month - the same {max} slot
     //              sliderRangeCaptionTemplate above already uses for it
     //   {earliest} the earliest month and year reachable at {max}, e.g.
     //              "August 2029"
-    errorDateNeedsMoreThanLeftOver: '[AWAITING COPY]',
+    //   {amount}   the monthly figure the chosen date implies. DELIBERATELY
+    //              UNUSED (D81). The readout renders it directly above this
+    //              banner, so restating it here would read as introducing a
+    //              number the participant has not seen - and it would put two
+    //              figures in the first sentence, which the copy check's plain
+    //              language rule does not allow.
+    errorDateNeedsMoreThanLeftOver: 'That date needs more than the {max} you have left over each month. Even putting all of it aside, the earliest you could reach your goal is {earliest}.',
     primaryCta: 'Continue',
     secondaryCta: 'Save and exit',
   },

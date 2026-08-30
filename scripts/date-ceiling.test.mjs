@@ -25,12 +25,16 @@
  * shows, and the earliest date it names to one function each rather than to a
  * number typed here.
  *
- * WHAT IS DEFERRED. The error string is `[AWAITING COPY]` (D80), so its
- * interpolated slots - the amount, the ceiling and the earliest date - never
- * reach the DOM and cannot be asserted against. The boundary test below is what
- * stands in for that: it pins the same month the {earliest} slot names, through
- * the same model function. When the copy lands, add a test that the rendered
- * string carries that month.
+ * THE COPY HAS LANDED (D81), so the slots are assertable and are asserted. The
+ * banner interpolates `{max}` and `{earliest}`; `{amount}` is deliberately
+ * unused, and the test below checks that too - an unused slot must leave no
+ * literal `{amount}` and no doubled space behind it, which is the one way
+ * `fill()` can go wrong quietly.
+ *
+ * The `{earliest}` assertion is the one that was deferred while the string read
+ * `[AWAITING COPY]`. It now closes the loop the boundary test opened: the month
+ * the banner NAMES is the same month at which the screen stops drawing the
+ * banner at all, both derived from `monthsToReachAmount`.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -267,7 +271,41 @@ test('the date path does not reuse the slider path error string', async () => {
   try {
     const seen = await probe(page);
     assert.notEqual(seen.bannerText, c.errorExceedsLeftOver, 'the date path is showing "Choose a smaller range" on a screen with no range control');
-    assert.equal(seen.bannerText, c.errorDateNeedsMoreThanLeftOver);
+    // NOT compared against the template, which is what this line did while the
+    // string was `[AWAITING COPY]` and had no slots to fill. The template now
+    // carries slots, so an equality check against it would only pass if the
+    // screen had stopped interpolating - the opposite of what this asserts.
+    assert.notEqual(seen.bannerText, c.errorDateNeedsMoreThanLeftOver, 'the banner rendered its own template, so no slot was filled');
+    assert.match(seen.bannerText, /^That date needs more than /, 'the banner is not the date path string at all');
+  } finally {
+    await context.close();
+  }
+});
+
+test('the banner fills {max} and {earliest}, and leaves no trace of the unused {amount}', async () => {
+  const { formatCurrency } = await import('../src/format.js');
+  const { context, page } = await openAt(EARLIEST_MONTHS - 1);
+  try {
+    const text = (await probe(page)).bannerText;
+    // {max} is the ceiling, formatted the way every other figure on this screen
+    // is - read through `format.js` rather than written here, so a change to the
+    // formatter cannot leave this passing while the banner shows something else.
+    assert.ok(text.includes(formatCurrency(CEILING)), `the banner does not name the ceiling: "${text}"`);
+    // {earliest} is the same month the boundary test pins, so the date the
+    // participant is TOLD is the earliest one is the date at which the screen
+    // actually stops refusing. D81.
+    const now = new Date();
+    const reached = new Date(now.getFullYear(), now.getMonth() + EARLIEST_MONTHS, 1);
+    const label = `${reached.toLocaleString('en-GB', { month: 'long' })} ${reached.getFullYear()}`;
+    assert.ok(text.includes(label), `the banner names a different earliest date than the boundary: expected "${label}" in "${text}"`);
+    // AND NOTHING IS LEFT OF THE SLOT THE COPY DOES NOT USE. `fill()` is a
+    // `String.replace` per key, so an unused slot is silently harmless - but a
+    // slot the copy DOES name and the screen stops passing would render as a
+    // literal, and a slot removed from the copy without its surrounding
+    // whitespace would double a space. Both are invisible in a screenshot.
+    assert.doesNotMatch(text, /\{[a-z]+\}/, `an unfilled slot reached the screen: "${text}"`);
+    assert.doesNotMatch(text, /\s{2,}/, `the banner carries doubled whitespace: "${text}"`);
+    assert.equal(text, text.trim(), 'the banner carries leading or trailing whitespace');
   } finally {
     await context.close();
   }

@@ -1549,10 +1549,12 @@ unreachable through this screen - which is the correct relationship between a sc
 a model's, not a redundancy to remove: the guard exists so no caller can produce a projection from an
 impossible rate, and this screen is one caller.
 
-**The copy is outstanding.** The banner renders `content.js`'s
-`['/calculator/saving'].errorDateNeedsMoreThanLeftOver`, currently `[AWAITING COPY]`. It is
-deliberately NOT `errorExceedsLeftOver`, which ends "Choose a smaller range" on a screen that has no
-range control.
+**The copy was outstanding when this closed, and landed on 30 August 2026 - DECISIONS.md D81.** The
+banner renders `content.js`'s `['/calculator/saving'].errorDateNeedsMoreThanLeftOver`, which stood at
+`[AWAITING COPY]` for one build (v89) and now reads "That date needs more than the {max} you have left
+over each month. Even putting all of it aside, the earliest you could reach your goal is {earliest}."
+It is deliberately NOT `errorExceedsLeftOver`, which ends "Choose a smaller range" on a screen that has
+no range control.
 
 ---
 
