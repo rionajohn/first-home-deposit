@@ -2689,6 +2689,31 @@ the newly added tests (removing them did not fix it).
 guessing a fourth time is what this entry exists to stop. It has been carried for a dozen sessions
 described as a stale assertion, which it is not.
 
+### The fourth investigation, scoped but not started
+
+The three eliminated hypotheses all assumed state was crossing a boundary. The next one asks whether
+the boundary is reached at all: **instrument `beforeEach` rather than the test.**
+
+Concretely, log for every test - not only the failing one - (i) whether the init script found
+`sessionStorage` empty and therefore seeded, (ii) the stored state immediately after its `goto`
+resolves, and (iii) the five field values at the moment `beforeEach` returns. Then run the file until
+it fails and read the log for the test that failed and the one before it.
+
+**The hypothesis it would test first** is that `beforeEach` is returning early rather than that state
+is leaking. It waits on `.review-rows-stack`, which is present on frame 11 whether or not the fields
+hold figures - so a `beforeEach` that resolves against a partly-settled screen would hand the test
+exactly what the failure shows: the right screen with empty fields. That would also explain the load
+dependence, which a storage-isolation fault would not: contexts do not become less isolated when the
+machine is busy.
+
+If that is it, the fix is one line - wait on a field holding its seeded value rather than on the
+container existing - and it is the same class of error as D76's `waitForTimeout(50)`, one layer up.
+
+**Cost.** Roughly half an hour: the instrumentation is a few lines, but the file takes about 90
+seconds a run and the failure needs catching two or three times to be sure the log shows a pattern
+rather than one bad run. Call it four to eight runs plus the reading, then a one-line fix and three
+confirming runs.
+
 *Status: open. It fails roughly 3 runs in 4 and passes cleanly in isolation. Do not describe it as a
 stale assertion - the three genuine stale assertions in this file were fixed in D76 and this is not
 one of them.*

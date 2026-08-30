@@ -7075,3 +7075,106 @@ synthetic click does not reproduce the defect, and a fix that satisfied only tha
 
 **One failure remains and it is not fixed**: `GAPS.md` G91 records it, with the evidence that it is a
 harness isolation problem rather than an app defect and the three wrong hypotheses already eliminated.
+
+---
+
+## D77. Five tests that passed for the wrong reason: a finding about test validity in this build
+
+**Date.** 30 August 2026. Drawn together from D70, D73, D74 and D76, which each recorded one instance
+without seeing the pattern.
+
+This entry exists because the same failure occurred five times in two days, was recorded five separate
+times as five separate mistakes, and is one mistake. It is written as a finding rather than as a list
+of fixes because the useful part is the shape, not the repairs.
+
+### The shape
+
+**An assertion that cannot fail is not coverage, and an assertion that passes for a reason unrelated
+to what it claims to test is worse than none** - because it is counted. Both forms were present here,
+and the second is the dangerous one: a suite reporting 300 passes carries the authority of 300
+checks, and nobody re-reads a green line.
+
+Every one of the five below was green. Four of the five were green while the thing they named was
+broken.
+
+### The five
+
+**1. A suite that could not exercise the change it was guarding (D70).** Every existing model test
+used a £190,000 property. First-time buyer stamp duty at £190,000 is **£0**, so `combined-goal` and
+`deposit-target` are the same number there. Adding stamp duty to the goal - a change that redefined
+what the app is saving toward - left all 43 tests passing, not because the change was safe but because
+the fixture could not tell the two figures apart. *Caught by asking why nothing failed.* The fixture
+was moved to £450,000, where the tax is £7,500 and the two figures diverge.
+
+**2. Assertions of the form "nothing is wrong" (D74).** `overlap.test.mjs` asserts that no divider
+crosses text and no box is squashed below its content. An empty page satisfies both perfectly. When a
+temporal dead zone blanked the tracker, the suite returned **72 of 72 passing against a completely
+blank screen** - verified by reintroducing the defect deliberately rather than assumed. *Caught by
+looking at a screenshot.* `smoke.test.mjs` was added in response: thirty routes, asserting only that
+each mounts, renders something and throws nothing.
+
+**3. An assertion testing a property the code does not have (D73).** A new test asserted the chart's
+range floor by counting twelve bars. The floor is six months, and a six-month range draws **six**
+bars - so the assertion encoded a belief about the fix rather than the requirement, and failed on
+correct code. It now compares the "Max" axis against the "6 mo" axis directly, which is the property
+that actually matters. *Caught by the test failing, which is the one case in five where the mechanism
+worked.*
+
+**4. A wait long enough to hide a defect (D76).** `inline-edit.test.mjs` waited a fixed 50ms after a
+field commit. That made one test load-sensitive - it failed roughly three runs in five inside the full
+suite and passed six of six alone - and the flakiness was carried for a dozen sessions described as a
+stale assertion. Investigating it found a **real defect on the main participant path**: pressing the
+primary button while a field had focus did nothing, because the blur committed, the commit
+re-rendered, and the button the press began on no longer existed when the finger came up. Two presses
+were needed, on frames 09 and 11. *Caught by driving the real interaction* - every existing test
+blurred the field first, and a participant does not.
+
+**5. A fix that would have passed the harness and failed every participant (D76).** The obvious repair
+for (4) was to defer the re-render. Measured before shipping:
+
+| | Instant synthetic tap | Held 80ms | Held 200ms |
+|---|---|---|---|
+| `setTimeout(..., 0)` | **4 / 4 pass** | **0 / 3** | **0 / 3** |
+
+A real finger tap is 50-150ms. The deferral repairs the synthetic click the harness produces and
+nothing a person does. Had it been verified the way the rest of the suite verifies things, it would
+have shipped as fixed. *Caught by holding the tap.*
+
+### What the five have in common
+
+Three were caught by a person looking at a rendered screen or driving the interaction by hand. One was
+caught by asking why a change had not broken anything. One was caught by the suite.
+
+That ratio is the finding. The tests in this build are good at asserting **relationships between
+figures** - the model suite is dense and has caught real arithmetic errors - and weak at asserting
+that **anything appeared on screen at all**, because the layout suites were written to catch overlap
+and answer "is anything wrong with what is drawn", which an empty page answers correctly.
+
+There is a second, subtler pattern in (1), (4) and (5): **the fixture or the harness was gentler than
+reality.** A property value with no tax, a synthetic click with no duration, a wait long enough on an
+idle machine. Each made the test easier to pass than the thing it stood for, and each difference was
+invisible until something else exposed it.
+
+### What changed as a result
+
+Two suites were added, both deliberately narrow:
+
+- **`smoke.test.mjs`** - every route mounts, renders non-empty content, throws nothing, and lands on
+  the hash asked for. No content assertions at all, so it cannot rot into a change-detector.
+- **`chart-range.test.mjs`** - frame 12's chart at savings positions near, at and past the goal.
+  Separate from the smoke test *because all four of those states rendered perfectly well* while the
+  chart drew a descending series and announced a balance lower than the participant's own. A chart can
+  be wrong in every particular and still be a chart.
+
+And one habit, which matters more than either file: **reintroduce the defect and confirm the test
+fails.** It was applied to the smoke test (29 of 30 with a dead zone restored, naming the route) and
+to overlap (72 of 72 against a blank screen, which is how the gap was proved rather than argued). A
+test whose failure has never been observed is a claim, not a check.
+
+### The limit of this finding
+
+It does not generalise to "write more tests". Three of the five were found by a person looking, and
+no amount of assertion would have replaced that: a screenshot showed a bar chart with a 26.4% curve, a
+held tap showed a dead button. What it argues for is narrower - **know what each assertion would have
+to see to fail, and check that it can** - and for keeping a cheap manual pass in the loop, because on
+this project it out-performed the suite four times out of five.
