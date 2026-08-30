@@ -2861,7 +2861,7 @@ must be visible to them. Both halves fail here. It is **independent of which cei
 for G64**: the collateral read across two controls with different clamping behaviour is in the slider
 path itself, and would still be there if the date path never produced an out-of-range figure at all.
 
-### Section 3's fix makes this UNREACHABLE, not fixed
+### D80 makes this UNREACHABLE, not fixed
 
 Bounding the date path (G64) removes the only route by which `monthly-high` can be above the ceiling
 while the screen is drawn, so the divergence between the two controls' values never arises and the
@@ -2870,12 +2870,234 @@ handler never reads the wrong number. **The handler is unchanged, and it is stil
 That distinction is worth stating plainly, because this file already records what happens when it is
 not. G64's 29 August amendment: D57's re-seeding moved the seeded date's range inside the new £640
 ceiling, so G64 stopped reproducing on the screen's own default - "**this makes the gap harder to
-find, not smaller**". The same is now true here, and one step further removed: after Section 3 there is
-no participant-reachable route to it at all, so nothing will surface it again. If a later change gives
+find, not smaller**". The same is now true here, and one step further removed: after D80 there is no
+participant-reachable route to it at all, so nothing will surface it again. If a later change gives
 `monthly-high` another way past the ceiling - a new entry point, a relaxed bound, a general mode - this
 returns with no warning and no test naming it.
 
-*Status: **open, unreachable**. Do not close it on the strength of Section 3. Closing it means making
+*Status: **open, unreachable**. **Do not close it on the strength of D80.** Closing it means making
 the two control kinds agree - reading the committed figures rather than the DOM values, or clamping
 both kinds the same way - so that the handler cannot read a number the participant never set.*
+
+---
+
+## G93. The slider's fill has no upper bound, so an out-of-range range scrolls the screen sideways
+
+*Raised 30 August 2026, measured in the pass that reported on G64, and recorded in `DECISIONS.md` D80's
+footnote rather than here. Moved to this file for G92's reason: **a decision record is where a decision
+lives, not where a live defect lives.** Promoted on instruction, 30 August 2026.*
+
+### The mechanism
+
+`calculator-saving.js` positions the filled section of the monthly-saving track from the two figures
+directly, as percentages of the ceiling:
+
+    const fillLeft = (monthlyLow.value / savingCeiling) * 100;
+    const fillRight = (monthlyHigh.value / savingCeiling) * 100;
+
+written straight into `style.left` and `style.width`. **Neither is clamped.** Both are correct for any
+figure at or under `savingCeiling` and unbounded above it - the calculation has no `Math.min`, no
+`clamp`, and no awareness that a figure above the ceiling is possible at all.
+
+Nothing downstream catches it either. `.value-slider__track` is `position: relative` with **no
+`overflow: hidden`**, so the fill is laid out where the percentages put it rather than clipped at the
+track's edge.
+
+This is the one part of the control that does not clamp. Both `input[type=range]` clamp their DOM
+value to `max` (which is its own problem - G92), and the number inputs at least hold a figure a
+participant can read (G94). The fill just leaves the box.
+
+### The measured figures
+
+Driven in a browser at `left-over` £640, holding a £1,522.82-£1,861.22 range:
+
+| | |
+| --- | --- |
+| Computed style | `left: 237.941%; width: 52.876%` |
+| Track | 350px wide, starting at x=20 |
+| Fill | starts at x=852.78, **483px past the right edge of its own track** |
+| `.screen-content` `scrollWidth` | **1,038px** against a 390px viewport |
+
+### It is horizontal overflow inside a screen
+
+`CLAUDE.md`'s design rules: "All text must fit via auto layout. **Nothing truncates or overflows.**"
+A `.screen-content` whose scroll width is nearly three times the viewport is exactly that, and it is
+the kind that is worst to meet in a session - the participant's thumb finds a sideways scroll on a
+screen that has no sideways content, with the thing causing it drawn far off to the right where they
+cannot see it.
+
+**Nothing existing covers it.** Checked rather than assumed:
+
+- **G27** is the 393x852 device frame overflowing a 1366x768 laptop viewport. Resolved; the framed
+  view scales to fit.
+- **G32** is the page behind the device frame scrolling, and the frame outgrowing its bezel. Resolved
+  under D14.
+
+Both are about the SHELL - the mock phone and the page it sits on. Neither is about a screen's own
+content overflowing its own viewport, and there is no third entry that is.
+
+**Nothing tests it either**, which is worth stating beside D77's finding. `overlap.test.mjs` detects a
+rule crossing text and a box squashed below its content; a fill drawn 483px to the right of everything
+satisfies both perfectly. `action-bar.test.mjs` measures vertical clearance. The screen renders, so
+`smoke.test.mjs` passes. This was found by reading a computed style, not by a suite.
+
+### Unreachable after D80, not fixed
+
+The date path was the only participant-reachable route to a range above the ceiling: the slider path
+clamps every commit through `clamp(..., savingCeiling)` and the seed falls back to
+`Math.min(seed, ceiling)`. D80 bounded the date path, so `monthly-high` can no longer be above the
+ceiling while this screen is drawn, and the percentages can no longer exceed 100.
+
+**The code is unchanged.** `fillLeft` and `fillRight` are computed exactly as they were, with no
+bound; `.value-slider__track` still declares no `overflow: hidden`. Nothing about this defect was
+repaired - the input that triggers it was removed.
+
+*Status: **open, unreachable**. **Do not close it on the strength of D80.** G64's own 29 August
+amendment is the standing precedent: D57's re-seeding moved the seeded range inside the new ceiling,
+G64 stopped reproducing on the screen's own default, and "**this makes the gap harder to find, not
+smaller**" - nothing surfaced it again until it was looked for deliberately. This is the same, one
+step further removed. Closing it means clamping the two percentages, or clipping the track, or both -
+so that no figure the screen can hold puts the fill outside its own box.*
+
+---
+
+## G94. The slider's number inputs carry `max` and hold values above it
+
+*Raised 30 August 2026 in the same measurement as G93, and recorded in `DECISIONS.md` D80's footnote
+rather than here. Promoted on instruction, 30 August 2026. **It is the other half of G92's mechanism,
+stated as a defect in its own right**: G92 is what the divergence between the two input kinds DOES to a
+committed figure, this is the divergence itself.*
+
+### The mechanism
+
+`calculator-saving.js` renders the two figure readouts as
+`<input type="number" ... max="${savingCeiling}">`. **`max` on a number input is validation, not a
+bound.** It sets `validity.rangeOverflow` and it fails constraint validation; it does not clamp the
+value, and this screen never calls `checkValidity()`, never styles `:invalid`, and never reads
+`validity`. So the attribute is present, is honoured by nothing, and is doing no work.
+
+Measured at `left-over` £640, holding a £1,522.82-£1,861.22 range: both inputs carry `max="640"` and
+read `1523` and `1861`. Those are the figures the participant sees, because the number inputs are the
+readout - the range inputs beside them are the handles.
+
+### Neither G64 nor G74 covers it
+
+Checked rather than assumed, because both are adjacent and neither fits:
+
+- **G64** names `max` on the inputs, but as EVIDENCE that the slider path is bounded - "Both range
+  inputs carry `max="${savingCeiling}"`, every `commit()` re-clamps through `clamp(...,
+  savingCeiling)`" - in the course of showing that the date path had nothing equivalent. It cites the
+  attribute as a bound that works. It is not one on the number inputs, and G64 does not say so.
+- **G74** is the opposite behaviour. There, a typed value SNAPS to a bound and the field re-renders
+  holding a number the participant did not type - a clamp that is too silent. Here the field holds a
+  number well past its own stated maximum and nothing happens at all. A defect about over-clamping
+  cannot also record one about not clamping.
+
+### Unreachable after D80, not fixed
+
+As G93: the date path was the only route by which a figure above the ceiling could reach these
+inputs, and D80 bounded it. Every remaining writer on the slider path clamps.
+
+**The code is unchanged.** The inputs still carry `max`, still treat it as validation only, and the
+screen still never reads that validation. The attribute is as inert as it was.
+
+*Status: **open, unreachable**. **Do not close it on the strength of D80**, for G64's 29 August
+amendment's reason. Closing it means deciding what `max` is for on these two fields: either the screen
+reads the validity it already sets, or the fields clamp the way the range inputs do, or the attribute
+comes off and the bound is stated somewhere that enforces it. Leaving an attribute that looks like a
+bound and is not is the part that misleads - it is what made G64 read as though the slider path were
+fully bounded.*
+
+---
+
+## G95. The MCOB risk warning's icon is invisible in the dark palette, on eight screens
+
+*Raised 30 August 2026 in D79's icon audit, which found thirteen contexts inheriting `--color-label`
+from `body`. Twelve stay recorded in D79. **This one is promoted because it is not only a contrast
+failure**, and the difference is regulatory rather than technical. Promoted on instruction, 30 August
+2026.*
+
+### The measurement
+
+`.risk-warning-card__icon` declares no colour. Every icon in this build is stroked in `currentColor`,
+so it takes the computed colour of the nearest ancestor that declares one - and that ancestor is
+`body`, whose `color: var(--color-label)` sits OUTSIDE `.screen`, where `.theme-dark` applies its
+palette. The property resolves to the light value there and the glyph inherits the literal `#17171c`.
+
+The card's own background is `--color-surface`, `#1c1c1e` in the dark palette.
+
+| | |
+| --- | --- |
+| Icon | `exclamationTriangle`, `#17171c` |
+| Ground | `--color-surface`, `#1c1c1e` |
+| Ratio | **1.05:1**, against WCAG 1.4.11's 3:1 for non-text content |
+
+The card's TEXT is unaffected - `.risk-warning-card__text` declares `color: var(--color-label)` itself,
+inside `.screen`, so it resolves white and reads correctly. The warning triangle beside it does not
+appear at all.
+
+### The eight screens
+
+Every `riskWarningHTML` call site:
+
+| Frame | Route | What it warns |
+| --- | --- | --- |
+| 13 | `/learn/ltv` | rate caution, and the MCOB 3A repossession warning |
+| 15 / 16 | `/tracker` | rate caution, and the MCOB 3A repossession warning |
+| 18 | `/mip/about` | an agreement in principle is not an offer |
+| 19 | `/mip/pre-check` | the soft search, and the MCOB 3A repossession warning |
+| 20 | `/mip/result/likely` | MCOB 3A, and not an offer |
+| 21 | `/mip/result/not-yet` | MCOB 3A, and not an offer |
+| 30 | `/assumptions/deposit` | MCOB 3A, and rate variability |
+| 31 | `/assumptions/borrowing` | MCOB 3A, and the borrowing estimate's limits |
+
+Seven of the eight carry `shared.regulatory.mcob3aRepossessionWarning`, which `CLAUDE.md` marks as
+fixed wording that may not be reworded, shortened or removed from a screen that carries it.
+
+### The same glyph and the same mechanism already fixed twice
+
+This is not a new class of defect. It is the third instance of one:
+
+- **D78** gave the ERROR banner this exact glyph and coloured it `--color-warning`, because the icon
+  was inheriting `--color-label` and drawing at 1.05:1 on `#1c1c1e`.
+- **D79** gave the INFORMATIONAL banner's `infoCircle` an explicit `--color-label`, for the same
+  inherited-token reason, taking it from 1.18:1 to 21.00:1.
+- This card is the same `exclamationTriangle` on the same ground at the same ratio, and its context
+  class declares no colour either.
+
+### Why it is its own entry and not a row in D79's list
+
+The other twelve are WCAG 1.4.11 failures on non-text content - chevrons, tick marks, milestone stars,
+a media placeholder. Each matters; none of them is the only marker on a regulatory warning.
+
+**This one is a risk warning the participant cannot see.** The triangle is what marks the card as a
+warning at a glance, before the text is read - and on seven of these eight screens the text it marks is
+the MCOB 3A repossession warning. A warning that does not read as a warning is a **Consumer Duty
+consumer understanding** problem: the outcome requires that communications support informed decisions
+and are likely to be understood, and a regulatory warning stripped of the one visual cue that
+identifies it as one does not meet that. That is the dimension the other twelve do not have, and it is
+why this is a gap of its own rather than a row in a table.
+
+D79 keeps the other twelve. They are not being promoted and this entry does not supersede that list.
+
+### The dark palette is not currently selectable, and that is not the point
+
+Frame 33 offers Greyscale and Brand only; no Dark option is drawn anywhere in the reference set, so the
+`.theme-dark` palette is defined but unreachable (`tokens.css`). **No participant can meet this in a
+session.**
+
+That is why it is **not urgent**. It is not why it is not a gap. The palette is defined and its
+contrast measured deliberately so those measurements are not lost, and a token left resolving outside
+its own theme ships the moment the palette becomes selectable - which is the same reasoning D79 used to
+justify fixing the informational banner while it was equally unreachable.
+
+**Not fixed here, on instruction.** The code is unchanged: `.risk-warning-card__icon` still declares
+`flex: 0 0 auto` and nothing else.
+
+*Status: **open, unreachable in the current build**. **Do not close it on the strength of the palette
+being unselectable**, and do not close it on D80 - D80 has nothing to do with it. Closing it means one
+declaration, `color: var(--color-warning)` or `var(--color-label)` depending on whether the card is
+meant to read as neutral (its component note says neutral, so `--color-label` matches its own text) -
+the same one-line fix D78 and D79 each made. Decide it with the other twelve in D79, or ahead of them
+because of the regulatory dimension above.*
 

@@ -7340,9 +7340,11 @@ Audited by rendering all thirty routes in the dark palette and reporting every `
 computed colour is the light `--color-label`. Recorded so the list exists; fixing them is a wider pass
 than this one and was not asked for.
 
+**One of the thirteen has since been promoted to its own gap entry. The other twelve stay here.**
+
 | Icon | Context | Ground | Ratio |
 | --- | --- | --- | --- |
-| `exclamationTriangle` | `.risk-warning-card__icon` | `#1c1c1e` | 1.05:1 |
+| `exclamationTriangle` | `.risk-warning-card__icon` | `#1c1c1e` | 1.05:1 - **now GAPS.md G95** |
 | `checkmarkCircle` | `.result-panel__icon`, `.tick-list__icon` | `#1c1c1e` | 1.05:1 |
 | `arrowUp` | `.result-panel__icon` | `#1c1c1e` | 1.05:1 |
 | `chevronRight` | `.list-row__chevron` | `#1c1c1e` / `#000000` | 1.05:1 / 1.18:1 |
@@ -7351,9 +7353,17 @@ than this one and was not asked for.
 | `starCircleFill`, `starCircleDashed` | `.milestone-row__icon` | `#000000` | 1.18:1 |
 | `checkmarkCircle`, `arrowUpRight`, `photo` | no context class | `#000000` | 1.18:1 |
 
-The MCOB risk-warning card is the one worth naming: it is the same `exclamationTriangle` D78 coloured
-on the error banner, drawing at 1.05:1 on eight screens because its own context class declares no
-colour either.
+**30 AUGUST 2026: the risk-warning row moved to `GAPS.md` G95, and the record with it.** Its entry
+here is now a pointer, not the record. This audit found it as one of thirteen contrast failures, which
+is what it is measured as - but on seven of the eight screens it appears on, the glyph it fails to draw
+is the one marking the MCOB 3A repossession warning as a warning, which makes it a Consumer Duty
+consumer understanding question as well as a WCAG 1.4.11 one. That dimension is the reason it is a gap
+of its own rather than a row in this table. See G95 for the eight screens and the argument.
+
+**The other twelve remain recorded here and are deliberately not promoted.** They are contrast
+failures on non-text content - chevrons, tick marks, milestone stars, a media placeholder - with no
+regulatory dimension, and they belong together as one pass rather than as twelve entries. Fixing them
+is still a wider pass than D79 was.
 
 ---
 
@@ -7497,9 +7507,13 @@ never reads the wrong number - but the handler is unchanged and still wrong. G64
 amendment is the precedent for stating this plainly: D57's re-seeding made G64 harder to find rather
 than smaller, and this is the same, one step further removed.
 
-Two further defects measured in the same pass are recorded nowhere and are deliberately left that way
-until asked: `.value-slider__track-fill` computes its offset with no bound and its parent has no
-`overflow: hidden`, so an out-of-range fill renders past the track and pushes `.screen-content`'s
-scrollWidth to 1,038px against a 390px viewport; and the slider's number inputs carry `max` but accept
-and hold values above it. Both are on the slider path and both are, like G92, now unreachable rather
-than fixed.
+**Two further defects measured in the same pass are `GAPS.md` G93 and G94** - the slider's unbounded
+fill offset, and its number inputs holding values above their own `max`. Both are on the slider path
+and both are, like G92, now unreachable rather than fixed.
+
+**30 AUGUST 2026: the record for both moved to `GAPS.md`, and this footnote is now a pointer rather
+than the record.** They were written up here because this decision is what made them unreachable, and
+that was the wrong place to leave them: a decision record says what was decided, and neither of these
+was decided - they are live defects with no participant-reachable route, which is exactly what G92 was
+promoted for. Each entry carries its own status line, its own measured figures, and its own instruction
+not to close it on the strength of this decision.
