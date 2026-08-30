@@ -685,36 +685,46 @@ const content = {
     compareAlreadyLabel: 'already saved',
     compareProvenanceCaption: 'Time to save each one, at what you are putting away now',
     chartHeading: 'How your savings would build up',
-    // --- THE CHART'S THREE LINES ARE A REFERENCE, AND NOW SAY SO ------------
+    // --- THE RANGE CONTROL (D73) --------------------------------------------
     //
-    // The chart plots 5/10/15% whatever the participant chose (build-spec.md
-    // section 2). That used to be coherent: the screen's headline was a 5-15%
-    // range and its timing rows were 5/10/15, so the lines matched everything
-    // around them. D72 replaced both with a comparison windowed on the
-    // selection and left the chart, so the same screen started giving two
-    // answers to one question with nothing to say why.
+    // `chartReferenceCaption` and `chartGoalAboveNoteTemplate` ARE DELETED,
+    // with the threshold lines they described. They existed to say the three
+    // lines were a fixed reference rather than the participant's choice; there
+    // are no lines now, and the comparison card carries deposit context.
     //
-    // The lines stay fixed - windowing them puts the savings curve at 26.4% of
-    // the plot at 25%, and showing growth is the chart's only job - so the
-    // caption is what makes them legible as a deliberate reference rather than
-    // a mismatch.
-    chartReferenceCaption:
-      'The three lines are a low, middle and high deposit at this property price, not the deposit you chose.',
-    // THE SECOND STATE, AND IT IS NOT AN EDGE CASE. The goal is deposit plus
-    // stamp duty, so it clears the top line at three of the five chip values on
-    // the seeded property and at two of five where no stamp duty is due. Above
-    // that point every line on the chart sits below the participant's target
-    // and nothing else on the screen says so.
-    //
-    // It names the chart, not the goal's feasibility: "not shown here" is about
-    // this chart's scale, where "out of reach" would be a claim about them.
-    chartGoalAboveNoteTemplate: 'Your {goal} goal sits above all three, so it is not shown here.',
+    // The chips are abbreviations, so each carries a spoken accessible name -
+    // "6 mo" announced as written is not a name a participant can act on.
+    chartRangeLabels: [
+      { months: 6, label: '6 mo', ariaLabel: 'Show 6 months' },
+      { months: 12, label: '1 yr', ariaLabel: 'Show 1 year' },
+      { months: 36, label: '3 yr', ariaLabel: 'Show 3 years' },
+      { months: 60, label: '5 yr', ariaLabel: 'Show 5 years' },
+    ],
+    chartRangeLegend: 'How far ahead',
+    // WHAT THE CONTROL DOES NOT DO, said once. Switching to six months shows a
+    // much smaller figure, and without this a participant could read that as
+    // the projection having changed rather than the window on it.
+    chartRangeNoteText: 'Changing the range changes what the chart shows, not what you are on track to save.',
+    // The live region's whole contents. A chart cannot be announced usefully -
+    // twelve bar groups and an axis - so the region carries a summary and the
+    // chart itself stays out of it. One number per sentence.
+    chartRangeAnnouncementTemplate: 'Showing {range}. Savings reach {amount}.',
     chartCaptionTemplate: 'With interest at {aer} a year. Illustrative.',
-    thresholdLabelTemplate: '{pct} - {amount}',
     xAxisNow: 'Now',
     legendTemplate: 'At {amount} a month',
     yAxisFloor: '£0',
-    beyondWindowNote: 'This could take more than 5 years at your current rate - the chart shows progress to 5 years.',
+    // ITS SECOND CLAUSE IS GONE (D73). It read "- the chart shows progress to 5
+    // years", which was true only while the chart had one fixed range. The
+    // clause could have been made range-aware, but it would then have restated
+    // the chip the participant had just pressed, and it was one of the five
+    // places GAPS.md G80 counts the 60-month window asserted in prose. What it
+    // was doing - saying the chart is a window rather than the whole story -
+    // `chartRangeNoteText` now does once, for every range.
+    //
+    // The first clause keeps "5 years" correctly: that is the MODEL's window,
+    // `monthsToTarget`'s own beyond-window boundary, and has nothing to do with
+    // which range the chart is drawing.
+    beyondWindowNote: 'This could take more than 5 years at your current rate.',
     whyBiggerHeading: 'Why a bigger deposit helps',
     benefitRows: [
       {

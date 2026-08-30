@@ -623,11 +623,19 @@ export function currencyInputHTML({ id, label, value, hint, ariaLabel }) {
  * choices, one selected. `chips` is `[{ value, label }]`; `selected` is the
  * currently-chosen value or null (09a, before any selection).
  */
+/**
+ * `chip.ariaLabel` IS OPTIONAL, DELIBERATELY (D73). Frame 09's chips are
+ * percentages - "10%" reads correctly as an accessible name and needs no
+ * override. Frame 12's range chips are abbreviations, and "6 mo" announced as
+ * written is not a name a participant can act on, so those pass a spoken form
+ * ("Show 6 months"). Making it required would have meant writing an override
+ * for every chip that does not need one.
+ */
 export function chipRowHTML({ chips, selected, action }) {
   return `
     <div class="chip-row">
       ${chips.map((chip) => `
-        <button type="button" class="chip${chip.value === selected ? ' chip--selected' : ''}" data-action="${action}" data-value="${chip.value}" aria-pressed="${chip.value === selected}">${chip.label}</button>
+        <button type="button" class="chip${chip.value === selected ? ' chip--selected' : ''}" data-action="${action}" data-value="${chip.value}"${chip.ariaLabel ? ` aria-label="${chip.ariaLabel}"` : ''} aria-pressed="${chip.value === selected}">${chip.label}</button>
       `).join('')}
     </div>
   `;
@@ -847,23 +855,35 @@ export function rangeFigureHTML({ lowText, highText, caption, markerPct, trackLa
 }
 
 /**
- * Data viz / Growth chart (frame 12): a bar chart projecting saved balance
- * over the next 5 years at two contribution rates (monthly-low/high),
- * against three horizontal threshold lines (one per deposit-pct option).
- * `thresholds` is `[{ label, pct }]` (0-100, position from the top);
- * `points` is `[{ label, lowPct, highPct }]` (0-100 bar heights, one point
- * per x-axis tick) — all percentages computed by the caller from model
- * figures, this function only renders.
+ * Data viz / Growth chart (frame 12): a bar chart projecting saved balance at
+ * two contribution rates (monthly-low/high) over a range the caller chooses.
+ *
+ * `points` is `[{ label, lowPct, highPct }]` (0-100 bar heights, one per
+ * x-axis tick) and `legend` is `[{ label, shade }]` where shade is 'low' or
+ * 'high'. All percentages are computed by the caller from model figures; this
+ * function only renders.
+ *
+ * THE THREE THRESHOLD LINES ARE GONE (D73). They marked 5/10/15% of the
+ * property value and were the reason the y-axis had to reach £70,875, which
+ * left the savings curve at 44% of the plot at five years and 16% at six
+ * months - unusable for the very ranges the range control exists to show. They
+ * were also a weaker duplicate of the comparison card D72 added, which lists
+ * the same percentages with amounts AND timeframes. The axis now follows the
+ * curve, and deposit context lives entirely in that card.
+ *
+ * THE TWO SERIES ARE NOT TOLD APART BY COLOUR. They are one stacked band -
+ * `--low` solid at the bottom, `--high` above it - and the two resolve to
+ * 2.67:1 in light and 2.36:1 in dark, under the 3:1 D70 measured this palette
+ * against. `--high` therefore carries a hatch, and the legend swatches carry
+ * matching modifiers. Before D73 both legend swatches rendered from one class
+ * with no modifier at all, so nothing connected either row to either bar.
  */
-export function growthChartHTML({ thresholds, points, xAxisLabels, legend, yTop, yBottom }) {
+export function growthChartHTML({ points, xAxisLabels, legend, yTop, yBottom }) {
   return `
     <div class="growth-chart">
       <div class="growth-chart__plot">
         <div class="growth-chart__baseline"></div>
-        ${thresholds.map((t) => `
-          <div class="growth-chart__threshold-line" style="bottom:${t.pct}%"></div>
-          <p class="growth-chart__threshold-label" style="bottom:${t.pct}%">${t.label}</p>
-        `).join('')}
+
         <p class="growth-chart__y-label growth-chart__y-label--top">${yTop}</p>
         <p class="growth-chart__y-label growth-chart__y-label--bottom">${yBottom}</p>
         <div class="growth-chart__bars">
@@ -881,8 +901,8 @@ export function growthChartHTML({ thresholds, points, xAxisLabels, legend, yTop,
       <div class="growth-chart__legend">
         ${legend.map((l) => `
           <div class="growth-chart__legend-row">
-            <span class="growth-chart__swatch"></span>
-            <p>${l}</p>
+            <span class="growth-chart__swatch growth-chart__swatch--${l.shade}" aria-hidden="true"></span>
+            <p>${l.label}</p>
           </div>
         `).join('')}
       </div>

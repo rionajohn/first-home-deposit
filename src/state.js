@@ -88,6 +88,12 @@ const COLLAPSIBLE_DEFAULTS = {
   // DECISIONS.md D70's second amendment. The tracker's "What makes up your
   // goal" disclosure. Closed on load like every other one (D12).
   goalBreakdownOpen: false,
+  // DECISIONS.md D73. Frame 12's growth-chart range, in months. A VIEW
+  // setting, not a figure: it changes the window on the projection and never
+  // the projection, so it is not a section 6 key and nothing in model/ reads
+  // it. Defaults to the full window, which is what the chart drew before the
+  // control existed.
+  chartRangeMonths: 60,
   // Frame 19 (Before you run the check) — its three chevron sections.
   mipAskedOpen: false,
   mipBenefitsOpen: false,

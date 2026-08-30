@@ -1141,29 +1141,6 @@
   background: var(--color-border-subtle);
 }
 
-.growth-chart__threshold-line {
-  position: absolute;
-  left: 48px;
-  right: 0;
-  height: 1px;
-  background: var(--color-border-subtle);
-}
-
-.growth-chart__threshold-label {
-  position: absolute;
-  left: 48px;
-  z-index: 1;
-  margin: 0 0 4px;
-  padding: 1px 4px 1px 0;
-  background: var(--color-bg);
-  font-size: var(--text-footnote-size);
-  line-height: var(--text-footnote-line);
-  font-weight: 500;
-  letter-spacing: 0.2px;
-  color: var(--color-label-secondary);
-  transform: translateY(50%);
-}
-
 .growth-chart__y-label {
   position: absolute;
   left: 0;
@@ -1207,9 +1184,20 @@
   background: var(--color-accent-neutral);
 }
 
+/* THE UPPER SEGMENT IS HATCHED, NOT JUST LIGHTER (D73). The two segments
+   resolve to 2.67:1 in light and 2.36:1 in dark - under 3:1, the same wall
+   D70 measured - so opacity alone cannot tell them apart. The hatch is the
+   non-colour cue, and it reads naturally on a stacked band: the solid part
+   is what the lower monthly amount reaches, the hatched part is the extra
+   the higher amount adds. */
 .growth-chart__bar--high {
   border-radius: 2px 2px 0 0;
   opacity: 0.6;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 3px,
+    var(--color-surface) 3px 5px
+  );
 }
 
 .growth-chart__bar--low {
@@ -1251,11 +1239,24 @@
   color: var(--color-label-secondary);
 }
 
+/* MATCHING MODIFIERS, WHICH THIS DID NOT HAVE (D73). Both legend rows
+   rendered from this one class with no modifier, so the legend showed two
+   identical squares and nothing connected either row to either bar. Each row
+   now carries the treatment of the segment it names, hatch included. */
 .growth-chart__swatch {
   width: 12px;
   height: 12px;
   border-radius: 2px;
   background: var(--color-accent-neutral);
+}
+
+.growth-chart__swatch--high {
+  opacity: 0.6;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 3px,
+    var(--color-surface) 3px 5px
+  );
 }
 
 .timing-figures {

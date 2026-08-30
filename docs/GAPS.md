@@ -2239,8 +2239,24 @@ frame 12 as well, so doing it properly touches a screen D68 was not asked to cha
 halves - fixing the model and leaving the copy - would leave the desynchronisation in the words
 instead of the code, which is worse, because copy is what a participant reads.
 
-*Status: open. The smallest honest fix is all four at once: import the constant into `model.js`, and
-template the "5 years" in both screens' copy from a duration formatter over it.*
+**Amended 30 August 2026 (D73). The count moved in both directions and is now FIVE places, not
+three.** Frame 12's chart gained a range control, which adds a fifth assertion of the same number: the
+`5 yr` chip in `chartRangeLabels` carries `months: 60` as its value and "5 yr" as its label, so
+changing `CHART_WINDOW_MONTHS` to 84 would now also leave a chip offering five years on a chart whose
+model boundary sits elsewhere. Against that, frame 12's `beyondWindowNote` lost one of its two "5
+years" - its second clause went, for D73's own reasons - so the prose count fell by one as the
+control's count rose by one.
+
+**What it would take, unchanged in shape and now slightly larger.** `model.js` importing the constant
+is still a one-word change and still the easy third. The prose is still the hard part, and the chip
+set is now part of it: the range options would have to be derived from the window rather than written
+out, so that a shorter window offers fewer chips and a longer one offers more. That is a real design
+question - at an 84-month window, is the top chip "7 yr", or do the chips stay at 5 and stop matching
+the axis - and it is not answerable by a refactor.
+
+*Status: open, and deliberately not fixed by D73. Fixing the model's literal alone would leave the
+desynchronisation in the words and now also in a control, which is worse than leaving it in one place
+where it is written down.*
 
 ---
 
@@ -2576,3 +2592,56 @@ goal, and the "including stamp duty" clause is what distinguishes it from the ca
 below. `lenderOfferCaption` is unchanged and still says "your deposit goal", correctly: it captions a
 borrowing figure sized against `deposit-target`. A comment above the pair in `content.js` records why
 a consistency sweep across the two would break the second one.*
+
+---
+
+## G89. Frame 12's chart range chips sit below the fold
+
+*Raised 30 August 2026. `DECISIONS.md` D73. **A known cost, not a defect.***
+
+The growth chart's range chips are the first thing a participant must find to use the control at all,
+and they are not visible on arrival:
+
+| | Chips at | Visible viewport |
+|---|---|---|
+| Default text | 837px | 732px |
+| Large text | 1006px | 732px |
+
+The chart itself was already below the fold before the chips existed (795px and 930px for its
+heading), so this is not a regression the control introduced - it is a position the control inherits.
+
+**It was not solved by moving things.** The chips belong under the heading of the thing they control;
+above it they would be a chart control appearing before the chart. Reordering the screen to lift the
+chart would mean demoting the comparison card, which is the block D72 made the subject of the screen.
+Neither trade is worth making on a guess.
+
+**What would settle it is a session.** If participants scroll to the chart at all, the chips are
+directly above it and hard to miss. If they never reach the chart, the chips are the least of what is
+being missed, and the question becomes whether the chart earns its position rather than whether the
+chips do.
+
+*Status: open, deliberately unresolved. Watch for it in testing rather than pre-empting it.*
+
+---
+
+## G90. The growth chart's legend swatches were identical, and carried no information
+
+*Raised and **closed** 30 August 2026. `DECISIONS.md` D73. Recorded separately because it shipped, was
+live on the build, and had nothing to do with the work that found it.*
+
+`growthChartHTML` rendered both legend rows as `<span class="growth-chart__swatch"></span>` - one
+class, one background, **no modifier**. So the legend showed two identical dark squares beside "At
+£310 a month" and "At £200 a month", and nothing connected either row to either bar.
+
+This is worse than a contrast failure. The bars at least differed by opacity, so a sighted participant
+could see two bands and guess the order; the legend gave them no way to check the guess. A legend that
+distinguishes nothing is not a weak legend - it is decoration in the shape of a key.
+
+**How it survived.** Nothing tests it. `overlap.test.mjs` asserts nothing crosses text, which two
+identical squares satisfy; `action-bar.test.mjs` never looks at the chart. It was found by measuring
+the bar colours for a different reason and reading the markup that renders them.
+
+*Status: closed. Both swatches now carry a modifier matching the segment they name -
+`--growth-chart__swatch--high` takes the same hatch and opacity as the upper band. Fixed alongside
+D73's hatch, but it was a defect in its own right and would have needed fixing whether or not the
+range control was ever built.*

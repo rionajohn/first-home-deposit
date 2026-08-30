@@ -6396,3 +6396,119 @@ branch would have been wrong.
 
 `build-spec.md` section 2's own row now records all of this, so the next person reading "thresholds at
 5, 10, 15%" finds out immediately that it is deliberate and what changed around it.
+
+---
+
+## D73. Frame 12's growth chart gets a range control, and loses the threshold lines that made one impossible
+
+**Date.** 30 August 2026.
+
+Four chips - 6 mo, 1 yr, 3 yr, 5 yr - choose the chart's window, and the y-axis rescales to each. To
+get there the three threshold lines had to go, and that is the decision the rest follows from.
+
+### The lines and a range control could not both exist
+
+The chart drew 5/10/15% of the property value as fixed horizontal lines, which forced the y-axis up
+to whichever was highest. At the seeded figures that is £70,875, against a savings curve reaching
+£31,212 - so the curve occupied 44% of the plot at five years and **16% at six months**. A six-month
+view on that axis shows a flat strip near the floor: the range control would have existed and been
+useless.
+
+Three axis rules were costed before choosing:
+
+| Range | A: follow the curve | B: clamp to the lowest line | C: fixed (as built) |
+|---|---|---|---|
+| 6 mo | £11,546, no lines, curve **95%** | £23,625, 5% line only, curve 47% | £70,875, all three, curve **16%** |
+| 1 yr | £13,735, no lines, curve 95% | £23,625, 5% only, curve 55% | £70,875, all three, curve 18% |
+| 3 yr | £22,903, 5% only, curve 95% | £23,625, 5% only, curve 92% | £70,875, all three, curve 31% |
+| 5 yr | £32,773, 5% only, curve 95% | £32,773, 5% only, curve 95% | £70,875, all three, curve 44% |
+
+**Every option except C loses most of the lines anyway.** B keeps one line and halves the curve at six
+months; A keeps none below three years. There was no arrangement where a usable short range and three
+reference lines coexisted, so keeping the lines meant not having the control.
+
+**A was chosen, and the lines were dropped rather than kept in a degraded form.** A line that appears
+at some ranges and not others is worse than none: it makes the chart's furniture depend on a control
+that is supposed to change only the window.
+
+**The lines were also a weaker duplicate by this point.** D72 added a comparison card listing the same
+percentages with amounts *and* timeframes. Three unlabelled rules across a plot were the older, poorer
+version of that, and removing them leaves deposit context in one place instead of two.
+
+### It changes the default view, and that was checked rather than assumed
+
+The 5-yr default was previously a £70,875 axis and is now £32,773. **Every participant sees a
+different chart on arrival**, so it was screenshotted before and after rather than reasoned about. The
+curve goes from 44% of the plot to 89%, the bars become legible as a rising series rather than a strip
+along the bottom, and two collisions disappear with the labels that caused them - the £70,875 y-label
+over the "15% - £67,500" line, and the "5% - £22,500" label over the bars. Recorded as an improvement
+on the evidence, not on the argument.
+
+### The two series were never told apart, and one half of that was live
+
+`--bar--high` differed from `--bar--low` by `opacity: 0.6` alone. Measured against each other: **2.67:1
+in light, 2.36:1 in dark** - under the 3:1 D70 measured this palette against, so colour could not carry
+the distinction.
+
+`--high` now carries a **hatch**, which reads naturally on what is actually a stacked band: the solid
+part is what the lower monthly amount reaches, the hatched part is the extra the higher one adds.
+
+**The legend was worse than the bars, and independently so.** Both rows rendered
+`<span class="growth-chart__swatch">` from a single class with no modifier - two identical squares,
+so nothing connected either row to either bar at any contrast. That is a defect that shipped and had
+nothing to do with the range control; it is recorded on its own as `GAPS.md` G90. The swatches now
+carry modifiers matching their segments, hatch included.
+
+### Chips
+
+`chipRowHTML` is reused rather than rebuilt, and gained **optional** `ariaLabel` support. Optional
+deliberately: frame 09's chips are percentages, and "10%" reads correctly as an accessible name, so
+requiring an override would have meant writing one for every chip that does not need one. Frame 12's
+are abbreviations - "6 mo" announced as written is not a name a participant can act on - so those pass
+a spoken form: "Show 6 months", "Show 1 year", "Show 3 years", "Show 5 years".
+
+Verified: 48px height, `aria-pressed` correct on exactly one chip per range, one row at both text
+sizes (263px of 350 at default, 278px at Large).
+
+**The chart's change is announced, and the chart is not in the live region.** A twelve-bar chart cannot
+be announced usefully. A visually-hidden `role="status" aria-live="polite"` line carries a summary
+instead - "Showing 6 months. Savings reach £10,996." - and the chart stays out of it.
+
+### The control is honest about what it changes
+
+`chartRangeNoteText` says it once, under the chart: **"Changing the range changes what the chart shows,
+not what you are on track to save."** Without it, switching to six months and seeing a much smaller
+figure could read as the projection having changed rather than the window on it.
+
+Three confirmations. `estimateDisclosure` renders **above** the chart section and is unaffected by
+range. `monthsToTarget` decides beyond-window on its own hardcoded `months > 60`, so a view control
+cannot reach the model. And `chartRangeMonths` is a view key in `state.js`, not a section 6 figure -
+nothing in `model/` reads it.
+
+**`beyondWindowNote` lost its second clause** rather than becoming range-aware. It read "This could
+take more than 5 years at your current rate - the chart shows progress to 5 years." The second clause
+was true only while the chart had one range; making it range-aware would have restated the chip the
+participant had just pressed, and would have added a fifth place where `GAPS.md` G80 counts the
+60-month window asserted in prose. Its job - saying the chart is a window rather than the whole story -
+`chartRangeNoteText` now does once, for every range. The first clause keeps "5 years" correctly: that
+is the model's own boundary, not the chart's.
+
+### What went with the lines
+
+`chartReferenceCaption` and `chartGoalAboveNoteTemplate` are deleted - both described the lines, and
+D72's amendment that introduced them is superseded here two days after it was written.
+`thresholdLabelTemplate` goes, and so do `.growth-chart__threshold-line` and `__threshold-label`.
+`rangeHighAmount` and `rangeLowAmount` go with the axis they forced; the second had been dead since
+D72 deleted the range figure. `CHART_DEPOSIT_PCTS` is still imported, because the "Why a bigger
+deposit helps" card still reads its low and mid values.
+
+**The chart no longer claims any relationship to the goal**, and that is the right reading of it: it
+answers "how would my savings build up", the comparison card answers "what would each deposit take",
+and the goal block above answers "what am I saving toward". One question each.
+
+### Known costs, recorded not solved
+
+The chips land **below the fold** at both text sizes - 837px at default and 1006px at Large, against
+732px visible. That is a discoverability cost, not a layout bug: the chips belong under the heading
+they control, and moving them above it would put a chart control on a screen before the chart. Whether
+participants find them is what a session will show. `GAPS.md` G89.

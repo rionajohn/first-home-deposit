@@ -11,11 +11,15 @@
  *     = 0 — no wireframe drawn (D7 fallback); the growth chart and timing
  *     rows are replaced with the shared empty-state-card pattern
  *
- * The deposit range, chart thresholds and timing rows all plot against
- * CHART_DEPOSIT_PCTS (5/10/15%) rather than the participant's own chosen
- * deposit-pct (build-spec.md section 2's own instruction: "thresholds at 5,
- * 10, 15%") — the range figure's position marker is where their actual
- * committed deposit-target sits within that fixed band.
+ * THE CHART'S THRESHOLD LINES ARE GONE (D73) and its range is a control. It
+ * plotted 5/10/15% of the property value as fixed lines, which forced the
+ * y-axis up to £70,875 and left the savings curve at 44% of the plot at five
+ * years and 16% at six months. The axis now follows the curve and the chips
+ * choose the window; deposit context is the comparison card's job, which does
+ * it with amounts and timeframes rather than three unlabelled rules.
+ *
+ * `CHART_DEPOSIT_PCTS` still supplies the "Why a bigger deposit helps" card's
+ * low and mid figures, which is why it is still imported.
  *
  * Two "how did we work this out" links are wired to their build-spec.md
  * section 1 destinations: the one directly under the range figure goes to
@@ -30,6 +34,7 @@ import {
   infoBannerHTML,
   flagRowHTML,
   growthChartHTML,
+  chipRowHTML,
   rateBandRowHTML,
   figureRowHTML,
   infoLinkHTML,
@@ -74,12 +79,15 @@ export function render(container, ctx) {
   const essentialSpending = state['essential-spending'].value;
   const leftOverValue = state['left-over'].value;
 
-  const [lowPctValue, midPctValue, highPctValue] = CHART_DEPOSIT_PCTS;
-  const rangeLowAmount = propertyValue * lowPctValue;
-  // STILL DERIVED, STILL USED - by the growth chart's own scale and threshold
-  // lines, which build-spec.md fixes at 5/10/15% regardless of what the
-  // participant chose. It no longer feeds a headline or a range figure.
-  const rangeHighAmount = propertyValue * highPctValue;
+  // ONLY THE BENEFIT CARD READS THESE NOW (D73). They fed the chart's
+  // threshold lines and its axis; both are gone. `rangeLowAmount` and
+  // `rangeHighAmount` went with them - the first had already been dead since
+  // D72 deleted the range figure.
+  const [lowPctValue, midPctValue] = CHART_DEPOSIT_PCTS;
+
+  // The chart's window, in months. A view setting (D73): it changes what the
+  // chart draws and never what the model projects.
+  const rangeMonths = state.chartRangeMonths ?? CHART_WINDOW_MONTHS;
 
   // The participant's own choice, which this screen leads with now (D72).
   const depositPctValue = state['deposit-pct'].value;
@@ -165,37 +173,51 @@ export function render(container, ctx) {
 
       ${unreachable ? '' : `
         <h3 class="section-heading">${c.chartHeading}</h3>
+        <p class="visually-hidden" id="chart-range-legend">${c.chartRangeLegend}</p>
+        <div role="group" aria-labelledby="chart-range-legend">
+          ${chipRowHTML({
+            chips: c.chartRangeLabels.map((r) => ({ value: r.months, label: r.label, ariaLabel: r.ariaLabel })),
+            selected: rangeMonths,
+            action: 'select-chart-range',
+          })}
+        </div>
         ${(() => {
+          // TWELVE TICKS ACROSS WHATEVER RANGE IS SHOWN, so the bar count and
+          // spacing never change - only the months each bar stands for.
           const points = [];
           for (let i = 1; i <= 12; i += 1) {
-            const months = Math.round((i * CHART_WINDOW_MONTHS) / 12);
+            const months = Math.round((i * rangeMonths) / 12);
             points.push({ months, low: balanceAtMonth({ startingBalance: savedTowardDeposit, monthlyAmount: monthlyLow, months }), high: balanceAtMonth({ startingBalance: savedTowardDeposit, monthlyAmount: monthlyHigh, months }) });
           }
-          const maxScale = Math.max(rangeHighAmount, ...points.map((p) => p.high)) * 1.05;
-          const thresholds = CHART_DEPOSIT_PCTS.map((pct) => ({
-            label: fill(c.thresholdLabelTemplate, { pct: formatPercent(pct, 0), amount: formatCurrency(propertyValue * pct) }),
-            pct: ((propertyValue * pct) / maxScale) * 100,
-          }));
+          // THE AXIS FOLLOWS THE CURVE (D73). It used to be forced up to the
+          // 15% threshold line, which put the curve at 44% of the plot at five
+          // years and 16% at six months. With the lines gone it tracks the
+          // highest bar plus 5% headroom, so every range fills the plot.
+          const maxScale = Math.max(...points.map((p) => p.high)) * 1.05;
           const chartPoints = points.map((p) => ({
             label: formatMonthsDuration(p.months),
             lowPct: (p.low / maxScale) * 100,
             highPct: (p.high / maxScale) * 100,
           }));
-          const xAxisLabels = [c.xAxisNow, formatMonthsDuration(CHART_WINDOW_MONTHS / 3, { abbreviated: true }), formatMonthsDuration((CHART_WINDOW_MONTHS / 3) * 2, { abbreviated: true }), formatMonthsDuration(CHART_WINDOW_MONTHS, { abbreviated: true })];
+          const xAxisLabels = [c.xAxisNow, formatMonthsDuration(rangeMonths / 3, { abbreviated: true }), formatMonthsDuration((rangeMonths / 3) * 2, { abbreviated: true }), formatMonthsDuration(rangeMonths, { abbreviated: true })];
           return growthChartHTML({
-            thresholds,
             points: chartPoints,
             xAxisLabels,
-            legend: [fill(c.legendTemplate, { amount: formatCurrency(monthlyHigh) }), fill(c.legendTemplate, { amount: formatCurrency(monthlyLow) })],
+            // `shade` pairs each row with the segment it names. The order is
+            // high then low, matching the stack read top down.
+            legend: [
+              { label: fill(c.legendTemplate, { amount: formatCurrency(monthlyHigh) }), shade: 'high' },
+              { label: fill(c.legendTemplate, { amount: formatCurrency(monthlyLow) }), shade: 'low' },
+            ],
             yTop: formatCurrency(maxScale),
             yBottom: c.yAxisFloor,
           });
         })()}
-        <p class="provenance-caption">${c.chartReferenceCaption}${
-          combinedGoalValue > rangeHighAmount
-            ? ` ${fill(c.chartGoalAboveNoteTemplate, { goal: formatCurrency(combinedGoalValue) })}`
-            : ''
-        }</p>
+        <p class="provenance-caption">${c.chartRangeNoteText}</p>
+        <p class="visually-hidden" role="status" aria-live="polite">${fill(c.chartRangeAnnouncementTemplate, {
+          range: formatMonthsDuration(rangeMonths),
+          amount: formatCurrency(balanceAtMonth({ startingBalance: savedTowardDeposit, monthlyAmount: monthlyHigh, months: rangeMonths })),
+        })}</p>
         <p class="legal-text">${fill(c.chartCaptionTemplate, { aer: formatPercent(RATES.bankRate) })}</p>
         ${beyondWindow ? infoBannerHTML(c.beyondWindowNote) : ''}
       `}
@@ -242,6 +264,17 @@ export function render(container, ctx) {
   // pressed (found by its data-action + data-disclosure-id), so the card
   // opens under the participant's thumb rather than throwing the screen back
   // to the top and dropping focus to <body>.
+  // THE RANGE CHIPS (D73). `rerenderInPlace`, not a bare render: it holds the
+  // scroller's offset and refocuses the chip that was pressed, so the chart
+  // redraws under the participant's thumb rather than throwing them to the top
+  // of a screen the chart is already well down.
+  container.querySelectorAll('[data-action="select-chart-range"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const next = setState({ chartRangeMonths: Number(btn.dataset.value) });
+      rerenderInPlace(container, render, { ...ctx, state: next });
+    });
+  });
+
   container.querySelectorAll('[data-action="toggle-disclosure"]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const next = setState({ resultHowWeWorkedOpen: !state.resultHowWeWorkedOpen });
