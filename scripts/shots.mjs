@@ -489,14 +489,13 @@ const ERROR_STATES = {
     'monthly-high': { value: FULL['left-over'].value + 400, provenance: 'entered' },
   }),
   'saving-date-below-bound': () => ({
-    // ONE MONTH UNDER D82'S BOUND, computed from the model rather than picked,
-    // so it is under the bound by exactly one month whatever the seed holds.
-    // Renamed from `saving-date-ceiling`: it no longer produces a ceiling
-    // BANNER, because D82 bounded the stepper and the banner went with it. What
-    // it produces is the state a participant reaches when the bound moves while
-    // they are on another screen - their date standing, both down controls
-    // disabled, Continue disabled, and (until D82's second open question is
-    // filled) nothing on screen saying why.
+    // ONE MONTH UNDER THE FLOOR, computed from the model rather than picked, so
+    // it is under it by exactly one month whatever the seed holds. It does not
+    // shoot an error: since D83 the screen MOVES the date to the floor and
+    // discloses the move (`dateMovedToEarliest`), so this is the shot of that
+    // disclosure. Kept under `--error` rather than moved to `--date` because
+    // `--date` seeds a date the control could produce and this one seeds a date
+    // it could not.
     ...monthsFromToday(Math.max(0, boundMonths() - 1)),
   }),
   'saving-past-date': () => ({

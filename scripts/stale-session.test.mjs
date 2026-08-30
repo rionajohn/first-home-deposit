@@ -246,28 +246,35 @@ test('mid-session persistence still carries a typed calculator value across a re
 });
 
 /**
- * THE TYPED TARGET YEAR (frame 10b).
+ * THE SELECTED TARGET YEAR (frame 10b).
  *
- * The year on step 2 of 3 used to be a stepped-only readout, and is now typed
- * as well - the same `focus`/`change` pair frames 05 and 09 already use. Three
- * things have to hold, and only the first is about this screen:
+ * WAS "THE TYPED TARGET YEAR" UNTIL D83. The year was a text field between D61
+ * and D82 and is a `<select>` now, so the attribute contract this test used to
+ * pin - `type="text"`, `inputmode="numeric"`, `maxlength="4"` - describes a
+ * control that no longer exists, and so does the empty-field draft it asserted:
+ * a `<select>` always holds one of its own options, which is why `state.js`'s
+ * `targetYearCleared` went with the field.
  *
- *   1. The typed year survives a reload and a back navigation, exactly as
+ * WHAT SURVIVED THE REWRITE IS THE HALF THAT WAS NEVER ABOUT THE FIELD, and it
+ * is why this test stays in this file rather than moving to
+ * `date-ceiling.test.mjs`:
+ *
+ *   1. The chosen year survives a reload and a back navigation, exactly as
  *      frame 09's typed property value does above. This is the half that
  *      touches D59: the store is stamped with the running build, so a
  *      same-build restore must carry the year through untouched rather than
  *      discard it as stale.
  *   2. It reaches the figure step 3 and the result screen are built from.
- *      `savings-rate` is SOLVED from the target date on this path (D2), so a
- *      year the participant typed and a year they stepped to must produce the
- *      same figure - asserted against the model directly, not against a
- *      number written into this file, so the two cannot drift.
- *   3. An empty field writes nothing. This is CLAUDE.md's state rule and
- *      D46/G62's defect: a draft that reached `targetYear` would leave the
- *      store holding a year no screen expects, and the calculator would solve
- *      against it.
+ *      `savings-rate` is SOLVED from the target date on this path (D2), so the
+ *      year on screen and the figure downstream must agree - asserted against
+ *      the model directly, not against a number written into this file, so the
+ *      two cannot drift.
+ *
+ * The floor's own behaviour - which years are offered, what happens when one
+ * moves - is `date-ceiling.test.mjs`'s (D83). This asserts only that whatever
+ * was chosen persists and drives the calculator.
  */
-test('a typed target year survives a reload and a back navigation, and drives step 3', async () => {
+test('a selected target year survives a reload and a back navigation, and drives step 3', async () => {
   const ctx = await contextWith(undefined);
   try {
     const page = await ctx.newPage();
@@ -281,71 +288,42 @@ test('a typed target year survives a reload and a back navigation, and drives st
     await page.click('[data-action="continue"]');
     await page.waitForTimeout(400);
 
-    // Switch to the date-stepper variant, which is where the year lives.
+    // Switch to the date variant, which is where the year lives.
     await page.click('[data-action="select-solve-for"][data-value="amount"]');
     await page.waitForTimeout(300);
 
-    const yearInput = await page.$('[data-role="target-year"]');
-    assert.ok(yearInput, 'frame 10b target-year input is present');
+    const yearSelect = await page.$('[data-action="select-year"]');
+    assert.ok(yearSelect, 'frame 10b year select is present');
 
-    // It is a numeric-keypad text field, not a number input, and it holds a
-    // four-digit year - the whole of the attribute contract this change added.
-    const attrs = await page.evaluate(() => {
-      const el = document.querySelector('[data-role="target-year"]');
-      return { type: el.type, inputmode: el.getAttribute('inputmode'), maxlength: el.getAttribute('maxlength') };
+    // PICKED FROM WHAT THE CONTROL OFFERS, not written here. The list is
+    // floored at the earliest reachable date (D83), so a year chosen by
+    // arithmetic in this file could sit outside it and fail for the wrong
+    // reason. The last option is always well clear of the floor.
+    const chosenYear = await page.evaluate(() => {
+      const el = document.querySelector('[data-action="select-year"]');
+      return Number(el.options[el.options.length - 1].value);
     });
-    assert.equal(attrs.type, 'text');
-    assert.equal(attrs.inputmode, 'numeric');
-    assert.equal(attrs.maxlength, '4');
-
-    const typedYear = new Date().getFullYear() + 7;
-    await yearInput.fill(String(typedYear));
-    await yearInput.dispatchEvent('change');
+    await page.selectOption('[data-action="select-year"]', String(chosenYear));
     await page.waitForTimeout(300);
 
     let stored = await readStored(page);
-    assert.equal(stored.targetYear, typedYear);
-    assert.equal(stored.targetYearCleared, false);
+    assert.equal(stored.targetYear, chosenYear);
     const targetMonth = stored.targetMonth;
 
     // 1. Survives the reload. A same-build stamp is a mid-session restore.
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForTimeout(400);
     stored = await readStored(page);
-    assert.equal(stored.targetYear, typedYear, 'the typed year survived the reload');
+    assert.equal(stored.targetYear, chosenYear, 'the chosen year survived the reload');
     assert.equal(stored.buildVersion, BUILD_VERSION);
     assert.equal(
-      await page.evaluate(() => document.querySelector('[data-role="target-year"]').value),
-      String(typedYear),
-      'and the field is repopulated with it',
+      await page.evaluate(() => document.querySelector('[data-action="select-year"]').value),
+      String(chosenYear),
+      'and the control is repopulated with it',
     );
 
-    // 2. AN EMPTY FIELD IS A DRAFT. The committed year is left standing and
-    // Continue is disabled - no figure moves, and no error is raised, because
-    // nothing is wrong yet.
-    const liveYear = await page.$('[data-role="target-year"]');
-    await liveYear.fill('');
-    await liveYear.dispatchEvent('change');
-    await page.waitForTimeout(300);
-    stored = await readStored(page);
-    assert.equal(stored.targetYearCleared, true);
-    assert.equal(stored.targetYear, typedYear, 'the draft did not write the committed year');
-    assert.equal(
-      await page.evaluate(() => document.querySelector('[data-action="continue"]').disabled),
-      true,
-      'Continue is disabled while the field is empty',
-    );
-
-    // Typing it back resolves the draft.
-    const backAgain = await page.$('[data-role="target-year"]');
-    await backAgain.fill(String(typedYear));
-    await backAgain.dispatchEvent('change');
-    await page.waitForTimeout(300);
-    stored = await readStored(page);
-    assert.equal(stored.targetYearCleared, false);
-
-    // 3. It drives the figure step 3 is built from. `savings-rate` is solved
-    // from the typed date, so it must match the model run over the same
+    // 2. It drives the figure step 3 is built from. `savings-rate` is solved
+    // from the chosen date, so it must match the model run over the same
     // months - computed here from the store rather than hard-coded.
     await page.click('[data-action="continue"]');
     await page.waitForTimeout(400);
@@ -353,10 +331,11 @@ test('a typed target year survives a reload and a back navigation, and drives st
 
     stored = await readStored(page);
     const now = new Date();
-    const months = (typedYear - now.getFullYear()) * 12 + (targetMonth - 1 - now.getMonth());
+    const months = (chosenYear - now.getFullYear()) * 12 + (targetMonth - 1 - now.getMonth());
     const expected = monthlyAmountFromDate(stored, months);
     assert.ok(Math.abs(stored['savings-rate'].value - expected.value) < 1e-6,
       `savings-rate ${stored['savings-rate'].value} should be the model's ${expected.value}`);
+
     // And step 3 renders it, so the figure reached the screen and not just the
     // store. `monthly-low` is the range's lower bound, drawn by the review row.
     //
@@ -374,13 +353,13 @@ test('a typed target year survives a reload and a back navigation, and drives st
       `step 3 should show ${lowShown}`,
     );
 
-    // 4. Going back to step 2 still shows the typed year - the history path,
+    // 3. Going back to step 2 still shows the chosen year - the history path,
     // which is the one a participant uses to change their mind.
     await page.goBack();
     await page.waitForTimeout(500);
     assert.equal(
-      await page.evaluate(() => document.querySelector('[data-role="target-year"]').value),
-      String(typedYear),
+      await page.evaluate(() => document.querySelector('[data-action="select-year"]').value),
+      String(chosenYear),
       'the year is still there after a back navigation',
     );
   } finally {

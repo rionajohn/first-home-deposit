@@ -237,24 +237,30 @@ export function defaultState() {
     targetMonth: null, // 1-12
     targetYear: null,
 
-    // Frame 10b — IS THE YEAR FIELD SITTING EMPTY WHILE THE PARTICIPANT
-    // RE-TYPES IT?
+    // Frame 10b — DID THE APP MOVE THE PARTICIPANT'S TARGET DATE?
     //
-    // The year is typed as well as stepped, so it has the same two ways of
-    // being empty that frame 09's property value has, and it takes frame 09's
-    // answer: an empty or unparseable field is this screen's own draft, never
-    // a written value. See `propertyValueCleared` below, DECISIONS.md D46 and
-    // GAPS.md G62 - the rule is the same one, applied to the second field in
-    // this build that a participant can type into and leave empty.
+    // Replaces `targetYearCleared` (DECISIONS.md D83). That key existed because
+    // the year was a TYPED field and could sit empty mid-edit, which is frame
+    // 09's `propertyValueCleared` case exactly. The year is a `<select>` now: it
+    // always holds one of its own options, so there is no half-made state to
+    // keep out of the store and no draft to track.
     //
-    // `targetYear` is left standing while this is true, so nothing downstream
-    // can read a half-made edit. Continue is disabled, exactly as frame 09's
-    // is on an empty property value.
+    // What replaced it is a different kind of flag. The date is floored at the
+    // earliest date the goal is reachable by, and an edit on ANOTHER screen -
+    // essentials, money in, property value, deposit percentage, the saved total
+    // - can move that floor past a date the participant already picked. The
+    // date is then moved to the new floor, and this records that it happened so
+    // the screen can say so on arrival (`dateMovedToEarliest` in content.js).
+    // D46's rule, met the way D46 asks: the replacement is visible.
+    //
+    // CLEARED BY THE PARTICIPANT PICKING A DATE, not by a timeout and not by
+    // navigating. The disclosure has to survive the arrival it describes, and it
+    // must not outlive the value it describes.
     //
     // NOT IN `stage.js`'s STAGE_KEYS, for the reason `targetYear` itself is
-    // not: a stage patch does not write the target date, so clearing the draft
-    // without clearing the year it describes would make the two disagree.
-    targetYearCleared: false,
+    // not: a stage patch does not write the target date, so a flag about that
+    // date has no business being restored beside figures that are not.
+    dateMovedToEarliest: false,
 
     // Frame 09 (Property and deposit) — IS THE PROPERTY VALUE FIELD SITTING
     // EMPTY WHILE THE PARTICIPANT RE-TYPES IT?

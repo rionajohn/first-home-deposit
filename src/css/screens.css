@@ -969,109 +969,76 @@
   color: var(--color-label);
 }
 
-/* Input / Date stepper (frame 10b only) */
-.date-stepper {
+/* Input / Date select (frame 10b only) — DECISIONS.md D83, replacing the two
+   chevron steppers D82 bounded. The box, the type and the spacing are the
+   stepper's, unchanged: what went is the pair of chevron buttons and the
+   typed-year field, not the frame's look. */
+.date-select {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
   width: 100%;
 }
 
-.date-stepper__row {
+.date-select__row {
   display: flex;
   gap: var(--space-md);
   width: 100%;
 }
 
-.date-stepper__control {
+.date-select__field {
+  position: relative;
   flex: 1 1 0;
   min-width: 0;
-  min-height: 56px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: var(--space-xs) var(--space-md);
+}
+
+/* `appearance: none` strips the platform's own closed-state chrome so the
+   control matches the box the stepper drew; the OPEN list is still the
+   platform's and is deliberately untouched (see dateSelectHTML). Everything
+   visible below - the 56px box, the surface, the subtle border, the 17px
+   semibold centred value - carries over from the stepper's control box
+   unchanged, so the frame reads as it did.
+
+   The horizontal padding is asymmetric on purpose: the right side is wide
+   enough for the chevron to sit inside the box without the value ever running
+   under it, and the left matches so the value stays optically centred. */
+.date-select__control {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-width: 0;
+  min-height: 56px;
+  padding: var(--space-xs) var(--space-xl);
   background: var(--color-surface);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   box-sizing: border-box;
-}
-
-.date-stepper__value {
-  margin: 0;
+  font-family: inherit;
   font-size: calc(17px * var(--text-scale));
   line-height: calc(24px * var(--text-scale));
   font-weight: 600;
   color: var(--color-label);
-}
-
-/* The year readout is an input rather than a <p> (ui.js dateStepperHTML). It
-   must be indistinguishable from the month's <p> beside it until it is tapped,
-   so this modifier only undoes what a user-agent stylesheet puts on a form
-   control - the border, the background, the padding, the font family, the
-   ~20ch default width - and adds nothing of its own. Every visible property
-   (size, line height, weight, colour, margin) still comes from
-   `.date-stepper__value` above, so the two readouts cannot drift apart.
-
-   NO BORDER, NO UNDERLINE, NO FILL. Frame 05's `.figure-input__field` draws a
-   1px bottom rule, but that rule belongs to the wrapper around its input and
-   frame 05 has no box of its own; here the `.date-stepper__control` box is
-   already the field's outline, and a second rule 1px inside it would be a
-   change to a screen this pass is not meant to redraw. Focus is still shown -
-   the global :focus-visible ring in shell.css applies to this input like any
-   other control, on keyboard focus only.
-
-   NO min-height EITHER, which is the one place this departs from
-   `.figure-input__value`. That rule sets `min-height: var(--touch-target-min)`
-   on a readout standing alone on the screen; the same 44px here would grow the
-   control box by about 20px and move the stepper - a visible change. The
-   readout keeps its 24px line box, which still clears WCAG 2.5.8's 24px
-   minimum, and the two 44px chevron buttons flanking it are untouched.
-
-   4ch fits the four digits `maxlength` allows. The control is `flex: 1 1 0`
-   and centres its children, so this width sizes the caret box only and never
-   the box around it. */
-.date-stepper__value--input {
-  width: 4ch;
-  border: none;
-  background: none;
-  padding: 0;
-  font-family: inherit;
   text-align: center;
-  -moz-appearance: textfield;
-}
-
-.date-stepper__step {
-  appearance: none;
-  background: none;
-  border: none;
-  padding: var(--space-xs);
-  min-width: var(--touch-target-min);
-  min-height: var(--touch-target-min);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  text-align-last: center;
   cursor: pointer;
 }
 
-/* At the earliest reachable date the down control is disabled, not removed
-   (DECISIONS.md D82 - see dateStepperHTML for why removal is worse). The
-   treatment is `.button--primary:disabled`'s exactly, so a dead control looks
-   the same wherever it appears in this build rather than each one inventing
-   its own grey. The box keeps its full touch-target size: the control has not
-   gone anywhere, it has run out of room to move. */
-.date-stepper__step:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+/* THE ONE AFFORDANCE `appearance: none` REMOVES AND THIS PUTS BACK. Without a
+   chevron the control is a bordered box with a word in it, which is what a
+   read-only readout looks like everywhere else on this screen. Drawn from
+   icons.js like every other icon rather than as a background image, and
+   `pointer-events: none` so the whole box stays one tap target. */
+.date-select__chevron {
+  position: absolute;
+  right: var(--space-md);
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--color-label-secondary);
 }
 
-/* The down control used to render the up chevron rotated 180deg. It renders
-   chevronDown now — icons.js draws all four chevrons from the same geometry,
-   so nothing has to depend on a transform to point the right way. */
-
-.date-stepper__hint {
+.date-select__hint {
   margin: 0;
   font-size: var(--text-footnote-size);
   line-height: var(--text-footnote-line);

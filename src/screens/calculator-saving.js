@@ -18,24 +18,47 @@
  * savings-rate is solved from the chosen date, and monthly-low/monthly-high
  * are DERIVED from it at 0.9x/1.1x (rangeFromCentral).
  *
- * THE DATE STEPPER IS BOUNDED (DECISIONS.md D82, superseding D80's option C).
- * D80 let the participant set a date needing more than the ceiling and then
- * refused it with a banner. The stepper's down controls now stop at the
- * earliest date the goal is reachable by, so the impossible date cannot be
- * set, there is nothing to refuse, and `errorDateNeedsMoreThanLeftOver` is no
- * longer rendered by anything. D46 is satisfied more simply than it was: no
- * value is discarded because none is ever taken.
+ * THE DATE IS TWO DROPDOWNS, FLOORED AT THE EARLIEST REACHABLE DATE
+ * (DECISIONS.md D83, superseding D82's bounded steppers, which superseded
+ * D80's banner). The floor is the LIST'S FIRST ENTRY rather than a control
+ * that stops responding: an impossible date cannot be picked because it is not
+ * offered. That is what removed D82's two open questions - there is no
+ * disabled chevron needing an explanation, and no stepping into an invalid
+ * month, so no boundary case and no D46 question about a dragged value.
  *
- * WHAT THE BOUND IS AND WHERE IT LIVES. `earliestWorkableMonths()` below, one
+ * FLOOR ONLY, NOT DEFAULT. The list starts at the earliest date; the SELECTION
+ * stays the seeded one. At the earliest date the solved amount is by
+ * definition the entire left-over, so opening there would put the most
+ * aggressive figure the model permits in front of the participant before they
+ * had done anything - an anchor against RQ2 and an implied recommendation
+ * against MCOB 4.8A. The seeded date is facilitator-controlled, which is what
+ * a research instrument needs.
+ *
+ * WHAT THE FLOOR IS AND WHERE IT LIVES. `earliestWorkableMonths()` below, one
  * number, recomputed on EVERY render - which is every entry to this screen,
- * every stepper press, every segment switch and every back-navigation onto it.
- * It has to be, because everything that moves it is committed on another
- * screen (see that function's own note), so a value cached on entry would be
- * stale the moment the participant edited a figure on frame 11 and came back.
+ * every selection, every segment switch and every back-navigation onto it. It
+ * has to be, because everything that moves it is committed on another screen
+ * (see that function's own note), so a value cached on entry would be stale the
+ * moment the participant edited a figure on frame 11 and came back.
  *
- * ONE SOURCE FOR THE BOUND AND THE DISABLE. `belowBound` and both down-control
- * disable flags are the same comparison against the same number, so the button
- * that refuses a press and the guard that refuses a commit cannot disagree.
+ * ONE SOURCE, AND NOW ONLY ONE CONSUMER. The option lists are built from that
+ * number and nothing else reads it - no disable flag, no handler guard, no
+ * Continue guard. A list cannot offer what it was not given, so there is
+ * nothing left for a second check to disagree with. That is the whole reason a
+ * `<select>` was chosen over a custom control: D82 needed three readers of one
+ * number, all able to drift apart.
+ *
+ * THE ONE CASE A FLOOR CANNOT PREVENT (D83). The participant picks a date, then
+ * makes an upstream edit - essentials up, money in down, property value up,
+ * deposit percentage up, saved total down - that moves the floor past their
+ * selection. They never touched the dropdown. Their date is MOVED to the new
+ * floor and the move is DISCLOSED (`dateMovedToEarliest`), which is D46's own
+ * rule: a value the participant set may be replaced only if the replacement is
+ * visible to them. Blocking the upstream edit was rejected - it would make a
+ * figure about their actual finances unchangeable because of a target set
+ * afterwards - and so was keeping the date and raising D80's banner, which
+ * routes the one unpreventable case straight into the state G96 records as cut
+ * off below the fold.
  *
  * THE CEILING APPLIES TO BOTH PATHS (DECISIONS.md D80, closing GAPS.md G64
  * and G65). It used to apply to one. The slider path measured every input
@@ -64,7 +87,7 @@ import {
   infoBannerHTML,
   flagRowHTML,
   segmentedControlHTML,
-  dateStepperHTML,
+  dateSelectHTML,
   figureDisplayHTML,
   reviewRowHTML,
   warningBannerHTML,
@@ -83,6 +106,20 @@ function fill(template, values) {
 }
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/**
+ * HOW MANY YEARS THE YEAR LIST OFFERS PAST THE FLOOR.
+ *
+ * A stepper needed no horizon; a list does, and `build-spec.md` gives none - so
+ * this is this build's own figure and is recorded as one (GAPS.md G97). Twenty
+ * years is well past anything the model reports in detail (`monthsToTarget`
+ * stops projecting at 60 months) and past any deposit horizon a participant in
+ * this study is likely to name, without being so long that the list becomes a
+ * scroll. It is deliberately NOT `MORTGAGE_TERM_YEARS`: a mortgage term is not
+ * a saving horizon, and borrowing one figure for the other is how two unrelated
+ * things end up moving together.
+ */
+const YEAR_LIST_SPAN = 20;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -139,23 +176,17 @@ function earliestWorkableMonths(state, savingCeiling) {
   return Math.max(0, Math.ceil(months));
 }
 
-// `monthsFromNow`'s INVERSE IS NOT HERE ANY MORE, and its absence is the point.
-// D80 needed it to name the earliest date inside the banner; nothing renders
-// that date now, so the three lines that built the label went with the string
-// that used them rather than sitting unused waiting to rot. Filling D82's
-// second open question - where the bound's explanation sits - brings both back,
-// and `earliestWorkableMonths` below is the half worth keeping either way.
-
 /**
- * One month step in either direction, rolling the year. USED BOTH BY THE
- * DISABLE CALCULATION AND BY THE HANDLER, so the button that refuses a press
- * and the press it would have made are computed by the same two lines - the
- * failure mode being avoided is a control disabled for one date while the
- * handler moves to another.
+ * `monthsFromNow`'s inverse: the month and year a date `n` months from today
+ * lands on. Back since D83, and now load-bearing rather than decorative - the
+ * floor's own month and year are what the two option lists are built from, and
+ * what `dateMovedToEarliest` names when the floor moves past a chosen date.
+ * (It was deleted under D82, when nothing rendered the earliest date.)
  */
-function monthStep(month, year, delta) {
-  const i = (month - 1) + delta;
-  return { month: ((i % 12) + 12) % 12 + 1, year: year + Math.floor(i / 12) };
+function dateAtMonths(n) {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + n, 1);
+  return { month: d.getMonth() + 1, year: d.getFullYear() };
 }
 
 // Neither "Savings interest rate" nor "Tax rate" has an owning editable
@@ -193,14 +224,8 @@ export function render(container, ctx) {
     const seeded = new Date(now.getFullYear(), now.getMonth() + seedMonths, 1);
     setState({ targetMonth: seeded.getMonth() + 1, targetYear: seeded.getFullYear() });
   }
-  const targetMonth = state.targetMonth ?? new Date().getMonth() + 1;
-  const targetYear = state.targetYear ?? new Date().getFullYear() + 3;
-  // THE YEAR FIELD IS EMPTY WHILE THE PARTICIPANT RE-TYPES IT (state.js
-  // `targetYearCleared`). Frame 09's `propertyValueCleared` pattern exactly:
-  // the draft is the screen's own, `targetYear` above is left standing, and
-  // Continue is disabled until the field holds a year again. DECISIONS.md D46,
-  // GAPS.md G62.
-  const yearCleared = state.targetYearCleared;
+  let targetMonth = state.targetMonth ?? new Date().getMonth() + 1;
+  let targetYear = state.targetYear ?? new Date().getFullYear() + 3;
 
   // The seed is what the accounts show this session has been putting aside.
   const seedLow = MOCK_POSITION.recentMonthlySavingLow;
@@ -214,30 +239,42 @@ export function render(container, ctx) {
     monthlyHigh = { value: Math.min(seedHigh, savingCeiling), provenance: seedProvenance };
   }
 
-  // --- The bound (D82) -----------------------------------------------------
-  // Computed before anything reads it, and read by three things that must
-  // agree: whether Continue commits, whether each down control accepts a
-  // press, and where the stepper may go.
+  // --- The floor (D83) -----------------------------------------------------
   const boundMonths = earliestWorkableMonths(state, savingCeiling);
-  const monthsChosen = monthsFromNow(targetMonth, targetYear);
-  // A DATE ALREADY BELOW THE BOUND IS NOT A PRESS THE STEPPER LET THROUGH - it
-  // is a bound that moved. The participant sets a date here, goes back to frame
-  // 11, raises their property value, and returns: their date now needs more
-  // than the ceiling and the stepper had nothing to do with it.
+  const floor = boundMonths === null ? null : dateAtMonths(boundMonths);
+
+  // A DATE ALREADY BELOW THE FLOOR IS NOT A SELECTION THE LIST OFFERED - it is
+  // a floor that moved (see the header). The date is moved to the new floor and
+  // the move is disclosed; the disclosure clears the moment the participant
+  // picks a date themselves.
   //
-  // NOTHING IS REWRITTEN. Their month and year stand exactly as they set them
-  // (D46), the down controls are disabled so they cannot go further out of
-  // range, the up controls are live so the bound is one press-run away, and
-  // Continue is disabled so no impossible figure is committed - which is G64's
-  // invariant, kept without the banner that used to carry it. It is UNEXPLAINED
-  // on screen until the copy in D82's second open question lands; that is a
-  // known cost of this commit and is recorded rather than worked around.
-  const belowBound = boundMonths !== null && monthsChosen < boundMonths;
-  const downOneMonth = monthStep(targetMonth, targetYear, -1);
-  const monthDownDisabled = boundMonths !== null
-    && monthsFromNow(downOneMonth.month, downOneMonth.year) < boundMonths;
-  const yearDownDisabled = boundMonths !== null
-    && monthsFromNow(targetMonth, targetYear - 1) < boundMonths;
+  // WRITTEN DURING RENDER, which this screen already does for the seeded date
+  // above and for the same reason: the correction has to be in the store before
+  // anything downstream reads it, and the locals are reassigned to match so
+  // this render and the store cannot disagree about which date is on screen.
+  let movedToEarliest = state.dateMovedToEarliest === true;
+  if (solveFor === 'amount' && floor !== null && monthsFromNow(targetMonth, targetYear) < boundMonths) {
+    targetMonth = floor.month;
+    targetYear = floor.year;
+    movedToEarliest = true;
+    setState({ targetMonth, targetYear, dateMovedToEarliest: true });
+  }
+
+  // THE LISTS, BOUNDED AS A PAIR. The year list starts at the floor's year. The
+  // month list starts at the floor's MONTH in that year and at January in every
+  // later one - so the pair cannot express a date below the floor, in any
+  // combination, without a single comparison at selection time.
+  //
+  // The selected year is always included even if it sits past the span, so a
+  // restored session holding a far-future date can still render its own value
+  // rather than silently showing a different one.
+  const floorYear = floor === null ? targetYear : floor.year;
+  const lastYear = Math.max(floorYear + YEAR_LIST_SPAN, targetYear);
+  const yearOptions = [];
+  for (let y = floorYear; y <= lastYear; y += 1) yearOptions.push({ value: y, label: String(y) });
+  const firstMonth = floor !== null && targetYear === floor.year ? floor.month : 1;
+  const monthOptions = [];
+  for (let m = firstMonth; m <= 12; m += 1) monthOptions.push({ value: m, label: MONTH_NAMES[m - 1] });
 
   let errorText = null;
   let previewAmount = null;
@@ -246,24 +283,22 @@ export function render(container, ctx) {
     if (monthlyHigh.value > savingCeiling) {
       errorText = c.errorExceedsLeftOver;
     }
-  } else if (!yearCleared) {
-    // GUARDED ON THE DRAFT FIRST. While the year field is empty there is no
-    // target date, so there is nothing to solve and nothing to say is wrong -
-    // `previewAmount` stays null and Continue is disabled by `yearCleared`
-    // below rather than by an error. This is the branch that keeps the state
-    // rule: no figure is derived from a year the guard has not tested.
+  } else {
+    // NO DRAFT GUARD ANY MORE. The year was a typed field under D82 and could
+    // be empty mid-edit, which is what `targetYearCleared` existed for; a
+    // `<select>` always holds one of its own options, so there is no half-made
+    // state to keep out of the store. D83 removed the key with the field.
     const months = monthsFromNow(targetMonth, targetYear);
     if (months < 0) {
       errorText = c.errorPastDate;
     } else {
       previewAmount = monthlyAmountFromDate(state, months);
-      // NO CEILING BANNER HERE ANY MORE (D82, superseding D80's option C). The
-      // comparison that used to raise it - `previewAmount.value >
-      // savingCeiling` - is now `belowBound` above, computed from the same
-      // number the stepper's own bound uses, so the screen cannot refuse a
-      // figure the control would have allowed or allow one it refused. What it
-      // no longer does is raise a string: the date it would complain about
-      // cannot be reached by any press.
+      // NO CEILING BANNER HERE ANY MORE (D80's option C, superseded by D82 and
+      // then by D83). The comparison that used to raise it -
+      // `previewAmount.value > savingCeiling` - is now the floor the option
+      // lists are built from, so the screen cannot offer a date it would then
+      // refuse. Nothing here can exceed the ceiling: the list does not contain
+      // a date that would.
     }
   }
 
@@ -315,19 +350,33 @@ export function render(container, ctx) {
         )}</p>
         ${errorText ? warningBannerHTML(errorText, { id: 'error-saving' }) : ''}
       ` : `
-        ${dateStepperHTML({
-          monthLabel: MONTH_NAMES[targetMonth - 1],
-          yearLabel: yearCleared ? '' : String(targetYear),
-          yearRole: 'target-year',
+        <!-- ABOVE THE DROPDOWNS, and the placement was measured rather than
+             argued (D83). The disclosure explains a value the participant is
+             about to read, so it belongs before it; putting it under the
+             control would have them meet the changed date first and the reason
+             second.
+
+             MEASURED, because G96's finding is that this screen is tight below
+             the fold. The readout ends up in the SAME place either way - the
+             banner displaces it by its own height wherever it sits - so the
+             choice costs the readout nothing. What it buys is distance from
+             the fold: above, the banner sits 116px (default) / 122px (Large)
+             higher than it would below the dropdowns. Both fit; above has the
+             margin. See D83. -->
+        ${movedToEarliest ? infoBannerHTML(
+          fill(c.dateMovedToEarliest, { earliest: `${MONTH_NAMES[targetMonth - 1]} ${targetYear}` }),
+          { id: 'date-moved', live: true },
+        ) : ''}
+        ${dateSelectHTML({
+          monthOptions,
+          monthValue: targetMonth,
+          yearOptions,
+          yearValue: targetYear,
           hint: c.dateStepperHint,
-          monthAction: 'step-month',
-          yearAction: 'step-year',
+          monthAction: 'select-month',
+          yearAction: 'select-year',
           monthAriaLabel: c.dateStepperMonthAriaLabel,
           yearAriaLabel: c.dateStepperYearAriaLabel,
-          increaseLabel: content.shared.stepper.increaseLabel,
-          decreaseLabel: content.shared.stepper.decreaseLabel,
-          monthDownDisabled,
-          yearDownDisabled,
         })}
         <!-- THE FIGURE THE DATE IMPLIES (D80, closing GAPS.md G65). It was
              computed on every render of this branch and read in exactly one
@@ -383,15 +432,13 @@ export function render(container, ctx) {
     ${actionBarHTML({
       primaryLabel: c.primaryCta,
       primaryAction: 'continue',
-      // An empty year disables Continue without raising an error, the same way
-      // frame 09's empty property value does: nothing is wrong yet, the
-      // participant is simply part-way through typing. `belowBound` disables it
-      // the same way and for the same kind of reason (D82): the date on screen
-      // is one the ceiling cannot reach, no press put it there, and nothing has
-      // been replaced to make it valid.
-      primaryDisabled: !!errorText || yearCleared || belowBound,
-      // D78. Null while the year field is empty, for the reason on the line
-      // above: a draft raises no banner, so there is nothing to point at.
+      // NO `belowBound` TERM ANY MORE (D83). Under D82 the date could sit below
+      // the bound and Continue had to refuse it; the floor now moves it instead,
+      // so by the time this renders the date is always one the ceiling can
+      // reach. `errorPastDate` is the only thing left that disables Continue on
+      // this path, and it too is reachable only from a stored date - the list
+      // does not offer one.
+      primaryDisabled: !!errorText,
       primaryDescribedBy: errorText ? 'error-saving' : null,
       secondaryLabel: c.secondaryCta,
       secondaryAction: 'exit',
@@ -455,84 +502,40 @@ export function render(container, ctx) {
       commit(Number(figureLow.value), clamp(Number(figureHigh.value) || 0, Number(figureLow.value), savingCeiling));
     });
   } else {
-    // A MONTH ROLL PAST EITHER END OF THE YEAR MOVES THE YEAR, and while the
-    // year field is sitting empty that would move it where the participant
-    // cannot see it. `stepMonth` resolves the draft on exactly the presses that
-    // write a new year and leaves it alone on the other eleven, so the field is
-    // never empty while holding a year the participant did not put there. The
-    // month is stepped, never typed, so it has no draft of its own.
-    function stepMonth(m, y) {
-      const next = setState(y === targetYear
-        ? { targetMonth: m }
-        : { targetMonth: m, targetYear: y, targetYearCleared: false });
+    // TWO SELECTS, ONE COMMIT EACH, AND NO BOUND CHECKED HERE (D83). The lists
+    // were built to the floor above, so a `change` event can only carry a value
+    // the floor allowed - there is nothing for a handler guard to re-check and
+    // nothing that can disagree with the control.
+    //
+    // `dateMovedToEarliest: false` ON BOTH. The disclosure says the app moved
+    // the date; the moment the participant picks one themselves it is no longer
+    // describing anything, and it must not survive into a state it did not
+    // cause.
+    function commitDate(patch) {
+      const next = setState({ ...patch, dateMovedToEarliest: false });
       rerenderInPlace(container, render, { ...ctx, state: next });
     }
 
-    container.querySelector('[data-action="step-month-up"]').addEventListener('click', () => {
-      // Never bounded: there is no ceiling on how far ahead a participant may
-      // plan, only a floor on how soon.
-      const { month, year } = monthStep(targetMonth, targetYear, 1);
-      stepMonth(month, year);
-    });
-    container.querySelector('[data-action="step-month-down"]').addEventListener('click', () => {
-      // GUARDED AS WELL AS DISABLED, the same belt-and-braces the Continue
-      // handler carries: the attribute stops the press, and this stops a press
-      // that reaches the handler anyway. Both read the same flag, and the step
-      // itself is `monthStep`, which is what the flag was computed from.
-      if (monthDownDisabled) return;
-      const { month, year } = downOneMonth;
-      stepMonth(month, year);
-    });
-    // Both year chevrons resolve the draft as well as moving the year: they put
-    // a value back in the field, so the field is no longer empty.
-    //
-    // THE DOWN CHEVRON NOW STOPS AT THE BOUND AND THE TYPED FIELD DOES NOT, and
-    // G73's note that "the two routes to a year cannot accept different values"
-    // still holds where it matters. Neither route can COMMIT a date below the
-    // bound: `belowBound` disables Continue whichever way the year got there.
-    // What differs is the affordance - the chevron will not take you there, the
-    // field will let you type it and then sit refusing to go forward. Clamping
-    // the typed year to the bound would replace a number the participant just
-    // typed, in the field they typed it in, which is G74 exactly. D82.
-    container.querySelector('[data-action="step-year-up"]').addEventListener('click', () => {
-      const next = setState({ targetYear: targetYear + 1, targetYearCleared: false });
-      rerenderInPlace(container, render, { ...ctx, state: next });
-    });
-    container.querySelector('[data-action="step-year-down"]').addEventListener('click', () => {
-      // THE YEAR REFUSES TO MOVE RATHER THAN DRAGGING THE MONTH UP WITH IT.
-      // That is what "disable the control at the bound" produces and it is not
-      // a choice made here: moving the year and pulling the month to the bound
-      // would change a value the participant set on a control they did not
-      // touch, which is G92's own pattern. See D82's first open question - the
-      // trade is real and it is not this build's to settle.
-      if (yearDownDisabled) return;
-      const next = setState({ targetYear: targetYear - 1, targetYearCleared: false });
-      rerenderInPlace(container, render, { ...ctx, state: next });
+    container.querySelector('[data-action="select-month"]').addEventListener('change', (e) => {
+      commitDate({ targetMonth: Number(e.target.value) });
     });
 
-    // THE TYPED YEAR. Frame 05's `figureInputHTML` handler and frame 09's
-    // `currencyInputHTML` handler are the same two lines, and this is them:
-    // `focus` selects the whole value so a tap replaces it rather than dropping
-    // a caret mid-number, and `change` - not `input` - is the commit, so a
-    // half-typed "2" never reaches the store or re-renders the screen under the
-    // participant's fingers.
-    const yearInput = container.querySelector('[data-role="target-year"]');
-    yearInput.addEventListener('focus', () => yearInput.select());
-    yearInput.addEventListener('change', () => {
-      const typed = yearInput.value.replace(/[^0-9]/g, '');
-      const parsed = Number(typed);
-      // An empty field, or anything that does not parse to a finite number, is
-      // a DRAFT and never a value - frame 09's rule, applied here for the same
-      // reason. `targetYear` is left exactly as it is, so nothing downstream
-      // can read a half-made edit, and the emptiness is recorded as this
-      // screen's own state. Frame 09's `[^0-9.-]` strip is narrowed to `[^0-9]`
-      // here because a year has no decimal point and no sign, so "-" and "."
-      // are not characters this field can hold rather than characters it must
-      // recover from.
-      const next = typed === '' || !Number.isFinite(parsed)
-        ? setState({ targetYearCleared: true })
-        : setState({ targetYearCleared: false, targetYear: parsed });
-      rerenderInPlace(container, render, { ...ctx, state: next });
+    // CHANGING THE YEAR RE-DERIVES THE MONTH LIST, and the one case where that
+    // costs the participant their month is handled here rather than left to
+    // produce a value outside the list. Picking the floor's year while holding a
+    // month before the floor's month leaves the selected month off the new list;
+    // it is raised to the floor's month.
+    //
+    // THIS IS THE RESIDUE OF D82'S FIRST OPEN QUESTION, and it is a smaller
+    // thing than that question was. There the year press moved the month with
+    // no list to show why; here both values are in view, the participant is
+    // actively working the date control, and the month list visibly no longer
+    // contains the month they had. It is still a change to a value they set, so
+    // it is written down rather than passed over - see D83.
+    container.querySelector('[data-action="select-year"]').addEventListener('change', (e) => {
+      const year = Number(e.target.value);
+      const lowest = floor !== null && year === floor.year ? floor.month : 1;
+      commitDate({ targetYear: year, targetMonth: Math.max(targetMonth, lowest) });
     });
   }
 
@@ -547,7 +550,7 @@ export function render(container, ctx) {
   });
 
   container.querySelector('[data-action="continue"]').addEventListener('click', () => {
-    if (errorText || yearCleared) return;
+    if (errorText) return;
     if (solveFor === 'date') {
       const savingsRate = (monthlyLow.value + monthlyHigh.value) / 2;
       // The midpoint inherits the provenance of the pair it is the midpoint
@@ -566,12 +569,6 @@ export function render(container, ctx) {
       const rate = previewAmount;
       const range = rangeFromCentral(rate.value);
       setState({
-        // The draft is resolved by the same click that commits the figures it
-        // fed, so it cannot outlive the edit it describes - frame 09's Continue
-        // writes its own flag false for the same reason. Continue is unreachable
-        // while the field is empty, so this only ever clears a flag already
-        // false.
-        targetYearCleared: false,
         'savings-rate': { value: rate.value, provenance: rate.provenance },
         'monthly-low': { value: range.low, provenance: rate.provenance },
         'monthly-high': { value: range.high, provenance: rate.provenance },

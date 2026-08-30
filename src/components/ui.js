@@ -412,9 +412,26 @@ export function actionBarDockHTML(buttonsHTML) {
   `;
 }
 
-export function infoBannerHTML(text) {
+/**
+ * THE INFORMATIONAL BANNER. `warningBannerHTML` below is the error one; the two
+ * are separate components and differ in glyph as well as colour (D78, D79).
+ *
+ * `live` makes the block a POLITE live region (DECISIONS.md D83). Pass it when
+ * the banner reports something the app did rather than something that is
+ * simply true - frame 10b's "we've moved your date", which appears because an
+ * edit on another screen moved the earliest reachable date past the one the
+ * participant had chosen. Without it nothing announces: the banner is inserted
+ * by a re-render, and a participant using a screen reader would arrive at a
+ * date they did not set with no account of how it changed.
+ *
+ * POLITE, AND NOT `role="alert"`. It is a disclosure of a change, not an error:
+ * nothing is wrong, nothing is disabled, and Continue is live. D78 reserves the
+ * assertive role and the triangle for a state that blocks the participant, and
+ * borrowing them here would tell them something had gone wrong when it had not.
+ */
+export function infoBannerHTML(text, { id = null, live = false } = {}) {
   return `
-    <div class="info-banner">
+    <div class="info-banner"${id ? ` id="${id}"` : ''}${live ? ' role="status" aria-live="polite"' : ''}>
       ${infoCircle({ size: 'body', className: 'info-banner__icon' })}
       <p class="info-banner__text">${text}</p>
     </div>
@@ -806,7 +823,7 @@ export function optionComparisonCardHTML({ headerText, rows, infoLinkLabel, info
  * structure and the same three mechanics: the £ (or the %) is a sibling span
  * carrying `aria-hidden`, OUTSIDE the input, so it cannot be selected or typed
  * over; the input is `type="text"` with `inputmode="numeric"` rather than
- * `type="number"`, for the reasons set out on `dateStepperHTML` above; and the
+ * `type="number"`, for the reasons set out on `figureInputHTML` above; and the
  * width is set inline from the digit count, as frame 05 sets its own.
  *
  * THE CARET ALLOWANCE IS 4px, NOT FRAME 05's WHOLE EXTRA CHARACTER. `1ch` is
@@ -869,68 +886,52 @@ export function segmentedControlHTML({ options, selected, action }) {
 }
 
 /**
- * Input / Date stepper (frame 10b): a month control and a year control,
- * each with an up/down pair, plus a hint line beneath.
+ * Input / Date select (frame 10b only). DECISIONS.md D83, replacing the two
+ * chevron steppers D82 bounded.
+ *
+ * WHY A NATIVE `<select>` AND NOT A CUSTOM SHEET. Two reasons, and the first is
+ * the one that decided it: **a list cannot render an option it was not given**,
+ * so the floor at the earliest reachable date is enforced by the control's own
+ * structure rather than by a guard bolted to it. D82 needed a disable flag, a
+ * handler guard and a Continue guard, all reading one number and all able to
+ * drift apart; this needs the list to be built correctly and nothing else.
+ *
+ * The second is cost. Every sheet in this build is its own ROUTE - `router.js`
+ * throws for a path outside `build-spec.md`'s screen inventory - so a picker
+ * sheet would mean inventing two frames nobody drew, plus drag-dismiss, scrim,
+ * focus trap and `returnFrame` handling, and the participant would lose sight
+ * of the solved amount while choosing. A `<select>` is zero new screens and
+ * inherits the platform's own picker, its keyboard handling and its screen
+ * reader support.
+ *
+ * WHAT IT COSTS. The open list is drawn by iOS and Android, so it looks
+ * different on each and cannot be styled. For a research instrument run on
+ * participants' own phones that is closer to right than a bespoke list would
+ * be - it is what their phone actually does - and it is the same trade the
+ * slider already takes with `input[type=range]` rather than drawing its own
+ * handles. Only the CLOSED control is styled here, to match the box the
+ * stepper drew.
+ *
+ * `monthOptions` and `yearOptions` are `[{ value, label }]`, already filtered
+ * to the floor by the caller: this component applies no bound of its own, so
+ * there is exactly one place the floor is computed.
  */
-export function dateStepperHTML({ monthLabel, yearLabel, hint, monthAction, yearAction, monthAriaLabel, yearAriaLabel, increaseLabel, decreaseLabel, yearRole, monthDownDisabled = false, yearDownDisabled = false }) {
-  // THE YEAR IS TYPED AS WELL AS STEPPED; THE MONTH IS STEPPED ONLY.
-  //
-  // `yearRole` is what turns the year's readout into a field: pass it and the
-  // `<p>` becomes an `<input>` carrying that `data-role`, leave it out and the
-  // control renders exactly as it always has. The month has no equivalent
-  // because it is chosen from twelve names, not typed - a text field is the
-  // wrong control for a closed set, and the two chevrons already reach every
-  // member of it in at most six taps.
-  //
-  // The input's attributes are frame 05's `figureInputHTML` and frame 09's
-  // `currencyInputHTML` verbatim: `type="text"` with `inputmode="numeric"`
-  // rather than `type="number"`, so a phone raises the numeric keypad without
-  // the spinners, the locale parsing or the `setSelectionRange` exception that
-  // `type="number"` brings with it (see `rerenderInPlace` above, which restores
-  // the caret after every commit).
-  //
-  // `maxlength="4"` IS A FORMAT CONSTRAINT, NOT A BOUND. A year is four digits,
-  // so the field holds four. It introduces no validation, no error string and
-  // no maximum: the only guard on the value remains the past-date check the
-  // stepper has always had, so typing and stepping cannot disagree about what
-  // is acceptable. `maxlength` applies to `type="text"` (it is ignored on
-  // `type="number"`, which is a second reason the pattern uses text), and it
-  // constrains typing only - it does not touch `select()`, and it does not
-  // touch a value set programmatically on re-render. See GAPS.md G73.
-  // ONLY THE DOWN DIRECTION TAKES A BOUND (DECISIONS.md D82). The floor is a
-  // date the goal is reachable by; there is no ceiling on how far ahead a
-  // participant may plan, so the up controls are never disabled and take no
-  // flag.
-  //
-  // DISABLED, NOT HIDDEN. A control that vanishes at the bound moves every
-  // control below it up by its own height, under the finger that is reaching
-  // for one of them - and it takes the participant's landmark with it, so the
-  // screen they are looking at is not the screen they looked away from. The
-  // greyed chevron stays where it was and says the same thing: this direction
-  // has run out.
-  function control({ value, upAction, downAction, ariaLabel, role, downDisabled }) {
-    const readout = role
-      ? `<input class="date-stepper__value date-stepper__value--input" type="text" inputmode="numeric" maxlength="4" data-role="${role}" value="${value}" aria-label="${ariaLabel}" />`
-      : `<p class="date-stepper__value">${value}</p>`;
-    return `
-      <div class="date-stepper__control">
-        <button type="button" class="date-stepper__step" data-action="${upAction}" aria-label="${increaseLabel} ${ariaLabel}">
-          ${chevronUp({ size: 'micro', weight: 'semibold' })}
-        </button>
-        ${readout}
-        <button type="button" class="date-stepper__step date-stepper__step--down" data-action="${downAction}" aria-label="${decreaseLabel} ${ariaLabel}"${downDisabled ? ' disabled' : ''}>
-          ${chevronDown({ size: 'micro', weight: 'semibold' })}
-        </button>
-      </div>
-    `;
-  }
+export function dateSelectHTML({ monthOptions, monthValue, yearOptions, yearValue, hint, monthAction, yearAction, monthAriaLabel, yearAriaLabel }) {
+  const field = ({ options, value, action, ariaLabel }) => `
+    <div class="date-select__field">
+      <select class="date-select__control" data-action="${action}" aria-label="${ariaLabel}">
+        ${options.map((o) => `<option value="${o.value}"${o.value === value ? ' selected' : ''}>${o.label}</option>`).join('')}
+      </select>
+      ${chevronDown({ size: 'micro', weight: 'semibold', className: 'date-select__chevron' })}
+    </div>
+  `;
   return `
-    <div class="date-stepper">
-      <div class="date-stepper__row">
-        ${control({ value: monthLabel, upAction: `${monthAction}-up`, downAction: `${monthAction}-down`, ariaLabel: monthAriaLabel, downDisabled: monthDownDisabled })}
-        ${control({ value: yearLabel, upAction: `${yearAction}-up`, downAction: `${yearAction}-down`, ariaLabel: yearAriaLabel, role: yearRole, downDisabled: yearDownDisabled })}
+    <div class="date-select">
+      <div class="date-select__row">
+        ${field({ options: monthOptions, value: monthValue, action: monthAction, ariaLabel: monthAriaLabel })}
+        ${field({ options: yearOptions, value: yearValue, action: yearAction, ariaLabel: yearAriaLabel })}
       </div>
-      <p class="date-stepper__hint">${hint}</p>
+      <p class="date-select__hint">${hint}</p>
     </div>
   `;
 }

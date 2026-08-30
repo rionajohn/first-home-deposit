@@ -42,10 +42,6 @@ const content = {
       backLabel: 'Back',
       closeLabel: 'Close',
     },
-    stepper: {
-      increaseLabel: 'Increase',
-      decreaseLabel: 'Decrease',
-    },
     regulatory: {
       guidanceNotAdvice:
         'This is guidance based on your account activity. It is not financial advice and does not take account of everything about your situation.',
@@ -572,6 +568,12 @@ const content = {
     // was deferred to frame 11, and wrong the moment D80 rendered the solved
     // amount directly beneath it. A hint promising an answer, sitting on top of
     // that answer, tells the participant the figure below is still coming.
+    // THE KEY NAMES STILL SAY "STEPPER" AND THE CONTROL IS NOW TWO DROPDOWNS
+    // (D83). Kept rather than renamed, for the reason D81 kept `sliderCaption`
+    // shared: the WORDS are right for the control, the key name is a code-side
+    // label, and renaming reaches every screen and test that reads it. The
+    // string itself needed no change - "change the date" is what a dropdown
+    // asks for as squarely as a stepper did.
     dateStepperHint: "Change the date to see what you'd need to put aside each month.",
     dateStepperMonthAriaLabel: 'target month',
     dateStepperYearAriaLabel: 'target year',
@@ -587,6 +589,13 @@ const content = {
     interestBannerText: 'Interest is included in the estimate. Rates can change.',
     flagLabel: "Something doesn't look right",
     errorExceedsLeftOver: "That's more than what's left over each month. Choose a smaller range.",
+    // SUPERSEDED ON THE DATE PATH BY D83, AND KEPT for the reason
+    // `errorDateNeedsMoreThanLeftOver` below is. The floor is never negative
+    // and a stored date below it is moved to it, so a past date is corrected
+    // before this branch can catch it - it went the same way as the ceiling
+    // error and for the same reason, which was not the intent of the change so
+    // much as a consequence of it. `date-ceiling.test.mjs` asserts the
+    // correction reaches a past date first.
     errorPastDate: 'Pick a date in the future.',
     // SUPERSEDED BY DECISIONS.md D82, AND KEPT ON PURPOSE. Nothing renders this
     // string any more: D82 bounded the date stepper at the earliest reachable
@@ -608,28 +617,28 @@ const content = {
     //   {amount}   the monthly figure the chosen date implies - deliberately
     //              unused by this wording (D81)
     errorDateNeedsMoreThanLeftOver: 'That date needs more than the {max} you have left over each month. Even putting all of it aside, the earliest you could reach your goal is {earliest}.',
-    // AWAITING COPY (DECISIONS.md D82, second open question). THE BOUND HAS NO
-    // EXPLANATION ON SCREEN UNTIL THIS IS FILLED, and that is a known, recorded
-    // cost of D82 rather than an oversight: a disabled chevron says neither why
-    // the date will not go lower nor what the earliest one is, and in a session
-    // an unresponsive control reads as a broken prototype rather than as a
-    // constraint.
+    // THE ONE CASE THE FLOOR CANNOT PREVENT (DECISIONS.md D83). The participant
+    // picks a date, then makes an upstream edit that moves the earliest
+    // reachable date past it - essentials up, money in down, property value up,
+    // deposit percentage up, saved total down. They never touched the dropdown.
+    // Their date is moved to the new floor and this discloses the move, which
+    // is D46's rule: a value the participant set may be replaced only if the
+    // replacement is visible to them.
     //
-    // IT HAS TO COVER TWO SITUATIONS, not one, and they are not the same
-    // sentence:
-    //   1. the participant is AT the bound and pressing down does nothing
-    //   2. the participant's already-set date is BELOW the bound, because a
-    //      figure on another screen moved it while they were away - nothing was
-    //      rewritten (D46), so their date stands and Continue is disabled
+    // FIRST PERSON, AND NOT AN OUTLIER ON THIS SCREEN. `pickOneCaption` ("we'll
+    // work out the other") and `provenanceKeyLabel` ("How we worked these out")
+    // are already first person here, and `shared.regulatory.estimateDisclosure`
+    // is first person too ("the information we hold today"). It says who acted,
+    // which is the point: the participant needs to know the app moved this and
+    // they did not.
     //
-    // Slots available:
-    //   {earliest} the earliest month and year that works, e.g. "August 2029"
-    //   {max}      what is left over each month
+    // NOT AN ERROR. It renders through `infoBannerHTML`, not the error banner -
+    // `infoCircle` rather than `exclamationTriangle`, `role="status"` polite
+    // rather than `role="alert"` (D78, D83). Nothing is wrong and nothing is
+    // disabled; Continue is live at the moved date.
     //
-    // WHERE IT SITS IS ALSO OPEN, and is the other half of the same question -
-    // see D82. Nothing renders this key yet, deliberately: rendering it would
-    // be choosing the location.
-    dateBoundNote: '[AWAITING COPY]',
+    // One slot: {earliest}, the month and year it was moved to.
+    dateMovedToEarliest: "We've moved your date to {earliest}. With what you now have left over each month, that's the soonest you could get there.",
     primaryCta: 'Continue',
     secondaryCta: 'Save and exit',
   },

@@ -7814,3 +7814,166 @@ and the tests confirmed to fail** - 6 of 16 with the disable flags forced false 
 
 Full suite: 371 tests, 370 passing, 1 skipped (G91), 0 failing.
 
+---
+
+## D83. The target date is two floored dropdowns, and the one case a floor cannot prevent is disclosed
+
+**Date.** 30 August 2026. Supersedes D82's bounded steppers, and settles both questions D82 left open.
+Closes `GAPS.md` G96's frame 10b case in a second, stronger way.
+
+### The change
+
+D82 bounded the month and year steppers at the earliest date the goal is reachable by. **The steppers
+are now two `<select>` dropdowns, and the bound is the list's first entry rather than a control that
+stops responding.** An impossible date cannot be picked because it is not offered.
+
+That is what removed D82's two open questions rather than answering them:
+
+| D82's open question | Why it is gone |
+| --- | --- |
+| **The boundary case** - does a year press refuse to move, or move and drag the month up? | There is no stepping. A year is chosen, not walked into |
+| **What replaces the banner's explanation** - a disabled chevron says neither why nor what the earliest date is | There is no disabled chevron. A list that starts at February 2027 is not an unresponsive control |
+
+`content['/calculator/saving'].dateBoundNote`, added by D82 as `[AWAITING COPY]` for that second
+question, is **deleted**: the question it was for no longer exists.
+
+### Floor only, not default
+
+**The list starts at the earliest date; the SELECTION stays the seeded one** - 36 months out, as it has
+been since the screen was built.
+
+This is a research requirement, not a convenience. At the earliest date the solved amount is *by
+definition* the entire `left-over`, because that is what the earliest date means. Opening there would
+put the most aggressive figure the model permits in front of the participant before they had done
+anything - an anchor against RQ2, and an implied recommendation against MCOB 4.8A, from a screen whose
+own regulatory line says it is not advice. The seeded date is facilitator-controlled, which is what a
+research instrument needs.
+
+`date-ceiling.test.mjs` asserts it on its own rather than as part of a larger test, because it is the
+one property here that correctness would not have caught.
+
+### The mechanism: a native `<select>`
+
+Two candidates. A custom bottom sheet was rejected; the native control was chosen.
+
+**The reason that decided it is structural: a list cannot render an option it was not given.** The
+floor is enforced by how the control is built rather than by a guard bolted beside it. D82 needed
+*three* readers of one number - a disable flag per control, a handler guard per control, and a Continue
+guard - all able to drift apart. This needs the option lists to be built correctly and nothing else.
+There is no `belowBound`, no disabled attribute, no handler re-check.
+
+**And the sheet was expensive.** Every sheet in this build is its own ROUTE, and `router.js` throws for
+a path outside `build-spec.md`'s screen inventory - so a picker sheet would mean inventing two frames
+nobody drew (`CLAUDE.md`: never invent a screen), plus drag-dismiss, scrim, focus trap and `returnFrame`
+handling, and the participant would lose sight of the solved amount while choosing.
+
+**What the native control costs.** The open list is drawn by iOS and Android, so it looks different on
+each, cannot be styled, and **cannot be screenshotted** - it is a platform popup outside the page, which
+is why this pass's verification records the option lists as text instead. For an instrument run on
+participants' own phones that is closer to right than a bespoke list: it is what their phone actually
+does. It is also the trade the slider already takes with `input[type=range]` rather than drawing its own
+handles. Only the CLOSED control is styled, to the box the stepper drew.
+
+### The lists, bounded as a pair
+
+The year list runs from the floor's year for `YEAR_LIST_SPAN` years. The month list starts at the
+floor's MONTH in the floor year and at January in every later one, and **changing the year re-derives
+it**. The pair therefore cannot express a date below the floor in any combination - asserted over every
+year the list offers, not just the one on screen.
+
+The currently selected year is always included even if it sits past the span, so a restored session
+holding a far-future date renders its own value rather than silently showing a different one.
+
+**One residue of D82's first open question survives, and is smaller than that question was.** Picking
+the floor's year while holding a month before the floor's month leaves the selected month off the new
+list; it is raised to the floor's month. That is still a change to a value the participant set - but
+there, a year press moved the month with no list to show why; here both values are in view, the
+participant is actively working the date control, and the month list visibly no longer contains the
+month they had.
+
+### The one case a floor cannot prevent
+
+The participant picks a date, then makes an upstream edit that moves the floor past their selection -
+essentials up, money in down, property value up, deposit percentage up, saved total down. **They never
+touched the dropdown.** Every one of those figures is committed on another screen, which is why the
+floor is recomputed on every render and never cached.
+
+**The date is moved to the new floor and the move is disclosed.** That is D46's own rule, met the way
+D46 asks: a value the participant set may be replaced *only if the replacement is visible to them*.
+
+Two alternatives were rejected:
+
+| Rejected | Why |
+| --- | --- |
+| **Block the upstream edit** | It would make a figure about the participant's actual finances unchangeable because of a target they set afterwards. The essentials are theirs; the target is a plan |
+| **Keep the date and raise D80's superseded banner** | It routes the one unpreventable case straight into the state `GAPS.md` G96 records: an error below the fold beside a disabled Continue. Using the worst-placed message in the build for the case that most needs reading is exactly backwards |
+
+**The disclosure.** `content['/calculator/saving'].dateMovedToEarliest`, one slot, `{earliest}`:
+
+> We've moved your date to {earliest}. With what you now have left over each month, that's the soonest
+> you could get there.
+
+- **Visible on arrival and not transient.** It renders from a stored flag (`dateMovedToEarliest` in
+  `state.js`), not from a timer, so a participant returning from an upstream edit meets it however long
+  they took to get back.
+- **It clears when the participant picks a date themselves**, on either dropdown. It describes something
+  the app did; the moment they choose, it is describing nothing.
+- **Above the dropdowns, and the placement was measured.** The readout ends up in the *same* place
+  either way - the banner displaces it by its own height wherever it sits - so the choice costs the
+  readout nothing. What it buys is distance from the fold: above, the banner sits **116px (default) /
+  122px (Large)** higher than it would below the dropdowns. Both fit at both sizes; above has the
+  margin, and it puts the reason before the value it explains.
+- **Not an error.** `infoBannerHTML` with `infoCircle`, `role="status"` and `aria-live="polite"` - not
+  `exclamationTriangle` and not `role="alert"`, which D78 reserves for a state that blocks the
+  participant. Nothing is wrong here, nothing is disabled, and Continue is live at the moved date.
+  `infoBannerHTML` gained an optional `live` flag for it, off by default, so its thirteen other callers
+  are unchanged.
+- **First person, and not an outlier.** Checked, because it was asked: `pickOneCaption` ("we'll work out
+  the other") and `provenanceKeyLabel` ("How we worked these out") are already first person on this
+  screen, and the Category A regulatory strings are **not** uniformly impersonal -
+  `shared.regulatory.estimateDisclosure` says "the information we hold today". "We've" says who acted,
+  which is the point of the sentence. **No revisiting needed.**
+
+### What else went, and what was kept
+
+- **`targetYearCleared` is removed from `state.js`.** It existed because the year was a TYPED field that
+  could sit empty mid-edit - frame 09's `propertyValueCleared` case. A `<select>` always holds one of its
+  own options, so there is no half-made state to keep out of the store. G73's typed-versus-stepped
+  question dissolves with it.
+- **`shared.stepper`** (`Increase` / `Decrease`) had one reader and is deleted with it.
+- **`errorDateNeedsMoreThanLeftOver` stays superseded, not deleted** (D82's rule, unchanged): if the
+  floor is ever removed the case returns and the string is already written and copy-checked.
+- **`errorPastDate` is now superseded on this path too, which was a consequence rather than an intent.**
+  The floor is never negative and a stored date below it is moved to it, so a past date is corrected
+  before the past-date branch can catch it. Kept for the same reason, and `date-ceiling.test.mjs`
+  asserts the correction reaches it first.
+- **The key names still say "stepper"** - `dateStepperHint`, `dateStepperMonthAriaLabel`,
+  `dateStepperYearAriaLabel`. Kept rather than renamed, for the reason D81 kept `sliderCaption` shared:
+  the WORDS are right for the control ("change the date" is what a dropdown asks for as squarely as a
+  stepper did), the key name is a code-side label, and renaming reaches every screen and test that reads
+  it.
+
+### The year list's horizon is this build's own figure
+
+A stepper needed no horizon; a list does, and `build-spec.md` gives none. `YEAR_LIST_SPAN = 20`, and it
+is recorded as an invented figure in `GAPS.md` **G97** rather than passed over. Deliberately not
+`MORTGAGE_TERM_YEARS`: a mortgage term is not a saving horizon.
+
+### Verification
+
+Sixteen shots across four states, two themes, two text sizes: the seeded selection on arrival, the floor
+year, a later year, and the moved-date disclosure. **The open list is not among them and cannot be** -
+it is a platform popup outside the page - so the option lists are recorded as text instead, which is
+what the tests assert against too.
+
+`date-ceiling.test.mjs`: 16 tests to 17. Six of D82's stepper tests describe a control that no longer
+exists and were replaced, not deleted - disabled chevrons, both press-order sequences, "a refused press
+moves nothing", and "a date below the bound is left standing" (it is moved now). What replaced them
+asserts the list properties instead, plus the floor-is-not-the-default requirement and the whole of the
+moved-date case. `stale-session.test.mjs`'s "typed target year" test is rewritten as "selected target
+year": the attribute contract and the empty-field draft went with the field, and what survived is the
+half that was never about the field - the choice persists across a reload and a back navigation, and
+drives `savings-rate`.
+
+Full suite: 372 tests, 371 passing, 1 skipped (G91), 0 failing.
+

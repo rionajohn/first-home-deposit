@@ -3107,12 +3107,19 @@ because of the regulatory dimension above.*
 
 ## G96. Frame 10b's ceiling error is below the fold on first paint, so a disabled Continue has no visible explanation
 
-> **30 AUGUST 2026: THE FRAME 10b CASE IS CLOSED - `DECISIONS.md` D82. THE ENTRY STAYS OPEN FOR FRAMES
-> 10 AND 11.** D82 bounded the date stepper at the earliest reachable date, so the banner measured below
-> cannot be raised at all: a banner that cannot exist cannot fall below the fold. **The layout was not
-> fixed** - the space above the dock is unchanged and the readout still sits where it did. That
-> distinction is the same one G92 to G95 carry, and it matters for the same reason: if the bound is ever
-> removed the measurement below is true again, unchanged.
+> **30 AUGUST 2026: THE FRAME 10b CASE IS CLOSED - `DECISIONS.md` D82, and again under D83. THE ENTRY
+> STAYS OPEN FOR FRAMES 10 AND 11.** D82 bounded the date stepper at the earliest reachable date, so the
+> banner measured below cannot be raised at all: a banner that cannot exist cannot fall below the fold.
+> D83 then replaced the steppers with dropdowns floored at the same date, which closes it a second and
+> stronger time - the floor is now the list's first entry, so the impossible date is not merely refused
+> but never offered. **The layout was not fixed either time** - the space above the dock is unchanged
+> and the readout still sits where it did. That distinction is the same one G92 to G95 carry, and it
+> matters for the same reason: if the floor is ever removed the measurement below is true again,
+> unchanged.
+>
+> D83 did put a banner on this screen - `dateMovedToEarliest`, above the dropdowns - and its placement
+> was measured against this entry's finding rather than guessed: it is fully visible at both text sizes,
+> and sits 116px (default) / 122px (Large) higher than it would below the control.
 >
 > The two other screens this entry records are **untouched by D82 and remain open** - frame 10's slider
 > ceiling error, cut 14px at Large, and frame 11's third stacked banner, cut 110px and 200px. Frame 11's
@@ -3270,4 +3277,46 @@ damages is the testing. Fixing it means one of - reserving the error's space abo
 raised banner into view, or moving the banner above the figure it is about. D82's own fix, bounding the
 control so the error cannot arise, is NOT available on either remaining screen: both raise their errors
 from figures the participant types.*
+
+---
+
+## G97. The year list's horizon is this build's own figure, and the spec gives none
+
+*Raised 30 August 2026 with `DECISIONS.md` D83. Recorded under `CLAUDE.md`'s standing rule - "Never
+invent a figure, a rule or a screen. If the spec is silent or says Confirm, Gap or No frame drawn, add
+it to `docs/GAPS.md` and ask." This is a figure, the spec is silent, and it was invented.*
+
+### What was invented
+
+`YEAR_LIST_SPAN = 20` in `calculator-saving.js`. The year dropdown offers the floor's year and the
+twenty after it.
+
+**A stepper needed no horizon and a list does.** Under D82 the year chevron was unbounded upward: a
+participant could press it as far as they liked and no number anywhere said where "far enough" was. A
+`<select>` has to be handed a finite set of options, so the moment the control changed, a figure that
+had never existed had to be chosen.
+
+### Why twenty, and what it is not
+
+- Well past anything the model reports in detail. `monthsToTarget` stops projecting at 60 months and
+  returns `beyond-window` after that, so every year past the fifth already renders the same way.
+- Past any deposit horizon a participant in this study is likely to name out loud, without making the
+  list long enough to become a scroll in a platform picker.
+- **Deliberately NOT `MORTGAGE_TERM_YEARS`** (25, `rates.js`). A mortgage term is not a saving horizon,
+  and borrowing one figure for the other is how two unrelated things end up moving together - the
+  mistake `CLAUDE.md`'s rule about not inventing figures is the same shape as.
+
+**The selected year is always included even if it is past the span**, so a restored session holding a
+far-future date renders its own value rather than silently showing a different one. The span therefore
+bounds what can be *chosen*, not what can be *displayed*.
+
+### What it costs, and what it does not
+
+It costs a participant who wants a target more than twenty years out, which in a deposit-saving context
+is not a case this study is designed to observe. It costs nothing at the other end: the floor is
+computed, not invented, and is the half of the range that matters.
+
+*Status: **open - a figure awaiting confirmation, not a defect.** Nothing is wrong with 20; it is simply
+not the spec's number, because the spec has none. Confirm it, replace it, or record it as intentionally
+this build's own. If it is replaced, the constant is the only place it lives.*
 

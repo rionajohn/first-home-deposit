@@ -2169,8 +2169,8 @@
 }
 
 /* NO 44px min-height, which is the one place this departs from
-   `.figure-input__value`, and the same departure `.date-stepper__value--input`
-   above already makes for the same reason: that rule sets
+   `.figure-input__value`. Frame 10b's typed year field made the same departure
+   for the same reason before D83 replaced it with a `<select>`: that rule sets
    `min-height: var(--touch-target-min)` on a readout standing alone on the
    screen, and the same 44px here would inflate every row on frame 11 well past
    the value it contains. `.review-row`'s own 44px min-height is untouched, so
