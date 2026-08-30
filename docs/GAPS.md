@@ -2501,3 +2501,73 @@ saved three quarters of your deposit, so this is now open to you.", which is ari
 at the checkpoint a participant has saved 87.5% of their deposit - and now also asserts a gate D51
 removed. It is untouched because it is inside the Mortgage in Principle flow, which both tasks that
 came near it were scoped out of. **Fix before participant sessions.***
+
+---
+
+## G87. A typed deposit percentage outside the chip set has no row of its own on frame 12
+
+*Raised 30 August 2026. `DECISIONS.md` D72's amendment.*
+
+Frame 12's comparison shows three percentages windowed on the participant's selection. The window is
+`neighbourPcts()` in `rates.js`, which finds the selection in `DEPOSIT_PCT_OPTIONS` and takes its
+neighbours, and the selected row is marked by **exact match**.
+
+**Frame 11's deposit-%age field accepts any whole number from 5 to 25**, not only the five chip
+values (`ROUTES.md`'s field table, D62). So a participant can commit **12%**, and then:
+
+- `neighbourPcts(0.12)` windows around the nearest option and returns 5/10/15
+- none of the three matches 12%, so **no row is highlighted and none says "your choice"**
+- the participant's own percentage is not represented on a screen whose headline states it
+
+The headline and the goal block above are still correct - they read `deposit-target` directly, so
+they say £54,000 and a 12% basis. It is only the comparison that cannot show it.
+
+**This is not new, and the window made it narrower rather than causing it.** Before the window the
+screen listed all five chip values, so a typed 12% was equally unrepresented - it simply sat among
+five rows instead of three, and none of those was highlighted either.
+
+**Why it was not fixed with the window.** Inserting the typed value as a sixth (or fourth) row changes
+what the comparison *is*: today it compares the options the calculator offers, and every row is a
+percentage the participant could select on frame 09. A row at 12% would be a percentage no control
+offers, sitting in a list whose other entries are all selectable. That is a design question about
+whether the comparison represents the offered set or the participant's actual figure, and it wants
+answering rather than assuming.
+
+**Options, none chosen:**
+
+- Show the typed value as a fourth row, marked as theirs, and accept that one row of the comparison
+  is not a chip.
+- Snap the comparison to the nearest chip and say so, which means telling the participant their 12%
+  is being compared as 10% - honest but likely to confuse.
+- Constrain frame 11's field to the chip set, which closes this but removes a freedom D62 gave
+  deliberately.
+
+*Status: open. Low frequency - it needs a participant to reach frame 11 and type a non-chip value -
+but the failure is silent, and a facilitator seeing an unhighlighted comparison should know why.*
+
+---
+
+## G88. Frame 21 says "your deposit goal" for a figure that includes stamp duty
+
+*Raised 30 August 2026. Found during D51's third amendment; not caused by it.*
+
+`/mip/result/not-yet`'s `gapProvenanceCaption` reads:
+
+> "Worked out from your deposit goal and what you have saved so far"
+
+It captions the `gap` figure, and `gap()` has been `combined-goal - saved-toward-deposit` since D70.
+So it is worked out from the goal **including stamp duty**, not from the deposit goal. Same class of
+error as `goalMetBody`, which D51's third amendment corrected on the tracker; this one is on a
+different screen and was missed at the time.
+
+**The caption directly beneath it must NOT change**, and that is the trap here.
+`lenderOfferCaption` reads "Worked out from the property value you set and your deposit goal", and it
+captions `borrowRange.high`, which derives from `loan-amount` - property value less
+**`deposit-target`**. That one is correct as written. The two captions sit adjacent on the same
+screen, one needing "goal" and one needing "deposit goal", which is D70's split working exactly as
+intended.
+
+Not fixed because frame 21 is inside the Mortgage in Principle flow, which the tasks that came near
+it were scoped out of.
+
+*Status: open. A one-string fix, but it must be made without touching the caption below it.*

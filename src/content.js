@@ -717,7 +717,11 @@ const content = {
     flagLabel: "Something doesn't look right",
     primaryCta: 'See what this means for borrowing',
     unreachableHeadline: 'Nothing being put aside yet',
-    unreachableBody: 'Add a monthly amount or a target date to see your deposit range.',
+    // "what this would take", NOT "your deposit range" (D72's amendment). The
+    // range figure was deleted when this screen stopped leading with one, and
+    // this string was left behind naming it - the only place on the screen
+    // still referring to a range that is not drawn anywhere.
+    unreachableBody: 'Add a monthly amount or a target date to see what this would take.',
     unreachableCta: 'Set an amount',
   },
 

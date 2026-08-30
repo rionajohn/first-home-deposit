@@ -39,7 +39,7 @@ import {
 } from '../components/ui.js';
 import { formatCurrency, formatPercent, formatMonthsDuration } from '../format.js';
 import { balanceAtMonth, monthsToReachAmount, checkpointAmount, monthsToTarget, stampDuty, combinedGoal } from '../model/model.js';
-import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS, DEPOSIT_PCT_OPTIONS } from '../model/rates.js';
+import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS, neighbourPcts } from '../model/rates.js';
 
 export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
 
@@ -109,11 +109,20 @@ export function render(container, ctx) {
         ${figureRowHTML({ label: c.goalTotalLabel, trailing: formatCurrency(combinedGoalValue) })}
       </div>
 
-      <!-- EVERY CHIP FRAME 09 OFFERS, not the fixed 5/10/15 band (D72). A
-           participant who chose 20% or 25% had no row of their own before. -->
+      <!-- THREE ROWS, WINDOWED ON THE SELECTION (D72's amendment): the chosen
+           percentage, one step below and one step above. It showed all five,
+           which made the participant's own choice one of a list rather than the
+           subject of the screen, and put the two furthest options - the ones
+           they had implicitly rejected by choosing - in the same visual weight
+           as their neighbours.
+
+           "neighbourPcts" is frame 09's own windowing rule, moved into rates.js
+           so the two screens cannot disagree about what a step is. At the ends
+           of the set it extends rather than shrinking, so the count never
+           changes and the selected row is simply not always the middle one. -->
       <h3 class="section-heading">${c.compareHeading}</h3>
       <div class="card comparison-card">
-        ${DEPOSIT_PCT_OPTIONS.map((pct, i) => {
+        ${(() => { const shown = neighbourPcts(depositPctValue); return shown.map((pct, i) => {
           const amount = propertyValue * pct;
           const goalAtPct = amount + stampDutyValue;
           const selected = pct === depositPctValue;
@@ -134,9 +143,9 @@ export function render(container, ctx) {
               : '—';
           return `
             ${rateBandRowHTML({ label: formatCurrency(amount), sublabel, value, highlighted: selected })}
-            ${i < DEPOSIT_PCT_OPTIONS.length - 1 ? '<hr class="divider" />' : ''}
+            ${i < shown.length - 1 ? '<hr class="divider" />' : ''}
           `;
-        }).join('')}
+        }).join(''); })()}
       </div>
       <p class="provenance-caption">${c.compareProvenanceCaption}</p>
 

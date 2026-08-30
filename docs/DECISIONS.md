@@ -6248,3 +6248,87 @@ is `.growth-chart__y-label--top`, positioned at the top-left of the plot; `15% -
 pixels below the y-label, by construction rather than by coincidence. Measured overlapping at **both**
 text sizes. Fixing it means more headroom above the top threshold, moving the y-label out of the plot
 area, or dropping it; all three change the chart's proportions, so none was attempted here.
+
+### Amended, 30 August 2026: three comparison rows, not five
+
+Frame 12's comparison listed all five chip values. It now shows three - the selected percentage, one
+step below and one step above - so the participant's own choice is the subject of the block rather
+than one entry in a list, and the two options furthest from it stop carrying the same visual weight
+as its neighbours.
+
+**The rule already existed, on the screen immediately before this one.** `calculator-property.js`
+has drawn a three-row comparison around the selection since it was built, windowed by a local
+`neighbourPcts()`. That function is moved to `rates.js`, beside the constant it windows, and both
+screens now import it. Two copies of "what counts as one step" would eventually disagree.
+
+**It windows by INDEX, never by arithmetic.** "One step" is the neighbouring entry in
+`DEPOSIT_PCT_OPTIONS`, not the selection plus or minus five points. The set is
+`[0.05, 0.10, 0.15, 0.20, 0.25]` - a fixed constant, not derived - and it rises in fives today, but an
+arithmetic version would silently ask for a percentage the calculator does not offer the moment that
+stopped being true.
+
+### At the ends of the set: extend, do not shrink
+
+At 5% there is no step below and at 25% no step above. Two options were considered:
+
+| | Show two rows | Extend to keep three |
+|---|---|---|
+| 5% selected | 5/10, selection at top | **5/10/15**, selection at top |
+| 25% selected | 20/25, selection at bottom | **15/20/25**, selection at bottom |
+| Row count | changes 2 to 3 with the selection | constant |
+| Selected row's position | always an end | middle, except at the ends |
+
+**Extending was chosen, for three reasons.**
+
+**Frame 09 already does it**, live, on the previous screen of the same flow, for the same choice. Two
+adjacent screens windowing the same decision by different rules is a worse inconsistency than the
+selected row not always being in the middle.
+
+**A participant at an end of the range gains more from two steps in one direction than from a blank
+slot.** At 5% they are at the minimum the calculator offers and the useful information is what more
+saving buys - 10% and 15%. At 25% they are at the maximum and the useful information is what they
+would save by going lower - 20% and 15%. In both cases both remaining neighbours are the actionable
+ones; dropping to two rows would spend the freed space on nothing at exactly the positions where the
+participant has least context.
+
+**A constant row count means the block does not resize** when they go back to step 1 and change the
+chip, which the whole screen is built to support and which they can do at any time.
+
+**What it costs, and why that is affordable.** "The middle row is mine" is not a learnable rule any
+more. It never was the carrier though: D72 established the selected row by its outline **and** by
+"your choice" in words, precisely because neither colour nor position should have to do it alone.
+Verified: at 5% the marked row is first, at 10% second, at 25% third, and the marking is correct in
+all three.
+
+### The rows re-derive; nothing persists
+
+`depositPctValue` is read from state at render and the window computed inside the render, so there is
+nothing to go stale. Driven rather than assumed: opened at 10% (5/10/15, 10% marked), navigated back
+to frame 09, selected 20%, continued through - frame 12 then showed **15/20/25 with 20% marked**.
+
+### Copy
+
+Nothing on the screen names a count or a range for the comparison. `compareHeading` is "How this
+compares" and `compareProvenanceCaption` is "Time to save each one, at what you are putting away now"
+- "each one" is count-agnostic and stays right at three. Both that caption and `estimateDisclosure`
+are unchanged.
+
+**One stale string was found and fixed while checking**, unrelated to the row count.
+`unreachableBody` read "Add a monthly amount or a target date to see your deposit **range**", which
+had been left behind when the range figure was deleted - the last reference on the screen to
+something no longer drawn. It now reads "to see what this would take".
+
+Frame 13's "What that looks like at three deposits" was checked and is a different screen and a
+different fixed set (`CHART_DEPOSIT_PCTS`), unaffected.
+
+### Two things this leaves standing, both recorded rather than fixed
+
+**The growth chart still plots 5/10/15 whatever is selected**, because `build-spec.md` fixes its
+thresholds there. At 25% the comparison now shows 15/20/25 above a chart whose lines are 5/10/15, and
+the "Why a bigger deposit helps" card still says "less at 10% than at 5%" from the same fixed band.
+That mismatch predates this change - the comparison used to include 5% and 10%, so the eye could at
+least bridge it - and the window makes it more visible without causing it.
+
+**A typed percentage outside the chip set gets no marked row.** Frame 11 accepts any whole number
+from 5 to 25, so 12% is committable; the window then returns 5/10/15 and nothing matches. Equally
+true before the window, when all five rows were listed and none was highlighted. `GAPS.md` G87.

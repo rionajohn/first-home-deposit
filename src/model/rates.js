@@ -62,6 +62,45 @@ export const AREA_AVERAGE_PROPERTY_VALUE = {
  * example (a 19,000 deposit is 10% of a 190,000 property).
  */
 export const DEPOSIT_PCT_OPTIONS = [0.05, 0.10, 0.15, 0.20, 0.25];
+
+/**
+ * The three deposit percentages to show around a selected one: the selection,
+ * one step below and one step above.
+ *
+ * IT WINDOWS THE SET BY INDEX, NEVER BY ARITHMETIC. "One step" means the
+ * neighbouring entry in DEPOSIT_PCT_OPTIONS, not the selection plus or minus
+ * five points. The set happens to rise in fives today; if it ever stops doing
+ * so, an arithmetic version would silently ask for a percentage that is not
+ * offered, and this one keeps working.
+ *
+ * AT THE ENDS IT EXTENDS RATHER THAN SHRINKING. At the lowest option there is
+ * no step below, so the window becomes the first three (5/10/15) and the
+ * selection sits at the top; at the highest it becomes the last three
+ * (15/20/25) with the selection at the bottom. Three rows either way. See
+ * DECISIONS.md D72 for why that beats dropping to two.
+ *
+ * A VALUE OUTSIDE THE SET WINDOWS AROUND ITS NEAREST NEIGHBOUR. Frame 11's
+ * deposit-%age field accepts any whole number from 5 to 25, so a committed 12%
+ * is reachable and `indexOf` would return -1. Callers mark the selected row by
+ * exact match, so at 12% this returns 5/10/15 and none of the three is marked -
+ * which is what the screen did before it windowed at all. GAPS.md records the
+ * wider question of whether the comparison should represent a typed value.
+ *
+ * Moved here from calculator-property.js (D72): frames 09 and 12 both draw a
+ * three-row comparison around the same selection, and two copies of this rule
+ * would eventually disagree about what a "step" is.
+ */
+export function neighbourPcts(selected) {
+  const exact = DEPOSIT_PCT_OPTIONS.indexOf(selected);
+  const i = exact !== -1
+    ? exact
+    : DEPOSIT_PCT_OPTIONS.reduce(
+      (best, pct, n) => (Math.abs(pct - selected) < Math.abs(DEPOSIT_PCT_OPTIONS[best] - selected) ? n : best),
+      0,
+    );
+  const start = Math.max(0, Math.min(i - 1, DEPOSIT_PCT_OPTIONS.length - 3));
+  return DEPOSIT_PCT_OPTIONS.slice(start, start + 3);
+}
 export const DEFAULT_DEPOSIT_PCT = 0.10;
 
 /**

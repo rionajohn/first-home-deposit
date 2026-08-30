@@ -40,18 +40,12 @@ import {
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { depositTarget, loanAmount, ltv, stampDuty, combinedGoal, ftbReliefLost } from '../model/model.js';
-import { AREA_AVERAGE_PROPERTY_VALUE, DEPOSIT_PCT_OPTIONS, DEFAULT_DEPOSIT_PCT, LISA_CAP_PROPERTY_VALUE } from '../model/rates.js';
+import { AREA_AVERAGE_PROPERTY_VALUE, DEPOSIT_PCT_OPTIONS, DEFAULT_DEPOSIT_PCT, LISA_CAP_PROPERTY_VALUE, neighbourPcts } from '../model/rates.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
 function fill(template, values) {
   return Object.entries(values).reduce((s, [k, v]) => s.replace(`{${k}}`, v), template);
-}
-
-function neighbourPcts(selected) {
-  const i = DEPOSIT_PCT_OPTIONS.indexOf(selected);
-  const start = Math.max(0, Math.min(i - 1, DEPOSIT_PCT_OPTIONS.length - 3));
-  return DEPOSIT_PCT_OPTIONS.slice(start, start + 3);
 }
 
 export function render(container, ctx) {
