@@ -49,7 +49,7 @@ import { chromium } from 'playwright';
 
 import { FULL } from './session-seed.mjs';
 import { BUILD_VERSION } from '../src/cache-version.js';
-import { monthlyAmountFromDate, monthsToReachAmount, combinedGoal } from '../src/model/model.js';
+import { monthlyAmountFromDate, monthsToReachAmount, monthsToGoalUnaided, combinedGoal, rangeFromCentral } from '../src/model/model.js';
 
 const MIME = {
   '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
@@ -80,6 +80,17 @@ const EARLIEST_MONTHS = Math.ceil(monthsToReachAmount({
   targetAmount: combinedGoal(FULL).value,
   monthlyAmount: CEILING,
 }));
+
+/**
+ * THE CAP (D85), computed the way the screen computes it - same function, and
+ * rounded DOWN for the reason the screen states: the crossing sits between two
+ * months and rounding up readmits the first one whose answer is negative.
+ */
+const unaidedFor = (state) => monthsToGoalUnaided(state);
+const CAP_MONTHS = (() => {
+  const u = unaidedFor(FULL);
+  return u.error || !Number.isFinite(u.value) ? null : Math.floor(u.value);
+})();
 
 /** `monthsFromNow`'s inverse, as the screen has it. */
 function dateAtMonths(n) {
@@ -759,6 +770,183 @@ test('an outside tap dismisses the list and does not drop focus on the document'
     assert.equal(seen.focusIsBody, false, 'the outside tap dropped focus at the top of the document');
     assert.equal(seen.focusIsTrigger, true);
     assert.equal((await probe(page)).monthValue, before.monthValue, 'an outside tap changed the selection');
+  } finally {
+    await context.close();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// THE CAP. D85, closing the reachable half of GAPS.md G98.
+// ---------------------------------------------------------------------------
+
+test('the cap rounds DOWN, because rounding up readmits the negative', () => {
+  // Asserted on the arithmetic before any screen is opened, so a seed whose
+  // crossing lands exactly on a month boundary fails here, naming the fixture,
+  // rather than as a mysterious extra option.
+  assert.ok(CAP_MONTHS !== null, 'the shared seed has no cap, so nothing below asserts anything');
+  const atCap = monthlyAmountFromDate(FULL, CAP_MONTHS).value;
+  const past = monthlyAmountFromDate(FULL, CAP_MONTHS + 1).value;
+  assert.ok(atCap >= 0, `the solve at the cap month is ${atCap}, which is already negative`);
+  assert.ok(past < 0, `the solve one month past the cap is ${past}, so the cap is not where the sign changes`);
+});
+
+test('the year list ends at the cap year and the month list ends at the cap month in it', async () => {
+  const { context, page } = await openAt(CAP_MONTHS);
+  try {
+    const seen = await probe(page);
+    const cap = dateAtMonths(CAP_MONTHS);
+    assert.equal(seen.yearOptions[seen.yearOptions.length - 1], cap.targetYear, 'the year list runs past the cap year');
+    assert.equal(seen.monthOptions[seen.monthOptions.length - 1], cap.targetMonth, 'the month list runs past the cap month in the cap year');
+  } finally {
+    await context.close();
+  }
+});
+
+test('NO offered pair produces a negative solve, and D2 holds for every one', async () => {
+  // The invariant this whole pass exists for, checked at each year's HIGHEST
+  // offered month - the complete set of the range's top points, the mirror of
+  // the floor test's lowest ones.
+  const { context, page } = await openAt(CAP_MONTHS - 12);
+  try {
+    // THE HIGHEST OFFERED MONTH IS READ OFF THE SCREEN, NOT COMPUTED HERE.
+    // Computing it from this file's own cap made the test pass while the screen
+    // offered one month more than it should - it checked the month it believed
+    // in rather than the month on offer, which is D77's finding in this very
+    // file. Each year is SELECTED so its own re-derived month list can be read.
+    const seen = await probe(page);
+    const bad = [];
+    for (const year of seen.yearOptions) {
+      await pick(page, 'year', year);
+      const forYear = await probe(page);
+      const highest = forYear.monthOptions[forYear.monthOptions.length - 1];
+      const months = monthsFromNow(highest, year);
+      const solved = monthlyAmountFromDate(FULL, months).value;
+      const range = rangeFromCentral(solved);
+      if (solved < 0) bad.push(`${highest}/${year} solves ${solved.toFixed(2)}`);
+      // D2: low < central < high. It holds only for a positive central, and
+      // nothing in `rangeFromCentral` enforces that - see GAPS.md G99.
+      if (!(range.low < solved && solved < range.high)) bad.push(`${highest}/${year} range inverted`);
+    }
+    assert.deepEqual(bad, [], `the lists offer ${bad.length} pair(s) that solve negative or invert: ${bad.join(', ')}`);
+    assert.ok(seen.yearOptions.length > 1, 'only one year is offered, so this asserts almost nothing');
+  } finally {
+    await context.close();
+  }
+});
+
+test('monthsToReachAmount is monotonic in the monthly amount, which is why floor <= cap', () => {
+  // ASSERTED, NOT ASSUMED. The floor is taken at `left-over` and the cap at a
+  // zero contribution, so "the floor cannot exceed the cap" rests entirely on
+  // this and on nothing else. If it ever stopped holding, the two bounds could
+  // cross on a session where the goal is NOT met, which is a state D85 says
+  // cannot happen.
+  const goal = combinedGoal(FULL).value;
+  for (const startingBalance of [1000, 10000, FULL['saved-toward-deposit'].value, 27000]) {
+    let previous = Infinity;
+    for (let monthlyAmount = 1; monthlyAmount <= 2000; monthlyAmount += 1) {
+      const months = monthsToReachAmount({ startingBalance, targetAmount: goal, monthlyAmount });
+      assert.ok(months <= previous + 1e-9, `not monotonic at balance ${startingBalance}, amount ${monthlyAmount}: ${months} > ${previous}`);
+      previous = months;
+    }
+  }
+});
+
+test('with nothing saved there is no cap, and the year span falls back to the constant', async () => {
+  // GAPS.md G97, demoted rather than closed: nothing compounds from nothing, so
+  // there is no crossing and the invented horizon is what is left.
+  const { context, page } = await openAt(null, { 'saved-toward-deposit': { value: 0, provenance: 'read' } });
+  try {
+    const seen = await probe(page);
+    const unaided = monthsToGoalUnaided({ ...FULL, 'saved-toward-deposit': { value: 0, provenance: 'read' } });
+    assert.equal(unaided.value, Infinity, 'a zero balance has a finite crossing');
+    assert.equal(seen.yearOptions.length, 21, 'the fallback span is not the 20 years past the floor that G97 records');
+  } finally {
+    await context.close();
+  }
+});
+
+test('a selection above the cap is moved down to it', async () => {
+  // The mirror of D83's moved-floor case. It is moved SILENTLY, which is a D46
+  // gap recorded as GAPS.md G102 - the disclosure needs a string this pass does
+  // not own. This asserts the move, not the silence.
+  const { context, page } = await openAt(CAP_MONTHS + 40);
+  try {
+    const seen = await probe(page);
+    const cap = dateAtMonths(CAP_MONTHS);
+    assert.equal(seen.yearValue, cap.targetYear, 'a date past the cap was left standing');
+    assert.equal(seen.monthValue, cap.targetMonth);
+    assert.equal(seen.stored.year, cap.targetYear, 'the store still holds the date past the cap');
+    assert.equal(seen.stored.month, cap.targetMonth);
+  } finally {
+    await context.close();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// The empty list: the goal is already met. D85.
+// ---------------------------------------------------------------------------
+
+const GOAL_MET = {
+  'deposit-pct': { value: 0.05, provenance: 'entered' },
+  'deposit-target': { value: 14000, provenance: 'derived' },
+  'combined-goal': { value: 14000, provenance: 'derived' },
+};
+
+test('when the goal is already met the date control is not drawn at all', async () => {
+  const state = { ...FULL, ...GOAL_MET };
+  const floorMonths = Math.ceil(monthsToReachAmount({
+    startingBalance: state['saved-toward-deposit'].value,
+    targetAmount: combinedGoal(state).value,
+    monthlyAmount: state['left-over'].value,
+  }));
+  const capMonths = Math.floor(monthsToGoalUnaided(state).value);
+  assert.ok(capMonths < floorMonths, `the fixture does not reach the empty case: floor ${floorMonths}, cap ${capMonths}`);
+
+  const { context, page } = await openAt(null, GOAL_MET);
+  try {
+    const seen = await page.evaluate(() => ({
+      control: !!document.querySelector('.date-select'),
+      statement: !!document.querySelector('#date-goal-met'),
+      role: document.querySelector('#date-goal-met')?.getAttribute('role') ?? null,
+      live: document.querySelector('#date-goal-met')?.getAttribute('aria-live') ?? null,
+      glyph: document.querySelector('#date-goal-met svg') ? [...document.querySelector('#date-goal-met svg').classList].find((c) => c.startsWith('icon--') && !/^icon--(body|regular)$/.test(c)) : null,
+      errorBanner: !!document.querySelector('.warning-banner'),
+      readout: !!document.querySelector('.figure-input[role="status"]'),
+      disabled: document.querySelector('.button--primary').disabled,
+      segments: document.querySelectorAll('[data-action="select-solve-for"]').length,
+    }));
+    // AN EMPTY LISTBOX IS NEVER DRAWN. A control that asks a question with no
+    // answers is worse than no control.
+    assert.equal(seen.control, false, 'the date control was drawn with nothing to offer');
+    assert.ok(seen.statement, 'nothing took the control\'s place');
+    // NOT AN ERROR. Nothing the participant did is wrong; they have saved enough.
+    assert.equal(seen.role, 'status');
+    assert.equal(seen.live, 'polite');
+    assert.equal(seen.glyph, 'icon--info-circle');
+    assert.equal(seen.errorBanner, false, 'the goal-met state raised an error banner');
+    // NO FIGURE EITHER. There is no date, so there is nothing to solve.
+    assert.equal(seen.readout, false, 'a solved amount was rendered with no date to solve for');
+    assert.equal(seen.disabled, true, 'Continue is live with no date to commit');
+    // THE WAY FORWARD IS LEFT IN PLACE.
+    assert.equal(seen.segments, 2, 'the segmented control was removed, leaving no way off this state');
+  } finally {
+    await context.close();
+  }
+});
+
+test('the goal-met state commits nothing, even if Continue is forced', async () => {
+  const { context, page } = await openAt(null, GOAL_MET);
+  try {
+    const before = await page.evaluate(() => JSON.parse(sessionStorage.getItem('yfh-state')));
+    // Clicked through the DOM, past Playwright's actionability check, so the
+    // handler's own guard is tested and not only the disabled attribute.
+    await page.evaluate(() => document.querySelector('[data-action="continue"]').click());
+    await page.waitForTimeout(250);
+    const after = await page.evaluate(() => JSON.parse(sessionStorage.getItem('yfh-state')));
+    assert.equal(await page.evaluate(() => window.location.hash), '#/calculator/saving', 'Continue navigated away from the goal-met state');
+    for (const key of ['savings-rate', 'monthly-low', 'monthly-high']) {
+      assert.deepEqual(after[key], before[key], `${key} was written from a state with no date`);
+    }
   } finally {
     await context.close();
   }

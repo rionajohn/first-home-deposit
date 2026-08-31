@@ -26,6 +26,20 @@
  * disabled chevron needing an explanation, and no stepping into an invalid
  * month, so no boundary case and no D46 question about a dragged value.
  *
+ * AND A CAP AT THE OTHER END (DECISIONS.md D85, GAPS.md G98). Past the month
+ * at which the existing balance compounded at the Bank Rate reaches the goal,
+ * `monthlyAmountFromDate` returns a NEGATIVE payment - the correct answer to a
+ * question that has stopped applying, since the goal is reachable with no
+ * contribution at all. That figure did not stay on screen: Continue committed
+ * it, `rangeFromCentral` inverted on it so `monthly-low` came out ABOVE
+ * `monthly-high`, and both of `monthsToTarget`'s guards missed it. The list
+ * stops there.
+ *
+ * ONE RULE, BOTH ENDS. The floor declines dates that do not work; the cap
+ * declines dates where the question does not apply. Neither is derived from
+ * the other and they cannot be: the floor moves with `left-over` and the cap
+ * does not move with it at all (see the two functions' own notes).
+ *
  * FLOOR ONLY, NOT DEFAULT. The list starts at the earliest date; the SELECTION
  * stays the seeded one. At the earliest date the solved amount is by
  * definition the entire left-over, so opening there would put the most
@@ -95,7 +109,7 @@ import {
   rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
-import { monthlyAmountFromDate, rangeFromCentral, monthsToReachAmount, combinedGoal } from '../model/model.js';
+import { monthlyAmountFromDate, rangeFromCentral, monthsToReachAmount, monthsToGoalUnaided, combinedGoal } from '../model/model.js';
 import { RATES } from '../model/rates.js';
 import { MOCK_POSITION } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
@@ -240,9 +254,34 @@ export function render(container, ctx) {
     monthlyHigh = { value: Math.min(seedHigh, savingCeiling), provenance: seedProvenance };
   }
 
-  // --- The floor (D83) -----------------------------------------------------
+  // --- The floor (D83) and the cap (D85) -----------------------------------
   const boundMonths = earliestWorkableMonths(state, savingCeiling);
   const floor = boundMonths === null ? null : dateAtMonths(boundMonths);
+
+  // ROUNDED DOWN, AND THE DIRECTION IS THE WHOLE POINT. The crossing sits
+  // between two months - 93.77 on the shared seed - and the solve is +0.62 at
+  // month 93 and -0.18 at month 94. Rounding UP would readmit the first month
+  // whose answer is negative, which is the state this removes. D2 rounds a
+  // month figure UP where the risk is promising a participant a date that is
+  // too soon; here the risk runs the other way, so this rounds the other way,
+  // and that is a difference in which direction is unsafe rather than a
+  // departure from D2.
+  //
+  // `Infinity` when nothing is saved: nothing compounds from nothing, so there
+  // is no crossing and no cap. `YEAR_LIST_SPAN` is the fallback for exactly
+  // that session and for no other - see GAPS.md G97, which this demotes rather
+  // than closes.
+  const unaided = monthsToGoalUnaided(state);
+  const capMonths = unaided.error || !Number.isFinite(unaided.value)
+    ? null
+    : Math.floor(unaided.value);
+  const cap = capMonths === null ? null : dateAtMonths(capMonths);
+
+  // THE GOAL IS ALREADY MET, so there is no date to offer at all. Not a bounds
+  // problem with a bounds answer: a screen asking when they would like to have
+  // it by has stopped making sense for someone who already has it. Reported and
+  // built in D85; the copy is outstanding.
+  const noWorkableDate = capMonths !== null && boundMonths !== null && capMonths < boundMonths;
 
   // A DATE ALREADY BELOW THE FLOOR IS NOT A SELECTION THE LIST OFFERED - it is
   // a floor that moved (see the header). The date is moved to the new floor and
@@ -261,21 +300,46 @@ export function render(container, ctx) {
     setState({ targetMonth, targetYear, dateMovedToEarliest: true });
   }
 
-  // THE LISTS, BOUNDED AS A PAIR. The year list starts at the floor's year. The
-  // month list starts at the floor's MONTH in that year and at January in every
-  // later one - so the pair cannot express a date below the floor, in any
-  // combination, without a single comparison at selection time.
+  // A SELECTION ABOVE THE CAP, which is the same shape at the other end: the
+  // participant picks a date, raises their saved total or lowers their goal on
+  // another screen, and comes back to find the crossing has moved behind their
+  // date. It is moved to the cap so the control cannot show a value its own
+  // list does not contain.
   //
-  // The selected year is always included even if it sits past the span, so a
-  // restored session holding a far-future date can still render its own value
-  // rather than silently showing a different one.
+  // NO DISCLOSURE IS SHOWN, AND THAT IS A KNOWN GAP RATHER THAN AN OVERSIGHT.
+  // D46 says a value the participant set may be replaced only if the
+  // replacement is visible to them, and this replacement is silent - the
+  // mirrored `dateMovedToEarliest` would need its own string, which is copy
+  // this pass does not own. Recorded as GAPS.md G102 so it is not lost.
+  if (solveFor === 'amount' && cap !== null && !noWorkableDate
+      && monthsFromNow(targetMonth, targetYear) > capMonths) {
+    targetMonth = cap.month;
+    targetYear = cap.year;
+    setState({ targetMonth, targetYear });
+  }
+
+  // THE LISTS, BOUNDED AS A PAIR AT BOTH ENDS (D83's rule, mirrored by D85).
+  // The year list runs from the floor's year to the cap's. The month list
+  // starts at the floor's MONTH in the floor year and at January in every later
+  // one, and ends at the cap's MONTH in the cap year and at December in every
+  // earlier one - so in a year holding BOTH bounds it is bounded twice. The
+  // pair therefore cannot express a date outside the range, in any combination,
+  // without a single comparison at selection time.
+  //
+  // WITHOUT A CAP the year list falls back to `YEAR_LIST_SPAN` (G97), and the
+  // selected year is always included even if it sits past the span, so a
+  // restored session holding a far-future date renders its own value rather
+  // than silently showing a different one.
   const floorYear = floor === null ? targetYear : floor.year;
-  const lastYear = Math.max(floorYear + YEAR_LIST_SPAN, targetYear);
+  const lastYear = cap !== null
+    ? Math.max(cap.year, floorYear)
+    : Math.max(floorYear + YEAR_LIST_SPAN, targetYear);
   const yearOptions = [];
   for (let y = floorYear; y <= lastYear; y += 1) yearOptions.push({ value: y, label: String(y) });
   const firstMonth = floor !== null && targetYear === floor.year ? floor.month : 1;
+  const lastMonth = cap !== null && targetYear === cap.year ? cap.month : 12;
   const monthOptions = [];
-  for (let m = firstMonth; m <= 12; m += 1) monthOptions.push({ value: m, label: MONTH_NAMES[m - 1] });
+  for (let m = firstMonth; m <= Math.max(firstMonth, lastMonth); m += 1) monthOptions.push({ value: m, label: MONTH_NAMES[m - 1] });
 
   let errorText = null;
   let previewAmount = null;
@@ -290,7 +354,12 @@ export function render(container, ctx) {
     // `<select>` always holds one of its own options, so there is no half-made
     // state to keep out of the store. D83 removed the key with the field.
     const months = monthsFromNow(targetMonth, targetYear);
-    if (months < 0) {
+    if (noWorkableDate) {
+      // NOTHING IS SOLVED AND NOTHING IS SHOWN. There is no date to solve for,
+      // and a figure derived from one the list does not offer is exactly the
+      // live-versus-stored split CLAUDE.md's state rules forbid. `previewAmount`
+      // stays null, so the readout does not render either.
+    } else if (months < 0) {
       errorText = c.errorPastDate;
     } else {
       previewAmount = monthlyAmountFromDate(state, months);
@@ -368,7 +437,19 @@ export function render(container, ctx) {
           fill(c.dateMovedToEarliest, { earliest: `${MONTH_NAMES[targetMonth - 1]} ${targetYear}` }),
           { id: 'date-moved', live: true },
         ) : ''}
-        ${dateSelectHTML({
+        <!-- NO DATE CONTROL AT ALL WHEN THERE IS NO DATE TO PICK (D85). An
+             empty listbox is a control that asks a question with no answers;
+             drawing one and letting the participant open it to find nothing is
+             worse than not drawing it. The statement takes its place, and
+             Continue is disabled, so nothing can be committed from a date that
+             does not exist.
+
+             THE SEGMENTED CONTROL IS DELIBERATELY LEFT ALONE. "Set a monthly
+             amount" is still there and still switches - it is the way forward
+             from here, and removing it would leave the participant on a screen
+             with nothing at all. That path has its own defect in this state
+             (GAPS.md G101) which this pass does not fix and does not hide. -->
+        ${noWorkableDate ? infoBannerHTML(c.dateGoalAlreadyMet, { id: 'date-goal-met', live: true }) : dateSelectHTML({
           monthOptions,
           monthValue: targetMonth,
           yearOptions,
@@ -439,7 +520,9 @@ export function render(container, ctx) {
       // reach. `errorPastDate` is the only thing left that disables Continue on
       // this path, and it too is reachable only from a stored date - the list
       // does not offer one.
-      primaryDisabled: !!errorText,
+      // `noWorkableDate` disables it the way an error would, without raising
+      // one: nothing the participant did is wrong (D85).
+      primaryDisabled: !!errorText || noWorkableDate,
       primaryDescribedBy: errorText ? 'error-saving' : null,
       secondaryLabel: c.secondaryCta,
       secondaryAction: 'exit',
@@ -522,7 +605,10 @@ export function render(container, ctx) {
     // what a pick MEANS, which is the same split the component's own note
     // describes. No bound is re-checked here: the lists were built to the floor
     // above, so a pick can only carry a value the floor allowed.
-    bindDateSelect(container, {
+    // Nothing to bind when the control was not drawn. `bindDateSelect` returns
+    // early on a missing root, but the guard is written here too so the reason
+    // is visible at the call site rather than only in the component.
+    if (!noWorkableDate) bindDateSelect(container, {
       onPick: (name, value) => {
         if (name === 'month') { commitDate({ targetMonth: value }); return; }
         // CHANGING THE YEAR RE-DERIVES THE MONTH LIST, and the one case where

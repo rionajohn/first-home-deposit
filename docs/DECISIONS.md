@@ -8133,3 +8133,150 @@ saying "-£39 put aside each month". It predates this pass (D80 rendered the rea
 horizon) and is out of this pass's scope, which explicitly leaves both alone. Recorded as `GAPS.md`
 G98 rather than left in a report.
 
+---
+
+## D85. The date list is capped at the flip point, and the goal-already-met case gets a screen
+
+**Date.** 31 August 2026. Closes the reachable half of `GAPS.md` G98. The floor, `dateMovedToEarliest`,
+the listbox and its keyboard contract, and the seeded date as the initial selection are all untouched.
+
+### What was wrong, and why it was not a display defect
+
+Past the month at which the existing balance compounded at the Bank Rate reaches the goal,
+`monthlyAmountFromDate` returns a NEGATIVE payment. It is the correct answer to a question that has
+stopped applying - the goal is reachable with no contribution at all - and G98's measurement showed the
+figure did not stay on screen:
+
+| | |
+| --- | --- |
+| Continue committed | `savings-rate` -27.63, `monthly-low` -24.87, `monthly-high` -30.40 |
+| D2's invariant | inverted - `monthly-low` came out ABOVE `monthly-high` |
+| `monthsToTarget`'s two guards | both missed it: a negative is neither exactly zero nor above `left-over` |
+| Frame 11 | showed "-25" and "-30", no error, Work it out enabled |
+| Frame 12 | drew its two named bands swapped, and `chart-range.test.mjs` passed because both still rose |
+
+### The cap
+
+**Closed form, derived from the function it bounds.** `monthlyAmountFromDate` returns
+`pmt = ((goal - p0 x g) x r) / ((1+r)(g-1))` with `g = (1+r)^n`, which is zero exactly when
+`goal = p0 x g`:
+
+    n = ln(goal / p0) / ln(1 + r)
+
+`monthsToGoalUnaided` in `model.js`. **`monthsToReachAmount` is not changed** - it returns `Infinity`
+for a monthly amount at or below zero, deliberately and with a comment, and "genuinely unreachable at a
+zero contribution" is the right answer to the question that function asks.
+
+**Rounded DOWN, and the direction is the decision.** The crossing sits between two months - 93.7738 on
+the shared seed - and the solve is **+0.62 at month 93** and **-0.18 at month 94**. Rounding up readmits
+the first month whose answer is negative, which is the state being removed. D2 rounds a month figure UP
+where the risk is promising a date that is too soon; here the risk runs the other way, so this rounds
+the other way. That is a difference in which direction is unsafe, not a departure from D2.
+
+**Recomputed on every render, like the floor**, and it has to be: it moves with `saved-toward-deposit`,
+`property-value` and `deposit-pct`, all committed on other screens. Measured shifts on plausible edits:
+saved 21,000 to 15,000 **+109.7 months**, property 280,000 to 350,000 **+95.2**, deposit % 10 to 15
+**+132.2**.
+
+**And it does NOT move with `left-over`, which moves the floor** - measured at exactly 0.0 months. The
+floor is when the goal is reachable at the most the participant could put aside; the cap is when it is
+reachable at nothing. Neither can be derived from the other and this record says so, because "the other
+end of the floor" is the wrong mental model.
+
+**The lists are bounded at both ends, D83's pair rule mirrored.** The year list runs floor year to cap
+year; the month list starts at the floor's month in the floor year and January in every later one, and
+ends at the cap's month in the cap year and December in every earlier one. **In a year holding both
+bounds it is bounded twice.**
+
+**Floor cannot exceed cap while the goal is ahead**, because `monthsToReachAmount` is monotonically
+decreasing in the monthly amount and the floor is taken at `left-over` while the cap is the same target
+at zero. That is now **asserted rather than assumed** - `date-ceiling.test.mjs` sweeps four balances by
+2000 monthly amounts - because the whole arrangement rests on it and on nothing else.
+
+### The goal-already-met case, which could not be deferred
+
+They DO cross the moment the goal is met: at a 5% deposit on the seed the goal is 14,000 against 21,000
+saved, the floor is 0 and the cap is -133. **A capped list has nothing in it.**
+
+**How often.** At the shared fixture's 21,000 saved, **10 of 45** realistic property-by-deposit-%
+combinations. At the balance a real session actually opens with (8,950), **1 of 45** - £150,000 at 5%.
+Rare, but one tap away on frame 09, and reachable from frame 11 and frames 03/06 as well.
+
+**What was built.** The date control is **not drawn at all**, and a statement takes its place; Continue
+is disabled; no figure is solved or rendered. An empty listbox is a control that asks a question with no
+answers, and letting a participant open one to find nothing is worse than not drawing it.
+
+**The segmented control is deliberately left in place.** "Set a monthly amount" is the way forward from
+here, and removing it would leave the participant on a screen with nothing at all.
+
+**It is not an error and must not read as one.** Nothing they did is wrong - they have saved enough. It
+renders through `infoBannerHTML` with `infoCircle` and `role="status"` polite, not the error banner and
+not `role="alert"` (D78).
+
+**Copy outstanding: `content['/calculator/saving'].dateGoalAlreadyMet`, `[AWAITING COPY]`.** Slots
+`{saved}` and `{goal}`. It has to do more than state the fact: the participant is on a screen whose
+question no longer applies with a dead Continue, and the way out is the tab beside it.
+
+**Monthly-amount mode does NOT degrade gracefully in the same state, and that is not fixed here.**
+`monthsToTarget` has no `startingBalance >= targetAmount` guard, so a slider rate on an already-met goal
+returns NEGATIVE months with `error: null` - -27.58, -12.63 and -6.63 at 200, 500 and 1000 a month - and
+`onTrackFor` hands back an inverted `{ low: -24, high: -30 }`. Recorded as `GAPS.md` G100 and left
+reachable rather than papered over. **The honest reading is that "the goal is already met" belongs
+earlier in the flow than frame 10b** - it is a whole-calculator state, not a date-mode one - and this
+pass fixes the half it was scoped to.
+
+### Why B and C were rejected
+
+- **B, restate the readout past the flip.** It makes the screen honest and **leaves the store wrong**:
+  the negative still commits unless separately guarded, so G98's actual defect survives it. It also
+  costs a new string, and G96's measurement gives two lines at Large text to put it in.
+- **C, clamp to zero.** Worse than it looks. `monthsToTarget` rejects a savings-rate of exactly zero as
+  **`unreachable`**, so frame 12 would tell a participant whose goal is already met by interest that
+  they will never get there - a confident wrong statement in place of a nonsensical figure.
+
+### What is unreachable rather than fixed
+
+Recorded in `GAPS.md` in the G92-to-G95 form, open with an explicit instruction not to close on the
+strength of this pass:
+
+| | |
+| --- | --- |
+| **G99** | `rangeFromCentral` still inverts on a negative central. Its comment states the precondition; nothing enforces it |
+| **G100** | `monthsToTarget`'s guards still miss a negative - and its missing already-met guard is **still reachable** through the slider |
+| **G101** | `chart-range.test.mjs` cannot detect an inverted pair of bands. A gap in the suite, not the build, and it outlives the defect that revealed it |
+| **G102** | A date moved DOWN to the cap is **not disclosed**, where one moved up to the floor is. A D46 gap, knowingly incomplete - the mirrored string is copy this pass did not own |
+
+### G97 is demoted, not closed
+
+`YEAR_LIST_SPAN = 20` was invented because `build-spec.md` gives no horizon. The cap is a horizon
+derived from the model, so for any session with something saved the constant is not consulted. **It
+survives for the zero-balance session** - nothing compounds from nothing, `monthsToGoalUnaided` returns
+`Infinity`, and there is no crossing to cap at.
+
+**One consequence worth stating, because it is the opposite of what a cap sounds like: it usually makes
+the list LONGER.** At the real opening balance the crossing is 372 months out, so the year list runs 32
+years where the constant gave 21; at 1,000 saved it would run 90. Every date in it is valid, which is
+the point. Ending the list at whichever of the cap and the span comes first is one line, and was
+deliberately not done - it would make the constant a co-bound again rather than the fallback. Recorded
+in G97 so the choice is visible.
+
+### Verification
+
+Twenty shots across five states, two themes, two text sizes: the year and month lists at the cap, the
+narrow single-year list where both bounds fall on one month list (March to July 2027, five options), and
+the goal-met screen with no control at all.
+
+`date-ceiling.test.mjs`: 28 tests to 36. The new ones assert the rounding direction on the arithmetic
+before any screen opens, that no offered pair solves negative or inverts D2's range, the monotonicity
+the floor-below-cap claim rests on, the fallback when nothing is saved, the move down to the cap, and
+the whole of the goal-met state. **The defect was reintroduced and the tests confirmed to fail** -
+rounding the cap up fails 3 of 36.
+
+**And one of those tests was wrong first, in exactly the way D77 describes.** The "no offered pair
+solves negative" test computed each year's highest offered month from its own copy of the cap rather
+than reading it off the screen - so with the cap rounded up it checked the month it believed in and
+passed while the screen offered one more. It now selects each year and reads that year's own re-derived
+month list. Worth recording: the file that exists because of D77 grew a D77 defect.
+
+Full suite: 391 tests, 390 passing, 1 skipped (G91), 0 failing.
+

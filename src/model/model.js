@@ -410,6 +410,45 @@ export function balanceAtMonth({ startingBalance, monthlyAmount, months, aer = R
 }
 
 /**
+ * MONTHS UNTIL THE BALANCE REACHES THE GOAL WITH NO CONTRIBUTION AT ALL - the
+ * point past which `monthlyAmountFromDate` starts returning a NEGATIVE payment,
+ * because the question it answers has stopped applying. DECISIONS.md D85,
+ * GAPS.md G98.
+ *
+ * CLOSED FORM, DERIVED FROM THE FUNCTION IT BOUNDS. `monthlyAmountFromDate`
+ * returns `pmt = ((goal - p0 * g) * r) / ((1 + r)(g - 1))` where `g = (1+r)^n`,
+ * so it is zero exactly when `goal = p0 * g`:
+ *
+ *     n = ln(goal / p0) / ln(1 + r)
+ *
+ * Checked against a search on the shared seed: this returns 93.7738 and the
+ * first month whose solve is negative is 94.
+ *
+ * `monthsToReachAmount` CANNOT SUPPLY THIS AND IS NOT CHANGED. It returns
+ * `Infinity` for a monthly amount at or below zero, deliberately and with a
+ * comment saying so - "genuinely unreachable at a zero contribution" is the
+ * right answer to the question that function asks, which is about a
+ * participant's saving and not about interest alone.
+ *
+ * Returns `Infinity` when the balance is zero: nothing compounds from nothing,
+ * so there is no such month. Returns a NEGATIVE number when the balance
+ * already covers the goal - the crossing is in the past - which is a real
+ * state and not an error, and the caller has to decide what to do with it (see
+ * D85's empty-list case).
+ */
+export function monthsToGoalUnaided(state, aer = RATES.bankRate) {
+  const startingBalance = state['saved-toward-deposit'].value ?? 0;
+  const target = combinedGoal(state);
+  const provenance = combineProvenance(state['saved-toward-deposit'], target);
+
+  if (target.error) return fail(target.error, provenance);
+  if (startingBalance <= 0) return ok(Infinity, provenance);
+
+  const r = monthlyRate(aer);
+  return ok(Math.log(target.value / startingBalance) / Math.log(1 + r), provenance);
+}
+
+/**
  * Months to reach an arbitrary target amount, for an arbitrary starting
  * balance and monthly contribution — frame 12's three timing rows (one per
  * deposit-pct threshold: 5%, 10%, 15%) each need this against a different

@@ -99,6 +99,18 @@
  *                left-over-zero        frame 05, left over at or below zero
  *                property-non-numeric  frame 09, a value the model rejects
  *                saving-ceiling        frame 10, the range above left over
+ *                saving-goal-met       frame 10b with NO date to offer at all:
+ *                                      a 5% deposit puts the goal below what
+ *                                      is already saved, so the cap sits
+ *                                      behind the floor and the control is
+ *                                      replaced by a statement (D85).
+ *                saving-near-cap       frame 10b at the last date the list
+ *                                      offers - the month the balance reaches
+ *                                      the goal unaided (D85).
+ *                saving-narrow-list    frame 10b where floor and cap are close
+ *                                      enough that the whole range sits in one
+ *                                      year, so both bounds fall on one month
+ *                                      list.
  *                saving-date-below-bound  frame 10b, a date the ceiling cannot
  *                                      reach. NOT reachable by pressing the
  *                                      stepper since D82 bounded it - this is
@@ -218,6 +230,7 @@ import {
   loanAmount,
   ltv,
   monthsToReachAmount,
+  monthsToGoalUnaided,
 } from '../src/model/model.js';
 // Every seed below carries `buildVersion` (DECISIONS.md D59). `state.js` now
 // DISCARDS a stored session whose stamp is not the running build's, so an
@@ -302,6 +315,27 @@ function monthsFromToday(n) {
  * date the screen will actually treat as the bound rather than a number written
  * here that drifts the moment the seed changes.
  */
+/** The seed's goal re-derived at a different deposit percentage. */
+function goalAt(pct) {
+  const pair = { 'property-value': FULL['property-value'], 'deposit-pct': { value: pct, provenance: 'entered' } };
+  const target = depositTarget(pair);
+  const goal = combinedGoal(pair);
+  return {
+    'deposit-pct': pair['deposit-pct'],
+    'deposit-target': { value: target.value, provenance: target.provenance },
+    'combined-goal': { value: goal.value, provenance: goal.provenance },
+  };
+}
+
+/**
+ * D85's cap in whole months: the month the balance reaches the goal unaided,
+ * rounded DOWN the way the screen rounds it. Null where there is none.
+ */
+function capMonths() {
+  const unaided = monthsToGoalUnaided(FULL);
+  return unaided.error || !Number.isFinite(unaided.value) ? null : Math.floor(unaided.value);
+}
+
 function boundMonths() {
   const months = monthsToReachAmount({
     startingBalance: FULL['saved-toward-deposit'].value,
@@ -502,6 +536,20 @@ const ERROR_STATES = {
   'saving-ceiling': () => ({
     'monthly-low': { value: FULL['left-over'].value + 100, provenance: 'entered' },
     'monthly-high': { value: FULL['left-over'].value + 400, provenance: 'entered' },
+  }),
+  'saving-goal-met': () => ({
+    // A 5% deposit on the seed's own property: a 14,000 goal against 21,000
+    // already saved. Derived through the model rather than written here, so it
+    // follows the seed.
+    ...goalAt(0.05),
+  }),
+  'saving-near-cap': () => ({
+    ...monthsFromToday(capMonths() ?? 0),
+  }),
+  'saving-narrow-list': () => ({
+    // Saved high enough that the whole range collapses into one year, which is
+    // where the month list is bounded at BOTH ends.
+    'saved-toward-deposit': { value: 27000, provenance: 'read' },
   }),
   'saving-date-below-bound': () => ({
     // ONE MONTH UNDER THE FLOOR, computed from the model rather than picked, so

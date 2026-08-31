@@ -3316,9 +3316,32 @@ It costs a participant who wants a target more than twenty years out, which in a
 is not a case this study is designed to observe. It costs nothing at the other end: the floor is
 computed, not invented, and is the half of the range that matters.
 
-*Status: **open - a figure awaiting confirmation, not a defect.** Nothing is wrong with 20; it is simply
-not the spec's number, because the spec has none. Confirm it, replace it, or record it as intentionally
-this build's own. If it is replaced, the constant is the only place it lives.*
+### AMENDED 31 AUGUST 2026: DEMOTED FROM THE RULE TO THE FALLBACK - `DECISIONS.md` D85
+
+D85 caps the year list at the month the balance reaches the goal unaided, which is a horizon **derived
+from the model** rather than invented. For any session with something saved, that cap is what ends the
+list and this constant is not consulted at all.
+
+**It survives for one case, and cannot be removed.** With `saved-toward-deposit` at zero - a participant
+who assigned no accounts to their deposit - nothing compounds from nothing, `monthsToGoalUnaided`
+returns `Infinity`, and there is no crossing to cap at. That session still needs a horizon, and this is
+what is left. `date-ceiling.test.mjs` asserts the fallback is reached and is 21 years of options.
+
+**One consequence measured and worth knowing: the cap usually makes the list LONGER, not shorter.** At
+the real opening balance (8,950 saved against a 28,000 goal) the crossing is 372 months out, so the year
+list runs 32 years where the constant gave 21. It shortens only for participants who have saved a good
+deal - at 27,000 saved the list is 2 years. Every date in the longer list is valid, which is the point,
+but a session with very little saved gets a long scroll: at 1,000 saved the crossing is 1,086 months and
+the list would be 90 years.
+
+**If that is not wanted, the fix is one line** - end the list at whichever of the cap and the span comes
+first. That was deliberately NOT done here, because it would make this constant a co-bound again rather
+than the fallback D85 records it as. Raised so the choice is visible.
+
+*Status: **open - a figure awaiting confirmation, not a defect, and now reached only by the
+nothing-saved session.** Nothing is wrong with 20; it is simply not the spec's number, because the spec
+has none. Confirm it, replace it, or record it as intentionally this build's own. If it is replaced, the
+constant is the only place it lives.*
 
 ---
 
@@ -3600,4 +3623,164 @@ not file it beside the unreachable entries above it.*
 frame 12's growth chart with its two named bands swapped - with no error raised on any screen and
 nothing in the suite failing. **Recommendation: close A**, with the empty-list case in 2.2 answered in
 the same pass, and with what it makes unreachable recorded as unreachable rather than fixed.
+
+---
+
+## G99. `rangeFromCentral` inverts on a negative central, and nothing enforces its own precondition
+
+*Raised 31 August 2026 with `DECISIONS.md` D85, which made it unreachable. **Unreachable is not fixed**
+- the form G92 to G95 use, and for their reason.*
+
+### The mechanism
+
+`model.js`:
+
+    export function rangeFromCentral(central, spread = RATES.rangeSpread) {
+      return { low: central * (1 - spread), high: central * (1 + spread) };
+    }
+
+Its own doc comment states the guarantee exactly: *"For any central > 0 this guarantees low < central <
+high"* (D2). **Nothing checks that `central > 0`.** For a negative central the multipliers swap the
+ends: 0.9 of a negative is nearer zero than 1.1 of it, so `low` comes out GREATER than `high`.
+
+Measured at a solve of -27.63: `low` **-24.87**, `high` **-30.40**.
+
+### What it did
+
+Committed by frame 10b's Continue as `monthly-low` and `monthly-high`, which are section 6 figures. From
+there:
+
+- **Frame 11** rendered them as "-25" and "-30" in its editable rows, in that order, raising no error -
+  its `monthlyHigh.value > savingCeiling` check does not fire on a negative.
+- **Frame 12's growth chart** plotted the series named "low" ABOVE the series named "high" at every
+  point (£21,483 against £21,415 at 12 months). Both still rose, so `chart-range.test.mjs` passed - see
+  G101.
+
+### Unreachable after D85, not fixed
+
+D85 caps the date list at the month the solve reaches zero, so frame 10b can no longer produce a
+negative central. The slider path clamps at zero and above. **The function is unchanged and still
+inverts** on any negative it is handed.
+
+*Status: **open, unreachable.** **Do not close it on the strength of D85.** G64's 29 August amendment is
+the standing precedent: a defect that stops reproducing is harder to find, not smaller. Closing it means
+the function enforcing the precondition its own comment states - returning an error for a non-positive
+central, the way the rest of `model.js` does, rather than silently returning a range that is the wrong
+way round.*
+
+---
+
+## G100. `monthsToTarget`'s guards do not consider a negative savings-rate
+
+*Raised 31 August 2026 with `DECISIONS.md` D85, which made it unreachable. Unreachable is not fixed.*
+
+### The mechanism
+
+`monthsToTarget` guards two cases and neither catches a negative:
+
+    if (savingsRate.value === 0) return fail('unreachable', provenance);
+    if (leftOverFigure && leftOverFigure.value !== null && savingsRate.value > leftOverFigure.value) {
+      return fail('exceeds-left-over', provenance);
+    }
+
+A negative is not exactly zero and is not above `left-over`, so it passes both and the annuity
+arithmetic runs on it.
+
+**And it returns a plausible answer**, which is what makes it dangerous rather than merely wrong: fed a
+rate solved from a 150-month date, it returns **150.000** flagged `beyond-window`. The function is
+internally consistent - it is inverting its own inverse - so nothing downstream has any reason to doubt
+it. `on-track-for`, `months-to-target` and `checkpoint-amount` were all committed from it.
+
+### A second, separate hole in the same function
+
+`monthsToTarget` has **no `startingBalance >= targetAmount` guard**, which its sibling
+`monthsToReachAmount` does have as its first line. So on a session whose goal is already met it returns
+**negative months** with `error: null` - measured at -27.58, -12.63 and -6.63 for slider rates of 200,
+500 and 1000 a month - and `onTrackFor` hands back `{ low: -24, high: -30 }`, itself inverted.
+
+**That half is NOT made unreachable by D85.** D85 removes the date path's negative rate; it does not
+touch the slider path, and a participant whose goal is already met can still set a monthly amount and
+commit it. See G101.
+
+*Status: **open. The negative-rate half is unreachable after D85; the already-met half is REACHABLE.**
+Do not close either on the strength of D85. Closing it means the guards covering the cases the function
+can actually be handed - a non-positive rate, and a balance already at or past the target - rather than
+the two it happens to name.*
+
+---
+
+## G101. `chart-range.test.mjs` passed while frame 12 drew its two named bands swapped
+
+*Raised 31 August 2026 with `DECISIONS.md` D85. **A gap in the suite, not in the build**, which is why
+it is its own entry: nothing about frame 12's chart was wrong in the state the tests cover, and nothing
+about the tests would have told anyone about the state they do not.*
+
+### What happened
+
+With `monthly-low` above `monthly-high` (G99), the growth chart plotted the series named "low" above the
+series named "high" at every point:
+
+| Months | "low" band | "high" band |
+| --- | --- | --- |
+| 12 | £21,483 | £21,415 |
+| 60 | £23,603 | £23,239 |
+
+`chart-range.test.mjs` asserts, in its own words, that the bars are "distinct and rising". **Both hold**
+- interest outpaced the small negative contribution, so the series rose, and the two bands differed, so
+they were distinct. The suite was green throughout.
+
+### It is D77's finding, in the file D77's finding created
+
+`chart-range.test.mjs` exists because D73's chart "drew a descending series and announced a balance
+lower than the participant's own" while every other suite passed. D77 then generalised the lesson:
+**an assertion that passes for a reason unrelated to what it claims to test is worse than none, because
+it is counted.** This is the same file, one property later. "Distinct and rising" was chosen against a
+chart that descended; it says nothing about which of two named series is on top.
+
+### Worth an entry of its own - yes
+
+The build defect is G99's and is unreachable now. What is left is a **test that cannot detect an
+inversion**, and that outlives the defect that revealed it: any future change putting the bands the
+wrong way round would ship green. That is a property of the suite, and G99 closing would not touch it.
+
+**What closing it means.** One assertion, and the shape matters more than the wording: for every plotted
+point, the series named "high" must be at or above the series named "low". It is a shape assertion,
+survives a re-scale, and is the kind D73's third amendment already argues for.
+
+*Status: **open.** The state that exposed it is unreachable (G99); the blind spot is not. Do not close
+it when G99 closes - they are different things in different files.*
+
+---
+
+## G102. A date moved DOWN to the cap is not disclosed, where one moved UP to the floor is
+
+*Raised 31 August 2026 with `DECISIONS.md` D85. **A D46 gap, and a knowingly incomplete one** - the
+missing half is copy, and copy was not this pass's to write.*
+
+### The asymmetry
+
+D83 handles a selection below the floor: the date is moved to the floor and the move is DISCLOSED
+(`dateMovedToEarliest`), which is D46's rule - a value the participant set may be replaced only if the
+replacement is visible to them.
+
+D85 introduced the same case at the other end. Raise the saved total, lower the property value or lower
+the deposit percentage, and the cap moves behind a date already chosen. **The date is moved to the cap
+and nothing says so.**
+
+Driven in a browser: pick 2034 (the last year offered), go to frame 11, raise "Saved so far" to 26,000,
+press back. The cap is now August 2028, the year list ends 2028, and the selection reads 2028. **No
+disclosure of any kind.**
+
+### Why it was left
+
+The mirrored disclosure needs its own string - `dateMovedToEarliest`'s words are wrong for it ("the
+soonest you could get there" is not what happened) - and D85's brief was explicit that the copy is the
+project owner's. Moving the date silently was chosen over the alternatives: leaving it standing would
+put a value in the trigger that its own list does not contain, and refusing the upstream edit was
+rejected in G98's own reasoning.
+
+*Status: **open, and REACHABLE.** No facilitator gesture, no seeded state - three routes reach it
+(`saved-toward-deposit` up via frames 03/06 or 11, `property-value` down, `deposit-pct` down). Closing
+it needs one string and one flag, mirroring D83 exactly: a `dateMovedToLatest` key and its own state
+flag, cleared the same way. Everything else is already in place.*
 

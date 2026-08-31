@@ -617,6 +617,27 @@ const content = {
     //   {amount}   the monthly figure the chosen date implies - deliberately
     //              unused by this wording (D81)
     errorDateNeedsMoreThanLeftOver: 'That date needs more than the {max} you have left over each month. Even putting all of it aside, the earliest you could reach your goal is {earliest}.',
+    // AWAITING COPY (DECISIONS.md D85). THE GOAL IS ALREADY MET by what the
+    // participant holds, so the balance reaches it with no contribution before
+    // the earliest date they could reach it with one - the floor is later than
+    // the cap and there is no date to offer. The date control is not drawn and
+    // this takes its place; Continue is disabled.
+    //
+    // IT IS NOT AN ERROR AND MUST NOT READ AS ONE. Nothing the participant did
+    // is wrong; they have saved enough. It renders through `infoBannerHTML`,
+    // not the error banner - `infoCircle`, `role="status"` polite, not
+    // `role="alert"` (D78, D83).
+    //
+    // WHAT THE COPY HAS TO DO, which is more than state the fact: the
+    // participant is on a screen whose question no longer applies, with a dead
+    // Continue, and the way forward is the "Set a monthly amount" tab beside it.
+    // The string has to point at that or they are stuck.
+    //
+    // Slots available:
+    //   {saved} the total counted toward their deposit
+    //   {goal}  the combined goal it has already reached
+    dateGoalAlreadyMet: '[AWAITING COPY]',
+
     // THE ONE CASE THE FLOOR CANNOT PREVENT (DECISIONS.md D83). The participant
     // picks a date, then makes an upstream edit that moves the earliest
     // reachable date past it - essentials up, money in down, property value up,
