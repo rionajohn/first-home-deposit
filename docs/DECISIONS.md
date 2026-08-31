@@ -9086,3 +9086,185 @@ tab.
 Restore the previous string to `content['/calculator/saving'].headline`. That reinstates a heading a
 pilot participant could not proceed past without two moderator interventions, so the reason would
 have to be a third heading rather than a return to the second.
+
+---
+
+## D95. Frame 10's caption names both outcomes, and is kept because it is the only thing that does
+
+**Date.** 31 August 2026. Closes `GAPS.md` G108, annotates G107, splits G109 out. Copy only; no
+layout, interaction or control changed. Follows D94, and amends the rule D94 set.
+
+### The string
+
+    content['/calculator/saving'].pickOneCaption =
+      "Set an amount and we'll show you the date. Set a date and we'll show you the amount."
+
+It replaces "Pick one and we'll work out the other."
+
+### Why the old one had to go, and it was not only the verb
+
+Two faults, and the second is the one the transcript actually shows. It used the exact phrase the
+participant could not parse, one line beneath the heading D94 had just written to replace that
+phrase. And it asked them to infer what "the other" was - a second inference, on a screen whose first
+inference had already failed.
+
+The 19:48 question was **about the output**: "what am I working out exactly?" The heading names the
+goal and both option labels name **inputs**, so this caption is the only place on the screen that can
+say what comes back. It now says it twice, once per option, in that option's own terms.
+
+**Symmetrical on purpose.** Two sentences of the same shape, one per option, so the line steers
+towards neither. That is the MCOB 4.8A guidance-versus-advice boundary this screen is already held to,
+and it also keeps G107's measurement on the two labels rather than on a caption that favours one.
+
+### Why it is retained rather than deleted or cut to one clause
+
+Both were considered and both are wrong here, for a reason that is asymmetric between the variants:
+
+- **Slider variant** (`solveFor === 'date'`), the default and the one a participant lands on: the
+  branch draws the range, the track and the provenance caption, and **nothing else says a date is
+  coming at all**. The solved date is deferred to frame 11 (D80 rendered the *amount* inline on the
+  other branch, not the date on this one). Cut either sentence and the default variant goes silent
+  about what the screen returns.
+- **Date variant** (`solveFor === 'amount'`): the complement is stated twice more - `dateStepperHint`,
+  plus the solved figure D80 renders inline. The redundancy is on this side only.
+
+So the caption is carried for the branch that needs it, which is the same reasoning D81 used to keep
+`sliderCaption` shared between two readouts rather than splitting it.
+
+### The amendment to D94's rule
+
+D94 said "work out" is not reused **on this screen**, and listed three surviving strings as
+exceptions. **That scope was wrong.** The pilot defect was never the phrase; it was the phrase used to
+frame *a decision the participant was being asked to make*.
+
+The rule is therefore: **copy that frames a choice on frame 10 is written from the participant's goal
+and does not reuse "work out".** `taxRateCaption` and `provenanceKeyLabel` are provenance strings -
+they say where a figure came from, which is a different job and one the same participant asked for at
+13:36 ("where I can actually see where this money is calculated has come from"). Rewording them would
+be a regression, and synchronising it across `/position`, `/calculator/review` and `/tracker` would be
+a larger one. G108 records that in full; G109 carries the wider vocabulary question so it stops riding
+on a single-screen finding.
+
+### Verified
+
+Fresh tab, never a reload (D59). The caption renders character for character, codepoint for codepoint,
+on **both** variants; two full stops; no "work out"; both option labels byte-identical to before the
+change (they do not appear in the diff at all). It wraps to two lines at 390px with seven words on the
+last, so no orphan. Heading, both labels and the caption remain above the fold together.
+
+**What the extra line cost, measured rather than eyeballed.** Everything below shifts 22px. Nothing
+crossed the fold: the bank-rate caption was already clipped at v102 (bottom 660 against a 651 fold)
+and is simply clipped earlier now, and both provenance strings were below the fold before and after.
+The one thing it did move was frame 10b's list direction, which is D96.
+
+### To reverse
+
+Restore the previous string. That reinstates the failed vocabulary directly beneath its own
+replacement, so the reason would have to be a third caption rather than a return to the second.
+
+---
+
+## D96. Frame 10b's list direction is pinned downward on an ordinary visit, and paid for out of the clamp
+
+**Date.** 31 August 2026. Amends D84's placement rule. Cross-references D92. Annotates `GAPS.md` G98
+and G107.
+
+### What was actually wrong, which is not what it looked like
+
+D84 chose the side per open, from the space available: `useAbove = below < wanted && above > below`,
+where `wanted` is five rows. That reads as adaptive. Measured, it was a coin toss.
+
+On an ordinary visit the space above and the space below are **within one row of each other**, so the
+side was settled by a few pixels of copy. At v102, in layout pixels:
+
+| | space above | space below | side |
+| --- | --- | --- | --- |
+| Ordinary, default text | 202 | 203 | below, **by one pixel** |
+| Ordinary, Large text | 214.3 | 190.7 | **above - already flipped** |
+
+So the property "the list hangs below on an ordinary visit" was never true. It held at default text by
+a single layout pixel, and was already broken at Large - unasserted, because the test only ran at
+default text. D95's two-line caption then moved the control 22px and every framed viewport flipped.
+
+**One premise from the brief does not survive measurement, and it matters that it does not.** The
+concern was that direction would vary with window size - below at 2560x1440, above at 1280x720.
+**It does not.** D92's fixed logical viewport works: the space below is *invariant* at 181px (default)
+/ 165.4px (Large) at every window height from 500 to 2160 and every framed viewport, with only the
+scale differing. The variance was never between windows. It was between **text sizes**, and between
+**builds**, off a one-pixel margin. That is worse, because nothing surfaces it.
+
+### The rule now
+
+    const minUsable = rowH * 3 + 2;   // 146px at rowH 48 - the minimum usable list
+    const decisive  = rowH * 2;       // 96px - the margin that makes a flip worth it
+
+    const useAbove = above > below
+      && (below < minUsable || (below < wanted && above > below + decisive));
+
+Direction is no longer decided by whether the ideal list fits. It is decided by two things, and the
+list is then **shortened to whatever the chosen side offers** - space recovered from the height clamp,
+never from the layout above the control, and never by scrolling the field into view, which would move
+content under a participant mid-task.
+
+**The minimum usable length is three rows.** Enough to read as a list, to show the selection with a
+neighbour either side, and to make the scrollbar obvious. Below that a list has to be scrolled before
+it can be understood, and flipping is the better of two bad options. That is the fallback the brief
+asked to have defined.
+
+**A minimum on its own does not work, and this is the part worth recording.** Measured across both
+viewports and both text sizes, the ordinary visit bottoms out at **165.4px** of space below and D84's
+disclosure visit tops out at **158px**. Any pure space threshold has to live in that **7.4px** window -
+narrower than the rounding on a single row, and certain to break on the next copy change. So the
+second clause tests the *difference* between the sides instead, which separates cleanly where the raw
+space does not.
+
+### The thresholds, as known numbers rather than emergent ones
+
+| | space below | above - below | outcome |
+| --- | --- | --- | --- |
+| Ordinary, default | 181 | 43 | below: clears the 146 minimum by 35px, and 43 is well under the 96 decisive margin |
+| Ordinary, Large | 165.4 | 74.2 | below: clears the minimum by 19.4px, and 74.2 is 21.8px under the margin |
+| Ordinary, 390x844 default | 266 | -42 | below: above is the worse side, so the first guard settles it |
+| Disclosure, default | 73 | 259 | **above**, on the minimum clause, by 73px |
+| Disclosure, Large | 47.5 | 310 | **above**, on the minimum clause, by 98.5px |
+| Disclosure, 390x844 default | 158 | 174 | **above**, on the decisive-margin clause, by 78px |
+
+Worst-case margin on either clause is **19.4px**, against the 7.4px a pure minimum would have had.
+
+**The fallback is reached by content above the trigger, not by window size.** No window height reaches
+it: the space below is invariant from 500 to 2160. D84's disclosure adds 108px at framed sizes and so
+clears the threshold by a wide margin rather than a hair - which is the real change here. The old rule
+flipped that case by the same knife edge it decided every other case by.
+
+### What this costs, stated
+
+The ordinary visit **at framed viewports** shows 3 options fully visible instead of 5 (181px against
+242 wanted; a fourth is partly visible), with the list scrolling internally and all eight options
+reachable by keyboard. At 390x844 it is unchanged at 5 - there is 266px below there, so the clamp
+never binds.
+That is the trade the brief asked for and it is the right way round: a shorter list that always opens
+the same way beats a longer one whose direction depends on a text size. G98 is annotated, because it
+is measured by scrolling this list and needs to know the length moved under it.
+
+**No state flipped the other way.** An earlier draft of this rule used the minimum alone, and it
+turned D84's disclosure case at 390x844 into a downward list - which `date-ceiling.test.mjs` caught,
+being the one test that exercises the moved-to-floor state at that size. The decisive-margin clause
+exists because of that failure. Every disclosure state, at every viewport and both text sizes, still
+opens upward with five rows exactly as it did before this decision. The only thing that moved is the
+ordinary visit's length at framed sizes.
+
+### The test, rewritten rather than relaxed
+
+`frame-scale.test.mjs` asserted `popover.top > field.bottom` on whatever visit it happened to run.
+That is how a one-pixel margin passed for two builds. It is now two tests, each at **both viewports
+and both text sizes** - ordinary must hang below, D84's disclosure visit must flip above - over a
+shared geometry check that runs on both sides: anchored to its own field horizontally, adjacent on
+exactly one side, never overlapping the trigger, inside the frame, clamped, clear of the dock in
+layout pixels, and never shorter than the three-row minimum. Direction is now covered deliberately on
+both sides instead of accidentally on one.
+
+### To reverse
+
+Restore `useAbove = below < wanted && above > below`. The ordinary visit returns to being decided by a
+one-pixel margin that a text size already loses, so the reason would need to be a different way of
+pinning direction rather than a return to none.

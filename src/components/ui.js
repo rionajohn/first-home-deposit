@@ -1112,10 +1112,59 @@ export function bindDateSelect(container, { onPick }) {
     const gap = 8;
     const rows = list.querySelectorAll('[role="option"]');
     const rowH = rows.length ? px(rows[0].getBoundingClientRect().height) : 48;
+    // THE IDEAL LENGTH, and it is a preference rather than a requirement. What
+    // the list gets is whatever the chosen side offers, up to this.
     const wanted = rowH * 5 + 2;
+
+    // THE MINIMUM USABLE LENGTH, AND THE ONLY THING THAT DECIDES THE SIDE
+    // (DECISIONS.md D96, amending D84's rule). Three rows: enough to read as a
+    // list, to show the selection with a neighbour either side, and to make the
+    // scrollbar's presence obvious. Below this a list has to be scrolled before
+    // it can be understood, and flipping is the better of two bad options.
+    //
+    // D84 CHOSE THE SIDE ON `wanted`, and that is what changed. Asking for five
+    // rows below and flipping whenever fewer were available put the decision on
+    // a knife edge: on an ordinary visit the space below and the space above
+    // are within one row of each other, so the side was settled by a couple of
+    // pixels of copy. Measured at v102, the ordinary visit hung below by ONE
+    // layout pixel at default text (below 203, above 202) and had ALREADY
+    // flipped at Large (below 190.7, above 214.3) - the same build answering
+    // the same question two ways because of a text size. A two-line caption
+    // then moved it 22px and every framed viewport flipped.
+    //
+    // DIRECTION IS A REQUIREMENT HERE, NOT AN INCIDENTAL PROPERTY, because this
+    // is a research instrument: the date branch is one of the two options
+    // GAPS.md G107 is measuring, and an interaction that answers differently
+    // between two sessions is variance of exactly the kind D92 removed from
+    // layout. So the ordinary visit hangs below, and the list is SHORTENED to
+    // whatever fits rather than moved to where five rows would.
+    const minUsable = rowH * 3 + 2;
+    const decisive = rowH * 2;
     const below = px(bottom - t.bottom) - gap;
     const above = px(t.top - top) - gap;
-    const useAbove = below < wanted && above > below;
+
+    // TWO REASONS TO FLIP, AND NEITHER OF THEM IS "five rows would not fit".
+    //
+    //   1. The space below cannot seat a usable list at all. This is the
+    //      fallback the minimum exists for: a two-row list below is worse than
+    //      a five-row list above, so the flip is the right answer.
+    //   2. The list would be short below AND above is DECISIVELY better - two
+    //      whole rows better. This is the hysteresis, and it is what stops a
+    //      near-tie from deciding direction.
+    //
+    // A MINIMUM ALONE CANNOT SEPARATE THE TWO STATES, which is why there are
+    // two clauses rather than one. Measured across both viewports and both text
+    // sizes, the ordinary visit bottoms out at 165.4px below and D84's
+    // disclosure visit tops out at 158px - a 7.4px window, narrower than the
+    // rounding on a row. The DIFFERENCE between the sides separates cleanly
+    // where the raw space does not: at most 74.2px on an ordinary visit, at
+    // least 174px with the disclosure present. Two rows sits between them with
+    // 21.8px of margin on the tighter side.
+    //
+    // `above > below` guards both: flipping to a side that is worse than the
+    // one being left is never right, whatever the other clauses say.
+    const useAbove = above > below
+      && (below < minUsable || (below < wanted && above > below + decisive));
     popover.classList.toggle('date-select__popover--above', useAbove);
     list.style.maxHeight = `${Math.max(rowH * 2, Math.min(wanted, useAbove ? above : below))}px`;
 

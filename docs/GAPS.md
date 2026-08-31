@@ -3654,6 +3654,34 @@ frame 12's growth chart with its two named bands swapped - with no error raised 
 nothing in the suite failing. **Recommendation: close A**, with the empty-list case in 2.2 answered in
 the same pass, and with what it makes unreachable recorded as unreachable rather than fixed.
 
+
+### The list this is measured in got shorter, 31 August 2026 (DECISIONS.md D96)
+
+**Whoever measures this needs to know the list length moved under it.** D96 pinned the year list's
+direction downward on an ordinary visit, and paid for it out of the height clamp rather than out of
+the layout above the control. The list is therefore SHORTER on an ordinary visit than it was when
+this entry was written:
+
+| Viewport | State | Before D96 | After D96 |
+| --- | --- | --- | --- |
+| Framed (1280x720 to 2560x1440) | Ordinary | 5 rows, upward | **3 rows fully visible, downward** (181px default / 165.4px Large) |
+| Framed | Moved-date disclosure | 5 rows, upward | 5 rows, upward - unchanged |
+| 390x844 | Ordinary | 5 rows, downward | 5 rows, downward - **unchanged** |
+| 390x844 | Moved-date disclosure | 5 rows, upward | 5 rows, upward - unchanged |
+
+**So at 390x844 nothing changed at all.** If this entry is reproduced at the mobile viewport, the list
+is exactly the length it was. The shortening is a framed-viewport effect, which is where a moderated
+session runs.
+
+**Nothing about which options EXIST changed**, which is the part this entry turns on: the floor, the
+cap and the year span are built by the caller and D96 did not touch them. December 2042 is still
+offered wherever it was offered before, and the negative is still reachable by selecting it. All
+eight options remain reachable by keyboard in every state, verified at both frame scales.
+
+What changed is how many are visible without scrolling. If this entry is reproduced by scrolling the
+list to a far year, that now takes more scrolling on an ordinary visit than the original report
+implies - so a reproduction that fails to reach the year is a shorter list, not a fixed defect.
+
 ---
 
 ## G99. `rangeFromCentral` inverts on a negative central, and nothing enforces its own precondition
@@ -4148,53 +4176,113 @@ And the prototype is a research instrument. P2 cost a session: every observation
 same pass means the next session tests **heading plus labels** as one lump, and a clean run tells us
 nothing about which of the three strings did the work. One change, one session, one answer.
 
+
+### The caption changed before the measurement ran, 31 August 2026 (DECISIONS.md D95)
+
+`pickOneCaption` now reads "Set an amount and we'll show you the date. Set a date and we'll show you
+the amount." It names **both outcomes**, which is part of the work a label reframe would have done.
+
+**What that costs this measurement, stated plainly.** If the next participant moves straight through,
+the heading and the caption cannot be separated as causes. The clean two-branch reading in the
+prediction above survives only for the hesitation branch: a participant who reads the heading, reads
+the caption, and still hesitates on the two labels is evidence about the labels, because the outcome
+naming they would supply is already on screen above them.
+
+**Accepted deliberately.** G107 tests whether the screen is comprehensible, not whether the heading
+alone is. What the measurement could not have survived is the failing vocabulary sitting above the
+fold throughout it - "we'll work out the other" one line beneath the heading written to replace that
+exact phrase. A contaminated cause is recoverable by a later isolation pass; a session run against
+copy known to fail is not.
+
+**Second change on this screen since D94, and it is the last one.** D96 pinned the year list's opening
+direction, which is on the date branch this entry measures. It removed variance rather than adding
+any - the list now answers the same way at every window size and both text sizes, where before it
+answered one way at default text and the other at Large. Nothing further should land on frame 10
+before the session runs.
+
 ---
 
-## G108. Three strings on frame 10 still contain "work out", the wording D94 rules out. REPORT ONLY
+## G108. `pickOneCaption` framed the decision in the vocabulary that failed. CLOSED 31 August 2026 - DECISIONS.md D95
 
-*Opened 31 August 2026 with `DECISIONS.md` D94. **Not implemented, and deliberately.** Raised because
-D94 sets a standing rule that three live strings already break, and a rule recorded without its known
-exceptions is a rule nobody can apply.*
+*Opened 31 August 2026 with `DECISIONS.md` D94, originally over three strings. **Rescoped to
+`pickOneCaption` alone and closed on that**, 31 August 2026. The two provenance strings are not a
+defect and were removed from this entry rather than carried as outstanding work - see below, because
+this will otherwise be relitigated.*
 
-### The rule, and what survives it
+### What it was
 
-D94's standing rule: copy on frame 10 is written from the participant's goal, and **"work out" is not
-reused** - it is the exact phrase the participant could not parse, so it is spent on this screen
-whichever string it sits in.
+`content['/calculator/saving'].pickOneCaption` read "Pick one and we'll work out the other." It sat
+directly beneath the heading D94 had just written to replace that exact vocabulary, above the fold,
+on the screen the pilot participant could not get past. It also asked them to infer what "the other"
+was - a second inference on a screen whose first inference had already failed.
 
-Three live strings in `content['/calculator/saving']` still carry it:
+### How it closed
 
-| Key | String | What it is |
-| --- | --- | --- |
-| `pickOneCaption` | "Pick one and we'll **work out** the other." | The supporting line beneath the options |
-| `provenanceKeyLabel` | "How we **worked** these **out**" | The provenance key's label |
-| `taxRateCaption` | "**Worked out** from your salary" | A row caption in "Already filled in" |
+D95 replaced it with "Set an amount and we'll show you the date. Set a date and we'll show you the
+amount." Two symmetrical sentences, one per option, naming **both outcomes**. It was not deleted and
+not cut to one clause: on the slider variant - the default, and the one a participant lands on -
+nothing else on the screen says a date is coming, because the solved date is deferred to frame 11.
 
-`pickOneCaption` is the one that matters most: it sits **directly beneath the new heading and the two
-options**, so the phrase the participant failed on is now one line below the phrase written to replace
-it. D81's own note already records that `pickOneCaption` and `provenanceKeyLabel` are first person
-together - they were written as a set, and they read as one.
+### Why the other two strings are NOT in this entry any more
 
-### Why they were not rewritten in the same pass
+`taxRateCaption` ("Worked out from your salary") and `provenanceKeyLabel` ("How we worked these out")
+were listed here when the entry was opened, on the reasoning that D94 banned the phrase screen-wide.
+**That reasoning was wrong, and the correction matters more than the strings do.**
 
-The copy brief that landed D94 supplied **one** approved string and said the change was copy only,
-with the option labels left exactly as they were. Rewriting three more strings would have been
-writing copy in a build session, which is the practice D93 was created to stop and which this file
-would otherwise be recording for a third time.
+**The pilot defect was never the phrase "work out".** It was that phrase used to frame *a decision the
+participant was being asked to make*. These two are provenance strings: they say where a figure came
+from. That is a different job, and it is a job the same participant explicitly asked for at 13:36,
+wanting somewhere "where I can actually see where this money is calculated has come from".
 
-There is also a real question of whether the rule should reach all three, and it is not this file's to
-answer. `pickOneCaption` is framing copy on the failed question, so the rule plainly applies.
-`provenanceKeyLabel` and `taxRateCaption` describe **derivation** - the app genuinely did work these
-out, and "worked out from your salary" is doing the job D34 wants a provenance caption to do. A blanket
-ban may cost more in clarity there than the phrase costs in association.
+So rewording them would be a regression against a stated participant need. And it would not stop at
+this screen: `provenanceKeyLabel` carries the identical string on `/position` and `/calculator/review`,
+with a sibling on `/tracker`, so synchronising the reword - which `CLAUDE.md`'s "any correction applies
+everywhere the same pattern appears" would require - is a four-screen change made off a single-screen
+finding. That is a larger regression than the first.
+
+**What there is no evidence about.** Both strings sit below the fold at 390x844, and Continue is in
+the pinned action bar (D39), so a participant can complete step 2 without seeing either. There is no
+pilot evidence on them in either direction. **That is absence of evidence, not evidence that they
+work** - if a later session scrolls the card and stumbles, that is a finding and it gets its own entry.
+
+The wider question of "work out" across the roughly twenty user-facing strings in the app is real but
+is not this entry's, and was kept here only because this entry was where it was noticed. It is now
+**G109**, so this one stops proposing app-wide changes off the back of a single-screen finding.
+
+---
+
+## G109. "work out" appears in roughly twenty user-facing strings across the app. REPORT ONLY - LOW PRIORITY
+
+*Opened 31 August 2026, split out of G108 when that entry was rescoped. **Low priority, and not to be
+actioned as a batch.** Nothing here is a known defect.*
+
+### What it is
+
+"work out", "worked out" and "working out" appear in around twenty strings across `content.js`,
+spanning `/position`, `/calculator/*`, `/tracker`, `/mip/*` and several `/assumptions/*` sheets. Two
+shapes dominate:
+
+- **Provenance and derivation** - "How we worked these out", "Worked out from your salary", "Stamp
+  duty is worked out at first-time buyer rates", "Deposit amounts worked out from the property value
+  you set". These say where a figure came from.
+- **Framing and invitation** - "Next: work out your deposit", "We'll work out what you'd need and how
+  long it could take".
+
+### Why it is open, and why it is low priority
+
+One participant, on one screen, could not parse the phrase when it framed a decision they were being
+asked to make (G106, closed). That is a real finding about **that use**. It is not evidence that the
+phrase fails when it describes derivation, and D95's rule is deliberately scoped to decision-framing
+copy on frame 10 rather than to the vocabulary everywhere.
+
+**The failure mode to avoid here is a batch reword.** Twenty strings changed at once, across nine
+routes, on one participant's difficulty with one of them, would be a large uncontrolled change to a
+research instrument mid-study - and it would make every subsequent session incomparable with the ones
+already run.
 
 ### To close
 
-A copy decision on each of the three, supplied rather than inferred, through `fca-copy-check` as
-`shared.regulatory` wording is. The likely answer is that `pickOneCaption` is rewritten or dropped and
-the two provenance strings are exempted with the exemption written into D94's rule - but that is a
-prediction, not a decision, and it is recorded here as one.
-
-**Sequencing note.** If `pickOneCaption` is rewritten before the next moderated session, it changes a
-second string on frame 10 and G107's measurement stops being clean for the reason G107 gives. Either
-change it *with* the labels after G107 reports, or leave all three until then.
+Evidence, not judgement. If a later moderated session shows a participant stumbling on one of these in
+its own context, reword **that** string and record which shape it belonged to. If several sessions
+pass with no difficulty on the derivation shape, close this entry saying so. Either way it is findings
+that settle it, and the two shapes above are settled separately.

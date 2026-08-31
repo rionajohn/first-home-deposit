@@ -572,7 +572,31 @@ const content = {
     headline: 'How would you like to save for your deposit?',
     segmentMonthlyLabel: 'Set a monthly amount',
     segmentDateLabel: 'Set a target date',
-    pickOneCaption: "Pick one and we'll work out the other.",
+    // IT NAMES BOTH OUTCOMES, AND THAT IS THE WHOLE CHANGE (DECISIONS.md D95,
+    // closing GAPS.md G108). The old line read "Pick one and we'll work out the
+    // other" - the exact verb that failed at 19:48, asking the participant to
+    // infer what "the other" was, one line beneath the heading D94 wrote to
+    // replace that vocabulary.
+    //
+    // THE 19:48 QUESTION WAS ABOUT THE OUTPUT: "what am I working out exactly?"
+    // The heading names the goal and both option labels name INPUTS, so this
+    // caption is the only place on the screen that can say what comes back. It
+    // now says it twice, once per option, in the option's own terms.
+    //
+    // SYMMETRICAL ON PURPOSE. Two sentences of the same shape, one per option,
+    // so the line steers towards neither - which is the MCOB 4.8A boundary this
+    // screen is already held to, and which keeps G107's measurement on the two
+    // labels rather than on a caption that favours one.
+    //
+    // IT IS NOT DELETED AND NOT SHORTENED TO ONE CLAUSE, which was considered.
+    // On the SLIDER variant - the default, and the one a participant lands on -
+    // nothing else on the screen says a date is coming: that branch draws the
+    // range, the track and the provenance caption, and the solved date is
+    // deferred to frame 11. The date variant states its own complement twice
+    // over (`dateStepperHint`, plus the solved figure D80 renders inline), so
+    // the redundancy is on that side only. Cutting either sentence would leave
+    // the default variant silent about what the screen returns.
+    pickOneCaption: "Set an amount and we'll show you the date. Set a date and we'll show you the amount.",
     // SHARED BY BOTH READOUTS, DELIBERATELY (DECISIONS.md D81). The slider
     // variant captions the range the participant sets; the date variant
     // captions the amount their date implies. Same figure, same screen, same
@@ -666,7 +690,7 @@ const content = {
     // replacement is visible to them.
     //
     // FIRST PERSON, AND NOT AN OUTLIER ON THIS SCREEN. `pickOneCaption` ("we'll
-    // work out the other") and `provenanceKeyLabel` ("How we worked these out")
+    // show you the date") and `provenanceKeyLabel` ("How we worked these out")
     // are already first person here, and `shared.regulatory.estimateDisclosure`
     // is first person too ("the information we hold today"). It says who acted,
     // which is the point: the participant needs to know the app moved this and
