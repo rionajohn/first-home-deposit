@@ -108,10 +108,12 @@ function priorSession(buildVersion, anchor = THIS_MONTH_ANCHOR) {
 /** Today, and a day inside the previous calendar month. Both computed rather
  *  than pinned: a pinned pair passes today and starts failing on the first of
  *  next month, which is the dated-constant failure D59 exists to catch. */
-const THIS_MONTH_ANCHOR = new Date().toISOString().slice(0, 10);
+const pad = (n) => String(n).padStart(2, '0');
+const stamp = (dt) => `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+const THIS_MONTH_ANCHOR = stamp(new Date());
 const LAST_MONTH_ANCHOR = (() => {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth() - 1, 15).toISOString().slice(0, 10);
+  return stamp(new Date(now.getFullYear(), now.getMonth() - 1, 15));
 })();
 
 test('a session stamped with an older build is discarded, not merged', async () => {

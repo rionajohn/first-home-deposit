@@ -9600,8 +9600,11 @@ consumer understanding outcome - not a consequence of them.
 is an estimate works where the figure is defensible and needs qualifying. It does not work where the
 figure asserts a resolution the model never had: **a caption cannot un-state "March 2039".**
 
-**THE NAMED EXCEPTION, recorded here rather than discovered later.** The scrub readout, the in-plot
-date label, the point's accessible name and the table's own column carry **month and year**.
+**THE NAMED EXCEPTION IS WITHDRAWN, 1 September 2026 (D105).** It let the scrub readout, the in-plot
+date label, the point's accessible name and the table's own column carry month and year. D105 plots
+one point per year, so a year names exactly one point and the ambiguity the exception bought its way
+around no longer exists. **This rule now reads without qualification: no month appears anywhere on
+this screen.** What follows is kept as the record of why the exception was taken and what removed it.
 
 > Year-only governs what the screen CLAIMS about reaching the goal. The readout describes where the
 > pointer sits on a plotted curve - an observation about the data, not an assertion about the future.
@@ -9722,3 +9725,171 @@ of this pair. The lesson is the one D77 keeps making: a number written loosely i
 later as though it had been measured. The underlying reading problem is real and is now `GAPS.md`
 G119, along with the rule 2 gap the measurement exposed.
 
+---
+
+## D105. The chart plots one point per year, and D102's named exception is withdrawn
+
+**Date.** 1 September 2026. **Reverses the plan's 10.6** and simplifies D102.
+
+**Decision.** Frame 12's line plots **one point per year**, not per month. Every date on the screen is
+therefore a year again - the readout, the in-plot label, the point's accessible name, the endpoint
+line and the comparison rows.
+
+**D102 no longer carries an exception.** Its rule now reads without qualification: **no month appears
+anywhere on `/calculator/result`.** The table's own column is a year too.
+
+**Why the exception existed, and why yearly plotting removes it rather than working around it.** 10.6
+let the readout name a month because year-only captions were **ambiguous at monthly resolution**:
+measured, the 24-month window gave 3 distinct captions across 24 points, and the "1 yr" chip gave
+**one caption for the entire window** - twelve points, one date, twelve different amounts. A
+participant scrubbing would have watched the figure change while the date sat still.
+
+That ambiguity was a property of plotting monthly, not of naming years. **One point per year removes
+it at source**: every point is in a different calendar year, so a year names exactly one point and the
+exception has nothing left to buy. Removing a rule's exception is worth more than the resolution it
+cost, because an exception with a boundary is a thing every later string has to be checked against.
+
+**THE YEARLY GRID IS ANCHORED TO THE END OF THE WINDOW, NOT TO TODAY**, and that is what makes the
+claim above true. The "Max" window ends at the exact crossing, which is rarely a whole number of years
+out; counting forward from today would put the final point in the same calendar year as the one before
+it, and two points sharing a year is the ambiguity all over again. Counting back from the end makes
+the FIRST interval the partial one, where it costs nothing - a participant reads "Now" and then a run
+of years.
+
+**What the screen loses.** Resolution between years: a participant can no longer read the balance at
+month 7. The table is the same points array and is therefore also yearly, so it does not compensate.
+Against that, D102's rule is now unqualified and the chart is legible, which is what the pilot said it
+was not.
+
+**Two figures stopped being repeated in the same pass.** `readoutCaptionTemplate` lost its `{amount}`
+slot - `figureDisplayHTML` renders that figure directly above it - and the y-axis top is now a round
+number (D108) rather than the goal, so £52,500 no longer appeared three times on one screen.
+`chartRangeAnnouncementTemplate` went with them; it restated the same figure for a live region that
+already had one.
+
+---
+
+## D106. The chip set is 3 yr, 5 yr and Max, and D100's 24-month default is reversed
+
+**Date.** 1 September 2026. **Reverses D100's default window.**
+
+**Decision.** The range chips are **3 yr, 5 yr, Max**, with **3 yr** the default. "6 m" and "1 yr" are
+dropped.
+
+**Why.** D105 plots one point per year. At six months that is one point and at a year it is two -
+neither is a series, and a chart with one point is not a chart. **The feature addresses a long-term
+goal**, and a window shorter than a few years cannot carry a readable yearly line.
+
+**This reverses D100 rather than amending it.** D100 moved the default to 24 months so the window
+would serve the near-term question the pilot could not answer - "200 pounds a month or 400 quid". That
+reasoning stands; what changed underneath it is the plotting resolution, which makes a two-year window
+three points. Three years is the shortest window that still reads as a line, so the near-term intent
+survives at the shortest length it now can.
+
+**Dropping is right and hiding would not be.** A chip that draws one point is worse than an absent
+one: it offers a setting whose result is unreadable, and a participant who presses it has to work out
+why the chart went blank-looking. There is no recorded reason the two short chips must exist - D100
+chose the set to carry a default, and 2.4 records only that the chips name a SPAN and are therefore in
+scope to stay as a concept.
+
+**`CHART_MIN_RANGE_MONTHS` is untouched** and still floors the "Max" window, so a near-goal projection
+cannot draw a shorter window than the shortest chip beside it.
+
+---
+
+## D107. The range chips are hidden in table view, and that freezes the table's window
+
+**Date.** 1 September 2026.
+
+**Decision.** The range chips are **not drawn** while the table is showing, rather than drawn disabled.
+
+**Why hidden rather than disabled.** A disabled control still occupies the layout and still reads as
+something the participant has failed to reach. The chips window the chart; with no chart on screen
+they name nothing.
+
+**THE COST, STATED, BECAUSE IT IS REAL.** The table renders the **same points array** the chart does
+(the plan's 6.7 - that is what guarantees it exposes every value the guide can reveal). So the chips
+window the table too, and hiding them **freezes the table at whatever window the chart last had**. A
+participant who opens the table wanting five years, from a three-year chart, has to switch back to the
+chart, press 5 yr, and switch again.
+
+**The alternative was considered and is worse.** Keeping the chips visible in table view would mean a
+control labelled "how far ahead" sitting under a table it does not visibly affect until the participant
+notices the rows changed - and it would put the chip row between the toggle and the table, which is
+where the table's own caption belongs.
+
+**What would settle it.** Whether a participant tries to change the window from the table at all. If
+one does and cannot, this is the entry to reverse; the fix is to draw the chips above the table as
+well, which costs the layout and nothing else.
+
+---
+
+## D108. The y-axis is three round values, and the axis and the data share one scale
+
+**Date.** 1 September 2026.
+
+**Decision.** `axisScale(rawMax, headroom)` in `format.js` returns `{ top, ticks }`. The top is the
+two-significant-figure ceiling of `rawMax x headroom`; the ticks are **0, half, top**. The caller
+plots against `top`.
+
+**Three values rather than two.** The axis carried only `£0` and the maximum, so there was no interior
+reading at all - a participant could see a point was between them and nothing more.
+
+**Round, because the curve is not.** The scale follows an annuity-due solve, so `max x 1.20` is a
+figure like 31,820 and half of it is 15,910. Rounding the TOP to two significant figures gives 32,000
+and 16,000. Two figures rather than one deliberately: one would give 40,000 here and leave a third of
+the plot unused.
+
+**The axis and the data share one scale, which they did not.** The ticks were positioned against the
+plot's 240px while the line was positioned against the plot area's 224px, so **the gridlines did not
+line up with the data they labelled** - an £20,000 line that did not meet the curve where the curve
+read £20,000. Returning the top the caller plots against makes that unrepresentable rather than merely
+fixed.
+
+---
+
+## D109. Both toggles use frame 10's segmented control, and both series carry points
+
+**Date.** 1 September 2026.
+
+**The two toggles are `segmentedControlHTML`**, the pattern frame 10 step 2 uses: one track with the
+selected option as a filled pill inside it. They were two separate outlined buttons each
+(`pillSegmentsHTML`), which read as two independent controls rather than as one choice with two
+states. **The component is reused, not restyled** - frame 10 is frozen (`GAPS.md` G107) and was read
+rather than edited; the diff contains no change to it.
+
+**Both series carry plotted points.** Only the selected one did, so the unselected series was a bare
+line and the two were not comparable at a point.
+
+**WCAG 1.4.1: the carrier is LINE STYLE.** Solid for the selected series, **dashed** for the other,
+with the unselected series' points drawn smaller. With points on both, the two greys were the only
+difference left - and D73's amendment measured that pair at 5.18:1 against each other, which is a
+contrast ratio and not a way of telling two dotted lines apart. Dash survives a greyscale palette, the
+dark theme and a participant who cannot separate the two greys. The segmented control and the readout
+caption name the selection in words as well.
+
+---
+
+## D110. Colliding point labels resolve into one bordered callout
+
+**Date.** 1 September 2026.
+
+**What collides.** Near the origin the active point's date, its value and the `£0` axis label all
+converge, because that is where the curve starts. All three were legible apart and unreadable together.
+
+**The rule, and it is MEASURED rather than predicted from position.** After every activation the two
+labels are drawn, their boxes are read, and if either intersects the other or any y-axis tick label,
+both are hidden and replaced by **one bordered box carrying the year and the value on separate lines**.
+Which labels actually touch depends on the text, the text size and the figures - none of which the
+renderer can know in advance, so a percentage threshold would be wrong at one text size or the other.
+
+**It is the collision case, not the default state**, and that is asserted rather than assumed: at the
+endpoint the two plain labels stand, and the test walks every point checking the box and the labels are
+never both drawn.
+
+**The fallback position.** The box sits above and right of the active point. If that would leave the
+plot it flips to the other side of the point on whichever axis overflows, both flips measured against
+the plot's own box. Where the box still lands on a y-axis tick label after both flips - it is wider
+than either label it replaced, so it collides with things they did not - **the tick gives way**. That
+is the precedence the guide value already follows: a tick is context, and the box is the answer to the
+question being asked.

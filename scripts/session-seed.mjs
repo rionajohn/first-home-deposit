@@ -71,7 +71,11 @@ export const f = (v, p = 'read') => ({ value: v, provenance: p });
  * discarding every fixture on the first of next month, which is the same class
  * of dated-constant failure D59 exists to catch.
  */
-export const SEED_ANCHOR = new Date().toISOString().slice(0, 10);
+export const SEED_ANCHOR = (() => {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+})();
 
 export const FULL = {
   // --- Section 5: the monthly position, read from the connected accounts ----

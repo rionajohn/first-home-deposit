@@ -960,8 +960,9 @@ const content = {
     // the longest of them - and why it names no duration: the range is the
     // participant's own projection and differs for each of them.
     chartRangeLabels: [
-      { months: 6, label: '6 m', ariaLabel: '6 m, six months' },
-      { months: 12, label: '1 yr', ariaLabel: '1 yr, one year' },
+      // "6 m" AND "1 yr" ARE DROPPED (D106, reversing D100). With one point per
+      // year they yielded one point and two - a window too short to carry a
+      // readable yearly series at all. The feature addresses a long-term goal.
       // "2 yr" REPLACES "3 yr" AND IS THE DEFAULT (DECISIONS.md D100). The
       // window opens at 24 months, which was not one of the five chips, and a
       // group with nothing pressed is the state D73 rejected - there is then no
@@ -969,7 +970,7 @@ const content = {
       // fit: components.css records the row as "334px of a 350px column", 16px
       // of slack. So one is replaced rather than added, and the count stays
       // five.
-      { months: 24, label: '2 yr', ariaLabel: '2 yr, two years' },
+      { months: 36, label: '3 yr', ariaLabel: '3 yr, three years' },
       { months: 60, label: '5 yr', ariaLabel: '5 yr, five years' },
       { months: null, label: 'Max', ariaLabel: 'Max, the whole time to reach your goal' },
     ],
@@ -1001,7 +1002,12 @@ const content = {
     // The boundary that keeps it coherent: the endpoint line and the
     // comparison rows stay year-only, so nothing on this screen that says a
     // goal WOULD BE REACHED ever names a month.
-    readoutCaptionTemplate: "By {date} you'd have saved {amount}.",
+    // THE AMOUNT IS GONE FROM THIS CAPTION (D105). `figureDisplayHTML` renders
+    // the figure directly above it, so the caption was stating the same number
+    // a second time - one of three places £52,500 appeared on the same screen,
+    // and a large part of why it read as unorganised. The caption's job is to
+    // say WHICH POINT the figure belongs to, which is the date and nothing else.
+    readoutCaptionTemplate: 'By {date}',
     chartSeriesLegend: 'Which monthly amount',
     chartPlotAriaLabel: 'Savings projection. Use the arrow keys to move between months.',
     chartPointAriaLabelTemplate: '{date}, {amount}',
@@ -1056,9 +1062,15 @@ const content = {
     chartViewLegend: 'How to show this',
     chartViewChartLabel: 'Chart',
     chartViewTableLabel: 'Table',
-    chartTableCaption: 'What you would have saved, month by month',
-    chartTableMonthHeader: 'Month',
-    chartTableSelectedSuffix: 'your choice',
+    chartTableCaption: 'What you would have saved, year by year',
+    chartTableYearHeader: 'Year',
+    // SHORT, because it sits in a column header. "your choice" pushed the
+    // third column off a 390px screen and the figures were clipped. The
+    // segmented control directly above already names the selection in full.
+    chartTableSelectedSuffix: 'yours',
+    // The column headers name the amount alone rather than repeating "At {x} a
+    // month" from the control above them - three columns of that do not fit.
+    chartTableSeriesHeaderTemplate: '{amount} a month',
 
     // --- THE ATTAINED STATE (D99) -------------------------------------------
     // The goal is already covered by what the participant holds. NOT an error

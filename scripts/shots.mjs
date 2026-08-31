@@ -265,6 +265,10 @@ const DEFAULTS = {
   routes: '/tracker',
   entry: 'direct',
   session: 'seeded',
+  // Frame 12's chart/table toggle (DECISIONS.md D100). The table is a view
+  // setting, so it is seeded rather than clicked - a click would need the
+  // chart to have rendered first, and the point of the shot is the table.
+  view: 'chart',
   state: 'now',
   theme: 'light',
   text: 'default',
@@ -792,6 +796,7 @@ function shotName({ route, entry, state, theme, text, scroll }) {
   const parts = [slug(route), entry, state, theme, `${WIDTH}w`];
   if (args.goal === 'none') parts.splice(1, 0, 'no-goal');
   if (args.draft !== 'none') parts.splice(1, 0, args.draft);
+  if (args.view !== 'chart') parts.splice(1, 0, `view-${args.view}`);
   if (args.solve !== 'date') parts.splice(1, 0, `solve-${args.solve}`);
   if (args.error !== 'none') parts.splice(1, 0, `error-${args.error}`);
   if (args.date !== '') parts.splice(1, 0, `date-${args.date.replace('+', 'plus')}`);
@@ -944,6 +949,7 @@ try {
                 seed.accountSelectionEdited = true;
               }
               seed.solveFor = args.solve;
+              if (args.view !== 'chart') seed.chartView = args.view;
               if (args.date !== '') Object.assign(seed, monthsFromToday(DATE_MONTHS));
               // LAST, so an error state's figure is not overwritten by
               // `--property`'s re-derivation above. `--error` and `--property`

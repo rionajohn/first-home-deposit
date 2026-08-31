@@ -14,6 +14,7 @@
 import { MOCK_POSITION, accountFigures } from './model/accounts.js';
 import { leftOver } from './model/model.js';
 import { BUILD_VERSION } from './cache-version.js';
+import { todayStamp } from './format.js';
 
 const SECTION_6_KEYS = [
   'saved-toward-deposit',
@@ -186,7 +187,7 @@ export function defaultState() {
     // DERIVED AT RENDER, NEVER CACHED. No module holds a `const TODAY`, so a
     // discard-and-restart is visible immediately rather than at the next
     // reload.
-    sessionAnchor: new Date().toISOString().slice(0, 10),
+    sessionAnchor: todayStamp(),
 
     // Navigation / journey flags (build-spec.md section 1 and 2)
     journeyStarted: false,
@@ -360,7 +361,7 @@ export function defaultState() {
   // sheet and came back. It is a view setting, not a disclosure: it should
   // persist for the session exactly as theme and text size do, which is why it
   // sits with them.
-  chartRangeMonths: 24,
+  chartRangeMonths: 36,
 
     // Frame 12's plotted series and view (DECISIONS.md D100). View settings on
     // exactly `chartRangeMonths`' terms: they change what the chart draws and
@@ -475,8 +476,11 @@ function load() {
     // screen is frozen and still reads the wall clock; because this discard
     // keeps `sessionAnchor` in the current month, the two cannot name different
     // months while a participant is looking at them.
+    // LOCAL months on both sides. `toISOString()` would compare UTC, which is
+    // a different month from the participant's for an hour either side of
+    // midnight - see `todayStamp`.
     const anchorMonth = String(stored.sessionAnchor ?? '').slice(0, 7);
-    const currentMonth = new Date().toISOString().slice(0, 7);
+    const currentMonth = todayStamp().slice(0, 7);
     if (anchorMonth !== currentMonth) {
       console.warn(
         `[yfh] Stored session was anchored to ${stored.sessionAnchor ?? '(unstamped)'}; ` +

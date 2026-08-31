@@ -1254,10 +1254,30 @@
    lighter of them and is drawn thinner, so the selected one reads as the
    subject without colour being the only carrier (WCAG 1.4.1); the pill control
    and the readout caption both name the selection in words. */
-.growth-chart__line--active { stroke: var(--color-label); }
+/* TOLD APART BY LINE STYLE AS WELL AS COLOUR (WCAG 1.4.1). Both series now
+   carry plotted points, so the fill difference alone would be the only carrier
+   between two dotted rows. Solid is the selected series, dashed the other -
+   which survives a greyscale palette, the dark theme, and a participant who
+   cannot separate the two greys. The pill control and the readout caption name
+   the selection in words as well. */
+.growth-chart__line--active {
+  stroke: var(--color-label);
+  stroke-dasharray: none;
+}
+
 .growth-chart__line--other {
   stroke: var(--color-border-control);
   stroke-width: 1.5px;
+  stroke-dasharray: 5 4;
+}
+
+/* The unselected series' own points, drawn in the SVG so they scale with the
+   line rather than needing a second set of positioned elements. Smaller than
+   the selected series' points, which is the same size-and-shape rule the active
+   point follows. */
+.growth-chart__dot--other {
+  fill: var(--color-border-control);
+  stroke: none;
 }
 
 .growth-chart__tick {
@@ -1352,6 +1372,38 @@
    right edge. */
 .growth-chart__point-date--end { transform: translateX(-100%); }
 .growth-chart__point-date--start { transform: none; }
+
+/* ONE BOX FOR THE COLLISION CASE, and it is not the default state. Near the
+   origin the date, the value and the £0 axis label all converge; nudging one
+   moves the problem to the next pair, so the two labels are replaced by a
+   single bordered box carrying both facts on separate lines. */
+.growth-chart__callout {
+  position: absolute;
+  z-index: 2;
+  margin: 0 0 6px 8px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-label);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-surface);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.growth-chart__callout p {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  color: var(--color-label);
+}
+
+.growth-chart__callout-value { font-weight: 600; }
+
+/* The fallbacks, applied by measurement rather than by a percentage
+   threshold: flip to the other side of the point on whichever axis would
+   otherwise leave the plot. */
+.growth-chart__callout--flip-x { transform: translateX(-100%); margin-left: -8px; }
+.growth-chart__callout--flip-y { transform: translateY(100%); margin-bottom: -6px; }
+.growth-chart__callout--flip-x.growth-chart__callout--flip-y { transform: translate(-100%, 100%); }
 
 /* A SCALE, NOT A FLEX ROW. Each label is positioned at its own moment's
    percentage of the plot width, in the same coordinate space the line is drawn

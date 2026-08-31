@@ -1351,6 +1351,7 @@ export function growthChartHTML({
           <svg class="growth-chart__svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
             <polyline class="growth-chart__line growth-chart__line--other" points="${polyline(other)}" vector-effect="non-scaling-stroke" />
             <polyline class="growth-chart__line growth-chart__line--active" points="${polyline(key)}" vector-effect="non-scaling-stroke" />
+            ${points.map((p, i) => `<circle class="growth-chart__dot growth-chart__dot--other" cx="${xOf(i)}" cy="${100 - p[other]}" r="1.2" vector-effect="non-scaling-stroke" />`).join('')}
           </svg>
 
           <!-- The guide, drawn from the active point LEFTWARD to the axis. -->
@@ -1369,7 +1370,19 @@ export function growthChartHTML({
                beneath the point is under the finger on every interaction. The
                room for it is bought in the caller's maxScale headroom, which
                D100 moved from 1.05 to 1.20 for this. -->
-          <p class="growth-chart__point-date${activeX > 85 ? ' growth-chart__point-date--end' : activeX < 15 ? ' growth-chart__point-date--start' : ''}" style="left:${activeX}%;bottom:${activeY}%">${active.date}</p>
+          <p class="growth-chart__point-date${activeX > 85 ? ' growth-chart__point-date--end' : activeX < 15 ? ' growth-chart__point-date--start' : ''}" style="left:${activeX}%;bottom:${activeY}%" data-point-date>${active.date}</p>
+
+          <!-- THE COLLISION CASE, NOT THE DEFAULT STATE. Near the origin the
+               date sits on the value and both sit on the £0 axis label, because
+               all three converge where the curve starts. Rather than nudging
+               one of them - which moves the problem rather than removing it -
+               the two labels are replaced by ONE bordered box carrying the same
+               two facts on separate lines. bindGrowthChart decides when, by
+               measuring the rendered boxes. -->
+          <div class="growth-chart__callout" data-chart-callout hidden>
+            <p class="growth-chart__callout-date"></p>
+            <p class="growth-chart__callout-value"></p>
+          </div>
           <!-- The value the guide terminates in, at the axis edge and in the
                same coordinate space as the guide itself. -->
           <p class="growth-chart__guide-value" style="bottom:${activeY}%" data-chart-guide-value>${valueFormatter(series === 'high' ? active.high : active.low)}</p>
@@ -1463,6 +1476,72 @@ export function bindGrowthChart(container, { pointCount, onActivate, onPaint }) 
   const guide = container.querySelector('.growth-chart__guide');
   const guideValue = container.querySelector('[data-chart-guide-value]');
   const dateLabel = container.querySelector('.growth-chart__point-date');
+  const callout = container.querySelector('[data-chart-callout]');
+
+  const overlaps = (a, b) => a && b
+    && a.left < b.right && a.right > b.left
+    && a.top < b.bottom && a.bottom > b.top;
+
+  /**
+   * THE COLLISION RULE, AND IT IS MEASURED RATHER THAN PREDICTED BY POSITION.
+   * Near the origin the date label, the guide value and the £0 axis label all
+   * converge, because that is where the curve starts - and which of them
+   * actually touches depends on the text, the text size and the figures, none
+   * of which the renderer can know. So the two labels are drawn, their boxes
+   * are read, and if any pair intersects they are replaced by ONE bordered box
+   * carrying the same two facts on separate lines.
+   *
+   * WHAT IT TESTS AGAINST: each other, every y-axis tick label, and the
+   * endpoint of the guide. Nudging one label would move the problem to the next
+   * pair; one box removes the class.
+   */
+  const resolveCollision = () => {
+    if (!callout || !dateLabel || !guideValue) return;
+    callout.hidden = true;
+    dateLabel.style.visibility = '';
+    guideValue.style.visibility = '';
+
+    const dateBox = dateLabel.getBoundingClientRect();
+    const valueBox = guideValue.getBoundingClientRect();
+    const others = [...container.querySelectorAll('.growth-chart__tick-label')]
+      .map((el) => el.getBoundingClientRect());
+
+    const collided = overlaps(dateBox, valueBox)
+      || others.some((o) => overlaps(dateBox, o) || overlaps(valueBox, o));
+    if (!collided) return;
+
+    callout.querySelector('.growth-chart__callout-date').textContent = dateLabel.textContent;
+    callout.querySelector('.growth-chart__callout-value').textContent = guideValue.textContent;
+    dateLabel.style.visibility = 'hidden';
+    guideValue.style.visibility = 'hidden';
+    callout.hidden = false;
+
+    // THE FALLBACK POSITION. The box wants to sit above and right of the active
+    // point, which is clear of the axis gutter and of the curve itself. Where
+    // that would leave the plot - the active point is near the right edge, or
+    // high enough that the box would overflow the top - it flips to the other
+    // side of the point on that axis. Both flips are measured against the
+    // plot's own box, so neither depends on a percentage threshold.
+    const pointBox = points.find((p) => p.classList.contains('growth-chart__point--active'))?.getBoundingClientRect();
+    const areaBox = area.getBoundingClientRect();
+    if (!pointBox) return;
+    callout.style.left = `${((pointBox.left + pointBox.width / 2) - areaBox.left) / areaBox.width * 100}%`;
+    callout.style.bottom = `${(areaBox.bottom - pointBox.top) / areaBox.height * 100}%`;
+    callout.classList.remove('growth-chart__callout--flip-x', 'growth-chart__callout--flip-y');
+    const box = callout.getBoundingClientRect();
+    if (box.right > areaBox.right) callout.classList.add('growth-chart__callout--flip-x');
+    if (box.top < areaBox.top) callout.classList.add('growth-chart__callout--flip-y');
+
+    // AND THE TICK GIVES WAY WHERE THE BOX STILL LANDS ON ONE. Both flips can
+    // be spent and the box can still sit over an axis label - it is wider than
+    // either label it replaced, so it collides with things they did not. The
+    // tick is context and the box is the answer to the question being asked,
+    // which is the same order of precedence the guide value already follows.
+    const placed = callout.getBoundingClientRect();
+    for (const label of container.querySelectorAll('.growth-chart__tick-label')) {
+      if (overlaps(placed, label.getBoundingClientRect())) label.style.visibility = 'hidden';
+    }
+  };
 
   /**
    * REPAINTS IN PLACE RATHER THAN RE-RENDERING THE SCREEN, and that is not an
@@ -1499,6 +1578,7 @@ export function bindGrowthChart(container, { pointCount, onActivate, onPaint }) 
       dateLabel.classList.toggle('growth-chart__point-date--end', pct > 85);
       dateLabel.classList.toggle('growth-chart__point-date--start', pct < 15);
     }
+    resolveCollision();
     onPaint?.({ index, date, amount });
   };
 
@@ -1570,6 +1650,9 @@ export function bindGrowthChart(container, { pointCount, onActivate, onPaint }) 
       label.style.visibility = overlaps ? 'hidden' : '';
     }
   }
+
+  // LAST, so its own tick sweep is not undone by the one above.
+  resolveCollision();
 
   // THE THINNING RULE, MEASURED RATHER THAN ESTIMATED (the plan's 6.4). A year
   // label is kept only if its left edge clears the previously kept label's

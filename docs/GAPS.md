@@ -4687,3 +4687,49 @@ reading problem and is the reason the change above was attempted. It is real - b
 about two lines **778px apart that a participant meets one at a time**, not about a wall, so it should
 be re-judged on the screen rather than on the earlier description of it.
 
+---
+
+## G120. The session anchor was stamped in UTC, and was a month behind for an hour a day. CLOSED 1 September 2026 - DECISIONS.md D97
+
+*Found by `stale-session.test.mjs` running either side of local midnight, 1 September 2026. **A defect
+in D97's own implementation** - the mechanism written to prevent exactly this class of fault.*
+
+### What was wrong
+
+`state.sessionAnchor` was stamped with `new Date().toISOString().slice(0, 10)`, which is the **UTC**
+date. At 00:11 on 1 September 2026 in British Summer Time that returns **2026-08-31**. `load()`'s
+month comparison then read August while the participant's calendar read September, and every date
+derived from the anchor was measured from the wrong month.
+
+| | |
+| --- | --- |
+| Local | Tue 1 Sep 2026 00:11 |
+| `toISOString().slice(0, 10)` | **2026-08-31** |
+| Correct stamp | 2026-09-01 |
+
+**It is the same fault as G111**, arriving by a different door: a date measured from the wrong day,
+with nothing on screen to reveal it. G111 was `RATES.asAt` a month stale; this was the replacement
+stamping itself a month stale for the hour either side of midnight, in the timezone the sessions run
+in. At a year boundary it would have shifted every projected year by one.
+
+### How it surfaced
+
+Not by inspection. `stale-session.test.mjs`'s "a session anchored to another month is discarded whole"
+case computes last month from the current one and asserts the discard fires. Run at 00:11 it stopped
+firing, because both sides of the comparison resolved to August. **The test caught it by being run at
+the wrong time of day**, which is not a property any test can be designed for and is worth recording
+as luck rather than as coverage.
+
+### Closed by
+
+`todayStamp()` in `format.js`, built from local `getFullYear`/`getMonth`/`getDate`, used by
+`defaultState()`, by `load()`'s comparison and by `scripts/session-seed.mjs`. A companion
+`localDate()` parses the stamp back as a local date: `new Date('2026-09-01')` is UTC midnight by
+specification, and every reader then asks it for LOCAL year and month - which west of Greenwich
+resolves to 31 August and reintroduces the same shift on the way out.
+
+**What is NOT covered.** `formatFullDate(RATES.asAt)` on frames 29/30/31 now parses locally too, which
+is correct, but those are dated constants rather than a live stamp and were never exposed to the
+midnight window. No test asserts the stamp near midnight; doing so needs a clock the harness can set,
+which Playwright can do and this pass did not add.
+

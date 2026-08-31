@@ -403,7 +403,10 @@ test('8. the readout and the in-plot value are the same figure at every point', 
       }));
       assert.equal(read.guide, read.readout, `point ${i}: the guide value and the readout disagree`);
       assert.ok(read.caption.includes(read.date), `point ${i}: the caption does not name the active date`);
-      assert.ok(read.caption.includes(read.readout), `point ${i}: the caption does not name the figure`);
+      // THE CAPTION NO LONGER REPEATS THE FIGURE (D105). `figureDisplayHTML`
+      // renders it directly above, so stating it twice was one of the three
+      // places the same amount appeared on this screen.
+      assert.ok(!read.caption.includes('£'), `point ${i}: the caption repeats the figure: "${read.caption}"`);
     }
   } finally {
     await context.close();
@@ -525,6 +528,119 @@ test('10. the table toggle is a visible peer of the chart, above the fold', asyn
       assert.equal(t.inOverflow, false, 'the toggle is not inside an overflow container');
       assert.ok(t.offsetWithinScroller < t.viewport * 4,
         `${large ? 'large' : 'default'}: the toggle sits ${t.offsetWithinScroller.toFixed(0)}px down a ${t.viewport}px viewport`);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+// --- 11. The collision callout ------------------------------------------------
+
+test('11. colliding labels resolve into one callout box that clears what it overlapped', async () => {
+  // At the ORIGIN the date, the value and the £0 axis label all converge,
+  // because that is where the curve starts. At the ENDPOINT they do not, so the
+  // same fixture exercises both branches and shows the box is the collision
+  // case rather than the default state.
+  const { context, page } = await openChart();
+  try {
+    const n = await pointCount(page);
+    const box = await areaBox(page);
+    const read = () => page.evaluate(() => {
+      const c = document.querySelector('[data-chart-callout]');
+      const vis = (s) => {
+        const el = document.querySelector(s);
+        return el ? getComputedStyle(el).visibility !== 'hidden' : false;
+      };
+      const area = document.querySelector('[data-chart-area]').getBoundingClientRect();
+      const cb = c.hidden ? null : c.getBoundingClientRect();
+      const ticks = [...document.querySelectorAll('.growth-chart__tick-label')]
+        .filter((el) => getComputedStyle(el).visibility !== 'hidden')
+        .map((el) => el.getBoundingClientRect());
+      return {
+        shown: !c.hidden,
+        date: c.querySelector('.growth-chart__callout-date').textContent,
+        value: c.querySelector('.growth-chart__callout-value').textContent,
+        labelsVisible: vis('[data-point-date]') || vis('[data-chart-guide-value]'),
+        cb,
+        area,
+        ticks,
+      };
+    });
+
+    // The endpoint: no collision, so the two plain labels stand.
+    await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2);
+    await page.waitForTimeout(150);
+    const atEnd = await read();
+    assert.equal(atEnd.shown, false, 'the callout is not the default state');
+    assert.ok(atEnd.labelsVisible, 'the plain labels stand where nothing collides');
+
+    // The origin.
+    await page.mouse.move(box.x + 1, box.y + box.height / 2);
+    await page.waitForTimeout(200);
+    const atStart = await read();
+    assert.equal(atStart.shown, true, 'the callout renders where the labels collide');
+    assert.equal(atStart.labelsVisible, false, 'the plain labels give way to the box');
+    assert.match(atStart.date, /^\d{4}$/, `the box carries the year: "${atStart.date}"`);
+    assert.match(atStart.value, /^£[\d,]+$/, `the box carries the value: "${atStart.value}"`);
+
+    // AND IT CLEARS WHAT IT REPLACED. A box that renders on top of the axis
+    // label it was drawn to avoid has moved the problem rather than solved it.
+    for (const t of atStart.ticks) {
+      const hit = atStart.cb.left < t.right && atStart.cb.right > t.left
+        && atStart.cb.top < t.bottom && atStart.cb.bottom > t.top;
+      assert.equal(hit, false, 'the callout overlaps a y-axis label it was drawn to clear');
+    }
+    assert.ok(atStart.cb.left >= atStart.area.left - 1 && atStart.cb.right <= atStart.area.right + 1,
+      'the callout stays inside the plot horizontally');
+    assert.ok(atStart.cb.top >= atStart.area.top - 1, 'the callout stays inside the plot vertically');
+
+    // Every point in turn: the box is either shown or not, and the two facts
+    // are never on screen twice.
+    for (let i = 0; i < n; i += 1) {
+      await page.mouse.move(box.x + (box.width * i) / (n - 1), box.y + box.height / 2);
+      await page.waitForTimeout(60);
+      const r = await read();
+      assert.ok(r.shown !== r.labelsVisible, `point ${i}: the box and the plain labels are both drawn`);
+    }
+  } finally {
+    await context.close();
+  }
+});
+
+// --- 12. The table's own height ----------------------------------------------
+
+test('12. the table fits at 390x844 with both series side by side', async () => {
+  for (const large of [false, true]) {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+    await context.addInitScript((v) => {
+      try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch { /* private mode */ }
+    }, { ...seed, chartView: 'table', textSize: large ? 'large' : 'default' });
+    const page = await context.newPage();
+    try {
+      await page.goto(`${base}/#/calculator/result`, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(300);
+      const t = await page.evaluate(() => {
+        const wrap = document.querySelector('.growth-table-wrap');
+        const table = document.querySelector('.growth-table');
+        const caption = document.querySelector('.growth-table__caption');
+        return {
+          height: Math.round((table.getBoundingClientRect().bottom - caption.getBoundingClientRect().top) * 10) / 10,
+          rows: document.querySelectorAll('.growth-table tbody tr').length,
+          cols: document.querySelectorAll('.growth-table thead th').length,
+          // A wrapper that scrolls horizontally means the third column is off
+          // the screen, which is what "readable side by side" forbids.
+          overflows: wrap.scrollWidth > wrap.clientWidth + 1,
+          chips: document.querySelectorAll('[data-action="select-chart-range"]').length,
+          viewport: document.querySelector('.screen-content').clientHeight,
+        };
+      });
+      console.log(`  table ${large ? 'large ' : 'default'}: ${t.height}px, ${t.rows} rows x ${t.cols} cols, overflows ${t.overflows}`);
+      assert.equal(t.cols, 3, 'year plus both series');
+      assert.equal(t.overflows, false, `${large ? 'large' : 'default'}: the table scrolls horizontally`);
+      assert.ok(t.height < t.viewport, 'the whole table fits one viewport height');
+      // Item 6: the chips window the chart AND the table, so they are hidden
+      // rather than disabled while the table shows.
+      assert.equal(t.chips, 0, 'the range chips are absent, not disabled, in table view');
     } finally {
       await context.close();
     }

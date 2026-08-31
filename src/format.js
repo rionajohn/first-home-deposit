@@ -117,6 +117,21 @@ export function formatMonthsDuration(months, { abbreviated = false } = {}) {
 }
 
 /**
+ * Parse a `YYYY-MM-DD` stamp as a LOCAL date, not a UTC one.
+ *
+ * `new Date('2026-09-01')` is UTC midnight by specification, and every reader
+ * below then asks it for `getFullYear()`/`getMonth()`, which are LOCAL. West of
+ * Greenwich that pair resolves to 31 August - so an anchor stamped on the 1st
+ * renders every projection a month early, which is the exact defect the anchor
+ * was introduced to prevent (GAPS.md G111, and D97).
+ */
+function localDate(stamp) {
+  const [y, m, day] = String(stamp).split('-').map(Number);
+  if (!y || !m) return new Date(stamp);
+  return new Date(y, m - 1, day || 1);
+}
+
+/**
  * "Month YYYY" for a whole-number month offset from `fromDate` (frame 15/16's
  * "On track for" row). Takes the reference date as a parameter rather than
  * `new Date()` so this stays a pure function of its arguments — callers pass
@@ -125,7 +140,7 @@ export function formatMonthsDuration(months, { abbreviated = false } = {}) {
  * drift between testing sessions).
  */
 export function formatMonthYear(monthsFromNow, fromDate) {
-  const base = new Date(fromDate);
+  const base = localDate(fromDate);
   const target = new Date(base.getFullYear(), base.getMonth() + Math.round(monthsFromNow), 1);
   return new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(target);
 }
@@ -151,13 +166,15 @@ export function formatMonthYearRange(lowMonths, highMonths, fromDate) {
  * dates the figures, not the day the projection is measured from.
  */
 export function formatYear(monthsFromNow, fromDate) {
-  const base = new Date(fromDate);
+  const base = localDate(fromDate);
   return String(new Date(base.getFullYear(), base.getMonth() + Math.round(monthsFromNow), 1).getFullYear());
 }
 
 /**
- * Round-pound tick values for frame 12's y-axis (the plan's 6.3), as
- * `[{ value, pct }]` from 0 up to the last step at or below `maxScale`.
+ * Frame 12's y-axis (the plan's 6.3): a round top and three labelled values.
+ * Returns `{ top, ticks }` - the caller plots against `top`, so the axis and
+ * the data share one scale rather than the axis being fitted to the data
+ * afterwards.
  *
  * IT EXISTS SO THE AXIS READS IN ROUND POUNDS rather than in `maxScale / 4`.
  * The scale follows the curve and the curve is an annuity-due solve, so
@@ -170,19 +187,30 @@ export function formatYear(monthsFromNow, fromDate) {
  * the position as a percentage of `maxScale` — NOT of the last tick — so the
  * ticks stay in the same coordinate space the points are plotted in.
  */
-export function axisTicks(maxScale, count = 4) {
-  if (!Number.isFinite(maxScale) || maxScale <= 0) return [{ value: 0, pct: 0 }];
+export function axisScale(rawMax, headroom = 1.2) {
+  if (!Number.isFinite(rawMax) || rawMax <= 0) return { top: 1, ticks: [{ value: 0, pct: 0 }] };
 
-  const rough = maxScale / count;
-  const magnitude = Math.pow(10, Math.floor(Math.log10(rough)));
-  const normalised = rough / magnitude;
-  const step = (normalised <= 1 ? 1 : normalised <= 2 ? 2 : normalised <= 5 ? 5 : 10) * magnitude;
+  // THE TOP IS A ROUND NUMBER, AND THAT IS WHAT MAKES THE MIDDLE ONE TOO. The
+  // scale follows the curve and the curve is an annuity-due solve, so a top of
+  // `max x 1.2` is a figure like 31,820 - and half of it is 15,910. Rounding the
+  // TOP up to two significant figures gives 32,000 and 16,000, which a reader
+  // can hold. Two figures rather than one keeps the headroom close to what was
+  // asked for: one would give 40,000 here, a third of the plot unused.
+  const withHeadroom = rawMax * headroom;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(withHeadroom)) - 1);
+  const top = Math.ceil(withHeadroom / magnitude) * magnitude;
 
-  const ticks = [];
-  for (let v = 0; v <= maxScale + step / 1000; v += step) {
-    ticks.push({ value: v, pct: (v / maxScale) * 100 });
-  }
-  return ticks;
+  // THREE VALUES: start, middle and end. Four crowded a 240px plot once the
+  // guide value and its own label had to sit in the same gutter, and the middle
+  // one is the only interior reading a participant actually uses.
+  return {
+    top,
+    ticks: [
+      { value: 0, pct: 0 },
+      { value: top / 2, pct: 50 },
+      { value: top, pct: 100 },
+    ],
+  };
 }
 
 /**
@@ -191,7 +219,30 @@ export function axisTicks(maxScale, count = 4) {
  * screen can't drift from the rate the model actually used). Takes the date
  * string as a parameter rather than `new Date()` for the same reason
  * formatMonthYear does.
+ *
+ * Frame 33 also reads it, for `state.sessionAnchor` (D97).
  */
 export function formatFullDate(dateString) {
-  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(dateString));
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(localDate(dateString));
+}
+
+/**
+ * Today as `YYYY-MM-DD` in LOCAL time - the stamp `state.sessionAnchor` holds
+ * (DECISIONS.md D97).
+ *
+ * NOT `toISOString().slice(0, 10)`, which was the first implementation and was
+ * wrong for an hour a day. That returns the UTC date, so at 00:11 on 1
+ * September in British Summer Time it stamps 2026-08-31 - and `load()`'s month
+ * comparison then reads August while the participant's calendar reads
+ * September. A session started in that window would have carried an anchor a
+ * month behind and rendered every projected date a year early at the turn of a
+ * year, with nothing on screen to reveal it. That is precisely the failure D97
+ * exists to prevent, reintroduced by the way the stamp was taken.
+ *
+ * Found because `stale-session.test.mjs` ran either side of local midnight and
+ * its "discarded whole" case stopped discarding.
+ */
+export function todayStamp(now = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }

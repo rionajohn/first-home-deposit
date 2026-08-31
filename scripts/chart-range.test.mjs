@@ -174,7 +174,7 @@ test('the projection never overshoots the goal', async () => {
   // REQUIREMENT 5, and the whole reason `goalMonths` exists. The last plotted
   // point is the window's end; at "Max" that window IS the attainment month, so
   // the last point must land ON the goal and never past it.
-  for (const chip of ['null', '60', '24']) {
+  for (const chip of ['null', '60', '36']) {
     const c = await chartAt(20000, chip);
     const last = c.points[c.points.length - 1];
     assert.ok(last.value <= c.goal + 1,
@@ -206,10 +206,13 @@ test('no two visible year labels overlap, at both text sizes', async () => {
   }
 });
 
-test('the default window is two years, and exactly one chip is pressed in every state', async () => {
+test('the default window is three years, and exactly one chip is pressed in every state', async () => {
+  // D106 reversed D100's 24 months. With one point per year the two short
+  // chips yielded one point and two, which is not a series.
   const fresh = await chartAt(20000);
-  assert.deepEqual(fresh.pressed, ['2 yr'], 'the chart should open at the 2 yr chip');
-  for (const chip of ['6', '12', '24', '60', 'null']) {
+  assert.deepEqual(fresh.pressed, ['3 yr'], 'the chart should open at the 3 yr chip');
+  assert.deepEqual(fresh.chips, ['3 yr', '5 yr', 'Max'], 'the short chips are dropped, not hidden');
+  for (const chip of ['36', '60', 'null']) {
     const c = await chartAt(20000, chip);
     assert.equal(c.pressed.length, 1, `chip ${chip}: exactly one chip should be pressed, got ${c.pressed.length}`);
   }
@@ -218,7 +221,7 @@ test('the default window is two years, and exactly one chip is pressed in every 
 test('a point is active on load, in every window and every series', async () => {
   // 6.6.2b. On touch there is no hover, so nothing would otherwise hint the
   // chart responds; the affordance has to be on screen before anyone tries it.
-  for (const chip of ['6', '24', 'null']) {
+  for (const chip of ['36', '60', 'null']) {
     for (const series of ['low', 'high']) {
       const c = await chartAt(20000, chip, { series });
       assert.equal(c.activeCount, 1, `chip ${chip}/${series}: exactly one active point`);
@@ -258,8 +261,8 @@ test('the table exposes every value the guide can reveal', async () => {
   // The two are mutually exclusive VIEWS, so the comparison needs both renders:
   // what is being asserted is that they agree, which is exactly what reading
   // one of them twice could not show.
-  const asChart = await chartAt(20000, 'null');
-  const asTable = await chartAt(20000, 'null', { view: 'table' });
+  const asChart = await chartAt(20000);
+  const asTable = await chartAt(20000, null, { view: 'table' });
   assert.equal(asTable.tableRows.length, asChart.points.length, 'one table row per plotted point');
   for (const p of asChart.points) {
     assert.ok(asTable.tableRows.some((r) => r.date === p.date), `no table row for ${p.date}`);
@@ -289,14 +292,14 @@ test('no chip is offered beyond the attainment month', async () => {
   // Requirement 5 again, at the control rather than at the plot: a chip longer
   // than the projection would draw chart past the goal.
   const c = await chartAt(51000);
-  assert.ok(c.attainmentMonths !== null && c.attainmentMonths < 60,
-    `this fixture should attain inside five years, got ${c.attainmentMonths}`);
+  assert.ok(c.attainmentMonths !== null && c.attainmentMonths < 36,
+    `this fixture should attain inside three years, got ${c.attainmentMonths}`);
   assert.ok(!c.chips.includes('5 yr'),
     `the 5 yr chip should not be offered when attainment is ${c.attainmentMonths} months out`);
 });
 
 test('the live region never announces less than the participant already has', async () => {
-  for (const chip of ['6', '12', '24']) {
+  for (const chip of ['36', '60']) {
     const c = await chartAt(51000, chip);
     assert.ok(announced(c.live) >= 51000,
       `chip ${chip} announced ${announced(c.live)}, below the 51,000 already saved`);

@@ -59,7 +59,7 @@ import {
   chartTableHTML,
   bindGrowthChart,
   chipRowHTML,
-  pillSegmentsHTML,
+  segmentedControlHTML,
   rateBandRowHTML,
   figureRowHTML,
   figureDisplayHTML,
@@ -68,16 +68,18 @@ import {
   emptyStateCardHTML,
   rerenderInPlace,
 } from '../components/ui.js';
-import { formatCurrency, formatPercent, formatMonthYear, formatYear, axisTicks } from '../format.js';
+import { formatCurrency, formatPercent, formatYear, axisScale } from '../format.js';
 import { balanceAtMonth, monthsToReachAmount, checkpointAmount, goalMonths, goalAttained, stampDuty, combinedGoal } from '../model/model.js';
 import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS, CHART_MIN_RANGE_MONTHS, neighbourPcts } from '../model/rates.js';
 
 export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
 
-/** Twenty-four plotted points, or one per month where the window is shorter.
- *  Constant across every window so the scrub's snap granularity does not
- *  change with the chip pressed (the plan's 6.6.1). */
-const MAX_POINTS = 24;
+/** ONE POINT PER YEAR (D105, reversing the plan's 10.6 exception). Monthly
+ *  points forced the readout to name a month, because twelve of them shared one
+ *  year - on the "1 yr" chip, one caption for the whole window. Plotting yearly
+ *  removes that ambiguity at source rather than working around it, so every date
+ *  on this screen is a year again and the exception is gone. */
+const MONTHS_PER_POINT = 12;
 
 /** D100's headroom, moved from D73's 1.05. The date label sits ABOVE the
  *  active point and the active point at rest is the highest one, so at 1.05 the
@@ -180,24 +182,38 @@ export function render(container, ctx) {
     : state.chartRangeMonths
       ?? (attainExact !== null ? Math.max(CHART_MIN_RANGE_MONTHS, attainExact) : CHART_WINDOW_MONTHS);
 
-  const pointCount = Math.max(1, Math.min(MAX_POINTS, Math.ceil(rangeMonths)));
+  // THE YEARLY GRID IS ANCHORED TO THE END OF THE WINDOW, NOT TO TODAY, and
+  // that is what keeps every point in a different calendar year. Counting
+  // forward from today would put the "Max" window's final point - the exact
+  // crossing, which is rarely a whole number of years out - in the same year as
+  // the one before it, and two points sharing a year is the ambiguity yearly
+  // plotting exists to remove. Counting back from the end makes the FIRST
+  // interval the partial one instead, where it costs nothing.
+  const monthsList = [];
+  for (let m = rangeMonths; m >= MONTHS_PER_POINT; m -= MONTHS_PER_POINT) monthsList.push(m);
+  // A window shorter than a year still has to draw a line rather than a dot.
+  if (monthsList.length === 0) monthsList.push(rangeMonths);
+  monthsList.push(0);
+  monthsList.reverse();
 
-  // The points array. RENDERED BY BOTH THE CHART AND THE TABLE and recomputed
-  // by neither, which is what guarantees the table exposes every value the
-  // guide can reveal rather than a second derivation that could drift.
-  const points = [];
-  for (let i = 1; i <= pointCount; i += 1) {
-    // NOT rounded to a whole month: at the "Max" window the last point must
-    // land exactly on the crossing, and `balanceAtMonth` is continuous.
-    const months = (i * rangeMonths) / pointCount;
-    points.push({
-      months,
-      date: formatMonthYear(months, anchor),
-      low: balanceAtMonth({ startingBalance: savedTowardDeposit, monthlyAmount: monthlyLow, months }),
-      high: balanceAtMonth({ startingBalance: savedTowardDeposit, monthlyAmount: monthlyHigh, months }),
-    });
-  }
-  const maxScale = Math.max(...points.map((p) => Math.max(p.low, p.high))) * CHART_HEADROOM;
+  // RENDERED BY BOTH THE CHART AND THE TABLE and recomputed by neither, which
+  // is what guarantees the table exposes every value the guide can reveal
+  // rather than a second derivation that could drift.
+  const points = monthsList.map((months) => ({
+    months,
+    date: formatYear(months, anchor),
+    low: balanceAtMonth({ startingBalance: savedTowardDeposit, monthlyAmount: monthlyLow, months }),
+    high: balanceAtMonth({ startingBalance: savedTowardDeposit, monthlyAmount: monthlyHigh, months }),
+  }));
+  const pointCount = points.length;
+
+  // The axis top is a ROUND number and the data is plotted against it, so the
+  // two share one scale rather than the axis being fitted to the data after the
+  // fact. It also carries D100's headroom for the date label above the point.
+  const { top: maxScale, ticks } = axisScale(
+    Math.max(...points.map((p) => Math.max(p.low, p.high))),
+    CHART_HEADROOM,
+  );
   for (const p of points) {
     p.lowPct = (p.low / maxScale) * 100;
     p.highPct = (p.high / maxScale) * 100;
@@ -310,7 +326,7 @@ export function render(container, ctx) {
              for anyone who does not scrub. -->
         <p class="visually-hidden" id="chart-view-legend">${c.chartViewLegend}</p>
         <div role="group" aria-labelledby="chart-view-legend">
-          ${pillSegmentsHTML({
+          ${segmentedControlHTML({
             options: [
               { value: 'chart', label: c.chartViewChartLabel },
               { value: 'table', label: c.chartViewTableLabel },
@@ -322,19 +338,23 @@ export function render(container, ctx) {
 
         <p class="visually-hidden" id="chart-series-legend">${c.chartSeriesLegend}</p>
         <div role="group" aria-labelledby="chart-series-legend">
-          ${pillSegmentsHTML({ options: seriesOptions, selected: series, action: 'select-chart-series' })}
+          ${segmentedControlHTML({ options: seriesOptions, selected: series, action: 'select-chart-series' })}
         </div>
 
         ${showTable ? chartTableHTML({
           points,
           series,
-          headers: { month: c.chartTableMonthHeader, low: seriesOptions[0].label, high: seriesOptions[1].label },
+          headers: {
+            month: c.chartTableYearHeader,
+            low: fill(c.chartTableSeriesHeaderTemplate, { amount: formatCurrency(monthlyLow) }),
+            high: fill(c.chartTableSeriesHeaderTemplate, { amount: formatCurrency(monthlyHigh) }),
+          },
           caption: c.chartTableCaption,
           selectedSuffix: c.chartTableSelectedSuffix,
           valueFormatter: formatCurrency,
         }) : growthChartHTML({
           points,
-          yTicks: axisTicks(maxScale),
+          yTicks: ticks,
           yearLabels,
           nowLabel: c.xAxisNow,
           legend: [
@@ -359,10 +379,17 @@ export function render(container, ctx) {
              and reintroduce the first. -->
         ${figureDisplayHTML({
           value: formatCurrency(activeAmount),
-          caption: fill(c.readoutCaptionTemplate, { date: activePoint.date, amount: formatCurrency(activeAmount) }),
+          caption: fill(c.readoutCaptionTemplate, { date: activePoint.date }),
           live: true,
         })}
 
+        <!-- HIDDEN, NOT DISABLED, WHEN THE TABLE IS SHOWING. The chips window
+             the chart, and the table renders the SAME points array (6.7) - so
+             they window the table too. Hiding them therefore FREEZES the
+             table's window at whatever the chart was last showing, and the only
+             way to change it is to switch back. That is a real cost and it is
+             recorded rather than hidden: see D107. -->
+        ${showTable ? '' : `
         <p class="visually-hidden" id="chart-range-legend">${c.chartRangeLegend}</p>
         <div role="group" aria-labelledby="chart-range-legend">
           ${chipRowHTML({
@@ -375,11 +402,7 @@ export function render(container, ctx) {
             action: 'select-chart-range',
           })}
         </div>
-        <p class="provenance-caption">${c.chartRangeNoteText}</p>
-        <p class="visually-hidden" role="status" aria-live="polite">${fill(c.chartRangeAnnouncementTemplate, {
-          range: formatYear(rangeMonths, anchor),
-          amount: formatCurrency(points[points.length - 1][series]),
-        })}</p>
+        <p class="provenance-caption">${c.chartRangeNoteText}</p>`}
 
         <!-- REQUIREMENT 3. Drawn at every window and in every non-attained
              state, and it carries requirement 5 at the default window: the
@@ -461,7 +484,7 @@ export function render(container, ctx) {
         const figure = container.querySelector('.figure-display');
         const caption = container.querySelector('.figure-input__caption');
         if (figure) figure.textContent = amount;
-        if (caption) caption.textContent = fill(c.readoutCaptionTemplate, { date, amount });
+        if (caption) caption.textContent = fill(c.readoutCaptionTemplate, { date });
       },
     });
   }
