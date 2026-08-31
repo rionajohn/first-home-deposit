@@ -1198,7 +1198,7 @@ written into `content.js` in this session**, and all five are still pending the 
 | `chartPlotAriaLabel`, `chartPointAriaLabelTemplate` | New - the scrub target's accessible name and each point's, slots `{date}`, `{amount}`. Read by `aria-activedescendant` (6.6.6). **`{date}` is month and year**, same rule as the readout (10.6) |
 | `chartRangeLabels` | **"3 yr" replaced by "2 yr"** (24 months), which becomes the default. `ariaLabel` follows the WCAG 2.5.3 rule the existing five already keep: it opens with the visible label |
 | **`endpointTemplate`** | **New - DRAFTED.** Slots `{amount}`, `{year}`. `{amount}` is `combined-goal`; `{year}` is **the year alone** (6.10)<br><br>> At this rate you'd reach your {amount} goal in {year}.<br><br>**"At this rate"** ties the claim to the selected series and marks it conditional on the contribution continuing. **"You'd reach"**, not "you'll reach" and not "aim for" - the conditional mood and the absence of a recommendation are what hold the MCOB 4.8A line (10.1). **No same-year variant** - section 12's recorded gap, not a copy case |
-| **`projectionAssumptions`** | **New - DECIDED and DRAFTED, pending two gates (10.7).** No slots. Always visible, directly beneath the endpoint line, never behind a disclosure<br><br>> This is an estimate. It assumes nothing changes: what you save, interest rates, or the deposit you need.<br><br>**"Estimate" stays in the first three words** - it is the word doing the regulatory work (10.7). Placement measured in 10.8 |
+| **`projectionAssumptions`** | **New - DECIDED and DRAFTED, pending `fca-copy-check` only (10.7).** No slots. Always visible, directly beneath the endpoint line, never behind a disclosure<br><br>> This is an estimate. It assumes nothing changes: what you save, interest rates, or the deposit you need.<br><br>**"Estimate" stays in the first three words** - it is the word doing the regulatory work (10.7). Placement measured in 10.8 |
 | **`compareSameYearNote`** | **New - APPROVED, 31 August 2026. Slots `{a}` and `{b}`**, the two colliding deposit percentages in row order, so `{a}` is the lower. Renders below the comparison card when two live rows resolve to the same year (7.5)<br><br>> The {a} and {b} deposits are close enough that you'd reach them in the same year.<br><br>Conditional, no recommendation, and it gives the reason rather than restating the coincidence - 10.1's rule, and the first string written to it |
 | `chartViewChartLabel`, `chartViewTableLabel` | New - the view toggle |
 | `chartTableCaption`, `chartTableMonthHeader`, `chartTableLowHeader`, `chartTableHighHeader` | New - the table's own labels |
@@ -1362,18 +1362,31 @@ description of the method, and one that opens with "This is an estimate" reads a
 the claim. **Recorded so a later shortening pass does not reorder it**, which is the likeliest way for
 this line to be quietly weakened.
 
-#### Status: two gates, both open
+#### Status: one gate. The regulatory question was closed by Riona, not referred
 
-**Not to be written into `content.js` until both clear.**
+*Amended 31 August 2026. **The supervisor sight gate is removed entirely.** The previous draft held
+this key behind a narrow MCOB 4.8A question put to a supervisor. That question was not asked and will
+not be.*
 
-**Gate 1 - Belén's sight.** The question is narrow: *does the prototype need to state the fixed-goal
-assumption to stay on the guidance side of MCOB 4.8A, given the projection now names a year, or is
-`estimateDisclosure` sufficient?* **If the answer is that the existing disclosures suffice, this key is
-dropped** and the decision is recorded with the four uncovered assumptions listed - the contribution
-continuing, the pinned Bank Rate, the goal held still, and change of circumstances - so a later pass
-can see what was considered and set aside rather than never raised.
+**The decision, and whose it is.** Riona decided the screen gets an assumptions line, on the three
+reasons already written above: the goal is a fixed figure over a decade out and nothing else on screen
+says the target is held still; "at this rate" reaches the contribution but not the pinned Bank Rate;
+and the scrub multiplies the exposure by putting a precise figure on every point a participant lands
+on. Those reasons stand on their own and did not need a referral to become sufficient.
 
-**Gate 2 - the `fca-copy-check` skill**, with the other six.
+**What this is, and what it is not - stated because the distinction matters more than the outcome:**
+
+> **No external regulatory sign-off was sought for this line.** It is a **design judgement** about what
+> the screen owes a participant reading a dated projection. It is **not a compliance determination**,
+> and nothing in this plan should be read as one. A later reader finding the line beside MCOB 4.8A and
+> Consumer Duty reasoning should know it was reasoned in-repo and not cleared by anyone qualified to
+> clear it.
+
+That is recorded here rather than left implicit because the reasoning in 10.7 cites regulation by
+name, and a citation reads as authority unless the record says otherwise.
+
+**The one remaining gate: the `fca-copy-check` skill**, with the other seven. Nothing is written into
+`content.js` until that clears.
 
 ### 10.8 Where the assumptions line lands at 390x844 - derived, and it fits
 
@@ -1563,39 +1576,31 @@ one measurement to confirm, and three layout judgements.*
 | 7 | **The card-wide fallback to month and year is withdrawn.** | 7.5 - a granularity that varies with the arithmetic is worse than one that holds |
 | 8 | **`compareSameYearNote` is approved**, with slots `{a}` and `{b}` - the two colliding percentages in row order. | 10.2, and 10.3 confirms both are available after one hoist. Closes what was open decision 1's "second half" |
 | 10 | **The readout carries month and year** - `readoutCaptionTemplate`, the in-plot date label and `chartPointAriaLabelTemplate`. A **deliberate exception** to decision 2, not an oversight. | 10.6, settled on the measurement: year-only gives one caption for the whole "1 yr" window. The boundary that holds it: nothing that says a goal *would be reached* names a month |
-| 12 | **The screen gets an assumptions line.** `estimateDisclosure` and `chartCaptionTemplate` are not sufficient on their own. | 10.7, drafted and pending Belen's sight then `fca-copy-check`. Placement derived in 10.8: it fits at both text sizes |
+| 12 | **The screen gets an assumptions line.** `estimateDisclosure` and `chartCaptionTemplate` are not sufficient on their own. | 10.7. **Riona's decision, taken rather than referred** - recorded there as a design judgement, not a compliance determination, with no external sign-off sought. Pending `fca-copy-check` only. Placement derived in 10.8 |
 | 11 | **All five outstanding strings are drafted**, plus `compareSameYearNote` approved. | 10.2. None written into `content.js`; all still pending `fca-copy-check` |
 | 9 | **Register: friendly and transparent, not formal** - contractions, active voice, plain verbs, and the reason beside a figure that might look wrong. | 10.1 - the conditional mood and the absence of a recommendation are what hold the MCOB 4.8A line, and both survive contractions |
 
 ### Must return a result before the build session starts
 
-*Item 2 is now a sight to be obtained, not a decision to be taken - the decision is made and recorded in 10.7.*
+*Item 2 is closed. It is listed for the record of how it closed, not as outstanding work.*
 
 1. **The year-label thinning rule, confirmed against measured text.** The ceiling is calculated at 8
    labels from a ~26px "2027" at footnote size (~30px at Large, `--text-scale: 1.15`) against a 305px
    plot. A 13-label "Max" window is over it. Settled in `overlap.test.mjs` at both text sizes, not by
    eye.
-2. **The assumptions statement. DECIDED - the screen gets one - and now pending sight rather than
-   open.** `estimateDisclosure` and `chartCaptionTemplate` are not sufficient on their own:
-   `projectionAssumptions`, drafted in 10.7, always visible directly beneath the endpoint line.
+2. **The assumptions statement. CLOSED - decided, not pending.** `estimateDisclosure` and
+   `chartCaptionTemplate` are not sufficient on their own: `projectionAssumptions`, drafted in 10.7,
+   always visible directly beneath the endpoint line. The three reasons are recorded there.
 
-   **The three reasons, in weight order, are recorded in 10.7** - the goal is a fixed figure over a
-   decade out and nothing on screen says the target is held still; "at this rate" reaches the
-   contribution but not the pinned Bank Rate; and the scrub multiplies the exposure by putting a
-   precise figure on every point a participant lands on.
+   **The supervisor sight is removed, not outstanding.** Riona closed the regulatory question on their
+   own judgement rather than referring it. 10.7 records the line as a **design judgement, not a
+   compliance determination**, and states that no external sign-off was sought - which is the part a
+   later reader needs, since the reasoning cites MCOB 4.8A and the Consumer Duty outcome by name.
 
-   **What remains is a sight, not a decision.** The question to Belen is narrow: *does the prototype
-   need to state the fixed-goal assumption to stay on the guidance side of MCOB 4.8A, given the
-   projection now names a year, or is `estimateDisclosure` sufficient?* **If the existing disclosures
-   suffice the key is dropped**, and 10.7 requires the decision to be recorded with all four uncovered
-   assumptions listed, so a later pass sees what was set aside rather than never raised. Then
-   `fca-copy-check`, with the other six.
-
-   **Placement is confirmed and does not gate the sight.** 10.8 derives the block at 390x844: the
-   whole chart region including the caveat is **584px against a 732px viewport at default text and
-   654.8px at Large**, so it is on screen with the endpoint line without scrolling at both sizes. It
-   is **derived from tokens, not measured** - the elements do not exist yet - and 10.8 states the four
-   things the estimate rests on. Step 8 asserts it.
+   **What remains is `fca-copy-check`, with the other seven strings.** Placement is already confirmed
+   and never gated the decision: 10.8 derives the block at 390x844 as 584px at default text and 654.8px
+   at Large against a 732px viewport, so the line is on screen with the endpoint line without
+   scrolling at both sizes. Derived from tokens, not measured; step 8 asserts it.
 
 ### Recorded rather than decided
 
