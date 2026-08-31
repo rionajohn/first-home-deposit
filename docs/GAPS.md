@@ -4425,3 +4425,205 @@ not: the payload is announced to assistive technology, the banner is fully reada
 is open, and the moved date is also shown outright in the month and year controls directly above the
 list. A moderator note is the proportionate mitigation for the next session, and the fix belongs after
 it rather than before.
+
+---
+
+## G111. `/tracker`'s "On track for" dates were a full calendar month early. CLOSED 31 August 2026 - DECISIONS.md D97
+
+*Found incidentally while planning the date conversion, 31 August 2026. **It was live**, on a screen
+participants see, and it had nothing to do with the work that found it. Recorded as its own entry for
+that reason rather than folded into D97's record.*
+
+### What was on screen
+
+`/tracker` rendered `formatMonthYearRange(onTrack.value.low, onTrack.value.high, RATES.asAt)`.
+`RATES.asAt` is `2026-07-30`. On 31 August 2026 every date in that row was therefore measured from a
+day **a full calendar month in the past**, so the whole "On track for" range read one month early.
+
+### Why it was not a typo
+
+It is D3 applied correctly to the wrong kind of fact. D3 pins the Bank Rate so figures cannot drift
+between sessions and a screenshot keeps matching the running build - and its wording, "everything in
+this prototype is dated from the pinned rate", was followed. **A rate is pinned so figures hold still;
+a "today" must be current or every date derived from it is wrong.** The two are different facts and
+the entry that conflated them was the decision, not the code.
+
+### Why it survived
+
+Nothing on screen could reveal it. A date range is not obviously wrong by inspection, the figures it
+derives from were right, and every test asserted the range's SHAPE rather than its position on the
+calendar. It would have gone into a session unnoticed.
+
+### Closed by
+
+D97's `sessionAnchor`. `stale-session.test.mjs` now asserts the anchor is stamped once, does not move
+across a navigation, and is discarded on a month mismatch.
+
+---
+
+## G112. Frame 21 projects to `deposit-target`, not `combined-goal`. REPORT ONLY
+
+*Raised 31 August 2026 with D98. **Not fixed in that pass**, which was scoped to the date conversion.*
+
+`mip-result-not-yet.js` computes its step-1 caption from
+`monthsToReachAmount({ targetAmount: state['deposit-target'].value })`. D70 established that the
+stamp duty has to be in the account too, so a projection to the deposit alone reports a date the
+participant reaches with the tax still unsaved - which is exactly the reasoning `monthsToTarget` was
+moved onto `combinedGoal` for.
+
+**D98 made it more visible rather than less.** It was a duration and is now a YEAR, so it can be read
+directly against the tracker's and frame 12's, which both project to `combined-goal`. The three can
+now be compared by eye and one of them disagrees.
+
+**Not fixed here** because it changes a figure on a screen this pass was not scoped to, and the fix
+is one word in one call. Whoever takes it should check whether frame 20 has the same shape.
+
+---
+
+## G113. `formatMonthsDuration` has no callers. KEPT, NOT DELETED
+
+*Recorded 31 August 2026 with D98.*
+
+The date sweep left `format.js`'s `formatMonthsDuration` with zero call sites. **It is deliberately
+kept.** It is the right function if a duration is ever the correct thing to render again, it carries
+its own history in a comment block that took several passes to settle ('mo' to 'mon' to 'mo' to 'm'),
+and deleting it is a separate decision that should be taken on its own evidence rather than as a
+side effect of a conversion. Recorded so its zero-caller state reads as a decision rather than as an
+oversight the next reader should tidy.
+
+---
+
+## G114. Frame 10 anchors on the wall clock while every other screen anchors on the session stamp. OPEN - TRANSITIONAL
+
+*Opened 31 August 2026 with D97. **Closes in one pass after the G107 measurement**, not before.*
+
+`/calculator/saving` reads `new Date()` in three places: `monthsFromNow`, `dateAtMonths`, and the
+seeding block with its two `??` fallbacks. Moving them onto `state.sessionAnchor` is the correct end
+state and was deliberately not done: **the screen is frozen pending G107** and a sweep is not an
+exemption.
+
+**It is unobservable at month granularity, and that is what bounds the cost.** D97 discards a session
+whose anchor month is not the current month, so inside any live session the wall clock and the anchor
+fall in the same calendar month, and both `dateAtMonths` and `formatMonthYear` floor to the 1st. The
+two cannot name different months while a participant is looking at them. The only way to see a
+disagreement is to hold a session open across midnight on the last day of a month, which the discard
+closes on the next load.
+
+**The second half of the same pass.** Frame 10b's floor and cap should also move onto `goalMonths`
+(D99) - it already implements that rule by two routes. Both changes belong in one commit after the
+G107 session.
+
+---
+
+## G115. A three-way same-year collision would break `compareSameYearNote`'s two slots. UNREACHABLE, NOT FIXED
+
+*Recorded 31 August 2026 with D101, in the G92-to-G95 form: **unreachable is not fixed**, and this
+should not be closed on the strength of the measurement below.*
+
+The card's collision note takes `{a}` and `{b}`. If all THREE visible rows resolved to one year it
+would have no slot for the third.
+
+**Swept over property 100,000 to 800,000 in 10,000s x ten balances x five selections:**
+
+| Contribution range | Configurations | Two-way | Three-way |
+| --- | --- | --- | --- |
+| Every rate the app can commit (to `left-over` 640) | 28,400 | 100 | **0** |
+| Rates above any reachable `left-over` (800 to 3,000) | 21,300 | 3,790 | **382** |
+
+**Zero at every rate the running app can produce.** The 382 sit above `MOCK_POSITION`'s ceiling and
+are reachable only if that constant changes or a facilitator seeds a higher `left-over`. A third slot
+was deliberately not bought for a state no session can reach; the detection is one line and this
+entry records where it would go.
+
+---
+
+## G116. The endpoint line does not change when the series does. OPEN - REPORT ONLY, MEASURE, DO NOT FIX
+
+*Opened 31 August 2026 with D102, in G110's form: stated, unfixed, with the trigger conditions written
+**in advance of the session**, which is the whole value of the entry. **Do not resolve this before the
+next moderated session.***
+
+### The measurement
+
+Endpoint year at `monthly-low` equals endpoint year at `monthly-high`, so pressing the series control
+leaves that line unchanged:
+
+| Attainment horizon | Collisions | Rate |
+| --- | --- | --- |
+| **Under 2 years** | 927 / 1,095 | **84.7%** |
+| **2 to 5 years** | 774 / 2,029 | **38.1%** |
+| 5 to 10 years | 138 / 2,946 | 4.7% |
+| 10 to 20 years | 9 / 3,142 | 0.3% |
+| Over 20 years | 0 / 1,324 | 0.0% |
+
+So for a participant more than five years from their goal - the seeded persona at every deposit
+percentage, and the case the pilot ran - it costs 4.7% and falling. Near the goal it costs 85%.
+
+### Stated in advance
+
+| | |
+| --- | --- |
+| **The concern** | A participant may read the control as having done nothing |
+| **Why it may not matter** | The readout, the plotted line and all three comparison rows move at the same moment, so the control is visibly doing something elsewhere. The line is also not wrong: at both contributions they genuinely do arrive in that year |
+| **What would trigger a fix** | A participant pressing the control, looking at the endpoint line, and saying or implying nothing happened; or pressing it repeatedly as though it were unresponsive |
+| **What would close it as a non-issue** | No participant showing any sign of it across the session |
+| **The fix, if triggered** | The line acknowledging the unselected series - both values are in state. It needs words nobody has drafted, and those are written after the session, not before |
+
+**Written in advance for G107's reason:** after the session, either outcome can be read as confirming
+whichever change was already wanted.
+
+### It is not the other same-year case
+
+The comparison card's collision is a WITHIN-RENDER one - two of three visible rows say the same year,
+so a string can name both, and that is `compareSameYearNoteTemplate`, settled. This one is
+CROSS-STATE: one figure compared against what it would have been. It cannot collide with itself, so it
+needs no copy variant - only different words, if triggered.
+
+---
+
+## G117. `/calculator/result` shows an interest rate and carries no rate-variability warning. OPEN
+
+*Raised 31 August 2026 by the `fca-copy-check` pass recorded in D104. **Pre-existing** - not
+introduced by that pass, and moved here rather than fixed because the fix is not a copy edit.*
+
+The screen renders `chartCaptionTemplate`, "With interest at 3.75% a year", which is an interest rate
+on screen. The copy check's rule 2 requires a route showing one to carry the rates-indicative risk
+warning through `riskWarningHTML()`.
+
+**The only such key does not fit.** `rateVariabilityWarning` exists on `/assumptions/borrowing` alone
+and reads "Mortgage rates are indicative of the current market and are subject to change. Your final
+rate will depend on your specific details." Frame 12's rate is a **savings** rate - the Bank Rate used
+as a declared growth proxy (D3) - not a mortgage rate being offered. Rendering that wording here would
+state something false.
+
+**`projectionAssumptions` partially discharges it in plain words**, and that should be weighed before
+a new string is written: "It assumes nothing changes: what you save, **interest rates**, or the
+deposit you need" tells the participant the rate can move, which is the substance of the requirement.
+What it does not do is carry the warning through `riskWarningHTML()`'s visual treatment.
+
+**Whoever takes this should decide first whether rule 2's rates-indicative clause is meant to reach a
+savings-growth assumption at all**, or only a rate a lender might offer. If the latter, this closes as
+not-applicable and the rule's wording should say so.
+
+---
+
+## G118. "toward" and "towards" are both in participant copy, in thirteen places. OPEN - LOW PRIORITY
+
+*Raised 31 August 2026 by the `fca-copy-check` pass (D104). **The brief that raised it expected eight
+instances; there are thirteen**, so the standardisation sweep was not taken and the single string that
+prompted it was matched to its own screen instead.*
+
+Thirteen instances of "toward" in participant-facing copy, across `/consent`, `/consent/move-account`,
+`/position/summary` (four), `/goal-check`, `/calculator/result`, `/tracker`, `/mip/result/not-yet` and
+`/assumptions/sources`. Both forms are valid British English; the inconsistency is the finding, and
+"towards" is the more common British form of the two.
+
+**What was done instead.** `goalAttainedBody` was drafted with "towards" and would have put both forms
+on one screen beside `goalHeading`'s "What you would save toward". It now reads "toward", matching its
+own screen. **No screen currently carries both forms.**
+
+**None of the thirteen is on frame 10**, so the freeze was never at issue - checked rather than
+assumed.
+
+**Low priority.** No participant has remarked on it, both forms are correct, and a thirteen-string
+sweep touching eight routes is a copy pass of its own rather than a tail on someone else's.

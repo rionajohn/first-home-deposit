@@ -33,6 +33,14 @@ do not introduce a state management library.
 - A row is either editable or explanatory, never both.
 - Any correction applies everywhere the same pattern appears, not just the
   screen named in the prompt.
+- **Anything measuring inside the frame with `getBoundingClientRect()` must work
+  in ratios, or divide by the frame scale.** D92 draws the frame at a CSS scale,
+  so `getBoundingClientRect()` returns VISUAL pixels while layout is in LOGICAL
+  ones. A handler or an assertion written against a raw pixel offset passes at
+  one window size and silently mis-aims at the other. Two defects have now
+  arrived this way. Prefer a fraction of the measured box
+  (`(clientX - rect.left) / rect.width`), which is scale-invariant and needs no
+  knowledge that the scale exists.
 
 ## State rules
 - **Screen-local draft state never writes to a section 6 figure.** A field being

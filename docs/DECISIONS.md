@@ -9369,3 +9369,325 @@ both sides instead of accidentally on one.
 Restore `useAbove = below < wanted && above > below`. The ordinary visit returns to being decided by a
 one-pixel margin that a text size already loses, so the reason would need to be a different way of
 pinning direction rather than a return to none.
+
+---
+
+## D97. Every date is measured from a session anchor stamped once, and D3 is amended
+
+**Date.** 31 August 2026. Plan: `docs/investigations/2026-08-calculator-dates-and-figures.md` section 4.
+
+**Decision.** `state.sessionAnchor`, an ISO date stamped once by `defaultState()` beside
+`buildVersion`, is the day every calendar date in the app is measured from. `load()` discards a stored
+session whole when its anchor MONTH is not the current month, through the same branch D59's build
+stamp takes. Frame 33 renders it beside the build version.
+
+**What was wrong.** `/tracker` passed `RATES.asAt` to `formatMonthYearRange`. That is D3 applied to
+the wrong kind of fact: a rate is pinned so FIGURES cannot drift between sessions, but the date a
+projection is measured FROM must be current or every date derived from it is wrong. On 31 August 2026
+the rate date was 30 July, so the tracker's "On track for" range was **a full calendar month early, on
+a screen participants see**. Recorded separately as a defect in `GAPS.md`, because it was live rather
+than introduced here.
+
+**D3 is amended, not reversed.** `RATES.asAt` still governs every rate figure and every "as at"
+caption on frames 29/30/31 - those are true statements about the rate. It stops being the argument to
+a date formatter.
+
+**Month granularity, not day.** Every date derives from a month floor (`formatMonthYear` and
+`dateAtMonths` both build from the 1st), so a day change moves nothing on screen and discarding on one
+would retire a multi-day facilitator setup for no gain. Never discarding is the failure mode this
+exists to prevent: **a stale anchor produces wrong years with nothing on screen to reveal it**, so a
+screenshot taken during a session could not be interpreted afterwards.
+
+**Discarded whole rather than re-stamped, and that is the load-bearing choice.** Re-stamping keeps the
+session and silently moves every projected date, so a screenshot taken before a month boundary and one
+after disagree with nothing to say why. D59's reasoning carries unchanged: what comes back is exactly
+a first load, which every screen already handles.
+
+**It also bounds the frame 10 freeze.** That screen still reads the wall clock and cannot be edited
+(`GAPS.md` G107). Because the discard keeps the anchor in the current month, `new Date()` and
+`sessionAnchor` cannot name different months while a participant is looking at them.
+
+**Every harness seeds it.** `scripts/session-seed.mjs` exports `SEED_ANCHOR`, computed at run time
+rather than pinned. A fixture without one is discarded on arrival and the screens under test render
+from a fresh store - which presented as two smoke failures that looked like screen defects.
+
+**To reverse.** Pass `RATES.asAt` back into the date formatters and delete the anchor branch in
+`load()`. The tracker returns to being a month early.
+
+---
+
+## D98. Durations become calendar dates, calculator-wide, and frame 10 is the boundary
+
+**Date.** 31 August 2026. Plan section 2. Pilot findings P6, P7, P9.
+
+**Decision.** A projection expressed as an elapsed duration becomes a calendar date. "26 yr 4 m"
+becomes "2034". The participant does not add a duration to today's date in their head.
+
+**The complete sweep**, taken by following `formatMonthsDuration`, every `{months}`/`{years}` slot in
+`content.js`, and every screen importing a months function:
+
+| Where | Was | Now |
+| --- | --- | --- |
+| Frame 12's comparison rows | `compareWithinTemplate`, "within 26 yr 4 m" | the attainment year, leading the row |
+| Frame 12's x-axis and point labels | abbreviated durations | calendar years (D102) |
+| Frame 12's live region | `formatMonthsDuration(rangeMonths)` | the window's end year |
+| Frame 12's `beyondWindowNote` | "more than 5 years at your current rate" | **retired** - the endpoint line names the year unconditionally |
+| Frame 21's step 1 | "Around 26 years 4 months" | "By 2034" |
+| Frame 13's comparison table | **no time row at all** | a "Saved by" row - an ADDITION, not a conversion |
+| `/tracker` | already dates | anchor corrected (D97) |
+
+**One duration survives and it is not an oversight.** The range chips ("6 m", "1 yr", "2 yr", "5 yr")
+name a SPAN IN VIEW, which is a control setting, not an arrival. **The chip says how much you are
+looking at; the axis and the figures say what you are looking at.** Mortgage terms on frame 13 and the
+inflation horizon in the exclusions list stay for the same reason: neither names an arrival.
+
+**Frame 13's row is an addition.** At 26:20 the participant asked, on that screen, "how long, like max
+should be, how long it will take me to get to that amount of money". The screen had five rows and none
+of them about when.
+
+**Frame 10 is untouched and the sweep stops at its boundary.** It renders no elapsed duration at all,
+so the conversion never reaches it - but it reads the wall clock in three places and moving those onto
+D97's anchor is the correct end state. That is deferred; see `GAPS.md`, and D97 for why the resulting
+inconsistency is unobservable at month granularity.
+
+**`formatMonthsDuration` is kept at zero callers.** It is the right function if a duration is ever
+correct again, and deleting it is a separate decision on its own evidence.
+
+---
+
+## D99. One bounding rule at goal attainment, and the attained state gets a screen
+
+**Date.** 31 August 2026. Plan section 5. Builds on D85 and `GAPS.md` G98.
+
+**Decision.** `goalMonths(state, monthlyAmount)` in `model.js`: the month at which a balance growing
+at the Bank Rate with `monthlyAmount` added at the start of each month first equals `combined-goal`.
+**Every bound in the calculator is that one function at a different contribution** - frame 10b's floor
+at `left-over`, its cap at zero, frame 12's projection at the contribution being plotted. `goalAttained(state)`
+is the one predicate for `saved-toward-deposit >= combined-goal`.
+
+**The rule is one; the rounding is not.** D85 already established this and departed from D2 on exactly
+this reasoning: each direction is chosen by which error is unsafe at that consumer.
+
+| Consumer | Direction | Because |
+| --- | --- | --- |
+| Frame 10b's cap | **down** (D85, unchanged) | rounding up readmits the first month whose solve is negative |
+| Frame 10b's floor | **up** (D2, unchanged) | rounding down offers a date that is not reachable |
+| Frame 12's endpoint YEAR | **up** | a participant must never be told they arrive early |
+| Frame 12's plotted WINDOW | **neither - the exact crossing** | see below |
+
+**The window runs to the exact crossing, and that was a defect first.** Rounding the window up to a
+whole month carried the last plotted point PAST the goal - 52,777 against a 52,500 goal - which is
+what requirement 5 forbids. The window is now the unrounded crossing, so the final point lands on the
+goal, and only the displayed year is rounded. Caught by `chart-range.test.mjs`, not by eye.
+
+**Frame 10b is NOT migrated onto `goalMonths` in this pass.** It is frozen (`GAPS.md` G107) and
+already implements the rule by two routes. `monthsToGoalUnaided` is untouched and
+`date-ceiling.test.mjs` passing 41/41 unchanged is the proof its values are bit-identical.
+
+**The attained state.** `goalAttained` true: no chart, no chips, no series control, no readout, no
+table - a projection with no length is a plot with nothing in it, and a flat line read as an answer is
+worse than no line (D85's precedent). **The comparison card stays** (D46): rows whose own goal is
+covered take `compareAlreadyLabel`, rows still ahead take their year. No past date, no negative figure
+and no zero-length plot anywhere. Continue stays enabled - unlike frame 10b, this screen's forward
+action still means something.
+
+---
+
+## D100. Frame 12's chart is a line with a scrub, and D73 is amended twice
+
+**Date.** 31 August 2026. Plan section 6. Pilot finding P10 and the 21:42 / 22:04 / 23:28 quotes.
+
+**What failed.** The participant liked the chart on sight and could not extract a single number from
+it. "I don't have a y-axis to know what the value is. I can't hover and see what the values are
+either" (21:42). "I still don't know whether I would choose to have it at 200 pounds a month or 400
+quid" (23:28). **The chart existed to support choosing a contribution and did not support that
+choice.**
+
+**The seven requirements, and the shape follows from them rather than being picked first:** a readout
+naming the exact amount; a labelled y-axis; a labelled endpoint; an x-axis that reconciles with the
+marks; a projection bounded at attainment; a table view; nothing carried by colour alone.
+
+**D73's default window is reversed.** D73 moved it from five years to "Max" so a participant "sees the
+shape of the thing before they narrow it" - which assumes the barrier was not seeing the whole
+projection. **The pilot showed the barrier was being unable to read any value off it. Widening a
+window cannot fix an unreadable chart, and narrowing one cannot break a readable one.** With
+requirement 1 putting a figure on screen unconditionally, the window is free to serve the near-term
+question, and it opens at 24 months. The chip set changes with it: "2 yr" replaces "3 yr" and is the
+default, because a sixth chip does not fit - `components.css` records the row as "334px of a 350px
+column".
+
+**D73's headroom is amended from 1.05 to 1.20**, and it is measured. The date label sits above the
+active point, and the at-rest active point is the HIGHEST one, so at 1.05 **the screen's default state
+was the colliding state** - by 17.3px at default text and 20px at Large. The curve tops out at 83%
+instead of 95%; against D73's own starting point of 44% that is still nearly double, and the headroom
+is not waste, it is the space that label occupies.
+
+**P10 is closed by a property, not an adjustment.** The axis used to draw four labels by
+`space-between` in a separate flex row from eleven-odd bars, so no label sat under the mark it named.
+It is now **a scale**: each label is absolutely positioned at its own moment's percentage of the plot
+width, in the same coordinate space the line is drawn in. Labels and marks cannot disagree about
+position because one linear mapping places both.
+
+**The interaction is a scrub over the whole plot, and the measurement is why.** At the default window
+the points sit at a 13.3px pitch against 44px (Apple HIG) and 24px (WCAG 2.5.8). Quartering the
+resolution buys 38.1px - still short, and it costs two thirds of the line. **Removing the aiming
+removes the problem.** One point is always active; its value is drawn at the y-axis edge at the end of
+a horizontal guide, its date above it. Nothing is cleared on release, and `pointercancel` from a
+`touch-action: pan-y` scroll is covered by the same rule.
+
+**Three defects the tests caught that a screenshot would not have:**
+
+| | |
+| --- | --- |
+| The gridlines were positioned against the plot's 240px while the line was positioned against the area's 224px, so **the y-axis did not line up with the data it labelled** | one coordinate space |
+| The window rounded up carried the last point past the goal | D99's exact crossing |
+| `rerenderInPlace` replaced the element holding the pointer capture on every activation, so a drag leaving the plot stopped tracking | the chart repaints in place |
+
+**The pointer path is the one that will be observed.** Sessions run in a phone frame in a desktop
+browser over Teams, so participants use a mouse. The touch work is correctness for the artefact.
+
+---
+
+## D101. The comparison card is an interval around the selection, not a menu
+
+**Date.** 31 August 2026. Plan section 7. The 24:27 and 24:48 quotes.
+
+**Decision.** Each row leads with the year reached; the deposit amount and percentage move to the
+value and sublabel. The heading becomes "Deposits either side of yours". A footnote marker follows
+each year and opens the caption, bound both ways with `aria-describedby`. **The card projects at the
+selected series** rather than at `monthly-low`.
+
+**The objection was to framing, not presence.** At 24:48 the participant objected to being shown
+options they had not chosen. **The comparison is not removed** - D46 requires a discarded participant
+value to stay visible, and D72 already narrowed this card to three rows for the adjacent reason. What
+changes is that it reads as a neighbourhood rather than a set of offers.
+
+**What is given up, stated because it is the point of this entry.** The card no longer reads as a set
+of choices, so a participant who wants to CHANGE their percentage gets a weaker prompt to do so. The
+route back to frame 09 is unchanged and is where that decision belongs.
+
+**The trade against D72.** D72 hard-wired `monthly-low` because "the conservative end is the one that
+cannot disappoint". Following the selection means a participant on the high series sees the optimistic
+dates in the card as well as on the endpoint line. **D72's intent survives as a DEFAULT rather than a
+FLOOR**: `chartSeries` defaults to `'low'`, so a participant who touches nothing meets the
+conservative picture and reaches the optimistic one by choosing it. Change that default and this trade
+is undone.
+
+**Why it had to follow the selection.** The endpoint line projects at the selected series. With the
+card hard-wired to low, the two agreed when the series was low and disagreed when it was high - a
+coincidence that holds in one state and not the other, which a participant cannot tell apart.
+
+**One derived array, hoisted.** The rows used to compute `monthsToReachAmount` inside the `.map()`
+callback and discard it, so the collision predicate and the note below the card had nothing to read.
+One derivation now feeds all three, and the call happens once per row rather than twice.
+
+---
+
+## D102. Year-only for every date the results screen states at rest
+
+**Date.** 31 August 2026. Plan section 6.10.
+
+**Decision.** No month appears anywhere on `/calculator/result` at rest. The x-axis, the endpoint
+line and the comparison rows all carry a year alone.
+
+**The reason IS the decision, not a justification for a formatting preference.** The feature addresses
+a long-term goal; the projection is not accurate to the month; and stating it to the month invites a
+participant to read it as a commitment. **Year-only is the honest granularity for what the model can
+claim.** That is the same thought that sits behind MCOB 4.8A's guidance boundary and the Consumer Duty
+consumer understanding outcome - not a consequence of them.
+
+**Why this is stronger than disclosing the imprecision.** A caption beside a monthly figure saying it
+is an estimate works where the figure is defensible and needs qualifying. It does not work where the
+figure asserts a resolution the model never had: **a caption cannot un-state "March 2039".**
+
+**THE NAMED EXCEPTION, recorded here rather than discovered later.** The scrub readout, the in-plot
+date label, the point's accessible name and the table's own column carry **month and year**.
+
+> Year-only governs what the screen CLAIMS about reaching the goal. The readout describes where the
+> pointer sits on a plotted curve - an observation about the data, not an assertion about the future.
+
+**The boundary that keeps it coherent, and it is checkable against a new string:** the endpoint line
+and the comparison rows stay year-only, so **nothing on the screen that says a goal would be reached
+ever names a month**. Every month left on that screen is attached to a plotted position or a table row.
+
+**Measured, and it is what settled it.** Year-only in the readout gives 3 distinct captions across 24
+points at the default window, and on the "1 yr" chip **one caption for the entire window** - twelve
+points, one date, twelve different amounts. A participant scrubbing would watch the figure change
+while the date sat still, during the one interaction the redesign exists to support.
+
+**The cost on the endpoint line is real and is NOT fixed here.** Both contributions land in the same
+endpoint year in 84.7% of projections under two years out and 38.1% at two to five, so pressing the
+series control can leave that line unchanged. Recorded in `GAPS.md`, open, with trigger conditions set
+in advance - it resolves on session evidence rather than on argument.
+
+**What it can be reversed by.** The table is now the only place on the screen with date resolution
+finer than a year at rest, so its toggle must stay a visible peer of the chart, asserted in
+`overlap.test.mjs`. If that cannot be made to pass, this entry goes back.
+
+---
+
+## D103. The results screen states what the projection assumes
+
+**Date.** 31 August 2026. Plan section 10.7.
+
+**Decision.** `projectionAssumptions` renders always visible, directly beneath the endpoint line and
+never behind a disclosure: "This is an estimate. It assumes nothing changes: what you save, interest
+rates, or the deposit you need." An assumptions link sits with it.
+
+**Three reasons, in weight order.** The goal is a fixed figure over a decade out and nothing else on
+screen says the target is being held still - a participant told they reach a figure in a named year
+may reasonably take that as reaching the house. The endpoint's own wording reaches the contribution
+but not the Bank Rate pinned by D3. And the scrub multiplies the exposure by putting a precise figure
+on every point a participant lands on.
+
+**Change of circumstances is deliberately absent.** It is the least specific of the four uncovered
+assumptions, it is obvious in a way the other three are not, and a fourth clause starts to read as
+boilerplate that gets skipped.
+
+**"Estimate" stays in the first three words.** It is the word doing the regulatory work: a sentence
+opening by listing what is held constant reads as a description of the method; one opening "This is an
+estimate" reads as a qualification of the claim. **Do not reorder this in a shortening pass.**
+
+**WHOSE DECISION THIS IS, AND WHAT IT IS NOT.** An earlier draft held this line behind a supervisor's
+sight on a narrow MCOB 4.8A question. **That question was not asked.** Riona closed it on their own
+judgement, on the three reasons above.
+
+> **No external regulatory sign-off was sought for this line. It is a design judgement about what the
+> screen owes a participant reading a dated projection. It is NOT a compliance determination**, and
+> nothing here should be read as one.
+
+Recorded because the reasoning above cites regulation by name, and a citation reads as authority
+unless the record says otherwise.
+
+**The link answers a rule the prose could not.** The copy-check's rule 3A wants a route to the
+assumptions sheet beneath a projection; a statement of the assumptions is not a route. It targets
+`/assumptions/saving`, the sheet the screen already uses.
+
+---
+
+## D104. The copy check's outcome, recorded so the ratio is pointable-at
+
+**Date.** 31 August 2026. `fca-copy-check` over the eight new and reworded strings on
+`/calculator/result`, plus the two other screens this pass touched.
+
+**Why this entry exists.** A check whose findings are all overridden stops being a check. **Five
+flags: three revised, one accepted as a deliberate exception, one moved to `GAPS.md`.** That ratio is
+the point of recording it.
+
+| Flag | Rule | Outcome |
+| --- | --- | --- |
+| `endpointTemplate` opened "At this rate", ambiguous beside `chartCaptionTemplate`'s "With interest at 3.75% a year" on the same screen | 5 | **Revised.** "If you keep saving this amount" names the assumption the participant CONTROLS rather than one they do not - on the screen's strongest claim |
+| `goalAttainedBody` carried two figures in one sentence | 5 | **Revised.** The goal is already in the breakdown above and the sentence's job is reassurance, not arithmetic |
+| "towards" against the codebase's "toward" | 8 | **Revised** to "toward". The sweep it implied is larger than expected and is in `GAPS.md` |
+| `compareSameYearNote` carries two percentages in one sentence | 5 | **ACCEPTED as a deliberate exception.** Two numbers are the entire content of the string. The slots exist because "two of these" made the participant hunt for the colliding rows, so splitting the sentence to satisfy the rule would undo a fix made for a measured reason |
+| The route shows an interest rate and carries no rate-variability warning | 2 | **Moved to `GAPS.md`.** Pre-existing, not introduced here, and the only such key is written for mortgage rates |
+
+**Two borderline flags shipped as drafted.** `readoutCaptionTemplate` and `endpointTemplate` each pair
+one quantity with one date. A quantity and a date are not two comparable numbers, which is what the
+one-number rule guards against. `/learn/ltv`'s three-in-one-sentence shows the rule is not uniformly
+enforced; that is **not licence**.
+
+**Passes recorded, because they are the reason the flags are readable.** Rule 1 (no steering
+language - "You can still X, or Y" is the sanctioned form and is symmetric between the two options),
+rule 1A (no system-proposed contribution; the highest illustrative rate is 48.4% of `left-over`,
+under the 60% line), rule 3, rule 6, rule 6A, rule 9.
