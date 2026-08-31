@@ -370,23 +370,30 @@ quid" is a choice the screen never offered.
 - Re-render through `rerenderInPlace` (`ui.js:321`), the path the range chips already use, so the
   chart redraws under the participant's thumb and focus returns to the pressed control.
 
-**The readout is always visible and is the point detail's home.** One figure, one place:
+**The readout is always visible, and it always reports the active point.** Two states, not three -
+6.6.2b collapsed the third:
 
 | State | Readout shows |
 | --- | --- |
-| At rest (no point active) | The amount at the **window's end** for the selected series |
-| A point active (scrub, hover or keyboard) | The amount at **that point**, for the selected series |
-| Dismissed (Escape, or release outside the plot) | Back to the window's end |
+| **At rest** - the last point in the window is active (6.6.2b) | The amount at the **window's end** for the selected series |
+| A point activated by scrub, hover, click or keyboard | The amount at **that point**, for the selected series |
+| Escape | Returns to the last point in the window - **the at-rest state, not an empty one** |
 
 `figureDisplayHTML({ value, caption, live: true })` (`ui.js:674`). **The caption always names the date
 the figure belongs to**, so a scrubbed value cannot be misread as the window-end value: the figure and
 its date move together or not at all.
 
-**Why the point detail lives in the readout rather than beside the point.** Two figures on one chart
-is the state that produced the confusion being fixed, and a floating tooltip at 393px covers the line
-it is describing. This also means the always-visible readout of requirement 1 is not competing with
-the interaction - it *is* the interaction's output, and it holds a value whether or not anyone
-interacts. See 6.9 on why that distinction is load-bearing.
+> **"At rest" and "the window's end" are the same state, and that is why this is two rules rather than
+> four.** The previous draft specified an at-rest readout of the window's end *and*, separately, an
+> active point that could be anywhere. 6.6.2b makes the at-rest active point the last one, so the two
+> definitions coincide and there is one rule: **the readout reports the active point, always.**
+
+**The readout and the in-plot labels are the same figure, never two.** 6.6.0 draws the value at the
+y-axis edge and the date above the point, because on touch the participant's eye is at the finger and
+the readout may be under their hand. Both are rendered from the **same active index**, so they cannot
+disagree - and if in layout they read as two answers rather than one fact in two places, **the in-plot
+label is the one to drop, not the readout**: 6.9 makes the readout load-bearing for every participant
+who does not interact, and the in-plot label is an enhancement for the one who does.
 
 ### 6.3 Requirement 2 - a labelled y-axis
 
@@ -471,20 +478,211 @@ records year-only as a claim about what the model can honestly assert rather tha
 choice. **The cost of that is measured in 6.10.1 and it is not small at short horizons.** It is
 reported there and left to be decided rather than resolved by quietly reintroducing a month.
 
-### 6.6 The interactive point detail
+### 6.6 The interactive point detail - SETTLED
 
-**On press, hover or keyboard focus of a point:** the amount saved at that point and the date it
-falls on, both rendered into the readout (6.2), plus **a guide from the active point to the y-axis**
-showing where that value sits on the scale, and the point itself drawn in its active state.
+*Amended 31 August 2026. The interaction model, the guide, the four touch decisions and the pointer
+path are all settled below. The previous draft left the vertical guide open and treated the at-rest
+state and the active state as separate things; both are resolved, and the second turns out to
+simplify 6.2 rather than add to it.*
 
-A vertical guide from the point down to the x-axis is **optional and to be judged in layout**. It
-would help locate a point within a year, which the years-only axis cannot do; it also adds a second
-rule across the plot. Not specified either way here.
+#### 6.6.0 The model, in one place
 
-#### 6.6.0 What the point detail carries, and why month and year is consistent with 6.10
+> **One point is always active.** Its value is drawn at the **y-axis edge**, at the end of a
+> **horizontal guide** running from the point to the axis. Its date is drawn **above** the point. The
+> whole plot area is the target: a press or a hover anywhere in it activates the nearest point
+> horizontally, and a horizontal drag tracks it. **There is no hit testing on the circles.**
+
+**The guide is horizontal and nothing else. Settled.** A vertical guide down to the x-axis would land
+between year ticks and point at nothing readable - the axis carries years (6.4), so there is no mark
+for a vertical drop to meet. The date is carried by the point detail, not by the axis. This closes the
+"optional, to be judged in layout" the previous draft left open, and it closes it on the axis decision
+rather than on taste.
+
+#### 6.6.1 Why the target is the plot and not the points - the measurement
+
+At the 24-month default window, plot width 305px (derivation in 6.4):
+
+| Points plotted | Interval | Centre-to-centre |
+| --- | --- | --- |
+| 25 (monthly, including "now") | 1 mo | **12.7px** |
+| 24 (monthly) | 1 mo | 13.3px |
+| 9 (quarterly) | 3 mo | **38.1px** |
+| 5 (half-yearly) | 6 mo | 76.3px |
+
+Against 44x44px (Apple HIG, the design language this repo is held to) and 24x24px (WCAG 2.5.8 Target
+Size (Minimum), AA):
+
+| Option | Measured | Verdict |
+| --- | --- | --- |
+| Monthly points as targets | 12.7px | Fails both |
+| **Quarterly points as targets** | **38.1px** | **Fails the 44px HIG target by 6px.** Proposed on the premise that it clears it; measured, it does not - and it costs two thirds of the line's resolution to buy a target that is still too small |
+| Per-point full-height hit band | 13.3px wide | Fails in width in both standards. WCAG 2.5.8's spacing exception needs a 24px circle centred on the target not to intersect a neighbour's; at a 13.3px pitch they intersect |
+| **The plot area** | **305 x 224px** | **Passes.** There is nothing to aim at, so there is no targeting problem to solve |
+
+**The resolution is to remove aiming from the interaction**, not to enlarge what is aimed at. Full
+monthly resolution is kept because nothing depends on hitting a circle.
+
+**Plot resolution stays at 24 points**, or `rangeMonths` if fewer, replacing
+`pointCount = Math.min(12, rangeMonths)`. Spacing is then constant at every window, so the snap
+granularity does not change with the chip pressed. At the default window each point is one month; at
+"Max" (148 months at the seeded persona) each is about six, and the table carries the monthly figures.
+
+**Nearest-point activation is by ratio, never by pixel offset.** D92 draws the frame at a CSS scale,
+so `getBoundingClientRect()` returns visual pixels while layout is in logical ones. The index is
+`round(((clientX - rect.left) / rect.width) * (pointCount - 1))`, clamped - a ratio, which is
+scale-invariant and correct at 1280x720 and 2560x1440 without the handler knowing the scale exists.
+A handler written against a pixel offset works at one window size and silently mis-aims at the other,
+which is the class of defect `frame-scale.test.mjs` exists for.
+
+#### 6.6.2 The four things that make this work on touch
+
+**a. The active state persists on release.** While a finger is on the screen it covers what is being
+read; a detail that clears on lift can never be read. **The last activated point stays active - guide,
+value and date all drawn - until another point is activated.** Nothing is cleared by lifting.
+
+**b. A point is active at rest, on load: the last point in the window.** On touch there is no hover,
+so nothing hints the chart is interactive; the mechanism has to be visible before anyone tries it.
+With a point already active, scrubbing reads as **moving something that is there** rather than
+discovering something hidden.
+
+> **This collapses a redundancy in 6.2 rather than adding to it.** 6.2's at-rest readout was
+> specified as "the amount at the window's end", and the at-rest active point **is** the window's end
+> - so the readout at rest and the active point's value are the same figure arrived at two ways. They
+> become one: the readout always reports the active point, and at rest the active point is the last
+> one. 6.2's three-state table (at rest / active / dismissed) becomes two, and **Escape returns to
+> the last point rather than clearing to nothing.**
+
+**c. Nothing renders under the thumb.** The value sits at the **y-axis edge**, left of the plot. The
+date sits **above** the active point. A label beneath the point is under the finger on every single
+interaction, so below is not available.
+
+**d. Vertical scroll must keep working.** `touch-action: pan-y` on the plot area: vertical gestures
+scroll, horizontal gestures scrub. Reported in 6.6.4.
+
+#### 6.6.3 The topmost-point collision, measured - and it is real
+
+*2.2c requires the date label above the point. The check asked for is whether that holds at the top of
+the window, and it does not, as things stand.*
+
+| | |
+| --- | --- |
+| Line area height (`.growth-chart__plot` 240px less the 16px baseline offset) | **224px** |
+| D73's headroom rule, `maxScale = max x 1.05` | Topmost point at 1/1.05 = **95.24%** of the plot |
+| Headroom above the topmost point | **10.7px** |
+| Space a date label needs: active-point radius ~6px + 4px gap + `--text-footnote-line` 18px | **28px** default |
+| At Large text (`--text-scale: 1.15`, footnote line 20.7px) | **30.7px** |
+
+**It collides by 17.3px at default text and 20px at Large**, at the top of every window - which is not
+an edge case, because the last point in the window is the highest point and 6.6.2b makes it the
+at-rest active one. **The default state of the screen is the colliding state.**
+
+**Recommended fix: reserve the headroom in the scale.** `maxScale` goes from `max x 1.05` to
+**`max x 1.20`**, which puts the topmost point at 83.3% and leaves **37.3px** - 6.6px of slack over
+the Large-text requirement. One code path, no flipping, deterministic, and testable.
+
+**What it costs, stated, because it edits a D73 rule.** D73 set the 5% headroom so "the axis follows
+the curve", moving the curve from 44% of the plot to 95%. This gives back 12 points of that: the curve
+tops out at 83%. **Against D73's own starting point of 44% that is still nearly double**, and the
+headroom is not waste - it is the space the date label occupies. Record it as an amendment to D73's
+headroom figure, not as a new rule.
+
+**The alternative, recorded and not recommended.** Pin the date label to the **top edge of the plot**,
+tracking the point horizontally and clamping at the ends. It costs no curve height and removes the
+collision class outright rather than sizing around it. It is not recommended because it separates the
+two halves of the detail - the value at the point's height on the left, the date at a constant height
+above - so neither is adjacent to the point, and adjacency is what associates them. **If the 12 points
+of curve height are judged too expensive in layout, this is the fallback**, and it is a layout call
+with both numbers already measured.
+
+**Flipping the label below the point when it would collide is rejected outright**, by 6.6.2c: below is
+under the thumb, and a rule that puts it there in exactly the default state is worse than either.
+
+#### 6.6.4 `touch-action: pan-y`, and how it behaves in the framed view
+
+`touch-action: pan-y` on the plot area. The browser handles the direction lock: a vertical-ish gesture
+pans and never reaches the handler; a horizontal-ish one is delivered as pointer events.
+
+**In the framed view (D92):**
+
+- The nearest scrollable ancestor is `.screen-content` (`overflow-y: auto`), so a vertical gesture
+  starting on the plot scrolls the screen exactly as it does from any other element.
+- At short window heights D92 lets **the page outside the frame** scroll too, so the frame's bottom is
+  reachable (`shell.css:105`). A vertical gesture that exhausts `.screen-content` chains to the
+  document by ordinary scroll chaining. `pan-y` permits both; neither needs special handling.
+- **Horizontal panning is not being stolen from anything**: `overflow-x` is hidden in both views
+  (`shell.css:109`), so there is no horizontal scroll for the plot to compete with.
+- **When the browser commits to a vertical pan it fires `pointercancel`.** The handler must **leave
+  the active point where it is** rather than clearing it - which 6.6.2a already requires for a
+  different reason, so the scroll case is handled for free.
+
+**If this is not handled the chart either traps the scroll or never receives the gesture.** Both are
+unrecoverable by a participant mid-session, which is why it is specified here rather than left to the
+build.
+
+#### 6.6.5 The pointer path is the one that will actually be observed
+
+**State this plainly, because it sets the priority order.** Sessions run the prototype in a phone
+frame in a desktop browser over Teams. **Participants will use a mouse, not touch.** The touch design
+has to be right for the artefact to be credible and for the write-up, but **the interaction observed
+in the study is hover and click.**
+
+| | |
+| --- | --- |
+| **Hover** | The guide follows the pointer across the plot area, **without requiring a click**. Same nearest-point ratio as the scrub |
+| **At rest** | 6.6.2b's active point applies equally with a pointer. **It is the discoverability affordance in both modes** - with a mouse there is at least a cursor to move, but nothing says the chart responds until something visibly does |
+| **Click** | Pins the active point, so it survives the pointer leaving the chart |
+| **Keyboard** | Arrow keys traverse points, the guide follows **focus**, per 6.6.6 |
+
+**One consequence for the touch work.** `touch-action` never fires on the observed path - a mouse
+wheel over the plot scrolls `.screen-content` normally, and a mouse drag does not scroll. 6.6.4 is
+therefore correctness for the artefact rather than a risk to the study, and it should be built and
+tested but not prioritised over the hover path if the two ever compete for time.
+
+#### 6.6.6 Keyboard
+
+The plot is a single focus stop with `aria-activedescendant` pointing at the active point, arrow keys
+moving between points, Home and End to the ends, and Escape returning to the last point (6.6.2b).
+**This is D84's listbox contract applied to a different control**, not a new pattern: `dateSelectHTML`
+/ `bindDateSelect` (`ui.js:937`, `1005`) already implement it, and `date-ceiling.test.mjs`'s last
+eleven tests already read it off the same attributes a screen reader reads. Reuse the pattern; do not
+reuse the component.
+
+The guide draws on **focus**, not only on pointer events.
+
+#### 6.6.7 WCAG 1.4.13, and why 6.6.2b changes the answer
+
+The previous draft satisfied 1.4.13 by construction, with the detail rendered into a fixed readout.
+**6.6.2b gives a stronger answer: 1.4.13 does not bind here at all**, because no content is *revealed*
+by hover or focus. A point, a guide, a value and a date are on screen before anything is touched;
+hovering moves an element that is already there rather than producing one that was not.
+
+The three criteria are met anyway, and are worth stating so the claim is checkable rather than
+asserted:
+
+| Criterion | How |
+| --- | --- |
+| **Dismissible** without moving the pointer | Escape returns to the last point in the window - the at-rest state, not an empty one |
+| **Hoverable** | The value and date are in the plot, on the pointer's own path; moving within the plot moves them rather than dismissing them |
+| **Persistent** | The active point is state. It survives release on touch (6.6.2a), pointer-leave once clicked (6.6.5), and `pointercancel` from a scroll (6.6.4) |
+
+#### 6.6.8 The remaining accessibility requirements
+
+- **1.4.1, no colour alone.** The active point is distinguished by **size and shape** - a larger radius
+  with a ring - never by a fill change alone.
+- **prefers-reduced-motion.** The line's draw-in and any transition on the guide or the point drop to
+  an instant state change under `@media (prefers-reduced-motion: reduce)`. The repo has the pattern in
+  three places already (`components.css:642`, `2970`; `sheet-drag.js` handles the script-driven case,
+  `screens.css:427`). **Nothing in the interaction depends on motion**: the snap is a state change,
+  not an animation, so the reduced-motion path is the same interaction with no tweening.
+- **The table is the equivalent, not the fallback**, and it must expose every value the guide can
+  reveal - guaranteed by construction, since both render the same points array (6.7). Under 6.10 it is
+  also the only finer-than-year date resolution on the screen at rest, which is why 6.9 makes its
+  toggle a hard condition.
+
+#### 6.6.9 What the detail carries, and why month and year is consistent with 6.10
 
 **The scrub detail carries month and year.** So does the table (6.7). Every other date on the screen
-is a year. That is a distinction in kind, not an exception:
+is a year (6.10). That is a distinction in kind, not an exception:
 
 | | What it is | Granularity |
 | --- | --- | --- |
@@ -492,74 +690,18 @@ is a year. That is a distinction in kind, not an exception:
 | Scrub detail, table row | **An answer to a question the participant asked**, about a position they are touching or a row they opened | **Month and year** |
 
 **The month in a scrub result is a coordinate, not a prediction.** It says *where on this line your
-finger is* and *what the curve reads there* - the same fact the x-axis would carry if it were fine
+pointer is* and *what the curve reads there* - the same fact the x-axis would carry if it were fine
 enough to. It is not an assertion that the participant will hold that amount in that month; it is a
 readout of a plotted position. The endpoint line, by contrast, is the screen volunteering a date for
 an event, which is exactly the claim 6.10 says the model cannot make to the month.
 
+**6.6.2b sharpens this rather than weakening it.** A point is active at rest, so a month is on screen
+before anyone interacts - which looks like a claim at rest until you see which month it is: the
+window's end, a position on the drawn line, not the arrival. The arrival is the endpoint line, and
+that is a year.
+
 That distinction is also what keeps the interaction an enhancement rather than a second, contradictory
 set of figures: the scrub can be finer than the claims because it is not making one.
-
-#### 6.6.1 The interaction is a scrub, and the measurement is why
-
-At a 24-month window, plot width 305px:
-
-| Points plotted | Interval | Centre-to-centre spacing |
-| --- | --- | --- |
-| 25 (monthly, including "now") | 1 mo | **12.7px** |
-| 24 (monthly) | 1 mo | **13.3px** |
-| 9 (quarterly, including "now") | 3 mo | **38.1px** |
-| 5 (half-yearly, including "now") | 6 mo | 76.3px |
-
-Against the two thresholds that apply - 44x44px (Apple HIG, the design language this repo is held to)
-and 24x24px (WCAG 2.5.8 Target Size (Minimum), AA):
-
-| Option | Measured | Verdict |
-| --- | --- | --- |
-| **Quarterly points, monthly in the table** | 38.1px | **Fails the 44px HIG target by 6px.** It passes WCAG 2.5.8 and it was proposed on the premise that it clears the touch target; measured, it does not. It also costs two thirds of the line's resolution to buy a target that is still too small |
-| **Monthly points, full-height vertical band** | 13.3px wide x 224px tall | **Fails.** Height clears; width does not, in either standard. WCAG 2.5.8's spacing exception needs a 24px-diameter circle centred on the target not to intersect a neighbour's - at 13.3px pitch they intersect, so the exception does not apply either |
-| **Scrub** | Target is the plot: **305 x 224px** | **Passes.** There are no discrete targets to hit, so there is no targeting problem to solve. Full monthly resolution is kept, and it is the pattern native charts use on mobile |
-
-**Scrub, on the measurement.** Press and drag anywhere in the plot; the nearest point snaps and the
-readout updates continuously. On a pointer device the same mapping runs on hover.
-
-**Plot resolution is fixed at 24 points**, or `rangeMonths` if fewer, replacing
-`pointCount = Math.min(12, rangeMonths)`. Spacing is then 13.3px at every window and the snap
-resolution never changes with the chip pressed. At the 24-month default each point is exactly one
-month; at "Max" (148 months) each is about six, and the table view carries the monthly figures.
-
-#### 6.6.2 Keyboard
-
-The plot is a single focus stop with `aria-activedescendant` pointing at the active point, arrow keys
-moving between points, Home and End to the ends, and Escape dismissing. **This is D84's listbox
-contract applied to a different control**, not a new pattern: `dateSelectHTML` / `bindDateSelect`
-(`ui.js:937`, `1005`) already implement it and `date-ceiling.test.mjs`'s last eleven tests already
-read it off the same attributes a screen reader reads. Reuse the pattern; do not reuse the component.
-
-The detail appears on **focus**, not only on pointer events.
-
-#### 6.6.3 WCAG 1.4.13, satisfied by construction
-
-| Requirement | How |
-| --- | --- |
-| **Dismissible** without moving the pointer | Escape returns the readout to the window's end. The same gesture doubles as the reset, so there is one way back rather than a hidden one |
-| **Hoverable** - stays while the pointer is over it | The detail renders into the readout, which is a fixed element outside the plot. The pointer never has to travel to it, and moving within the plot updates it rather than dismissing it |
-| **Persistent** until dismissed | The active point is state, not a transient tooltip. It survives until Escape, a re-selection, or a chip press |
-
-A tooltip that vanished on any movement would fail all three, which is the second reason 6.2 puts the
-detail in the readout rather than beside the point.
-
-#### 6.6.4 The remaining accessibility requirements
-
-- **1.4.1, no colour alone.** The active point is distinguished by **size and shape** - a larger
-  radius with a ring - not by a colour change. The same rule the comparison card's "- your choice"
-  already follows.
-- **prefers-reduced-motion.** The line's draw-in, the guide's transition and the point's grow are all
-  dropped to an instant state change under `@media (prefers-reduced-motion: reduce)`. The repo has
-  the pattern in three places already (`components.css:642`, `2970`; `sheet-drag.js` handles it in JS
-  where the motion is script-driven, `screens.css:427`), and the scrub's own snap is a state change
-  rather than an animation, so it is unaffected.
-- **The table is the equivalent, not the fallback.** Requirement 6, and 6.9.
 
 ### 6.7 Requirement 6 - the table view
 
@@ -572,7 +714,7 @@ alternative.
 **It must expose every value the point detail can reveal**, which the shared points array guarantees
 by construction: both views render the same array, and neither recomputes.
 
-**Its date column carries month and year**, not years only - consistent with 6.10 for 6.6.0's reason:
+**Its date column carries month and year**, not years only - consistent with 6.10 for 6.6.9's reason:
 a table row is an answer to a question the participant opened, and a column of repeating years would
 not identify its own rows. **Under 6.10 this column is the only finer-than-year date resolution
 anywhere on the screen at rest.**
@@ -646,7 +788,7 @@ attained state if it ever renders a date (5.4 - today it renders none).
 
 **What it does not apply to, and why that is not an exception:** the scrub detail and the table row.
 Both are answers to a question the participant asked rather than claims the screen volunteers, and the
-month in them is a coordinate on a curve rather than a predicted arrival. See 6.6.0.
+month in them is a coordinate on a curve rather than a predicted arrival. See 6.6.9.
 
 **Why this is stronger than the argument it replaces.** The previous draft treated precision as
 something to be *disclosed* - a caption beside a monthly figure saying it is an estimate, which is how
@@ -949,8 +1091,8 @@ implementation choice.
 
 | File | Change |
 | --- | --- |
-| `src/components/ui.js` | `growthChartHTML` is rebuilt as a **line** (6.11): `yTicks` replaces `yTop`/`yBottom`; the x-axis becomes absolutely-positioned year labels at computed percentages, with the thinning rule (6.4); plotted points with an active state; the y-guide. **Add** `chartTableHTML`, and `bindGrowthChart` for the scrub and keyboard contract (6.6.2), modelled on `bindDateSelect`. `pillSegmentsHTML`, `figureDisplayHTML`, `rateBandRowHTML`, `chipRowHTML`, `rerenderInPlace` are all reused unchanged |
-| `src/css/screens.css` | `.growth-chart__bar`, `__bar-group` and `__bars` are **retired** with the bar rendering; `.growth-chart__x-axis` becomes a positioned scale rather than a flex row; new rules for the line, the points and their active state (size and shape, never colour), the y-guide, the y-tick gridlines, and a `.growth-chart__table` block. A `prefers-reduced-motion` block for the draw-in and the guide (6.6.4). `shell.css` is not touched |
+| `src/components/ui.js` | `growthChartHTML` is rebuilt as a **line** (6.11): `yTicks` replaces `yTop`/`yBottom`; the x-axis becomes absolutely-positioned year labels at computed percentages, with the thinning rule (6.4); plotted points with an active state; the horizontal guide, the value label at the y-axis edge and the date label above the point (6.6.0); **`maxScale`'s headroom multiplier moves from 1.05 to 1.20** to hold that date label (6.6.3). **Add** `chartTableHTML`, and `bindGrowthChart` for the scrub, hover, click-to-pin, `pointercancel` and keyboard contract (6.6), modelled on `bindDateSelect` - activation by **ratio**, never a pixel offset (6.6.1). `pillSegmentsHTML`, `figureDisplayHTML`, `rateBandRowHTML`, `chipRowHTML`, `rerenderInPlace` are all reused unchanged |
+| `src/css/screens.css` | **`touch-action: pan-y` on the plot area** (6.6.4). `.growth-chart__bar`, `__bar-group` and `__bars` are **retired** with the bar rendering; `.growth-chart__x-axis` becomes a positioned scale rather than a flex row; new rules for the line, the points and their active state (size and shape, never colour), the y-guide, the y-tick gridlines, and a `.growth-chart__table` block. A `prefers-reduced-motion` block for the draw-in and the guide (6.6.4). `shell.css` is not touched |
 | `src/content.js` | `chartRangeLabels`: **"3 yr" (36) is replaced by "2 yr" (24)**, which becomes the default. Five chips, not six - the row has 16px of slack (6.1) |
 
 ### 8.5 Docs
@@ -969,9 +1111,9 @@ implementation choice.
 | D97 | The session anchor: stamped at session start, discarded on a month mismatch under D59's rule, surfaced on frame 33. **Amends D3** - the pinned rate dates figures, not the render |
 | D98 | Durations become calendar dates calculator-wide. Carries the section 2 audit, the frame 10 boundary, and the transitional state |
 | D99 | One bounding rule at goal attainment, serving the date listbox and the projection; the attained state; per-consumer rounding, with D85's precedent for why the directions differ |
-| D100 | Frame 12's chart rebuilt to the seven requirements: a line with a scrub-driven point detail, a years-only axis positioned as a scale, and a 24-month default. **Reverses D73's amendment on the default window** on the restated reason in 6.1, retires the bar rendering, and swaps "3 yr" for "2 yr" in the chip row. **Splits into two entries if 6.10 is judged to stand on its own** - see D102 |
+| D100 | Frame 12's chart rebuilt to the seven requirements: a line with a scrub-driven point detail, a years-only axis positioned as a scale, and a 24-month default. **Reverses D73's amendment on the default window** on the restated reason in 6.1, retires the bar rendering, and swaps "3 yr" for "2 yr" in the chip row. **It amends D73 twice**: the default window, and the headroom multiplier from 1.05 to 1.20 (6.6.3, measured). Carries the interaction model in full - scrub over the plot, horizontal guide only, a point active at rest, persistence on release, `touch-action: pan-y` - and 6.6.5's note that the observed path is hover and click. **Splits into two entries if 6.10 is judged to stand on its own** - see D102 |
 | D101 | The comparison card reframed as an interval, the footnote marker, years-only in the rows, and the card following the series selection with `chartSeries` defaulting to `'low'`. The trade against D46 per 7.4, and the trade against D72's hard-wired `monthly-low` per 7.6: its conservative-first intent becomes a **default** rather than a **floor** |
-| D102 | **Year-only granularity for every date the screen states at rest** (6.10), recorded as a claim about what the model can honestly assert - the same thought behind MCOB 4.8A and the Consumer Duty understanding outcome. Carries 6.10.1's measured cost on the endpoint line (84.7% collision under two years, 4.7% past five), the option taken for it, 7.5's withdrawal of the card-wide fallback, 6.6.0's coordinate-versus-claim distinction for the scrub and the table, and 6.9's condition on the table toggle - **which is what this entry can be reversed by** |
+| D102 | **Year-only granularity for every date the screen states at rest** (6.10), recorded as a claim about what the model can honestly assert - the same thought behind MCOB 4.8A and the Consumer Duty understanding outcome. Carries 6.10.1's measured cost on the endpoint line (84.7% collision under two years, 4.7% past five), the option taken for it, 7.5's withdrawal of the card-wide fallback, 6.6.9's coordinate-versus-claim distinction for the scrub and the table, and 6.9's condition on the table toggle - **which is what this entry can be reversed by** |
 
 **Gap entries:**
 
@@ -1075,15 +1217,40 @@ Run in this order. Steps 3 and 11 are the two that decide whether the plan was f
    figure anywhere on the screen; no chip is offered beyond attainment; **the default chip is "2 yr"
    and exactly one chip is pressed in every state** (D73's no-selection failure).
 6b. **A new `scripts/chart-detail.test.mjs`** (Chromium) for the interaction, because none of the
-   existing harnesses drives a pointer across a plot. Assert: a scrub updates the readout and its
-   date together; the readout returns to the window's end on Escape **without the pointer moving**
-   (WCAG 1.4.13 dismissible); the detail persists while the pointer moves within the plot rather than
-   vanishing (hoverable, persistent); arrow keys traverse points on focus alone and
-   `aria-activedescendant` follows, read off the same attributes `date-ceiling.test.mjs` reads; the
-   active point differs from the rest in **radius**, not only in fill (1.4.1); the table view exposes
-   a row for **every** point the scrub can reach, compared array-to-DOM rather than by count alone;
-   and under `prefers-reduced-motion: reduce` no transition duration is applied to the line, the
-   guide or the point.
+   existing harnesses drives a pointer across a plot. Eight assertions, one per requirement in 6.6:
+   1. **Nearest-point activation is correct at both ends and outside the first and last points.**
+      Press at x=0, at x=width, and beyond each end; the activated index is 0 and `pointCount - 1`
+      respectively, never `undefined` and never clamped to the wrong end. Run at **1280x720 and
+      2560x1440**, because 6.6.1's ratio is the thing being tested and a pixel-offset handler passes
+      at one scale and fails at the other (D92).
+   2. **The active state survives release and pointer-leave once pinned.** `pointerup` inside the plot
+      leaves the point active (6.6.2a); a click then a `pointerleave` leaves it active (6.6.5); a
+      synthesised `pointercancel` leaves it active rather than clearing (6.6.4).
+   3. **A point is active on load - the last in the window - in every window and every series.** All
+      five chips x both series, on first paint, with no interaction at all (6.6.2b). This is also what
+      proves the readout at rest and the active point are one state rather than two.
+   4. **No label renders below the active point.** For every point in the window, the date label's
+      bounding box is above the point's centre; and at the topmost point the label is fully inside the
+      plot, at **both text sizes** (6.6.2c, 6.6.3). Reintroducing `maxScale = max x 1.05` must fail
+      this - that is the test that holds 6.6.3's headroom change in place.
+   5. **Vertical page scroll works from a gesture starting on the plot area.** Drive a vertical touch
+      drag from inside the plot in the **framed view at a short viewport height**, where D92 lets the
+      page outside the frame scroll as well; assert the scroll position moved and the active point did
+      not (6.6.4).
+   6. **Keyboard reaches every point and the guide follows focus.** Arrow keys from either end traverse
+      all `pointCount` points, Home and End reach the ends, Escape returns to the last point, and
+      `aria-activedescendant` follows throughout - read off the same attributes
+      `date-ceiling.test.mjs` reads, and off focus alone with no pointer event fired (6.6.6).
+   7. **Nothing depends on motion.** Under `prefers-reduced-motion: reduce` no transition duration is
+      applied to the line, the guide or the point, **and every one of assertions 1 to 6 still passes**
+      - which is the actual claim, rather than the absence of a CSS property (6.6.8).
+   8. **The table exposes every value the guide can reveal.** Compared array-to-DOM, not by row count:
+      scrub to each point in turn, and assert its amount and date appear in the table's corresponding
+      row (6.7).
+
+   Two more, from the requirements this file inherits: the active point differs from the rest in
+   **radius**, not only in fill (1.4.1, 6.6.8); and the readout and the in-plot value label render the
+   **same figure** at every point, never two (6.2).
 7. **Reintroduce each defect and confirm the new tests fail.** D85's precedent, and the reason
    `chart-range.test.mjs` exists at all - it passed against an inverted chart. Specifically: round the
    projection endpoint down; re-stamp the anchor instead of discarding; restore the 4-label x-axis
@@ -1132,8 +1299,13 @@ one measurement to confirm, and three layout judgements.*
 | --- | --- | --- |
 | 1 | **Default window: option B, 24 months, endpoint carried in text.** | 6.1, with D73's clause reversed on the restated reason: the barrier was reading a value, not seeing the whole projection |
 | 2 | **Year-only granularity, everywhere the screen states a date at rest** - axis, endpoint line, comparison rows, and the attained state if it ever renders one. | 6.10, recorded as a claim about what the model can honestly assert, which is the same thought behind MCOB 4.8A and the Consumer Duty understanding outcome - not a consequence of them |
-| 3 | **A line with plotted points, value revealed on press or hover, with a guide to the y-axis.** | 6.6, interaction settled as a **scrub** on the measurement in 6.6.1 |
-| 4 | **The scrub detail and the table carry month and year.** | 6.6.0 - a coordinate on a curve the participant is touching, not a claim the screen volunteers. The distinction is in kind, not an exception to 2 |
+| 3 | **A line with plotted points, and a scrub over the whole plot area** - no hit testing on the circles, nearest point by ratio. | 6.6, on the measurement in 6.6.1 |
+| 3a | **A horizontal guide to the y-axis and nothing else**, value at the axis edge, date above the point. | 6.6.0 - a vertical guide would land between year ticks and point at nothing readable |
+| 3b | **A point is active at rest, on load: the last in the window**, and the active state persists on release. | 6.6.2 - the discoverability affordance in both modes, and it collapses 6.2's three readout states to two |
+| 3c | **`maxScale` goes from `max x 1.05` to `max x 1.20`**, to hold the date label above the topmost point. | 6.6.3 - measured: the label collides by 17.3px at default text and 20px at Large in the screen's own default state. An amendment to D73's headroom figure |
+| 3d | **`touch-action: pan-y` on the plot**, and `pointercancel` leaves the active point standing. | 6.6.4 |
+| 3e | **The pointer path is the one that will be observed** - hover without click, click to pin - and the touch path is correctness for the artefact rather than a risk to the study. | 6.6.5 |
+| 4 | **The scrub detail and the table carry month and year.** | 6.6.9 - a coordinate on a curve the participant is touching, not a claim the screen volunteers. The distinction is in kind, not an exception to 2 |
 | 5 | **The comparison card follows the series selection**, and **`chartSeries` defaults to `'low'`**. | 7.6. The D72 condition is met: the plan had never specified a default, so this amendment sets it, and D72's conservative-first intent survives as a default rather than a floor |
 | 6 | **The range chips keep a duration**, with "2 yr" replacing "3 yr" as the default. | 2.4 - the chip says how much you are looking at; the axis and the figures say what you are looking at. A span in view is a control setting, not a claim, so it does not compete with a calendar-year axis |
 | 7 | **The card-wide fallback to month and year is withdrawn.** | 7.5 - a granularity that varies with the arithmetic is worse than one that holds |
@@ -1159,8 +1331,10 @@ one measurement to confirm, and three layout judgements.*
    left-aligned from it. Centring puts the first label half outside the plot when a boundary falls
    near x=0; left-aligning reads as "this year starts here", which is what the label means. Leaning
    left-aligned, to be confirmed with item 2.
-4. **The vertical guide from the active point to the x-axis** - optional in 6.6. It locates a point
-   within a year, which the axis cannot do, at the cost of a second rule across the plot.
+4. **Whether the date label sits above the point or pinned to the plot's top edge.** 6.6.3 recommends
+   above the point, bought with 12 points of curve height; the fallback pins it to the top edge at no
+   cost in height but separates the two halves of the detail. Both are measured, so this is a layout
+   call with numbers rather than an open question.
 5. **The five `[AWAITING COPY]` strings**, plus whatever item 1 adds - section 10. D85 shipped
    `dateGoalAlreadyMet` as a placeholder on a live screen; that should not happen twice.
 
