@@ -8192,15 +8192,37 @@ stood.
 
 **One thing this did NOT fix, stated because the brief expected it to.** The open list still covers
 **48.3%** of the disclosure - unchanged, not resolved. The figure is identical before and after,
-because the coverage is horizontal: the year popover spans the year field, which is 48.3% of the
-banner's width, and it covers that column whichever way it opens. Moving the banner from above to
-below moved the overlap, not away from it.
+because the coverage is **horizontal, not vertical**: the popover spans its own field's width, which
+is 48.3% of the banner's width, and it covers that column whichever direction it opens. **Direction
+was never the cause**, so pinning the list downward was never going to be the cure. Moving the banner
+from above to below moved the overlap; it did not move away from it.
 
-What is different is that the cost is now visibly nil: the moved date - "to May 2034." - falls on the
-banner's short last line in the uncovered column, and the month and year controls sit directly above
-the list showing "May" and "2034" outright. So the D46 payload is legible while the list is open, by
-three routes. No `GAPS.md` entry was opened for the overlap, per the brief; this paragraph is the
-record, and it should not be read as the overlap having been resolved.
+### CORRECTION, 31 August 2026: the paragraph that stood here was wrong
+
+**What this entry originally claimed.** That the cost was "visibly nil" - that the moved date, "to May
+2034.", fell on the banner's short last line in the *uncovered* column, so the D46 payload stayed
+legible while the list was open.
+
+**Why it was wrong.** That was measured on the **year list at default text only**, and it does not
+generalise. It is recorded here rather than quietly replaced, because the failure was a measurement
+that was too narrow to support the claim made from it - the same shape of error as the one-pixel
+margin D96 found, and worth being able to recognise again.
+
+**The measured position, over all 24 combinations** - both disclosure states (moved-to-floor,
+moved-to-cap), both lists (month, year), three viewports (390x844, 1280x720, 2560x1440), both text
+sizes:
+
+- The overlap occurs in **24 of 24**, at 48.3% every time.
+- The D46 payload - the moved date itself - is **fully covered in 16 of 24**.
+- The **month list covers it in 12 of 12**. The month popover occupies the left column, which is
+  exactly where the banner's short last line sits.
+- The **year list covers it too at Large text**, in the moved-to-cap state, at all three viewports.
+- With the month list open the banner reads as a truncated sentence promising a date that is not
+  visible: "...'ll get there sooner / ...e've moved your date", and nothing after it.
+
+**This is a live D46 issue, not a documented history.** It is `GAPS.md` **G110**, open and unfixed,
+and it is present in the build the next moderated session will run unless it is fixed first. The
+candidate placements were measured and none of them works; G110 carries the numbers.
 
 ### Verified
 

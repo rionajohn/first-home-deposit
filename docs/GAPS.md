@@ -4301,3 +4301,127 @@ Evidence, not judgement. If a later moderated session shows a participant stumbl
 its own context, reword **that** string and record which shape it belonged to. If several sessions
 pass with no difficulty on the derivation shape, close this entry saying so. Either way it is findings
 that settle it, and the two shapes above are settled separately.
+
+---
+
+## G110. The open date list covers the moved-date disclosure, and hides the date it names. OPEN
+
+*Raised 31 August 2026, correcting `DECISIONS.md` D84's revision, which claimed this was harmless on
+the strength of too narrow a measurement. **Open, unfixed, and in the build the next moderated session
+will run unless it is fixed first.** Both candidate fixes were measured; neither works. The numbers
+are below so the next reader does not have to re-derive them.*
+
+### Read this first: direction is not the cause, and twice it was assumed to be
+
+Two briefs in a row proposed a fix premised on the list's opening direction, and both premises were
+wrong:
+
+| Premised | Measured |
+| --- | --- |
+| Moving the disclosure below the controls so the list opens downward "resolves the overlap" | It did not. 48.3% before, 48.3% after. |
+| "After the relocation the list opens downward in every state, so the overlap should be gone" | It is not gone. 48.3% in all 24 combinations. |
+
+**The overlap is horizontal.** The popover spans its own field's width - 48.3% of the banner's width -
+and covers that column whichever way it opens. Direction, which D96 and D84's revision spent two
+passes pinning, is irrelevant to it. Any further proposal resting on direction can be rejected without
+measuring.
+
+### What is on screen
+
+Frame 10b in the moved-date state, with either date list open. The disclosure is `#date-moved`,
+carrying D46's requirement that a value the app replaced stays visible to the participant:
+
+> Good news - you'll get there sooner than that now. We've moved your date to May 2034.
+
+With the **month** list open, what the participant can read is:
+
+> Good news - you'll get there sooner
+> We've moved your date
+
+The sentence promises a date and the date is gone.
+
+### The measurement, 24 combinations
+
+Both disclosure states (moved-to-floor, moved-to-cap) x both lists (month, year) x three viewports
+(390x844, 1280x720, 2560x1440) x both text sizes:
+
+- Overlap occurs in **24 of 24**, at **48.3%** every time.
+- The moved date is **fully covered in 16 of 24**.
+- **Month list: covered in 12 of 12.** The month popover holds the left column, where the banner's
+  short last line sits.
+- **Year list: covered at Large text** in the moved-to-cap state at all three viewports; uncovered at
+  default text, which is the single case D84's revision measured and generalised from.
+
+### What does NOT make it worse
+
+The banner renders through `infoBannerHTML(..., { live: true })`, so it carries `role="status"` and
+`aria-live="polite"` and is **announced when it appears**, whatever is drawn over it. A non-sighted
+participant is unaffected. The coverage is also transient and participant-controlled: the banner is
+fully visible before the list is opened and again as soon as it closes.
+
+That is why this is a defect about a **sighted participant mid-interaction**, and not a total D46
+failure. It should not be inflated past that, and it should not be dismissed either: the participant
+reading a truncated sentence is reading it at exactly the moment they are choosing the date it is
+about.
+
+### Candidate fixes, both measured, neither viable
+
+**Candidate A, move the disclosure further down.** Gap is the distance from the field bottom to the
+banner top; the popover must be shorter than the gap to clear it.
+
+| Placement | gap (default / Large) | popover height | clears? | disclosure still visible? |
+| --- | --- | --- | --- | --- |
+| Current, below the controls | 8 / 8 | 183 / 167.4 framed, 244 / 227.1 at 390x844 | no | yes |
+| A1, below the hint | 52 / 57.4 | same | no | yes |
+| A2, below the readout | 142 / 156.7 | same | **no** - still short by 41 / 10.7 | **NO - below the fold in 5 of 6** |
+
+A2 gets closest and fails on both counts: it still does not clear, and it pushes the banner past the
+fold or the action bar at every framed viewport and at 390x844 Large. **That is the constraint that
+killed the above-the-controls position in the first place**, so A2 trades a partial, transient overlap
+for a permanent visibility failure. It reduces coverage to 25.7% and puts more of the readout and hint
+under the list instead.
+
+**Candidate B, a banner row clear of both popover columns.** Refuted. At 1280x720 the banner spans
+463.5 to 816.5 (353px wide); the month popover column is 463.5 to 634 and the year column 646 to
+816.5. Clear strip **left of month: 0px. Right of year: 0px. Between the two columns: 12px**, which is
+3.4% of the banner width and cannot hold text. There is no horizontal region clear of both.
+
+**Candidate C, keep the disclosure above the controls and still open downward.** Measured for
+completeness, because it is the only arrangement that does clear:
+
+| | clears the banner | popover height | rows |
+| --- | --- | --- | --- |
+| 1280x720 / 2560x1440, default | **yes** | 83px | 1.73 |
+| 1280x720 / 2560x1440, Large | **yes** | 57.5px | 1.20 |
+| 390x844, default | **yes** | 168px | 3.50 |
+| 390x844, Large | **yes** | 117.2px | 2.44 |
+
+It clears completely and the banner stays visible - but the list collapses to between one and two rows
+at every framed viewport, far under D96's three-row minimum, on the date branch G107 is measuring.
+
+### The shape of it: any two of three
+
+The three properties cannot be held at once, and this is the useful way to hold the problem:
+
+| Arrangement | Downward | 3-row minimum | No overlap |
+| --- | --- | --- | --- |
+| Disclosure below controls (current) | yes | yes | **no** |
+| Disclosure above controls, list down (C) | yes | **no** (1.2-1.7 rows) | yes |
+| Disclosure above controls, list up (pre-D84 revision) | **no** | yes | **no** - it covered 48.3% too |
+
+Note the third row: the arrangement before D84's revision did **not** avoid the overlap either. There
+has never been a version of this screen without it.
+
+### To close
+
+Not by moving the disclosure - that is measured out. What is left is a change to the control rather
+than to the layout, and none of it is in scope for a frozen screen: a single full-width list rather
+than two column-width popovers; or a list that renders as a sheet; or a disclosure that is not a
+full-width banner beneath the row. Each is a real component change and each needs its own decision.
+
+**Frame 10 is frozen pending the G107 measurement**, so the live question is not which fix to build
+but whether this defect blocks that session. The judgement recorded with this entry is that it does
+not: the payload is announced to assistive technology, the banner is fully readable whenever no list
+is open, and the moved date is also shown outright in the month and year controls directly above the
+list. A moderator note is the proportionate mitigation for the next session, and the fix belongs after
+it rather than before.
