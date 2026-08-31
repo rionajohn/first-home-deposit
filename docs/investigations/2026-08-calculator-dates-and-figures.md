@@ -66,7 +66,7 @@ imports `monthsToTarget`, `monthsToReachAmount` or `monthsToGoalUnaided`.
 
 | File | What | Why it stays |
 | --- | --- | --- |
-| `content.js` 925-929 | The window chips, `6 m` / `1 yr` / `3 yr` / `5 yr` / `Max`, and their `ariaLabel`s | A window is a length by nature. "Show me the next six months" is not a projection and has no arrival date. Converting these would make the control name a date the chart then does not end at |
+| `content.js` 925-929 | The window chips, `6 m` / `1 yr` / **`2 yr`** / `5 yr` / `Max`, and their `ariaLabel`s (see 6.1 - "2 yr" replaces "3 yr" and becomes the default) | **Confirmed in scope to stay, 31 August 2026.** A window is a length by nature: "show me the next six months" is not a projection and has no arrival date. **The distinction, stated so it is not relitigated: the chip says how much you are looking at; the axis and the figures say what you are looking at.** The chip names the span in view, which is a control setting; every other duration on this screen named an arrival, which is a claim. That is why one duration survives a screen-wide conversion. And because the chip is a span while the axis beneath it reads calendar years, **the two do not compete** - "2 yr" over an axis marked "Now, 2027, 2028" reads as the length of what is drawn, not as a second, contradictory date format |
 | `content.js` 1009, 1011, 1014 | `tableInterestRowLabelTemplate` "Interest, {years} yrs", `bannerTextTemplate`, `comparisonCaptionTemplate` - all `MORTGAGE_TERM_YEARS` | A mortgage term. Not a projection to an arrival |
 | `content.js` 1622 | `inflationExclusionTemplate`, "will not buy the same in five years as it does today" | An illustrative horizon in an exclusions list, with no arrival |
 | `content.js` 1280 comment | The retired `onTrackBeyondWindowValue` ("More than 5 years") | Already deleted by D68's amendment |
@@ -459,14 +459,17 @@ confirmed rather than assumed.
 ### 6.5 Requirement 3 - the labelled endpoint
 
 A line beneath the chart, drawn at every window and in every non-attained state: the goal amount and
-the calendar month it is reached at the selected contribution. The amount at attainment *is*
-`combined-goal`, so the line names the goal rather than restating a bar height. `[AWAITING COPY]`,
-slots `{amount}` and `{date}`.
+**the calendar year** it is reached in at the selected contribution. The amount at attainment *is*
+`combined-goal`, so the line names the goal rather than restating a point's height. `[AWAITING COPY]`,
+slots `{amount}` and `{year}`.
 
 It is the element that carries requirement 5 in default window B, so it is not optional and not
 collapsible.
 
-**It keeps month and year. Reported, per the check asked for in 6.10.** See 6.10.
+**Year, not month and year. The previous draft's recommendation is overruled** - see 6.10, which now
+records year-only as a claim about what the model can honestly assert rather than as a formatting
+choice. **The cost of that is measured in 6.10.1 and it is not small at short horizons.** It is
+reported there and left to be decided rather than resolved by quietly reintroducing a month.
 
 ### 6.6 The interactive point detail
 
@@ -477,6 +480,25 @@ showing where that value sits on the scale, and the point itself drawn in its ac
 A vertical guide from the point down to the x-axis is **optional and to be judged in layout**. It
 would help locate a point within a year, which the years-only axis cannot do; it also adds a second
 rule across the plot. Not specified either way here.
+
+#### 6.6.0 What the point detail carries, and why month and year is consistent with 6.10
+
+**The scrub detail carries month and year.** So does the table (6.7). Every other date on the screen
+is a year. That is a distinction in kind, not an exception:
+
+| | What it is | Granularity |
+| --- | --- | --- |
+| Endpoint line, comparison rows, axis | **A claim the screen makes at rest**, unprompted, about when the participant arrives | **Year** |
+| Scrub detail, table row | **An answer to a question the participant asked**, about a position they are touching or a row they opened | **Month and year** |
+
+**The month in a scrub result is a coordinate, not a prediction.** It says *where on this line your
+finger is* and *what the curve reads there* - the same fact the x-axis would carry if it were fine
+enough to. It is not an assertion that the participant will hold that amount in that month; it is a
+readout of a plotted position. The endpoint line, by contrast, is the screen volunteering a date for
+an event, which is exactly the claim 6.10 says the model cannot make to the month.
+
+That distinction is also what keeps the interaction an enhancement rather than a second, contradictory
+set of figures: the scrub can be finer than the claims because it is not making one.
 
 #### 6.6.1 The interaction is a scrub, and the measurement is why
 
@@ -550,11 +572,14 @@ alternative.
 **It must expose every value the point detail can reveal**, which the shared points array guarantees
 by construction: both views render the same array, and neither recomputes.
 
-**Its date column carries month and year**, not years only. The axis is a scale and can be coarse; a
-table row is a value and its date, and a column of repeating years would not identify its own rows.
+**Its date column carries month and year**, not years only - consistent with 6.10 for 6.6.0's reason:
+a table row is an answer to a question the participant opened, and a column of repeating years would
+not identify its own rows. **Under 6.10 this column is the only finer-than-year date resolution
+anywhere on the screen at rest.**
 
-**The toggle is a peer control, not a hidden affordance.** 6.9 explains why that is a requirement
-rather than a preference.
+**The toggle is a peer control, not a hidden affordance**, and 6.10 makes that a hard condition rather
+than a matter of emphasis: it is asserted in `overlap.test.mjs`, and if it cannot be made to pass, the
+year-only decision goes back. See 6.9.
 
 ### 6.8 Requirement 7 - nothing carried by colour alone
 
@@ -585,46 +610,124 @@ orientation, the point detail gives the value and its date. At the 24-month defa
 "Now, 2027, 2028", so a point at 60% is somewhere in 2028 and the axis cannot say where - the detail
 says "March 2028". For a participant who interacts, that is a clean division and it holds.
 
-**For a participant who does not interact, it holds only because the table is a first-class view.**
-Without interacting, the dates on screen are "Now", the year labels, and the endpoint's month - so no
-intermediate point's date is readable, and the table is where it lives. That is an acceptable
-division **provided the table toggle is a visible peer of the chart rather than a de-emphasised
-fallback.** If the toggle ends up buried in layout, the division fails and the axis has to carry
-months after all. Recorded here as a condition on the layout, not as a risk to be watched: it is
-checkable in `overlap.test.mjs` and by eye in step 14, and it is the one thing that would send the
-years-only decision back.
+**For a participant who does not interact, it holds only because the table is a first-class view - and
+6.10 tightens that from a condition into the load-bearing one.** Under year-only everywhere, the dates
+on screen at rest are "Now", the year labels, the endpoint's **year**, and the comparison rows'
+**years**. **The table is now the only place on the screen where date resolution finer than a year
+exists at all.** The endpoint line no longer carries a month, so it can no longer stand in for one.
 
-### 6.10 Year-only granularity as an honesty claim, and where it stops
+**The condition, restated and hardened.** The table toggle must be a **visible peer of the chart in
+the default state**: not behind a menu, not in an overflow, not a secondary or tertiary control, and
+**not below the fold at 390x844**. This is not a preference about emphasis. Year-only removes every
+other route to a monthly date at rest, so a buried toggle does not merely de-emphasise the table - it
+removes month resolution from the screen entirely for anyone who does not scrub.
 
-**Recorded as a reason for the axis decision, not only as a consequence of it.** A projection stated
-to a named month twelve years out - "March 2039" - implies a precision the model does not have. The
-model is an annuity-due solve at a pinned Bank Rate against a contribution the participant may change
-next month; the month is an artefact of the arithmetic, not a finding. **Year-only is the more honest
-claim**, and it sits more comfortably against the Consumer Duty consumer-understanding outcome, and
-against MCOB 4.8A's guidance boundary, than a named month does. This belongs in the decision entry as
-a reason.
+**Asserted, not inspected.** `overlap.test.mjs` carries it as a real assertion on row `12` at both
+text sizes: the toggle is present in the default render, is not inside a disclosure or an overflow
+container, and its bounding box sits within the first viewport at 390x844 without scrolling. Step 8
+and step 14. **If it cannot be made to pass, the years-only decision goes back** - that is what makes
+this a condition rather than a note.
 
-**Checked against the endpoint line (6.5): it keeps month and year. Reported, with the reasoning.**
+### 6.10 Year-only granularity, everywhere, at rest - SETTLED
 
-- The endpoint is the answer to the question the participant asked - when do I get there - and it is
-  the only place on the screen that answers it at rest.
-- Year-only stops discriminating at exactly the horizons where the choice is live. At the seeded
-  persona a 5% deposit is reached in March 2029 at `left-over` and in June 2031 at `monthly-high`;
-  coarsen both and two contributions three years apart still read as different years, but two a few
-  months apart - which is the near-term comparison window B exists to serve - would collapse into one.
-- **Coarsening the endpoint would leave no month anywhere on the screen at rest**, and the 26:20
-  complaint was that the participant could not find out when they arrive.
-- The precision concern is answered the way this build already answers it everywhere else: with a
-  disclosure beside the figure, not by truncating the figure. `shared.regulatory.estimateDisclosure`
-  and `chartCaptionTemplate` are already on this screen, and `/tracker`'s `onTrackBeyondWindowNote`
-  ("These dates are an estimate based on what you're putting aside now. They move if that changes.")
-  is the established wording for exactly this.
+*Amended 31 August 2026. The previous draft made years-only an axis decision and kept month and year
+on the endpoint line. **That is overruled.** Year-only is now the rule for every date the screen
+states at rest, and the reason below is the decision rather than a justification for a formatting
+preference.*
 
-**Checked against the attained state (5.4): the question does not arise.** In that state the endpoint
-line is replaced by a statement that the goal is already covered by what is saved, and no date is
-rendered at all - no past date, no zero-length bar, no negative figure. There is nothing to coarsen.
+> **No month appears anywhere on the results screen at rest.** The feature addresses a long-term goal;
+> the projection is not accurate to the month; and stating it to the month invites a participant to
+> read it as a commitment. **Year-only is the honest granularity for what the model can claim.** That
+> is the same reasoning that sits behind MCOB 4.8A's guidance-versus-advice boundary and the Consumer
+> Duty consumer understanding outcome - not a consequence of them, but the same thought.
 
-**Checked against the comparison card: measured, and it extends. See 7.5.**
+**What it applies to:** the x-axis (6.4), the endpoint line (6.5), the comparison rows (7.5), and the
+attained state if it ever renders a date (5.4 - today it renders none).
+
+**What it does not apply to, and why that is not an exception:** the scrub detail and the table row.
+Both are answers to a question the participant asked rather than claims the screen volunteers, and the
+month in them is a coordinate on a curve rather than a predicted arrival. See 6.6.0.
+
+**Why this is stronger than the argument it replaces.** The previous draft treated precision as
+something to be *disclosed* - a caption beside a monthly figure saying it is an estimate, which is how
+`/tracker`'s `onTrackBeyondWindowNote` handles it. That works where the figure is defensible and needs
+qualifying. It does not work where the figure asserts a resolution the model never had: a caption
+cannot un-state "March 2039". The honest move is not to state it.
+
+### 6.10.1 What year-only costs the endpoint line - MEASURED, AND REPORTED FOR DECISION
+
+*The objection to year-only on the endpoint was that it stops discriminating where the near-term
+choice is live. That was measured rather than assumed, and **the objection is substantially correct at
+short horizons**. Reported here. **Not resolved.** Reintroducing a month would be a reversal of the
+decision above and is not done silently.*
+
+**What was measured.** The screen presents exactly two contribution levels - `monthly-low` and
+`monthly-high` - so there is one adjacent pair. A **collision** is both producing the same endpoint
+year, which is the state where pressing the series control leaves the endpoint line unchanged.
+
+Two pair shapes, because the pair arises two ways in the running app:
+
+- **D2's derived pair**, `rangeFromCentral(central, 0.10)` -> x0.9 / x1.1, ratio **1.222**. What frame
+  10b's date mode commits.
+- **The slider pair**, `MOCK_POSITION` 200 / 310, ratio **1.55**. What frame 10's default path commits.
+
+**At the seeded persona** (property 450,000, saved 8,950), all five deposit percentages, three pair
+shapes - 15 configurations, **no collision**:
+
+| Deposit % | Slider pair 200/310 | D2 pair from 255 | D2 pair from 640 |
+| --- | --- | --- | --- |
+| 5% | 2033 / 2031 | 2032 / 2031 | **2029 / 2028** |
+| 10% | 2039 / 2035 | 2038 / 2036 | **2032 / 2031** |
+| 15% | 2043 / 2039 | 2042 / 2040 | **2034 / 2033** |
+| 20% | 2047 / 2042 | 2046 / 2043 | **2036 / 2035** |
+| 25% | 2051 / 2045 | 2049 / 2046 | **2038 / 2037** |
+
+The bold column is one year apart at every percentage - Jun 2029 against Dec 2028 at 5% - which is a
+**six-month separation landing either side of a year boundary**. It discriminates by luck, not by
+margin.
+
+**Swept** over property 150,000 to 600,000 in 10,000s x seven balances x five percentages x eight
+central rates to `left-over`, excluding configurations where the goal is already met:
+
+| Pair shape | Collisions | |
+| --- | --- | --- |
+| D2 pair (x0.9 / x1.1) | 1,848 / 10,536 | **17.5%** |
+| Slider-shaped pair (ratio 1.55) | 669 / 10,536 | **6.3%** |
+
+Median separation hidden by a collision: **6 months**. Maximum: **12**.
+
+**And it concentrates exactly where the objection said it would.** By attainment horizon, D2 pair:
+
+| Attainment | Collisions | Rate |
+| --- | --- | --- |
+| **Under 2 years** | 927 / 1,095 | **84.7%** |
+| **2 to 5 years** | 774 / 2,029 | **38.1%** |
+| 5 to 10 years | 138 / 2,946 | 4.7% |
+| 10 to 20 years | 9 / 3,142 | 0.3% |
+| Over 20 years | 0 / 1,324 | **0.0%** |
+
+**How to read this.** For a participant more than five years from their goal - which is the seeded
+persona at every deposit percentage, and the case the pilot ran - year-only costs 4.7% and falling.
+For a participant close to their goal it costs 85%: the endpoint line says the same year whichever
+contribution they choose, and the control appears not to work on it.
+
+**What is still true in a collision.** The line is not wrong. At both contributions the participant
+genuinely does arrive in that year, and "the difference between these two amounts is not a difference
+in when you arrive" is a real and useful finding rather than a rendering failure. The readout (6.2),
+the plotted line and the comparison rows all still move with the selection; the endpoint is the one
+element that does not.
+
+**The options, named and not chosen.** This is reported for decision, per the instruction:
+
+| | Consistent with 6.10? | |
+| --- | --- | --- |
+| **A. Accept it.** The collision is a true statement about a short horizon, and three other elements carry the discrimination | **Yes** | Costs nothing to build. Leaves a control that visibly does nothing to one line in 85% of short-horizon sessions |
+| **B. A comparative fact instead of a finer date.** The line adds which contribution is sooner, or by how many months, without naming a month | **Yes** | New copy, and it must clear MCOB 4.8A - "sooner" is comparative, not a recommendation, but the wording has to stay that way |
+| **C. Name the collision.** Where both land in the same year, the line says so rather than repeating a year that looks static | **Yes** | Makes the non-discrimination visible instead of silent. New copy, and a second variant of the line |
+| **D. Reintroduce the month below some horizon** | **No - reverses 6.10** | Would have to be recorded as a reversal, not as a tweak. Named here so it cannot arrive unlabelled |
+
+**No recommendation is made.** Open decision 1 in section 12 carries it, and it must return a result
+before the build session starts.
 
 ### 6.11 What the chart type ends up being, re-derived
 
@@ -673,8 +776,12 @@ narrowed this card from five rows to three for the adjacent reason.
 - **Each line leads with the date reached.** `label` becomes the date; `sublabel` carries the
   percentage and the marker; `value` keeps the deposit amount, so nothing the participant might have
   chosen disappears. Three slots, the existing component, no new geometry.
-- **The date is the attainment year**, per 6.4's decision extended on the measurement in 7.5, falling
-  back **card-wide** to month and year whenever two live rows would collide on a year.
+- **The date is the attainment year**, per 6.10's rule and the measurement in 7.5. **The card-wide
+  fallback to month and year is withdrawn** - 6.10 makes year-only a claim about what the model can
+  honestly assert at rest, and a fallback that reintroduces months on 0.06% of sessions would be a
+  granularity that varies with the arithmetic. What the six collision states get instead is 7.5's
+  amended treatment.
+- **The rows project at the selected series**, not at `monthly-low`. Settled; see 7.6.
 - **The heading names an interval.** `compareHeading` is "How this compares" - a comparison of
   alternatives. It becomes a line naming the band around the participant's own choice.
   `[AWAITING COPY]`.
@@ -756,39 +863,57 @@ All six are the fastest corner of the space: the cheapest property the sweep cov
 contribution the app allows, and a balance already close to the goal. The projections are one to three
 years long, so the three goals fall inside two calendar years.
 
-**The fallback, and it is a card-wide one.** When any two live rows would resolve to the same year,
-**all three rows fall back to month and year together.** Never one row in one format beside two in
-another: a card whose three values are formatted differently has stopped being a comparison twice
-over. One predicate, computed once per render, over the three years the card is about to draw.
+**The card-wide fallback to month and year is WITHDRAWN, 31 August 2026.** The previous draft resolved
+the six by reformatting the whole card. 6.10 now makes year-only a claim about what the model can
+honestly assert at rest rather than a formatting choice, and a fallback that reintroduces months on
+0.06% of sessions makes the screen's granularity a function of its own arithmetic - the participant
+cannot know which rule they are looking at, and the six sessions that trip it get a claim the other
+9,654 are told the model cannot make.
 
-**Why not simply keep month and year in the card always.** Because 6.10's honesty argument applies to
-the card more strongly than anywhere else on the screen - these are the longest projections it
-carries, out to 2051 at the seeded persona - and because the collision rate that would justify it is
-0.06%. The fallback buys the 0.06% without spending the 99.94%.
+**What the six get instead.** The collision is real and must not be silent, so it is named rather than
+formatted around: where two live rows resolve to the same year, the card says so - the two deposits it
+affects are reached in the same year at this contribution. `[AWAITING COPY]`. That is the same
+treatment offered as option C for the endpoint line in 6.10.1, and it should be decided **with** that
+one rather than separately, since two different answers to one question on one screen is the state 7.6
+exists to remove. Recorded as open decision 1's second half in section 12.
 
-**A consequence that needs its own decision: should the card follow the series selection?**
+### 7.6 The card follows the series selection - SETTLED, and the D72 condition is met
 
-The card projects at `monthly-low` today (`calculator-result.js:175`, "the SLOWER end, deliberately"),
-while the endpoint line (6.5) projects at the **selected** series. So with the series set to low, the
-selected row and the endpoint line name the same projection in two granularities - "2039" in the card
-and "March 2039" on the line - and with it set to high they name different ones. **A coincidence that
-holds in one state and not the other is worse than either, because a participant cannot tell which
-they are looking at.**
+**Settled: the card projects at the selected series**, not hard-wired at `monthly-low`
+(`calculator-result.js:175`, "the SLOWER end, deliberately").
 
-**Recommended: the card follows the series selection**, so one control governs the whole screen and
-the selected row and the endpoint line always describe the same projection. It costs a reword of
-`compareProvenanceCaption`, which currently says "at what you are putting away now" and silently means
-`monthly-low`; it would have to name the selected rate. The card already recomputes on every render
-and `rerenderInPlace` already redraws on a chip press, so there is no new mechanism.
+**Why.** Two figures on one screen naming different projections is worse than either alone. The card
+projects at `monthly-low` today while the endpoint line projects at the **selected** series, so the
+selected row and the endpoint agree when the series is low and disagree when it is high - a
+coincidence that holds in one state and not the other, which a participant cannot tell apart. And it
+lands on exactly the rows the pilot found unanchored at 23:41.
 
-**What is given up:** D72's "conservative end cannot disappoint" reasoning, which is why
-`monthly-low` was hard-wired. Under the recommendation a participant on the high series sees the
-optimistic dates in the card as well as on the line. That is a real trade and belongs in the D101
-entry rather than in a comment.
+**The D72 condition, verified.** D72 hard-wired the conservative end so the screen would not lead with
+the optimistic case. That intent survives this change only if a participant who touches nothing still
+meets the conservative picture and reaches the optimistic one by choosing it - which means the default
+series must be `low`.
 
-**If the card and the line still read as two different figures in the browser**, the fix is to give
-the **selected row** its month - matching the line - and not to coarsen the line. Judged by eye in
-verification step 14, not decided here.
+> **Checked: the plan did not specify a default.** `chartSeries` is introduced in 6.2 and listed in
+> 8.2 as a new `state.js` view setting, with no initial value stated anywhere. So there was nothing to
+> verify against, and nothing to contradict. **This amendment sets it: `chartSeries` defaults to
+> `'low'`.** Recording it as a finding rather than as a confirmation, because a default that was never
+> written down is not the same as one that was already right.
+
+With that default, D72's intent survives intact and is arguably better served than before: a
+participant who touches nothing meets the conservative dates exactly as they do today, and the
+optimistic ones now require a deliberate press rather than being drawn beside them unpressed.
+
+**A consequence for the control's own ordering.** `pillSegmentsHTML` must list **low first, high
+second**, with low pressed. The existing legend runs high-then-low (`calculator-result.js:230-231`,
+"the order is high then low, matching the stack read top down") - but that order was a consequence of
+the stacked bands, and 6.11 retires the stacking. With bars gone there is nothing to read top down,
+so reading order is free to follow the conservative-first intent, and it costs nothing.
+
+**What is given up, stated for the D101 entry.** A participant who presses the high series sees the
+optimistic dates in the card as well as on the endpoint line, where today the card would have held
+the conservative ones beside them. D72's protection becomes a **default** rather than a **floor**.
+That is the trade, it is deliberate, and it is the reason this needed a decision rather than an
+implementation choice.
 
 ---
 
@@ -832,7 +957,7 @@ verification step 14, not decided here.
 
 | File | Change |
 | --- | --- |
-| `docs/DECISIONS.md` | Five entries. **Read the last number in the file and take the next** - it stands at D96 as this plan is written, so D97 onward unless something has landed in between |
+| `docs/DECISIONS.md` | Six entries. **Read the last number in the file and take the next** - it stands at D96 as this plan is written, so D97 onward unless something has landed in between |
 | `docs/GAPS.md` | Three entries, from G111 onward on the same rule |
 | `docs/build-spec.md` | Row 121's chart specification is already superseded by D73; annotate it with the new default window rather than leaving a third stale reading |
 | `docs/README.md` | **No version-log row from this plan.** A row is written as part of a merge to `main`, with a reason supplied by Riona, never retrospectively |
@@ -844,8 +969,9 @@ verification step 14, not decided here.
 | D97 | The session anchor: stamped at session start, discarded on a month mismatch under D59's rule, surfaced on frame 33. **Amends D3** - the pinned rate dates figures, not the render |
 | D98 | Durations become calendar dates calculator-wide. Carries the section 2 audit, the frame 10 boundary, and the transitional state |
 | D99 | One bounding rule at goal attainment, serving the date listbox and the projection; the attained state; per-consumer rounding, with D85's precedent for why the directions differ |
-| D100 | Frame 12's chart rebuilt to the seven requirements: a line with a scrub-driven point detail, a years-only axis positioned as a scale, and a 24-month default. **Reverses D73's amendment on the default window** on the restated reason in 6.1, retires the bar rendering, and swaps "3 yr" for "2 yr" in the chip row. Carries 6.10's honesty argument as a **reason** for years-only, not only as its consequence, and 6.9's condition that the table stays a first-class view |
-| D101 | The comparison card reframed as an interval, the footnote marker, and years-only extended to the rows with a card-wide collision fallback (7.5, measured). The trade against D46 per 7.4, and - if open decision 4 lands - the trade against D72's hard-wired `monthly-low` |
+| D100 | Frame 12's chart rebuilt to the seven requirements: a line with a scrub-driven point detail, a years-only axis positioned as a scale, and a 24-month default. **Reverses D73's amendment on the default window** on the restated reason in 6.1, retires the bar rendering, and swaps "3 yr" for "2 yr" in the chip row. **Splits into two entries if 6.10 is judged to stand on its own** - see D102 |
+| D101 | The comparison card reframed as an interval, the footnote marker, years-only in the rows, and the card following the series selection with `chartSeries` defaulting to `'low'`. The trade against D46 per 7.4, and the trade against D72's hard-wired `monthly-low` per 7.6: its conservative-first intent becomes a **default** rather than a **floor** |
+| D102 | **Year-only granularity for every date the screen states at rest** (6.10), recorded as a claim about what the model can honestly assert - the same thought behind MCOB 4.8A and the Consumer Duty understanding outcome. Carries 6.10.1's measured cost on the endpoint line (84.7% collision under two years, 4.7% past five), the option taken for it, 7.5's withdrawal of the card-wide fallback, 6.6.0's coordinate-versus-claim distinction for the scrub and the table, and 6.9's condition on the table toggle - **which is what this entry can be reversed by** |
 
 **Gap entries:**
 
@@ -893,7 +1019,8 @@ reach", never "you should aim for". British English, hyphens not em dashes.
 | `readoutCaptionTemplate` | New - `[AWAITING COPY]`, slots `{date}`, `{amount}`. **It always names the date the figure belongs to** (6.2), so a scrubbed value cannot be read as the window-end value |
 | `chartPlotAriaLabel`, `chartPointAriaLabelTemplate` | New - the scrub target's accessible name and each point's, slots `{date}`, `{amount}`. Read by `aria-activedescendant` (6.6.2) |
 | `chartRangeLabels` | **"3 yr" replaced by "2 yr"** (24 months), which becomes the default. `ariaLabel` follows the WCAG 2.5.3 rule the existing five already keep: it opens with the visible label |
-| `endpointTemplate` | New - `[AWAITING COPY]`, slots `{amount}`, `{date}` |
+| `endpointTemplate` | New - `[AWAITING COPY]`, slots `{amount}`, `{year}`. **Year, not month** (6.10). A second variant may be needed for the same-year collision, depending on open decision 1 (6.10.1) |
+| `compareSameYearNote` | New - `[AWAITING COPY]`, for the comparison card's collision case (7.5). Decided **with** the endpoint's, not separately |
 | `chartViewChartLabel`, `chartViewTableLabel` | New - the view toggle |
 | `chartTableCaption`, `chartTableMonthHeader`, `chartTableLowHeader`, `chartTableHighHeader` | New - the table's own labels |
 | `goalAttainedHeadline`, `goalAttainedBody` | New - `[AWAITING COPY]`, slots `{saved}`, `{goal}`. Not an error and must not read as one (D78) |
@@ -902,7 +1029,7 @@ reach", never "you should aim for". British English, hyphens not em dashes.
 | `compareHeading` | Reworded - `[AWAITING COPY]`, names an interval |
 | `compareRowSublabelTemplate`, `compareRowSelectedSublabelTemplate` | Reworded for the inverted row |
 | `compareFootnoteMarker` | New - a literal character |
-| `compareProvenanceCaption` | Reworded to open with the marker, and - if open decision 4 lands - to **name which rate**, since "at what you are putting away now" silently means `monthly-low` today (7.5) |
+| `compareProvenanceCaption` | Reworded to open with the marker, and to **name which rate** - "at what you are putting away now" silently means `monthly-low` today, and the card now follows the selection (7.6, settled) |
 | `compareWithinTemplate` | **Retired** |
 | `beyondWindowNote` | **Retired** (2.1 item 5) |
 | `compareAlreadyLabel` | Unchanged - already the attained-row label |
@@ -965,10 +1092,13 @@ Run in this order. Steps 3 and 11 are the two that decide whether the plan was f
 8. `node --test scripts/overlap.test.mjs` - all 37 rows, both text sizes. Rows `12` and `13` are the
    ones this pass touches: the readout, the endpoint line, the series control, the view toggle, the
    table, and the LTV table's sixth row. Three things are **settled here rather than assumed**:
-   6.4's year-label pitch at Large text (open decision 1); the five-chip row with "2 yr" in it, which
-   has 16px of slack and has not been re-measured since D75; and whether the table toggle reads as a
-   peer of the chart rather than a buried fallback, which 6.9 makes a condition on the years-only
-   decision rather than a preference.
+   6.4's year-label pitch at Large text (section 12, item 2); the five-chip row with "2 yr" in it,
+   which has 16px of slack and has not been re-measured since D75; and **the table-toggle condition,
+   as a real assertion rather than an eye check** - present in the default render, not inside a
+   disclosure or an overflow container, and its bounding box inside the first viewport at 390x844
+   without scrolling. That last one is a condition on decision 2, not a preference: under year-only
+   the table is the only place on the screen with finer-than-year resolution, so **if it cannot be
+   made to pass, year-only goes back** (6.9).
 9. `node --test scripts/action-bar.test.mjs` - frame 12 gains height; the bar must stay hittable
    without scrolling at all four viewports.
 10. `node --test scripts/frame-scale.test.mjs` - `shell.css` is not touched, but the chart's geometry
@@ -985,53 +1115,65 @@ Run in this order. Steps 3 and 11 are the two that decide whether the plan was f
     frame 10's date lists and frame 12's dates name the same calendar months - the 3.3 check, done by
     eye once rather than trusted.
 15. `fca-copy-check` over every new and reworded string before it lands.
-16. Docs written in the same commits: D97-D101 (numbers confirmed against the file at the time),
+16. Docs written in the same commits: D97-D102 (numbers confirmed against the file at the time),
     G111-G113. No `README.md` version row until the merge, with a reason supplied.
 
 ---
 
 ## 12. Open decisions
 
-*Re-recorded 31 August 2026. Three of the original four are settled; the two that were about axis
-labelling are superseded rather than answered, because a years-only axis asks a different question.*
+*Re-recorded 31 August 2026, second pass. Everything about the chart's shape, window and granularity
+is now settled. What is left is one copy decision that must return a result before the build session,
+one measurement to confirm, and three layout judgements.*
 
 ### Settled
 
 | | Decision | Where it landed |
 | --- | --- | --- |
 | 1 | **Default window: option B, 24 months, endpoint carried in text.** | 6.1, with D73's clause reversed on the restated reason: the barrier was reading a value, not seeing the whole projection |
-| 2 | **The x-axis carries years only. No months anywhere on the axis.** | 6.4, and the axis becomes an absolutely-positioned scale rather than a row of captions |
-| 3 | **A line with plotted points, with the value revealed on press or hover and a guide to the y-axis.** | 6.6, with the interaction settled as a **scrub** on the measurement in 6.6.1 |
-| - | **Years-only extends to the comparison card**, with a card-wide fallback to month and year on a collision | 7.5, measured: 0 collisions in 4,830 configurations at the seeded rates, 6 in 9,660 across everything the app can produce |
-| - | **The endpoint line keeps month and year**, and the attained state renders no date at all | 6.10, reported against the same honesty reasoning that settled the axis |
+| 2 | **Year-only granularity, everywhere the screen states a date at rest** - axis, endpoint line, comparison rows, and the attained state if it ever renders one. | 6.10, recorded as a claim about what the model can honestly assert, which is the same thought behind MCOB 4.8A and the Consumer Duty understanding outcome - not a consequence of them |
+| 3 | **A line with plotted points, value revealed on press or hover, with a guide to the y-axis.** | 6.6, interaction settled as a **scrub** on the measurement in 6.6.1 |
+| 4 | **The scrub detail and the table carry month and year.** | 6.6.0 - a coordinate on a curve the participant is touching, not a claim the screen volunteers. The distinction is in kind, not an exception to 2 |
+| 5 | **The comparison card follows the series selection**, and **`chartSeries` defaults to `'low'`**. | 7.6. The D72 condition is met: the plan had never specified a default, so this amendment sets it, and D72's conservative-first intent survives as a default rather than a floor |
+| 6 | **The range chips keep a duration**, with "2 yr" replacing "3 yr" as the default. | 2.4 - the chip says how much you are looking at; the axis and the figures say what you are looking at. A span in view is a control setting, not a claim, so it does not compete with a calendar-year axis |
+| 7 | **The card-wide fallback to month and year is withdrawn.** | 7.5 - a granularity that varies with the arithmetic is worse than one that holds |
 
-### Superseded
+### Must return a result before the build session starts
 
-**Old 2, "four x labels or five".** There is no fixed label count now. The axis emits one label per
-January boundary inside the window, so the count follows the window: 2 at six months, 3 at the
-24-month default, 13 at "Max" on the seeded persona.
+1. **What the endpoint line does when both contributions land in the same year.** 6.10.1 measured the
+   cost of decision 2 on the endpoint and it is **not small at short horizons**: 84.7% of
+   configurations under two years out, 38.1% at two to five years, against 4.7% at five to ten and
+   0.0% past twenty. In a collision the series control leaves the endpoint line unchanged. Four
+   options are named in 6.10.1 and **none is recommended**; three keep decision 2 and one (D,
+   reintroducing the month below a horizon) reverses it and must be recorded as a reversal if taken.
+   **7.5's identical question for the comparison card is the second half of this and must be decided
+   with it** - two different answers to one question on one screen is the state 7.6 exists to remove.
+2. **The year-label thinning rule, confirmed against measured text.** The ceiling is calculated at 8
+   labels from a ~26px "2027" at footnote size (~30px at Large, `--text-scale: 1.15`) against a 305px
+   plot. A 13-label "Max" window is over it. Settled in `overlap.test.mjs` at both text sizes, not by
+   eye.
 
-**Old 3, "abbreviated or full month on the axis".** Gone entirely - there are no months on the axis.
+### Layout judgements, taken during the build
 
-### Open
-
-1. **The year-label thinning rule, confirmed against measured text rather than the estimate in 6.4.**
-   The ceiling is calculated at 8 labels from a ~26px "2027" at footnote size (~30px at Large,
-   `--text-scale: 1.15`) against a 305px plot. A 13-label "Max" window is over it and must thin.
-   Settled in `overlap.test.mjs` at both text sizes, not by eye.
-2. **Where the year label sits relative to its boundary** - centred on the January position, or
+3. **Where the year label sits relative to its boundary** - centred on the January position, or
    left-aligned from it. Centring puts the first label half outside the plot when a boundary falls
    near x=0; left-aligning reads as "this year starts here", which is what the label means. Leaning
-   left-aligned, to be confirmed with 1.
-3. **The vertical guide from the active point to the x-axis** - optional in 6.6. It locates a point
-   within a year, which the axis cannot do, at the cost of a second rule across the plot. Judged in
-   layout.
-4. **Does the comparison card follow the series selection?** 7.5 recommends yes, so one control
-   governs the screen and the selected row and the endpoint line cannot describe different
-   projections. It trades away D72's hard-wired `monthly-low`, so it needs a decision rather than an
-   implementation choice.
-5. **The five `[AWAITING COPY]` strings** - section 10. D85 shipped `dateGoalAlreadyMet` as a
-   placeholder on a live screen; that should not happen twice.
+   left-aligned, to be confirmed with item 2.
+4. **The vertical guide from the active point to the x-axis** - optional in 6.6. It locates a point
+   within a year, which the axis cannot do, at the cost of a second rule across the plot.
+5. **The five `[AWAITING COPY]` strings**, plus whatever item 1 adds - section 10. D85 shipped
+   `dateGoalAlreadyMet` as a placeholder on a live screen; that should not happen twice.
+
+### Conditions, not preferences - if one fails, a settled decision goes back
+
+- **The table toggle is a visible peer of the chart in the default state**: not behind a menu, an
+  overflow or a secondary control, and not below the fold at 390x844. Under decision 2 the table is
+  the **only** place on the screen with date resolution finer than a year, so a buried toggle removes
+  month resolution entirely for anyone who does not scrub. Asserted in `overlap.test.mjs`, both text
+  sizes, step 8. **If it cannot be made to pass, decision 2 goes back** (6.9).
+- **The always-visible readout and the endpoint line both survive the interaction.** Making the scrub
+  the only route to a value fixes the second half of the 21:42 quote and reintroduces the first
+  (6.9). Asserted by reintroduction in step 7.
 
 ### Confirmed by measurement, and recorded so they are not relitigated
 
@@ -1040,7 +1182,11 @@ January boundary inside the window, so the count follows the window: 2 at six mo
 - **A per-point hit band does not clear it either**, in width, in either standard, and WCAG 2.5.8's
   spacing exception does not apply at a 13.3px pitch. 6.6.1.
 - **A sixth range chip does not fit.** `components.css:1952` records the row as "334px of a 350px
-  column" at five chips, so "2 yr" replaces "3 yr" rather than joining it. 6.1.
+  column" at five chips. 6.1.
 - **Labelling every point at the default window collides by a factor of two** - 12.7px per label
   against ~26px of text - which is the participant's own 22:04 caveat, confirmed rather than assumed.
   6.11.
+- **Year-only does not break the comparison card at any realistic contribution**: 0 collisions in
+  4,830 configurations at the seeded rates, 6 in 9,660 across everything the app can produce. 7.5.
+- **Year-only does break the endpoint line at short horizons**, at the rates and rate-pairs the app
+  actually commits. 6.10.1, and item 1 above.
