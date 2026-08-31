@@ -3978,3 +3978,76 @@ was made at the wrong magnification. **It must be reassessed at 100% zoom agains
 it is actioned.** Type weight and contrast that read as flat at 150% may not at 100%, and a
 treatment applied on the strength of the 150% reading would be a change made for a state no
 participant will now see.
+
+---
+
+## G106. Frame 10's heading names the mechanism, not the goal. WIRED, BLOCKED PENDING COPY
+
+*Raised 31 August 2026 from the pilot session of the same date, with `DECISIONS.md` D93. The key is
+wired and renders `[AWAITING COPY]`; the string is outstanding. **Do not close on the wiring.***
+
+### The numbering, first, because the brief asked for a number this file already holds
+
+The brief for this change asked that **G100** be noted as wired but blocked pending copy, and
+explicitly not closed. **G100 is not this finding.** It is `monthsToTarget`'s guards do not consider
+a negative savings-rate - a model defect, open, unrelated to any heading. Nothing was renumbered to
+make the brief fit, for the reason G105 gives at the same fork:
+
+| Asked for | What this file actually has |
+| --- | --- |
+| G100, the step 2 heading | **G100 is `monthsToTarget`'s negative savings-rate guards** - open, untouched, unrelated |
+
+So the finding is recorded here as **G106**, the next free number. G100 is untouched and stays open.
+This is the second brief in two sessions to number a pilot finding against this file and miss - see
+G105's closing note, which asks the same question and is still the way to settle it.
+
+### The finding
+
+Frame 10 asks "How would you like to work this out?" above two options, "Set a monthly amount" and
+"Set a target date".
+
+The heading names **the app's mechanism** - what it is about to compute - and never names **the
+participant's goal**. Nothing on the line says what is being worked out, so the choice beneath it has
+no subject. The participant stopped here and could not proceed. At 19:48:
+
+> "Yeah, what does the screen mean? How would you like to work this out? What am I working out
+> exactly?"
+
+And at 20:17, after the moderator explained the choice aloud:
+
+> "Yeah, how would you like to work this out? I don't understand what that means. Like, it would be
+> better off just saying, you know, how would you like to save for your deposit? Set a monthly amount
+> or set a target date? That makes a bit more sense."
+
+**The options themselves were understood once read aloud.** The participant repeats them back
+correctly and immediately in the second quote. What failed is the framing above them, and only that -
+this is not a layout, control or interaction finding, and it must not be actioned as one.
+
+### Why it is not merely one participant's confusion
+
+The moderator had to intervene **twice** for the participant to continue. Every subsequent
+observation on frame 10 in that session - the segmented control, the slider, the date path, frame 11
+downstream of it - is taken after a verbal explanation no participant will get in a later session,
+and is contaminated accordingly. The same contamination recurs in every session run against this
+build until the heading is fixed, which is what makes it blocking rather than cosmetic: it is not a
+finding about the prototype so much as a defect in the instrument.
+
+### What was done, and what is left
+
+`content['/calculator/saving'].headline` is `[AWAITING COPY]`. The placeholder renders literally in
+the `<h2>` the real heading occupies, verified in a browser, so a build cannot ship the missing
+string silently. Nothing else on the screen changed: the option labels, the supporting caption, the
+control, the option order and both variants beneath are untouched.
+
+**To close.** Supply the heading. It has to name what the participant is doing rather than what the
+app is doing - the participant's own "how would you like to save for your deposit?" is the shape of
+it, and is a participant's words rather than approved copy, so it goes through the copy check
+(`fca-copy-check`) before it lands. Two constraints from the screen it sits on: the two options
+answer it directly, so it has to be a question they are answers to; and it must not recommend either
+option, which is the guidance-versus-advice line D81 already holds this screen to.
+
+`content['/calculator/saving'].pickOneCaption` ("Pick one and we'll work out the other.") sits
+directly beneath the options and is already keyed. It was **left standing rather than blanked** - it
+was not part of what failed, and emptying a line that worked would widen a copy pass that has one
+line to write. It is named here so the copy pass can judge it against the new heading rather than
+discover it afterwards.

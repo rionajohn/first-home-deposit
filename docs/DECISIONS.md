@@ -8924,3 +8924,79 @@ Delete `src/shell-scale.js` and its two imports, and restore `#app-frame`'s
 `transform: scale(min(1, ...))` with `.device-bezel` back to a plain fixed-size box. The frame
 returns to shrink-to-fit and the prototype returns to being unreadable at 100% zoom, so the reason
 for reversing would need to be a different fix for the same finding rather than a return to it.
+
+---
+
+## D93. Frame 10's heading is emptied to a visible placeholder rather than rewritten in a build session
+
+**Date.** 31 August 2026. Raised by the pilot session of the same date; recorded as `GAPS.md` G106,
+which stays open.
+
+### The finding
+
+Frame 10 asks "How would you like to work this out?" above "Set a monthly amount" and "Set a target
+date". The heading names the app's mechanism and never names the participant's goal, so the choice
+beneath it has no subject. The pilot participant stopped twice and the moderator explained the choice
+aloud both times - "What am I working out exactly?" at 19:48, and at 20:17 "I don't understand what
+that means. Like, it would be better off just saying, you know, how would you like to save for your
+deposit?" G106 carries the quotes in full and the contamination argument.
+
+### Why the string is not written here
+
+Copy is not invented in a build session. That is not a formality on this screen: frame 10's copy is
+already three decisions deep (D81 rewrote the hint, D83 and D86 the disclosures) and every string on
+it has been through the FCA guidance-versus-advice check. A heading written to fit a build would land
+without that check, in the one position on the screen a participant reads first.
+
+So the key is wired and the string is left outstanding. **The keys already existed** -
+`content['/calculator/saving'].headline`, `.segmentMonthlyLabel`, `.segmentDateLabel` and
+`.pickOneCaption` are all read from `content.js` and none was hard-coded, so there was no wiring to
+do beyond emptying the one that failed. The brief anticipated new dotted keys
+(`calculator.step2.heading` and so on); they were not added. `content.js` is keyed by route, and
+`headline` is the screen-title key on twelve screens - a second, parallel namespace for one screen
+would be an architecture change `CLAUDE.md` forbids, and would break the spec-to-code mapping the
+Figma frame names are the record for.
+
+### Why a visible placeholder rather than an empty string
+
+`[AWAITING COPY]` renders literally in the `<h2>` the real heading occupies. An empty string would
+leave a blank band that reads as a design choice, and would ship silently; the placeholder is
+unmissable in a screenshot, in a test and in a session. It is the same treatment `dateGoalAlreadyMet`
+has carried since D85, and it is the reason that key has not been forgotten.
+
+### What was deliberately not changed
+
+The two option labels stand. They were understood the moment they were read aloud - the participant
+repeats them back correctly - so this is a framing fix and nothing else. The option order, the
+segmented control, both variants beneath it and the date control and its listbox (D84, D85) are
+untouched.
+
+`pickOneCaption` stands too, and this was a judgement rather than an omission. It sits directly
+beneath the options and is part of the same framing, so it was a candidate; but it was not part of
+what failed, and blanking a line that worked would widen a copy pass that has one line to write. It
+is named in G106 so the copy pass judges it against the new heading instead of finding it afterwards.
+
+### Verified
+
+In a fresh tab, never a reload (D59), at 390x844: the placeholder renders visibly in `h2.screen-title`
+at 350x30 rather than collapsing; the heading outline is `H1 "Deposit calculator"` then
+`H2 "[AWAITING COPY]"`, so it is announced as a heading at the level its position calls for and no
+level is skipped; both options are `<button>`s, tabbable, take focus, select on Enter and report
+`aria-pressed="true"`, with the accessible name of each coming from its keyed label rather than any
+inline string; and the heading survives the mode switch, being rendered on both variants.
+
+`smoke.test.mjs` 30/30 and `overlap.test.mjs` 74/74 - the layout tests matter here because the
+placeholder is shorter than the string it replaces at both text sizes, and a heading that no longer
+wraps changes the geometry of everything below it.
+
+`CACHE_VERSION` and `BUILD_VERSION` v100 to v101, a paired hand-edit. **The bump is required rather
+than routine:** `./src/content.js` is in `SHELL_ASSETS` and the shell is served cache-first with no
+revalidation, so shipping changed copy under v100 would leave every browser holding v100 serving the
+old heading - the exact fault the README's rule was written for. Confirmed reading "Build v101" on
+frame 33 in a fresh tab.
+
+### To reverse
+
+Restore the string to `content['/calculator/saving'].headline`. Reversing to the old wording would
+reinstate a heading the pilot showed to be blocking, so the reason would have to be a different
+heading rather than that one.
