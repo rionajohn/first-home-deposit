@@ -2,8 +2,9 @@
 
 Mid-fidelity click-through prototype for MSc usability testing. Not production code.
 
-This file covers repo-level operations: the three names in play, how to rename each, and the
-maintenance rules that catch the mistakes those renames tend to cause. For the build itself see
+This file covers repo-level operations: the three names in play, the log of what has been
+deployed to participants, how to rename each name, and the maintenance rules that catch the
+mistakes those renames tend to cause. For the build itself see
 `build-spec.md` (authoritative for navigation, state, routes and variables), `SPEC.md` (technical
 structure), `DECISIONS.md` (authoritative where the spec is silent) and `GAPS.md`.
 
@@ -21,6 +22,55 @@ and must not change, the others.
 <!-- app-display-name --> Current display name: **Your first home** (short name: **First home**)
 
 The line above is rewritten by `scripts/set-app-name.mjs`. Leave the HTML comment marker in place.
+
+---
+
+## Deployment version log
+
+Every merge from `build` to `main` produces a new production deployment, and a participant session
+can only be reported against the build it actually ran on. This table is that record: it is the
+answer to "which version did this participant see".
+
+A row is added **with the merge, before the push**, never afterwards. The deployment reason is
+written by Riona and supplied with the merge request; a merge that arrives without one stops and
+asks rather than inventing a description. Merges touching only documentation or governance files
+take no version number, because a version denotes a state of the prototype a participant could
+have seen.
+
+| Version | Date | Commit | Deployment reason |
+|---|---|---|---|
+| v1 | 2026-08-21 | `7f0f4cc` | Based on what was in the Figma screens (linked to a specific stated flow) |
+| v2 | 2026-08-28 | `ce2b482` | Adding insight pages to add Mortgage in Principle flow |
+| [UNKNOWN] | 2026-08-28 | `394565a` | [UNKNOWN] |
+| v3 | 2026-08-30 | `4a627bc` | Going through usability testing protocol to see what fixes were needed |
+| v4 | 2026-08-31 | `3b11d8f` | Allowing the deposit goal to take in extra costs such as stamp duty, and allowing the deposit result page to be clearer rather than showing a range based on the deposit percentage saved towards |
+
+**Commit** is the commit `main` points at after the merge. A commit cannot contain its own SHA, so
+from v5 on the cell names the last content commit of the version and the log row sits one commit
+above it. The two coincide for v1 to v4, which were merged before this log existed. See
+`DECISIONS.md` D91.
+
+### The `394565a` row is open and needs closing by hand
+
+`main` moved five times carrying a change to prototype code, and four deployment reasons were
+supplied. `394565a` is the one left over: a single commit, "Seed the opening session at £650,000 so
+it meets the Lifetime ISA cap", merged 31 minutes after v2 on the same evening. Either it is a
+hotfix inside v2, in which case this row is deleted and v2's commit becomes `394565a`, or it is a
+deployment in its own right, in which case it takes v3 and every row below it moves up by one.
+It is not guessed either way. See `GAPS.md` G104.
+
+### Where these dates and commits come from
+
+`main` has a linear history and every merge so far was a fast-forward, so none of them exists as a
+merge commit and the graph alone cannot date a deployment. The five moves were read from
+`git reflog show main`, which covers the branch from its initial commit on 19 August 2026 and is
+therefore complete rather than truncated. v1 is independently corroborated by the `v1.0` tag,
+"Build for pilot session", which points at `7f0f4cc`. Dates are the dates `main` moved, which is
+when Vercel deployed, not the dates the commits were authored.
+
+The initial commit `e9da66d` (19 August 2026) takes no version number. It holds `build-spec.md`,
+the Figma file and `.gitignore.txt`, and no prototype code at all, so there was nothing a
+participant could have seen.
 
 ---
 
@@ -170,12 +220,17 @@ Anything committed to `main` by accident should be moved to `build` rather than 
 
 ### Deploying a build
 
-1. Commit and push everything on `build` first, and confirm `git status` is clean.
-2. `git checkout main`, then `git merge build`.
-3. Tag before pushing. Every build a participant sees gets a tag, so the session can be traced to
+1. Get the deployment reason from Riona. Without one, stop here and ask. Do not infer it from
+   the commits.
+2. Add the row to the deployment version log above, on `build`, and commit it. Commit and push
+   everything on `build`, and confirm `git status` is clean.
+3. `git checkout main`, then `git merge build`.
+4. Fill the row's Commit cell from `git rev-parse --short main`, on `build`, and merge it
+   forward. This happens before the push, not after it.
+5. Tag before pushing. Every build a participant sees gets a tag, so the session can be traced to
    a commit.
-4. `git push origin main --tags`.
-5. `git checkout build` to carry on working. **Do not leave the working copy on `main`** - the next
+6. `git push origin main --tags`.
+7. `git checkout build` to carry on working. **Do not leave the working copy on `main`** - the next
    session will otherwise commit to it without noticing.
 
 Vercel deploys `main` automatically. The production URL is `first-home-feature.vercel.app` and a

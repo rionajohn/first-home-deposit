@@ -8682,3 +8682,65 @@ Twelve shots, both themes, both text sizes: the row within the ceiling, breachin
 showing, and frame 11 with all three row errors raised. Suite: 397 tests, 396 passing, 1 skipped (G91),
 0 failing.
 
+---
+
+## D91. Production deployments are logged by version, and the log is written with the merge
+
+**Date.** 31 August 2026. A table in `docs/README.md`, a standing rule in `CLAUDE.md`, and four
+backfilled rows. No prototype code changes.
+
+**Decision.** Every merge from `build` to `main` takes a version number - v1, v2, v3 - recorded in
+the deployment version log in `docs/README.md` with the date it landed, the commit `main` then
+pointed at, and a one-sentence reason. The row is written as part of the merge, before the push.
+
+**Why.** The prototype is a research instrument, not a product, and a think-aloud session is only
+reportable if it can be attributed to the exact build the participant used. Five production
+deployments had already gone out with no record of what changed in any of them, which made that
+attribution impossible after the fact and would have been impossible to reconstruct later than
+this. Writing the row with the merge rather than afterwards is the whole mechanism: a log that is
+kept up retrospectively is exactly as useless as no log during the window it is behind.
+
+### The reason is Riona's, not the merge's
+
+The deployment reason is supplied with the merge request and is not derived from the commit log. A
+merge that arrives without one stops and asks. This is the same rule as `CLAUDE.md`'s standing "do
+not invent a figure, a rule or a screen": the reason records intent, which is in the researcher's
+head and not in the diff, and a plausible summary assembled from 44 commit subjects would read as
+a record while being an inference. The four backfilled reasons here are Riona's own words, used
+verbatim.
+
+### Documentation-only merges take no number
+
+A merge that changes only documentation or governance files and no prototype code or copy does not
+take a version number. The numbers denote states of the prototype a participant could have seen,
+so a number that no participant could ever be assigned to would dilute the one thing the column is
+for. This is why the initial commit `e9da66d` is excluded: it carries `build-spec.md`, the Figma
+file and `.gitignore.txt` and nothing that renders.
+
+### Why the Commit column shifts by one from v5
+
+A commit cannot contain its own SHA. For v1 to v4 the cell is exactly the commit `main` pointed at
+after the merge, because those merges carried no log row. From v5 the row is committed on `build`
+before the merge, so the cell names the last content commit of the version and the row itself sits
+one commit above it. The alternative was filling the cell a deploy later, which is the
+retrospective recording this decision exists to prevent. The offset is one README line that no
+participant is served, so nothing a participant saw differs between the two commits.
+
+### How the backfill was dated, and what it could not settle
+
+`main` is linear: every merge so far was a fast-forward, so no merge commit exists and the graph
+cannot date a deployment at all. The five moves came from `git reflog show main`, which reaches the
+initial commit on 19 August 2026 and is therefore complete rather than truncated at the window's
+edge. v1 is independently corroborated by the `v1.0` tag, "Build for pilot session", on `7f0f4cc` -
+the only tag ever cut, which is why the tagging step in `docs/README.md` could not serve as this
+record and a log was needed instead.
+
+Four reasons were supplied against five code-bearing deployments. Three map on content with no
+ambiguity: `ce2b482` wires the Mortgage in Principle flow into the Insights tab, `4a627bc` is a
+copy and seeded-figure pass, and `3b11d8f` puts stamp duty in the goal and removes the 5/10/15%
+range from the result page. `394565a` is the leftover and is **not** assigned a number here. It is
+recorded in the table with `[UNKNOWN]` in both cells and raised as `GAPS.md` G104.
+
+**To reverse.** Delete the section from `docs/README.md` and the three rules from `CLAUDE.md`. The
+reflog that the backfill was read from expires 90 days after each entry, so the dates are not
+recoverable from this repository once that window passes: the table is the only remaining record.

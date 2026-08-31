@@ -3867,3 +3867,43 @@ D90 was one label. Sketching the options so the next pass does not start cold:
 *Status: **open, and REACHABLE** - the first option in the list, no facilitator gesture, no seeded state,
 both text sizes and palettes.*
 
+
+---
+
+## G104. Five production deployments, four supplied reasons: `394565a` is unassigned
+
+*Raised 31 August 2026 while building `DECISIONS.md` D91's backfill. Needs Riona to close it; it
+cannot be closed from the history.*
+
+### The count does not match
+
+`main` moved five times carrying a change to prototype code. Four deployment reasons were supplied
+for the backfill. Three of the four map onto a deployment on content with no ambiguity, and v1 is
+corroborated by the `v1.0` tag. That leaves one deployment with no reason against it:
+
+| Commit | Merged | Contents |
+| --- | --- | --- |
+| `394565a` | 2026-08-28 20:41 | One commit: "Seed the opening session at £650,000 so it meets the Lifetime ISA cap" |
+
+It landed 31 minutes after v2 (`ce2b482`, 20:10 the same evening) and changed `src/stage.js`,
+`sw.js` and three scripts. It is a change to what a participant is shown, so it cannot simply be
+dropped from the log.
+
+### The two readings, and why neither was chosen here
+
+**A hotfix inside v2.** A seed figure was wrong, it was corrected the same evening, and Riona never
+thought of it as a separate version. The row is then deleted and v2's commit becomes `394565a`.
+
+**A deployment in its own right.** Production served `ce2b482` for 31 minutes and `394565a`
+thereafter, so a session run inside that window saw a different build from one run after it. The
+row then takes v3 and every row below it moves up by one.
+
+The history cannot distinguish these, and D91's own rule is that a deployment reason is Riona's and
+is never inferred from the diff. So the row sits in the log with `[UNKNOWN]` in the Version and
+Deployment reason cells rather than being guessed into either shape.
+
+### To close
+
+Confirm which reading is right. If any participant session was run on the evening of 28 August
+2026, check its start time against 20:41 first, because that is the only case where the answer
+changes what a session should be reported against.

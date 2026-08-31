@@ -64,6 +64,16 @@ do not introduce a state management library.
 - Preserve existing dark mode support in anything you touch.
 - Update docs/DECISIONS.md with a dated entry for any design decision you make.
 - Before adding a decision entry, read the last number in docs/DECISIONS.md and take the next one.
+- Every merge from `build` to `main` adds a row to the deployment version log in `docs/README.md`
+  in the same operation, before the push. The row is written as part of the merge, never
+  retrospectively - a deployment that is recorded later is a deployment nobody can attribute a
+  session to in the meantime.
+- The deployment reason is written by Riona and supplied with the merge request. If no reason has
+  been supplied, stop and ask for one. Do not merge with an invented or inferred description, and
+  do not summarise the commit log into one.
+- A merge touching only documentation or governance files, with no change to prototype code or
+  copy, does not take a version number. Version numbers denote states of the prototype that a
+  participant could have seen.
 
 ## Commands
 - Serve: `python -m http.server 8080` on Windows (ES modules need a server, not file://)
