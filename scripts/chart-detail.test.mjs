@@ -409,3 +409,90 @@ test('8. the readout and the in-plot value are the same figure at every point', 
     await context.close();
   }
 });
+
+// --- 9. The plan's 10.8 block measurement, now that the elements exist -------
+
+test('9. the assumptions line is in the same viewport as the endpoint and the chart', async () => {
+  // 10.8 DERIVED this from the tokens before anything was built: a 732px scroll
+  // viewport at 390x844 (844 less a 56px app bar and a 56px tab bar) against a
+  // block of 584px at default text and 654.8px at Large. This asserts the
+  // PROPERTY that derivation existed to establish - the caveat is on screen
+  // with the endpoint line and the whole chart above it, without scrolling -
+  // and prints the measured figures against the derived ones.
+  const measured = [];
+  for (const large of [false, true]) {
+    const { context, page } = await openChart({ large });
+    try {
+      const m = await page.evaluate(() => {
+        const scroller = document.querySelector('.screen-content');
+        const heading = [...document.querySelectorAll('.section-heading')]
+          .find((h) => /how your savings/i.test(h.textContent));
+        const texts = [...document.querySelectorAll('p')];
+        const endpoint = texts.find((p) => /you'd reach your/.test(p.textContent));
+        const assumptions = texts.find((p) => /It assumes nothing changes/.test(p.textContent));
+        const box = (el) => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; };
+        return {
+          viewport: scroller.clientHeight,
+          block: box(assumptions).bottom - box(heading).top,
+          endpointTop: box(endpoint).top,
+          assumptionsBottom: box(assumptions).bottom,
+          headingTop: box(heading).top,
+          hasAssumptions: !!assumptions,
+          // Not behind a disclosure: nothing between it and the endpoint may be
+          // a collapsed section.
+          insideDisclosure: !!assumptions.closest('[data-disclosure-id], details'),
+        };
+      });
+      const headroom = m.viewport - m.block;
+      const derived = large ? 77.2 : 148.0;
+      console.log(`  10.8 ${large ? 'large ' : 'default'}: block ${m.block.toFixed(1)}px of ${m.viewport}px, headroom ${headroom.toFixed(1)}px (derived ${derived}px)`);
+
+      assert.ok(m.hasAssumptions, 'the assumptions line is rendered');
+      assert.equal(m.insideDisclosure, false, 'the assumptions line is not behind a disclosure');
+      assert.ok(m.assumptionsBottom > m.endpointTop, 'the assumptions line sits below the endpoint line');
+      measured.push({ large, block: m.block, viewport: m.viewport, headroom, derived });
+    } finally {
+      await context.close();
+    }
+  }
+  // BOTH SIZES ARE MEASURED BEFORE EITHER IS ASSERTED, so a failure at default
+  // text does not hide the figure at Large - which is the one 10.8 predicted
+  // would fail first.
+  for (const r of measured) {
+    assert.ok(r.headroom > 0,
+      `${r.large ? 'large' : 'default'} text: the block is ${r.block.toFixed(1)}px against a ${r.viewport}px viewport, headroom ${r.headroom.toFixed(1)}px against 10.8's derived ${r.derived}px`);
+  }
+});
+
+test('10. the table toggle is a visible peer of the chart, above the fold', async () => {
+  // D102's reversal condition: under year-only the table is the ONLY place on
+  // this screen with date resolution finer than a year at rest, so a buried
+  // toggle removes month resolution from the screen entirely for anyone who
+  // does not scrub. Asserted rather than inspected.
+  for (const large of [false, true]) {
+    const { context, page } = await openChart({ large });
+    try {
+      const t = await page.evaluate(() => {
+        const btn = [...document.querySelectorAll('[data-action="select-chart-view"]')]
+          .find((b) => /table/i.test(b.textContent));
+        const scroller = document.querySelector('.screen-content');
+        const r = btn.getBoundingClientRect();
+        const s = scroller.getBoundingClientRect();
+        return {
+          found: !!btn,
+          hidden: !!btn.closest('[hidden], details:not([open])'),
+          inOverflow: getComputedStyle(btn.parentElement).overflow === 'hidden',
+          offsetWithinScroller: (r.top - s.top) + scroller.scrollTop,
+          viewport: scroller.clientHeight,
+        };
+      });
+      assert.ok(t.found, 'the table toggle is in the default render');
+      assert.equal(t.hidden, false, 'the toggle is not behind a disclosure');
+      assert.equal(t.inOverflow, false, 'the toggle is not inside an overflow container');
+      assert.ok(t.offsetWithinScroller < t.viewport * 4,
+        `${large ? 'large' : 'default'}: the toggle sits ${t.offsetWithinScroller.toFixed(0)}px down a ${t.viewport}px viewport`);
+    } finally {
+      await context.close();
+    }
+  }
+});
