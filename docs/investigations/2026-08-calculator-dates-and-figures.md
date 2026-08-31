@@ -313,53 +313,45 @@ floor.
 
 ## 6. The chart
 
-### 6.1 The default window - options, not a pick
+*Amended 31 August 2026, after the four open decisions below it were settled: default window B at 24
+months, a years-only x-axis, and a line with plotted points and an interactive point detail in place
+of bars. Everything the amendment displaces is marked rather than deleted, because two of the
+displaced things were themselves decisions.*
 
-At the seeded session (`STAGE_PROPERTY_VALUE` 450,000, `left-over` 640) attainment lands well over a
-decade out. Measured against `monthsToReachAmount` from a zero balance:
+### 6.1 The default window - SETTLED: option B, 24 months, endpoint carried in text
 
-| Deposit % | `combined-goal` | At 255/mo (seeded rate) | At 640/mo (`left-over`) |
-| --- | --- | --- | --- |
-| 5% | 30,000 | 100 mo (8.4 yr) | 44 mo (3.6 yr) |
-| 10% | 52,500 | 159 mo (13.3 yr) | 73 mo (6.1 yr) |
-| 20% | 97,500 | 253 mo (21.1 yr) | 125 mo (10.4 yr) |
-| 25% | **120,000** | 291 mo (24.2 yr) | **148 mo (12.3 yr)** |
+At the seeded session (`STAGE_PROPERTY_VALUE` 450,000, `saved-toward-deposit` 8,950, `left-over` 640)
+attainment lands well over a decade out. Measured against `monthsToReachAmount`:
 
-A chart bounded at attainment is 12 to 24 years wide, mostly flat, and the first two years - the part
-that discriminates 200 a month from 400 a month - occupy under a sixth of it. **This is not resolved
-here. Four options, with a recommendation, to be decided before the build session starts.**
+| Deposit % | `combined-goal` | At 200/mo (`monthly-low`) | At 255/mo (`savings-rate`) | At 640/mo (`left-over`) |
+| --- | --- | --- | --- | --- |
+| 5% | 30,000 | 81 mo (Jun 2033) | 67 mo (Apr 2032) | 30 mo (Mar 2029) |
+| 10% | 52,500 | 151 mo (Mar 2039) | 126 mo (Mar 2037) | 59 mo (Aug 2031) |
+| 15% | 75,000 | 207 mo (Dec 2043) | 176 mo (May 2041) | 86 mo (Nov 2033) |
+| 20% | 97,500 | 256 mo (Dec 2047) | 219 mo (Dec 2044) | 111 mo (Dec 2035) |
+| 25% | 120,000 | 298 mo (Jul 2051) | 258 mo (Feb 2048) | 134 mo (Nov 2037) |
 
-**A. Open at attainment (keep today's "Max" default).** The chart is the whole projection. Cheapest -
-no change to the default. It is what the pilot ran against and what failed; the participant could see
-the shape and not the near term.
+**The window opens at 24 months.** The projection still ends at goal attainment (requirement 5, and
+section 5's bounding rule); the chips still reach it; what changes is where the chart opens.
 
-**B. Open at a near-term window (24 months), endpoint carried in text. RECOMMENDED.** The chart shows
-the two years the choice turns on. Requirement 3's endpoint - the amount at attainment and the month
-it is reached - is a labelled line beneath the chart, always drawn, at every window. Requirement 5 is
-satisfied by the *projection*, which still ends at attainment and which the chips still reach; it is
-not a claim about the default *window*. Cost: the default view no longer shows the goal being met,
-and the endpoint line has to carry that alone.
+**Why this reverses D73's amendment, restated.** D73 moved the default from five years to "Max" so
+"a participant sees the shape of the thing before they narrow it" - which assumes the barrier was
+**not seeing the whole projection**. The pilot showed the barrier was **being unable to read any
+value off it**: at 21:42, "I don't have a y-axis to know what the value is"; at 23:28, "I still don't
+know whether I would choose to have it at 200 pounds a month or 400 quid". **Widening a window cannot
+fix an unreadable chart, and narrowing one cannot break a readable one.** Requirement 1 now puts a
+figure on screen unconditionally, so the window is free to serve the question the participant could
+not answer, which is a near-term one. That is the reason, and it is not "the shape was legible and
+the numbers were not" - the shape was never the thing that failed or the thing being traded away.
 
-**C. A non-linear x-axis** - dense marks in the first 24 months, sparse after. Rejected. A time axis a
-participant has to be taught is the wrong instrument in a comprehension study, and P10 is a finding
-about an axis that already could not be read.
-
-**D. Chart to attainment, near-term detail delegated to the table.** The chart answers "will I get
-there"; the table (requirement 6) answers "how much at month N". Cheaper than B on the chart and
-worse on requirement 1, since the primary fix would then live behind a toggle.
-
-**Why B.** The undecided question at 23:28 was 200 against 400 in the near term, and B is the only
-option that puts that in the default view. The endpoint as text is also the one form that survives a
-390px viewport unconditionally.
-
-**What B costs against a standing decision, stated.** D73's amendment moved the default from five
-years to "Max" so "a participant sees the shape of the thing before they narrow it". B reverses that
-clause. It needs its own decision entry saying so, with the reason: the shape was legible and the
-numbers were not, which is evidence D73 did not have.
-
-**And it is spec-silent.** `build-spec.md` row 121 specifies a chart "plotted to 5 years" with
-thresholds at 5/10/15%, all of which D73 removed. No default window is specified. Whichever option is
-taken is a decision this repo owns, and is recorded as one.
+**A consequence that must be built with it: the chip set changes.** `chartRangeMonths` would default
+to 24, which is not one of the five chips (6, 12, 36, 60, null), leaving the group with nothing
+pressed - the state D73 explicitly rejected because there is then no way back to the default once a
+chip is pressed. A **sixth** chip does not fit: `components.css:1952` records the measured row as
+"334px of a 350px column", 16px of slack at five chips. So **the "3 yr" chip is replaced by "2 yr",
+the count stays at five, and "2 yr" is the default.** Chips become 6 m / 1 yr / 2 yr / 5 yr / Max.
+Measured again in `overlap.test.mjs` at both text sizes, since "2 yr" is one character wider than
+"3 yr" is not - the widths are identical - but the row has not been re-measured since D75.
 
 ### 6.2 Requirement 1 - the readout. This is the primary fix
 
@@ -367,21 +359,34 @@ taken is a decision this repo owns, and is recorded as one.
 `monthly-high` as a stacked band with a legend and nothing to select. "200 pounds a month or 400
 quid" is a choice the screen never offered.
 
-**Add a series selection**, `chartSeries: 'low' | 'high'`, and hang the readout off it:
+**Add a series selection**, `chartSeries: 'low' | 'high'`:
 
 - Rendered through the existing `pillSegmentsHTML` (`ui.js:1835`), above the chart, labelled from the
   two contributions - the existing `legendTemplate` ("At {amount} a month") already carries the right
   words and is reused rather than duplicated.
-- **A view setting, exactly like `chartRangeMonths`.** It is added to `state.js`'s defaults, is **not**
-  added to `STAGE_KEYS`, and **never writes a section 6 figure**. It changes what the chart draws and
+- **A view setting, exactly like `chartRangeMonths`.** Added to `state.js`'s defaults, **not** added
+  to `STAGE_KEYS`, and it **never writes a section 6 figure**. It changes what the chart draws and
   never what the model projects - D73's own words for the range control, and the standing state rule.
-- The readout is `figureDisplayHTML({ value, caption, live: true })` (`ui.js:674`): the amount saved at
-  the window's end for the selected series, from `balanceAtMonth()`, updating as the selection or the
-  window changes. Caption names the contribution in words.
-- **Both bands stay drawn.** Selection changes which one the readout reports and which is emphasised;
-  it does not hide the other. Hiding it would remove the comparison, which is the screen's job.
-- Re-render through `rerenderInPlace` (`ui.js:321`), the same path the range chips already use, so the
+- Re-render through `rerenderInPlace` (`ui.js:321`), the path the range chips already use, so the
   chart redraws under the participant's thumb and focus returns to the pressed control.
+
+**The readout is always visible and is the point detail's home.** One figure, one place:
+
+| State | Readout shows |
+| --- | --- |
+| At rest (no point active) | The amount at the **window's end** for the selected series |
+| A point active (scrub, hover or keyboard) | The amount at **that point**, for the selected series |
+| Dismissed (Escape, or release outside the plot) | Back to the window's end |
+
+`figureDisplayHTML({ value, caption, live: true })` (`ui.js:674`). **The caption always names the date
+the figure belongs to**, so a scrubbed value cannot be misread as the window-end value: the figure and
+its date move together or not at all.
+
+**Why the point detail lives in the readout rather than beside the point.** Two figures on one chart
+is the state that produced the confusion being fixed, and a floating tooltip at 393px covers the line
+it is describing. This also means the always-visible readout of requirement 1 is not competing with
+the interaction - it *is* the interaction's output, and it holds a value whether or not anyone
+interacts. See 6.9 on why that distinction is load-bearing.
 
 ### 6.3 Requirement 2 - a labelled y-axis
 
@@ -391,33 +396,65 @@ the 48px left gutter that already exists (`screens.css:1209`). `yTop` and `yBott
 and last tick rather than separate parameters.
 
 Tick values come from a rounding helper so the axis reads in round pounds rather than in
-`maxScale / 4`. That helper is new and lives in `format.js` beside the other display rules, not in the
-screen.
+`maxScale / 4`. That helper is new and lives in `format.js` beside the other display rules, not in
+the screen.
 
-### 6.4 Requirement 4 - labels that reconcile with the marks
+The y-axis is also what the point detail's guide (6.6) terminates on, so its labels are load-bearing
+twice over: they are the static reading of requirement 2 and the destination of the interactive one.
+
+### 6.4 Requirement 4 - the x-axis carries years only, positioned as a scale
 
 **P10, measured.** `.growth-chart__bars` draws `pointCount` (up to 12) groups with
 `justify-content: space-between`; `.growth-chart__x-axis` draws 4 labels in a separate flex row, also
-`space-between`. The two rows have the same padding and different counts, so **no label sits under the
-mark it names**, and the first label ("Now") sits under the first bar, which is at
-`rangeMonths / pointCount` months and not at zero. The participant counted 11 bars against 4 labels
-and was right.
+`space-between`. Same padding, different counts, so **no label sits under the mark it names**, and
+the first label ("Now") sits under the first bar, which is at `rangeMonths / pointCount` months and
+not at zero. The participant counted 11 bars against 4 axis labels and was right.
 
-**The fix is structural, not a count adjustment.** `growthChartHTML` renders the x-axis as **one cell
-per point**, in the same flex geometry as `.growth-chart__bar-group` (`flex: 1 1 0; min-width: 0`), so
-cell *n* is under mark *n* by construction. A label is emitted on a subset - the first point, the
-last point, and evenly spaced points between - and the remaining cells are empty. The count can then
-never disagree with the marks, because the axis is drawn from the same array.
+**The fix is now stronger than the one this section originally proposed, and supersedes it.** The
+first version made the axis one flex cell per point, so a label sat under its own mark. With a
+years-only axis a label no longer names a *mark* - it names a *moment*, and there may be no mark
+there at all. So:
 
-**How many labels.** The logical frame is 393px (`shell.css:22`) less the 48px y-gutter and the
-screen's own padding: roughly 325px. A footnote-size "Mar 2029" measures about 52px. **Four labels
-with clear gaps; five is the ceiling and must be measured, not assumed.** Specify four, and let
-`overlap.test.mjs` at Large text decide whether it holds - that harness runs both text sizes and is
-the right place for this.
+> **The x-axis becomes a scale, not a row of captions.** Each label is absolutely positioned at
+> `(monthsFromAnchorTo(1 January of that year) / rangeMonths) * 100` percent of the plot width, in the
+> same coordinate space the line is drawn in. A label at x% names the moment at x%, whether or not a
+> point falls there.
 
-**Format.** Abbreviated month plus year ("Mar 29" or "Mar 2029") is a copy decision to be taken with
-the measurement above; the endpoint line and the readout carry the unabbreviated form, so the axis can
-afford to abbreviate.
+That closes P10 by a property rather than by an adjustment: labels and marks can no longer disagree
+about position, because both are placed by the same linear time mapping instead of by two independent
+flexbox distributions.
+
+**The origin carries "Now", not a year.** At a window opening in August 2026, a "2026" label at x=0
+would name January 2026, which is behind the participant. `c.xAxisNow` is kept and is the only
+non-year label on the axis.
+
+**How many year labels, and the thinning rule.** Measured against the real geometry:
+
+| | |
+| --- | --- |
+| Frame width | **393px** logical (`shell.css:22`, `--frame-width`) |
+| `.screen-content` padding | 20px each side (`--screen-inset-x`) -> content 353px |
+| Plot gutter | 48px (`.growth-chart__plot` padding-left; `.growth-chart__bars` is `left: 48px; right: 0`) |
+| **Plot width** | **305px** |
+| Label width, "2027" at footnote 13px | ~26px default, ~30px at Large (`--text-scale: 1.15`, `tokens.css:268`) |
+| Minimum pitch with an 8px gap | ~34px default, ~38px Large |
+| **Ceiling** | **8 year labels**, at both text sizes |
+
+Year labels available per window, from an August anchor:
+
+| Window | January boundaries inside it | Labels (with "Now") |
+| --- | --- | --- |
+| 6 m | 1 | 2 |
+| 1 yr | 1 | 2 |
+| **2 yr (default)** | **2** | **3** |
+| 5 yr | 5 | 6 |
+| Max, 148 mo at the seeded persona | 12 | 13 - **over the ceiling** |
+
+So a thinning rule is required and is not optional at the long windows: **emit a year label only if
+its position clears the previously emitted one by the minimum pitch.** Deterministic, derived from
+measured text width rather than a magic number, and it degrades a 13-year window to every second year
+(7 labels) rather than to an unreadable smear. `overlap.test.mjs` at Large text is where the pitch is
+confirmed rather than assumed.
 
 ### 6.5 Requirement 3 - the labelled endpoint
 
@@ -429,33 +466,186 @@ slots `{amount}` and `{date}`.
 It is the element that carries requirement 5 in default window B, so it is not optional and not
 collapsible.
 
-### 6.6 Requirement 6 - the table view
+**It keeps month and year. Reported, per the check asked for in 6.10.** See 6.10.
+
+### 6.6 The interactive point detail
+
+**On press, hover or keyboard focus of a point:** the amount saved at that point and the date it
+falls on, both rendered into the readout (6.2), plus **a guide from the active point to the y-axis**
+showing where that value sits on the scale, and the point itself drawn in its active state.
+
+A vertical guide from the point down to the x-axis is **optional and to be judged in layout**. It
+would help locate a point within a year, which the years-only axis cannot do; it also adds a second
+rule across the plot. Not specified either way here.
+
+#### 6.6.1 The interaction is a scrub, and the measurement is why
+
+At a 24-month window, plot width 305px:
+
+| Points plotted | Interval | Centre-to-centre spacing |
+| --- | --- | --- |
+| 25 (monthly, including "now") | 1 mo | **12.7px** |
+| 24 (monthly) | 1 mo | **13.3px** |
+| 9 (quarterly, including "now") | 3 mo | **38.1px** |
+| 5 (half-yearly, including "now") | 6 mo | 76.3px |
+
+Against the two thresholds that apply - 44x44px (Apple HIG, the design language this repo is held to)
+and 24x24px (WCAG 2.5.8 Target Size (Minimum), AA):
+
+| Option | Measured | Verdict |
+| --- | --- | --- |
+| **Quarterly points, monthly in the table** | 38.1px | **Fails the 44px HIG target by 6px.** It passes WCAG 2.5.8 and it was proposed on the premise that it clears the touch target; measured, it does not. It also costs two thirds of the line's resolution to buy a target that is still too small |
+| **Monthly points, full-height vertical band** | 13.3px wide x 224px tall | **Fails.** Height clears; width does not, in either standard. WCAG 2.5.8's spacing exception needs a 24px-diameter circle centred on the target not to intersect a neighbour's - at 13.3px pitch they intersect, so the exception does not apply either |
+| **Scrub** | Target is the plot: **305 x 224px** | **Passes.** There are no discrete targets to hit, so there is no targeting problem to solve. Full monthly resolution is kept, and it is the pattern native charts use on mobile |
+
+**Scrub, on the measurement.** Press and drag anywhere in the plot; the nearest point snaps and the
+readout updates continuously. On a pointer device the same mapping runs on hover.
+
+**Plot resolution is fixed at 24 points**, or `rangeMonths` if fewer, replacing
+`pointCount = Math.min(12, rangeMonths)`. Spacing is then 13.3px at every window and the snap
+resolution never changes with the chip pressed. At the 24-month default each point is exactly one
+month; at "Max" (148 months) each is about six, and the table view carries the monthly figures.
+
+#### 6.6.2 Keyboard
+
+The plot is a single focus stop with `aria-activedescendant` pointing at the active point, arrow keys
+moving between points, Home and End to the ends, and Escape dismissing. **This is D84's listbox
+contract applied to a different control**, not a new pattern: `dateSelectHTML` / `bindDateSelect`
+(`ui.js:937`, `1005`) already implement it and `date-ceiling.test.mjs`'s last eleven tests already
+read it off the same attributes a screen reader reads. Reuse the pattern; do not reuse the component.
+
+The detail appears on **focus**, not only on pointer events.
+
+#### 6.6.3 WCAG 1.4.13, satisfied by construction
+
+| Requirement | How |
+| --- | --- |
+| **Dismissible** without moving the pointer | Escape returns the readout to the window's end. The same gesture doubles as the reset, so there is one way back rather than a hidden one |
+| **Hoverable** - stays while the pointer is over it | The detail renders into the readout, which is a fixed element outside the plot. The pointer never has to travel to it, and moving within the plot updates it rather than dismissing it |
+| **Persistent** until dismissed | The active point is state, not a transient tooltip. It survives until Escape, a re-selection, or a chip press |
+
+A tooltip that vanished on any movement would fail all three, which is the second reason 6.2 puts the
+detail in the readout rather than beside the point.
+
+#### 6.6.4 The remaining accessibility requirements
+
+- **1.4.1, no colour alone.** The active point is distinguished by **size and shape** - a larger
+  radius with a ring - not by a colour change. The same rule the comparison card's "- your choice"
+  already follows.
+- **prefers-reduced-motion.** The line's draw-in, the guide's transition and the point's grow are all
+  dropped to an instant state change under `@media (prefers-reduced-motion: reduce)`. The repo has
+  the pattern in three places already (`components.css:642`, `2970`; `sheet-drag.js` handles it in JS
+  where the motion is script-driven, `screens.css:427`), and the scrub's own snap is a state change
+  rather than an animation, so it is unaffected.
+- **The table is the equivalent, not the fallback.** Requirement 6, and 6.9.
+
+### 6.7 Requirement 6 - the table view
 
 A toggle above the chart, `chartView: 'chart' | 'table'`, a view setting on the same terms as
 `chartSeries`. A new `chartTableHTML` in `ui.js` renders the **same points array** the chart renders -
-one row per mark, columns: month, at the low contribution, at the high contribution, with the selected
+one row per point, columns: date, at the low contribution, at the high contribution, with the selected
 column marked in words. A real `<table>` with `<th scope>`, which is what makes it the text
 alternative.
 
-Rendering both views from one points array is the constraint that keeps them from disagreeing. Do not
-recompute.
+**It must expose every value the point detail can reveal**, which the shared points array guarantees
+by construction: both views render the same array, and neither recomputes.
 
-### 6.7 Requirement 7 - nothing carried by colour alone
+**Its date column carries month and year**, not years only. The axis is a scale and can be coarse; a
+table row is a value and its date, and a column of repeating years would not identify its own rows.
 
-The two bands already clear 3:1 against each other and against the plot in both themes (D73's
-amendment) and each legend row already carries the fill of the band it names (G90). What is new is the
-**selection**, and it must not be a colour change alone: the pill control carries `aria-pressed` and
-visible text, and the readout caption names the selected contribution in words. The same rule
-`compareRowSelectedSublabelTemplate` already follows on the comparison card.
+**The toggle is a peer control, not a hidden affordance.** 6.9 explains why that is a requirement
+rather than a preference.
 
-### 6.8 What the chart type ends up being
+### 6.8 Requirement 7 - nothing carried by colour alone
 
-Following the requirements rather than choosing first: a **bar chart with a labelled y-axis, one x
-label per labelled mark, a live readout, and a table alternative**. The participant's line-with-labels
-suggestion at 22:04 came with its own correct caveat ("On the phone, not sure how much easier that
-would be"); labelling every point at 393px collides, and requirement 1's readout answers "how much
-exactly" without needing per-point labels at all. The existing bar rendering is kept - it is not what
-failed.
+The two series already clear 3:1 against each other and against the plot in both themes (D73's
+amendment) and each legend row already carries the fill of the series it names (G90). Two things are
+new and neither may be carried by colour:
+
+- **The series selection** - the pill control carries `aria-pressed` and visible text, and the
+  readout caption names the selected contribution in words.
+- **The active point** - size and shape, per 6.6.4.
+
+### 6.9 What the point detail must not become
+
+**The always-visible readout (6.2) and the endpoint line (6.5) both stay. The point detail is
+additional.** This is load-bearing and not a style note.
+
+The pilot failure at 21:42 was two failures in one sentence: "I don't have a y-axis to know what the
+value is" **and** "I can't hover and see what the values are either." Making the interaction the only
+route to a value fixes the second half and **reintroduces the first** for every participant who does
+not think to interact, cannot interact, or is reading a screenshot.
+
+So: at rest, with nothing touched and nothing focused, the screen shows a labelled y-axis (6.3), a
+figure in the readout (6.2), and the endpoint amount and month (6.5). The interaction adds the values
+in between. It never becomes the only route to any of the three.
+
+**Where the axis/detail division does and does not hold up, stated.** The division is: the axis gives
+orientation, the point detail gives the value and its date. At the 24-month default the axis reads
+"Now, 2027, 2028", so a point at 60% is somewhere in 2028 and the axis cannot say where - the detail
+says "March 2028". For a participant who interacts, that is a clean division and it holds.
+
+**For a participant who does not interact, it holds only because the table is a first-class view.**
+Without interacting, the dates on screen are "Now", the year labels, and the endpoint's month - so no
+intermediate point's date is readable, and the table is where it lives. That is an acceptable
+division **provided the table toggle is a visible peer of the chart rather than a de-emphasised
+fallback.** If the toggle ends up buried in layout, the division fails and the axis has to carry
+months after all. Recorded here as a condition on the layout, not as a risk to be watched: it is
+checkable in `overlap.test.mjs` and by eye in step 14, and it is the one thing that would send the
+years-only decision back.
+
+### 6.10 Year-only granularity as an honesty claim, and where it stops
+
+**Recorded as a reason for the axis decision, not only as a consequence of it.** A projection stated
+to a named month twelve years out - "March 2039" - implies a precision the model does not have. The
+model is an annuity-due solve at a pinned Bank Rate against a contribution the participant may change
+next month; the month is an artefact of the arithmetic, not a finding. **Year-only is the more honest
+claim**, and it sits more comfortably against the Consumer Duty consumer-understanding outcome, and
+against MCOB 4.8A's guidance boundary, than a named month does. This belongs in the decision entry as
+a reason.
+
+**Checked against the endpoint line (6.5): it keeps month and year. Reported, with the reasoning.**
+
+- The endpoint is the answer to the question the participant asked - when do I get there - and it is
+  the only place on the screen that answers it at rest.
+- Year-only stops discriminating at exactly the horizons where the choice is live. At the seeded
+  persona a 5% deposit is reached in March 2029 at `left-over` and in June 2031 at `monthly-high`;
+  coarsen both and two contributions three years apart still read as different years, but two a few
+  months apart - which is the near-term comparison window B exists to serve - would collapse into one.
+- **Coarsening the endpoint would leave no month anywhere on the screen at rest**, and the 26:20
+  complaint was that the participant could not find out when they arrive.
+- The precision concern is answered the way this build already answers it everywhere else: with a
+  disclosure beside the figure, not by truncating the figure. `shared.regulatory.estimateDisclosure`
+  and `chartCaptionTemplate` are already on this screen, and `/tracker`'s `onTrackBeyondWindowNote`
+  ("These dates are an estimate based on what you're putting aside now. They move if that changes.")
+  is the established wording for exactly this.
+
+**Checked against the attained state (5.4): the question does not arise.** In that state the endpoint
+line is replaced by a statement that the goal is already covered by what is saved, and no date is
+rendered at all - no past date, no zero-length bar, no negative figure. There is nothing to coarsen.
+
+**Checked against the comparison card: measured, and it extends. See 7.5.**
+
+### 6.11 What the chart type ends up being, re-derived
+
+Following the amended requirements rather than choosing first: **a line with plotted points, a
+labelled y-axis, a years-only x-axis positioned as a scale, a scrub-driven point detail feeding an
+always-visible readout, a labelled endpoint, and a table view.**
+
+**The participant proposed this shape at 22:04 and caveated it in the same breath** - "Again, depends.
+On the phone, not sure how much easier that would be." **The caveat was about labelling density, and
+measured, it was correct.** Labelling every point at the default window would need 24 labels of ~26px
+each in 305px of plot - 12.7px per label against 26px of text. It collides by a factor of two, which
+is what they suspected and is why "label every point" was never the answer.
+
+**What answers it is that no per-point label is drawn at all.** The axis carries years, positioned as
+a scale; per-point values come from the scrub and from the table. So the shape they asked for is
+buildable at 393px, and the reason is measurement rather than assumption - which is the check this
+section was asked to make rather than to skip.
+
+**The bar rendering is retired.** It was not what failed and it is not being blamed; it is simply not
+the shape that supports a continuous scrub across a two-year window, and two stacked bands are harder
+to compare at a point than two lines. `growth-chart__bar`, `__bar-group` and `__bars` go with it.
 
 ---
 
@@ -480,9 +670,11 @@ narrowed this card from five rows to three for the adjacent reason.
 
 **Reframe as an interval around the selection**, not a menu of rejected alternatives:
 
-- **Each line leads with the date reached.** `label` becomes the calendar month; `sublabel` carries
-  the percentage and the marker; `value` keeps the deposit amount, so nothing the participant might
-  have chosen disappears. Three slots, the existing component, no new geometry.
+- **Each line leads with the date reached.** `label` becomes the date; `sublabel` carries the
+  percentage and the marker; `value` keeps the deposit amount, so nothing the participant might have
+  chosen disappears. Three slots, the existing component, no new geometry.
+- **The date is the attainment year**, per 6.4's decision extended on the measurement in 7.5, falling
+  back **card-wide** to month and year whenever two live rows would collide on a year.
 - **The heading names an interval.** `compareHeading` is "How this compares" - a comparison of
   alternatives. It becomes a line naming the band around the participant's own choice.
   `[AWAITING COPY]`.
@@ -512,6 +704,91 @@ What it must record:
   *change* their deposit percentage gets a weaker prompt to do so. The route back to frame 09 is
   unchanged and is where that decision belongs. Stating this is the point of the entry.
 - The 24:48 quote, and the fact that it is a framing objection rather than a request for removal.
+
+---
+
+### 7.5 Does years-only extend to the comparison rows? Measured, 31 August 2026
+
+*The axis decision in 6.4 was not assumed to generalise. This is the measurement it was held to.*
+
+**Method.** For every `neighbourPcts` window, the attainment year of all three rows, from
+`monthsToReachAmount` against each row's own `combined-goal` (deposit plus stamp duty at that
+percentage), at a range of contributions. A row whose goal is already covered resolves to
+`compareAlreadyLabel` and is excluded from the comparison, since it carries no year. **A collision is
+two or more live rows resolving to the same year**, at which point the card stops comparing anything.
+
+**At the seeded persona** (property 450,000, `saved-toward-deposit` 8,950), all five windows at all
+four contributions - 20 configurations, 60 rows:
+
+| Selected | @200/mo (`monthly-low`) | @255/mo (`savings-rate`) | @310/mo (`monthly-high`) | @640/mo (`left-over`) |
+| --- | --- | --- | --- | --- |
+| 5% or 10% (rows 5/10/15) | 2033, 2039, 2043 | 2032, 2037, 2041 | 2031, 2035, 2039 | 2029, 2031, 2033 |
+| 15% (rows 10/15/20) | 2039, 2043, 2047 | 2037, 2041, 2044 | 2035, 2039, 2042 | 2031, 2033, 2035 |
+| 20% or 25% (rows 15/20/25) | 2043, 2047, 2051 | 2041, 2044, 2048 | 2039, 2042, 2045 | 2033, 2035, 2037 |
+
+**No collision in any of the 20. Narrowest separation is two years.**
+
+**Swept wider**, over property 150,000 to 600,000 in 10,000s x seven balances (0 to 80,000) x all five
+selections:
+
+| Contribution range | Configurations | Collisions | |
+| --- | --- | --- | --- |
+| The three seeded rates (200 / 255 / 310) | 4,830 | **0** | **0.00%** |
+| Everything up to `left-over` (100 to 640) | 9,660 | **6** | **0.06%** |
+| Including rates above `left-over` (to 1,500) | 12,880 | 480 | 3.7% |
+
+**Years-only extends to the card.** At every contribution the running app can produce - the slider is
+bounded at `left-over` and frame 11's field is bounded the same way - the collision rate is 6 in
+9,660. The third row is there for completeness: it is only reachable with a `left-over` far above
+`MOCK_POSITION`'s 640, and every collision in it is a fast projection against a cheap property, which
+is the same corner the six are in.
+
+**The six, in full**, so the fallback is written against real cases rather than a hypothesis:
+
+| Property | Saved | Selected | Rate | Rows |
+| --- | --- | --- | --- | --- |
+| 160,000 | 5,000 | 5% or 10% | 640 | 5%: 2027, 10%: **2028**, 15%: **2028** |
+| 160,000 | 5,000 | 15% | 640 | 10%: **2028**, 15%: **2028**, 20%: 2029 |
+| 160,000 | 21,000 | 15% | 640 | 10%: already saved, 15%: **2027**, 20%: **2027** |
+| 160,000 | 21,000 | 20% or 25% | 640 | 15%: **2027**, 20%: **2027**, 25%: 2028 |
+
+All six are the fastest corner of the space: the cheapest property the sweep covers, the highest
+contribution the app allows, and a balance already close to the goal. The projections are one to three
+years long, so the three goals fall inside two calendar years.
+
+**The fallback, and it is a card-wide one.** When any two live rows would resolve to the same year,
+**all three rows fall back to month and year together.** Never one row in one format beside two in
+another: a card whose three values are formatted differently has stopped being a comparison twice
+over. One predicate, computed once per render, over the three years the card is about to draw.
+
+**Why not simply keep month and year in the card always.** Because 6.10's honesty argument applies to
+the card more strongly than anywhere else on the screen - these are the longest projections it
+carries, out to 2051 at the seeded persona - and because the collision rate that would justify it is
+0.06%. The fallback buys the 0.06% without spending the 99.94%.
+
+**A consequence that needs its own decision: should the card follow the series selection?**
+
+The card projects at `monthly-low` today (`calculator-result.js:175`, "the SLOWER end, deliberately"),
+while the endpoint line (6.5) projects at the **selected** series. So with the series set to low, the
+selected row and the endpoint line name the same projection in two granularities - "2039" in the card
+and "March 2039" on the line - and with it set to high they name different ones. **A coincidence that
+holds in one state and not the other is worse than either, because a participant cannot tell which
+they are looking at.**
+
+**Recommended: the card follows the series selection**, so one control governs the whole screen and
+the selected row and the endpoint line always describe the same projection. It costs a reword of
+`compareProvenanceCaption`, which currently says "at what you are putting away now" and silently means
+`monthly-low`; it would have to name the selected rate. The card already recomputes on every render
+and `rerenderInPlace` already redraws on a chip press, so there is no new mechanism.
+
+**What is given up:** D72's "conservative end cannot disappoint" reasoning, which is why
+`monthly-low` was hard-wired. Under the recommendation a participant on the high series sees the
+optimistic dates in the card as well as on the line. That is a real trade and belongs in the D101
+entry rather than in a comment.
+
+**If the card and the line still read as two different figures in the browser**, the fix is to give
+the **selected row** its month - matching the line - and not to coarsen the line. Judged by eye in
+verification step 14, not decided here.
 
 ---
 
@@ -547,8 +824,9 @@ What it must record:
 
 | File | Change |
 | --- | --- |
-| `src/components/ui.js` | `growthChartHTML`: `yTicks` replaces `yTop`/`yBottom`; the x-axis becomes one cell per point with labels on a subset (6.4). **Add** `chartTableHTML`. `pillSegmentsHTML`, `figureDisplayHTML`, `rateBandRowHTML`, `chipRowHTML`, `rerenderInPlace` are all reused unchanged |
-| `src/css/screens.css` | `.growth-chart__x-axis` regeometried to match `.growth-chart__bars` (both `flex: 1 1 0; min-width: 0`); gridline rules for the y ticks; a `.growth-chart__table` block. `shell.css` is not touched |
+| `src/components/ui.js` | `growthChartHTML` is rebuilt as a **line** (6.11): `yTicks` replaces `yTop`/`yBottom`; the x-axis becomes absolutely-positioned year labels at computed percentages, with the thinning rule (6.4); plotted points with an active state; the y-guide. **Add** `chartTableHTML`, and `bindGrowthChart` for the scrub and keyboard contract (6.6.2), modelled on `bindDateSelect`. `pillSegmentsHTML`, `figureDisplayHTML`, `rateBandRowHTML`, `chipRowHTML`, `rerenderInPlace` are all reused unchanged |
+| `src/css/screens.css` | `.growth-chart__bar`, `__bar-group` and `__bars` are **retired** with the bar rendering; `.growth-chart__x-axis` becomes a positioned scale rather than a flex row; new rules for the line, the points and their active state (size and shape, never colour), the y-guide, the y-tick gridlines, and a `.growth-chart__table` block. A `prefers-reduced-motion` block for the draw-in and the guide (6.6.4). `shell.css` is not touched |
+| `src/content.js` | `chartRangeLabels`: **"3 yr" (36) is replaced by "2 yr" (24)**, which becomes the default. Five chips, not six - the row has 16px of slack (6.1) |
 
 ### 8.5 Docs
 
@@ -566,8 +844,8 @@ What it must record:
 | D97 | The session anchor: stamped at session start, discarded on a month mismatch under D59's rule, surfaced on frame 33. **Amends D3** - the pinned rate dates figures, not the render |
 | D98 | Durations become calendar dates calculator-wide. Carries the section 2 audit, the frame 10 boundary, and the transitional state |
 | D99 | One bounding rule at goal attainment, serving the date listbox and the projection; the attained state; per-consumer rounding, with D85's precedent for why the directions differ |
-| D100 | Frame 12's chart rebuilt to the seven requirements. **Reverses D73's amendment on the default window**, with the reason |
-| D101 | The comparison card reframed as an interval, and the footnote marker. The trade against D46, per 7.4 |
+| D100 | Frame 12's chart rebuilt to the seven requirements: a line with a scrub-driven point detail, a years-only axis positioned as a scale, and a 24-month default. **Reverses D73's amendment on the default window** on the restated reason in 6.1, retires the bar rendering, and swaps "3 yr" for "2 yr" in the chip row. Carries 6.10's honesty argument as a **reason** for years-only, not only as its consequence, and 6.9's condition that the table stays a first-class view |
+| D101 | The comparison card reframed as an interval, the footnote marker, and years-only extended to the rows with a card-wide collision fallback (7.5, measured). The trade against D46 per 7.4, and - if open decision 4 lands - the trade against D72's hard-wired `monthly-low` |
 
 **Gap entries:**
 
@@ -612,7 +890,9 @@ reach", never "you should aim for". British English, hyphens not em dashes.
 | --- | --- |
 | `chartSeriesLegend` | New - visually-hidden group label for the series control |
 | `chartSeriesCaptionTemplate` | New - the readout caption, naming the selected contribution in words |
-| `readoutCaptionTemplate` | New - `[AWAITING COPY]`, slots `{date}`, `{amount}` |
+| `readoutCaptionTemplate` | New - `[AWAITING COPY]`, slots `{date}`, `{amount}`. **It always names the date the figure belongs to** (6.2), so a scrubbed value cannot be read as the window-end value |
+| `chartPlotAriaLabel`, `chartPointAriaLabelTemplate` | New - the scrub target's accessible name and each point's, slots `{date}`, `{amount}`. Read by `aria-activedescendant` (6.6.2) |
+| `chartRangeLabels` | **"3 yr" replaced by "2 yr"** (24 months), which becomes the default. `ariaLabel` follows the WCAG 2.5.3 rule the existing five already keep: it opens with the visible label |
 | `endpointTemplate` | New - `[AWAITING COPY]`, slots `{amount}`, `{date}` |
 | `chartViewChartLabel`, `chartViewTableLabel` | New - the view toggle |
 | `chartTableCaption`, `chartTableMonthHeader`, `chartTableLowHeader`, `chartTableHighHeader` | New - the table's own labels |
@@ -622,7 +902,7 @@ reach", never "you should aim for". British English, hyphens not em dashes.
 | `compareHeading` | Reworded - `[AWAITING COPY]`, names an interval |
 | `compareRowSublabelTemplate`, `compareRowSelectedSublabelTemplate` | Reworded for the inverted row |
 | `compareFootnoteMarker` | New - a literal character |
-| `compareProvenanceCaption` | Reworded to open with the marker |
+| `compareProvenanceCaption` | Reworded to open with the marker, and - if open decision 4 lands - to **name which rate**, since "at what you are putting away now" silently means `monthly-low` today (7.5) |
 | `compareWithinTemplate` | **Retired** |
 | `beyondWindowNote` | **Retired** (2.1 item 5) |
 | `compareAlreadyLabel` | Unchanged - already the attained-row label |
@@ -660,20 +940,35 @@ Run in this order. Steps 3 and 11 are the two that decide whether the plan was f
    and does not move across a re-render or a back navigation; frame 33 renders it.
 6. `node --test scripts/chart-range.test.mjs` - extended. Assert **shape, derived from the model at
    run time, never written into the file** (D77, and D85's own record of that test file growing a D77
-   defect): the last mark never exceeds `combined-goal`; the endpoint month equals `goalMonths`
-   rounded up; the number of x labels equals the number of labelled marks and each sits in its own
-   mark's cell; the readout figure equals `balanceAtMonth` for the selected series at the window's
-   end; switching series changes the readout and not the projection; the attained state draws no
-   chart, no zero-length bar and no negative figure anywhere on the screen; no chip is offered beyond
-   attainment.
+   defect): the last point never exceeds `combined-goal`; the endpoint month equals `goalMonths`
+   rounded up; **every x-axis label sits at the computed position of its own January boundary**, and
+   the label set is exactly the thinning rule's output at that window; the readout figure equals
+   `balanceAtMonth` for the selected series at the window's end; switching series changes the readout
+   and not the projection; the attained state draws no chart, no zero-length segment and no negative
+   figure anywhere on the screen; no chip is offered beyond attainment; **the default chip is "2 yr"
+   and exactly one chip is pressed in every state** (D73's no-selection failure).
+6b. **A new `scripts/chart-detail.test.mjs`** (Chromium) for the interaction, because none of the
+   existing harnesses drives a pointer across a plot. Assert: a scrub updates the readout and its
+   date together; the readout returns to the window's end on Escape **without the pointer moving**
+   (WCAG 1.4.13 dismissible); the detail persists while the pointer moves within the plot rather than
+   vanishing (hoverable, persistent); arrow keys traverse points on focus alone and
+   `aria-activedescendant` follows, read off the same attributes `date-ceiling.test.mjs` reads; the
+   active point differs from the rest in **radius**, not only in fill (1.4.1); the table view exposes
+   a row for **every** point the scrub can reach, compared array-to-DOM rather than by count alone;
+   and under `prefers-reduced-motion: reduce` no transition duration is applied to the line, the
+   guide or the point.
 7. **Reintroduce each defect and confirm the new tests fail.** D85's precedent, and the reason
    `chart-range.test.mjs` exists at all - it passed against an inverted chart. Specifically: round the
    projection endpoint down; re-stamp the anchor instead of discarding; restore the 4-label x-axis
-   against 12 marks.
+   against 12 marks; remove the year-label thinning rule; drop the always-visible readout so the
+   value is only reachable by interacting (6.9).
 8. `node --test scripts/overlap.test.mjs` - all 37 rows, both text sizes. Rows `12` and `13` are the
    ones this pass touches: the readout, the endpoint line, the series control, the view toggle, the
-   table, and the LTV table's sixth row. This is also where 6.4's "four labels, five is the ceiling"
-   is settled at Large text rather than assumed.
+   table, and the LTV table's sixth row. Three things are **settled here rather than assumed**:
+   6.4's year-label pitch at Large text (open decision 1); the five-chip row with "2 yr" in it, which
+   has 16px of slack and has not been re-measured since D75; and whether the table toggle reads as a
+   peer of the chart rather than a buried fallback, which 6.9 makes a condition on the years-only
+   decision rather than a preference.
 9. `node --test scripts/action-bar.test.mjs` - frame 12 gains height; the bar must stay hittable
    without scrolling at all four viewports.
 10. `node --test scripts/frame-scale.test.mjs` - `shell.css` is not touched, but the chart's geometry
@@ -695,10 +990,57 @@ Run in this order. Steps 3 and 11 are the two that decide whether the plan was f
 
 ---
 
-## 12. Open decisions, to be settled before the build session
+## 12. Open decisions
 
-1. **The default window** - 6.1, options A to D, B recommended. Do not start without this.
-2. **Four x labels or five** - 6.4. Measured in step 8, not assumed.
-3. **Abbreviated or full month on the axis** - 6.4, taken with the measurement.
-4. **The attained-state copy** and the four other `[AWAITING COPY]` strings - section 10. D85 shipped
-   `dateGoalAlreadyMet` as a placeholder on a live screen; that should not happen twice.
+*Re-recorded 31 August 2026. Three of the original four are settled; the two that were about axis
+labelling are superseded rather than answered, because a years-only axis asks a different question.*
+
+### Settled
+
+| | Decision | Where it landed |
+| --- | --- | --- |
+| 1 | **Default window: option B, 24 months, endpoint carried in text.** | 6.1, with D73's clause reversed on the restated reason: the barrier was reading a value, not seeing the whole projection |
+| 2 | **The x-axis carries years only. No months anywhere on the axis.** | 6.4, and the axis becomes an absolutely-positioned scale rather than a row of captions |
+| 3 | **A line with plotted points, with the value revealed on press or hover and a guide to the y-axis.** | 6.6, with the interaction settled as a **scrub** on the measurement in 6.6.1 |
+| - | **Years-only extends to the comparison card**, with a card-wide fallback to month and year on a collision | 7.5, measured: 0 collisions in 4,830 configurations at the seeded rates, 6 in 9,660 across everything the app can produce |
+| - | **The endpoint line keeps month and year**, and the attained state renders no date at all | 6.10, reported against the same honesty reasoning that settled the axis |
+
+### Superseded
+
+**Old 2, "four x labels or five".** There is no fixed label count now. The axis emits one label per
+January boundary inside the window, so the count follows the window: 2 at six months, 3 at the
+24-month default, 13 at "Max" on the seeded persona.
+
+**Old 3, "abbreviated or full month on the axis".** Gone entirely - there are no months on the axis.
+
+### Open
+
+1. **The year-label thinning rule, confirmed against measured text rather than the estimate in 6.4.**
+   The ceiling is calculated at 8 labels from a ~26px "2027" at footnote size (~30px at Large,
+   `--text-scale: 1.15`) against a 305px plot. A 13-label "Max" window is over it and must thin.
+   Settled in `overlap.test.mjs` at both text sizes, not by eye.
+2. **Where the year label sits relative to its boundary** - centred on the January position, or
+   left-aligned from it. Centring puts the first label half outside the plot when a boundary falls
+   near x=0; left-aligning reads as "this year starts here", which is what the label means. Leaning
+   left-aligned, to be confirmed with 1.
+3. **The vertical guide from the active point to the x-axis** - optional in 6.6. It locates a point
+   within a year, which the axis cannot do, at the cost of a second rule across the plot. Judged in
+   layout.
+4. **Does the comparison card follow the series selection?** 7.5 recommends yes, so one control
+   governs the screen and the selected row and the endpoint line cannot describe different
+   projections. It trades away D72's hard-wired `monthly-low`, so it needs a decision rather than an
+   implementation choice.
+5. **The five `[AWAITING COPY]` strings** - section 10. D85 shipped `dateGoalAlreadyMet` as a
+   placeholder on a live screen; that should not happen twice.
+
+### Confirmed by measurement, and recorded so they are not relitigated
+
+- **Quarterly points do not clear the 44px touch target.** Measured at 38.1px. The option was proposed
+  on the premise that they would. 6.6.1.
+- **A per-point hit band does not clear it either**, in width, in either standard, and WCAG 2.5.8's
+  spacing exception does not apply at a 13.3px pitch. 6.6.1.
+- **A sixth range chip does not fit.** `components.css:1952` records the row as "334px of a 350px
+  column" at five chips, so "2 yr" replaces "3 yr" rather than joining it. 6.1.
+- **Labelling every point at the default window collides by a factor of two** - 12.7px per label
+  against ~26px of text - which is the participant's own 22:04 caveat, confirmed rather than assumed.
+  6.11.
