@@ -8140,6 +8140,85 @@ saying "-£39 put aside each month". It predates this pass (D80 rendered the rea
 horizon) and is out of this pass's scope, which explicitly leaves both alone. Recorded as `GAPS.md`
 G98 rather than left in a report.
 
+### REVISED 31 August 2026: the upward flip is gone, and the disclosure moved to make that possible
+
+**This supersedes the placement D83 chose and the flip this decision introduced.** Cross-references
+D92 (the fixed logical viewport), D96 (which pinned the ordinary visit) and `GAPS.md` G107.
+
+**What is no longer true.** "Which side it opens on is measured, not fixed" - the sentence at the head
+of `dateSelectHTML` - no longer describes this control. There is one direction: **down, always**.
+`useAbove`, the hysteresis D96 added, the `date-select__popover--above` class and its CSS rule are all
+deleted rather than left dormant, because a variant nothing can reach is a variant a later reader will
+assume still works.
+
+**Why direction became a requirement.** A participant who triggered the moved-date disclosure saw the
+list open upward; a participant who did not saw it open downward - same screen, same task, same build.
+That is interaction variance between sessions, on the date branch G107 is measuring, and it is exactly
+the class of thing D92 removed from layout. D96 had already found the side was settled by a single
+layout pixel on an ordinary visit and answered differently at Large text, so "measured" never meant
+"stable".
+
+**Why it could not simply be pinned, and what actually unblocked it.** With the disclosure ABOVE the
+controls it pushed them down, leaving **73px (default) / 47.5px (Large)** beneath the trigger against
+D96's **146px** three-row minimum - under half. Pinning downward there would have produced either a
+list well below the minimum or, through the old `Math.max(rowH * 2, ...)` floor, one overhanging the
+action bar by 23px / 48.5px. Neither ships.
+
+So the disclosure moved **below the date controls**, rendered through a new `note` slot in
+`dateSelectHTML` between the field row and the hint. The control rises by the banner's own height and
+hands the space back. Measured after the move, in layout pixels:
+
+| | space below | against the 146px minimum |
+| --- | --- | --- |
+| 1280x720, default | **181** | clears by 35px |
+| 1280x720, Large | **165.4** | clears by 19.4px |
+| 2560x1440, default | **181** | clears by 35px |
+| 2560x1440, Large | **165.4** | clears by 19.4px |
+
+**The stronger result is that these are the ordinary visit's own numbers.** The space beneath the
+trigger no longer depends on whether the disclosure is showing at all, so the geometry is identical in
+every state rather than merely adequate in each. Three options fully visible, a fourth partly, list
+scrolling internally, all eight reachable by keyboard.
+
+**This reverses D83's reading-order argument, deliberately.** D83 put the banner above because it
+explains a value the participant is about to read, so it should come first. That argument still holds
+on its own terms and is not dismissed - it is outranked. The participant now meets the changed date in
+the controls and the reason immediately beneath them, which costs them a beat rather than the fact:
+the date they read in the control is the same date the banner names. D83's other argument, distance
+from the fold, was checked rather than assumed - at 390x844 the banner sits at 385-477 (default) /
+426-528 (Large) against a dock at 651, so it is fully visible without scrolling and nowhere near
+either the fold or the bar. Had it not been, D46 would have failed and the old arrangement would have
+stood.
+
+**One thing this did NOT fix, stated because the brief expected it to.** The open list still covers
+**48.3%** of the disclosure - unchanged, not resolved. The figure is identical before and after,
+because the coverage is horizontal: the year popover spans the year field, which is 48.3% of the
+banner's width, and it covers that column whichever way it opens. Moving the banner from above to
+below moved the overlap, not away from it.
+
+What is different is that the cost is now visibly nil: the moved date - "to May 2034." - falls on the
+banner's short last line in the uncovered column, and the month and year controls sit directly above
+the list showing "May" and "2034" outright. So the D46 payload is legible while the list is open, by
+three routes. No `GAPS.md` entry was opened for the overlap, per the brief; this paragraph is the
+record, and it should not be read as the overlap having been resolved.
+
+### Verified
+
+Twelve states - ordinary, moved-to-floor and moved-to-cap, at 1280x720 and 2560x1440, at default and
+Large text - all downward, all anchored to their own field, all clamped to 181 / 165.4px, none
+reaching the dock or the frame edge. Reading order matches visual order after the DOM move
+(`control:month > control:year > #date-moved > date-select__hint` at every combination), the banner is
+not a tab stop, tab order still runs month then year, and all eight options stay reachable by keyboard
+in the tightest state. `CACHE_VERSION` and `BUILD_VERSION` v104 to v105. Full suite 379 passing, 0
+failing.
+
+### To reverse
+
+Restore the banner to its position above the dropdowns and reinstate `useAbove` with D96's two
+clauses, the `--above` class and its CSS. That reinstates an interaction that answers differently
+depending on whether the participant tripped a disclosure, so the reason would have to be a different
+way of giving the list room rather than a return to choosing a side.
+
 ---
 
 ## D85. The date list is capped at the flip point, and the goal-already-met case gets a screen

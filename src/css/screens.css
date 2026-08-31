@@ -1066,11 +1066,6 @@
   overflow: hidden;
 }
 
-.date-select__popover--above {
-  top: auto;
-  bottom: calc(100% + var(--space-sm));
-}
-
 /* THE ONLY SCROLLBAR IN THE BUILD THAT IS DELIBERATELY VISIBLE. shell.css hides
    every scrollbar under `.screen *` because a persistent track inside a phone
    mock reads as a browser artefact. This list is the exception and needs to be:

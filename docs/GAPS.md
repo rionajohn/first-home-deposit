@@ -3662,16 +3662,24 @@ direction downward on an ordinary visit, and paid for it out of the height clamp
 the layout above the control. The list is therefore SHORTER on an ordinary visit than it was when
 this entry was written:
 
-| Viewport | State | Before D96 | After D96 |
-| --- | --- | --- | --- |
-| Framed (1280x720 to 2560x1440) | Ordinary | 5 rows, upward | **3 rows fully visible, downward** (181px default / 165.4px Large) |
-| Framed | Moved-date disclosure | 5 rows, upward | 5 rows, upward - unchanged |
-| 390x844 | Ordinary | 5 rows, downward | 5 rows, downward - **unchanged** |
-| 390x844 | Moved-date disclosure | 5 rows, upward | 5 rows, upward - unchanged |
+| Viewport | State | Before D96 | After D96 | After D84's revision |
+| --- | --- | --- | --- | --- |
+| Framed (1280x720 to 2560x1440) | Ordinary | 5 rows, upward | **3 rows, downward** (181 / 165.4px) | unchanged |
+| Framed | Moved-date disclosure | 5 rows, upward | 5 rows, upward | **3 rows, downward** (181 / 165.4px) |
+| 390x844 | Ordinary | 5 rows, downward | 5 rows, downward | unchanged |
+| 390x844 | Moved-date disclosure | 5 rows, upward | 5 rows, upward | **3 rows, downward** |
 
-**So at 390x844 nothing changed at all.** If this entry is reproduced at the mobile viewport, the list
-is exactly the length it was. The shortening is a framed-viewport effect, which is where a moderated
-session runs.
+**The clamp moved a second time, 31 August 2026 (DECISIONS.md D84 as revised).** The disclosure now
+renders BELOW the date controls, so the space beneath the trigger is the same whether it is showing or
+not, and the list hangs downward in every state at 181px (default) / 165.4px (Large). The moved-date
+states are the ones that changed this time: they were five rows opening upward and are now three
+opening down, at every viewport including 390x844.
+
+**So both list lengths are now three rows at framed sizes, in every state.** If this entry is
+reproduced by scrolling the year list to a far year, that takes more scrolling than either the
+original report or the D96 note implies - in the moved-date states as well now. A reproduction that
+fails to reach the year is a shorter list, not a fixed defect. Which options EXIST is still untouched:
+the floor, the cap and the year span are built by the caller and neither pass went near them.
 
 **Nothing about which options EXIST changed**, which is the part this entry turns on: the floor, the
 cap and the year span are built by the caller and D96 did not touch them. December 2042 is still
@@ -4194,11 +4202,18 @@ fold throughout it - "we'll work out the other" one line beneath the heading wri
 exact phrase. A contaminated cause is recoverable by a later isolation pass; a session run against
 copy known to fail is not.
 
-**Second change on this screen since D94, and it is the last one.** D96 pinned the year list's opening
-direction, which is on the date branch this entry measures. It removed variance rather than adding
-any - the list now answers the same way at every window size and both text sizes, where before it
-answered one way at default text and the other at Large. Nothing further should land on frame 10
-before the session runs.
+**Fourth change on this screen since D94, and the screen is frozen on landing.** In order: D94's
+heading, D95's caption, D96 pinning the list's direction on the ordinary visit, and D84's revision
+pinning it in every state by moving the moved-date disclosure below the controls.
+
+**All four moved in the same direction - toward less variance, not more.** The last two removed
+interaction variance rather than adding any: the list now answers the same way at every window size,
+both text sizes, and whether or not the participant tripped a disclosure. Where D96 left this entry
+able to separate causes only on the hesitation branch, nothing since has narrowed that further, and
+the date branch is now geometrically identical for every participant who reaches it.
+
+**Nothing further lands on frame 10 until this measurement has run.** The next change waits for the
+G107 session.
 
 ---
 

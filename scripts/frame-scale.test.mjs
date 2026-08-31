@@ -222,21 +222,33 @@ test('the layout inside the frame is identical at both window sizes', async () =
 });
 
 /**
- * THE SIDE THE LIST OPENS ON IS A REQUIREMENT, NOT AN INCIDENTAL PROPERTY
- * (DECISIONS.md D96, amending D84). It used to be asserted as `popover.top >
- * field.bottom` on whichever visit the test happened to run, which is how it
- * came to pass for two builds on a ONE layout pixel margin at default text
- * while already failing, unasserted, at Large.
+ * THE LIST HANGS BELOW THE TRIGGER, IN EVERY STATE (DECISIONS.md D84 as
+ * revised; D96 pinned the ordinary visit and this pins the rest).
  *
- * So both states are covered on purpose now: the ordinary visit must hang
- * BELOW, and D84's moved-date disclosure visit must still flip ABOVE. The
- * geometry every open has to satisfy - anchored, adjacent on exactly one side,
- * never overlapping the field, inside the frame, clamped and clear of the dock
- * - is asserted the same way for both, so neither side is the tested one.
+ * THERE IS NO UPWARD VARIANT LEFT TO ASSERT. Earlier revisions of this file
+ * asserted direction on whichever visit the test happened to run, which is how
+ * a ONE layout pixel margin passed for two builds while already failing,
+ * unasserted, at Large text. Then D96 asserted below on the ordinary visit and
+ * above on the disclosure visit - correct at the time, and exactly the
+ * session-to-session interaction variance D92 exists to remove.
+ *
+ * The disclosure now renders BELOW the date controls, so the space beneath the
+ * trigger no longer depends on whether it is showing, and every state opens the
+ * same way. All three states are asserted at both viewports and both text
+ * sizes, over one geometry check, so no state is the tested one.
  */
-const MOVED_PAST_CAP = (() => {
+const DISCLOSURE_STATES = (() => {
   const now = new Date();
-  return { targetMonth: now.getMonth() + 1, targetYear: now.getFullYear() + 9 };
+  const at = (n) => {
+    const d = new Date(now.getFullYear(), now.getMonth() + n, 1);
+    return { targetMonth: d.getMonth() + 1, targetYear: d.getFullYear() };
+  };
+  return [
+    ['ordinary', {}, false],
+    // Far past the cap, and far below the floor: the two moves that disclose.
+    ['moved-to-cap', at(120), true],
+    ['moved-to-floor', at(1), true],
+  ];
 })();
 
 async function openList(viewport, extra) {
@@ -249,11 +261,11 @@ async function openList(viewport, extra) {
     const popover = document.querySelector('[data-popover="year"]');
     const list = popover.querySelector('[role="listbox"]');
     const dock = document.querySelector('.action-bar-dock');
+    const banner = document.querySelector('#date-moved');
     return {
       hidden: popover.hidden,
       expanded: trigger.getAttribute('aria-expanded'),
-      above: popover.classList.contains('date-select__popover--above'),
-      disclosure: !!document.querySelector('#date-moved'),
+      disclosure: !!banner,
       field: box(trigger.closest('.date-select__field')),
       popover: box(popover), list: box(list), screen: box(document.querySelector('.screen')),
       dock: dock ? box(dock) : null,
@@ -269,76 +281,59 @@ async function openList(viewport, extra) {
   return { context, page, m };
 }
 
-/** Everything an open list must satisfy on EITHER side. */
-function assertGeometry(m, at) {
-  assert.equal(m.hidden, false, `the list did not open ${at}`);
-  assert.equal(m.expanded, 'true', `aria-expanded was not set ${at}`);
-
-  // ANCHORED: the popover spans exactly its own field. Both are CSS-positioned,
-  // so this is what proves the transform did not move the overlay away from the
-  // control it belongs to.
-  assert.ok(Math.abs(m.popover.left - m.field.left) < 1, `list left edge is ${m.popover.left - m.field.left}px from its field ${at}`);
-  assert.ok(Math.abs(m.popover.right - m.field.right) < 1, `list right edge is ${m.popover.right - m.field.right}px from its field ${at}`);
-
-  // ADJACENT ON EXACTLY ONE SIDE, and never across the field it belongs to.
-  const gapBelow = m.popover.top - m.field.bottom;
-  const gapAbove = m.field.top - m.popover.bottom;
-  const touching = [gapBelow, gapAbove].filter((g) => g >= -1 && g < 20 * m.scale);
-  assert.equal(touching.length, 1, `the list is adjacent on ${touching.length} sides of its trigger ${at}`);
-  assert.ok(m.popover.bottom <= m.field.top + 1 || m.popover.top >= m.field.bottom - 1,
-    `the open list overlaps its own trigger ${at}`);
-
-  // INSIDE THE FRAME. `.screen` is the fixed logical viewport (D92); a list that
-  // reaches past it is drawn outside the phone.
-  assert.ok(m.popover.top >= m.screen.top - 2, `the list reaches ${m.screen.top - m.popover.top}px above the frame ${at}`);
-  assert.ok(m.popover.bottom <= m.screen.bottom + 2, `the list reaches ${m.popover.bottom - m.screen.bottom}px below the frame ${at}`);
-
-  // CLEAR OF THE DOCK, MEASURED IN LAYOUT PIXELS. The height is measured from
-  // the drawn geometry and applied as a layout length, and getting that
-  // conversion wrong is exactly what a scale transform breaks: the list would
-  // be set half again too tall and reach past the bar it was measured against.
-  //
-  // The 1px allowance is the popover's own border, which the measurement does
-  // not subtract from the space it clamps to. It is the same 1px at both
-  // scales, which is the point: a constant, not something that grows with the
-  // magnification.
-  if (m.dock) {
-    const over = (m.list.bottom - m.dock.top) / m.scale;
-    assert.ok(over <= 1, `the open list reaches ${over} layout px past the action bar ${at}`);
-  }
-  assert.ok(Math.abs(m.drawnHeight - m.maxHeight * m.scale) < 2,
-    `the list is drawn ${m.drawnHeight}px for a ${m.maxHeight}px clamp at scale ${m.scale} ${at}`);
-
-  // NEVER SHORTER THAN THE MINIMUM USABLE LENGTH (D96): three rows. Whichever
-  // side is chosen, it is chosen because it can seat one.
-  const rows = m.maxHeight / (m.rowHeight / m.scale);
-  assert.ok(rows >= 3, `the list was clamped to ${rows.toFixed(2)} rows, below the 3-row minimum ${at}`);
-}
-
-test('the overlay listbox hangs BELOW the trigger on an ordinary visit', async () => {
+test('the overlay listbox hangs below the trigger in every state, at both scales', async () => {
   for (const viewport of [SHORT, TALL]) {
     for (const textSize of ['default', 'large']) {
-      const at = `at ${viewport.width}x${viewport.height}, ${textSize} text`;
-      const { context, m } = await openList(viewport, { textSize });
-      assert.equal(m.disclosure, false, `an ordinary visit drew the moved-date disclosure ${at}`);
-      assert.equal(m.above, false, `the list opened upward on an ordinary visit ${at}`);
-      assert.ok(m.popover.top > m.field.bottom, `the list did not hang below its trigger ${at}`);
-      assertGeometry(m, at);
-      await context.close();
-    }
-  }
-});
+      for (const [name, date, expectDisclosure] of DISCLOSURE_STATES) {
+        const at = `at ${viewport.width}x${viewport.height}, ${textSize} text, ${name}`;
+        const { context, m } = await openList(viewport, { textSize, ...date });
+        try {
+          assert.equal(m.disclosure, expectDisclosure, `the disclosure was ${m.disclosure ? 'drawn' : 'absent'} unexpectedly ${at}`);
+          assert.equal(m.hidden, false, `the list did not open ${at}`);
+          assert.equal(m.expanded, 'true', `aria-expanded was not set ${at}`);
 
-test("the overlay listbox still flips ABOVE in D84's moved-date state", async () => {
-  for (const viewport of [SHORT, TALL]) {
-    for (const textSize of ['default', 'large']) {
-      const at = `at ${viewport.width}x${viewport.height}, ${textSize} text`;
-      const { context, m } = await openList(viewport, { textSize, ...MOVED_PAST_CAP });
-      assert.equal(m.disclosure, true, `the moved-date disclosure was not drawn ${at}`);
-      assert.equal(m.above, true, `the list did not flip above the trigger ${at}`);
-      assert.ok(m.popover.bottom < m.field.top, `the list did not sit above its trigger ${at}`);
-      assertGeometry(m, at);
-      await context.close();
+          // DOWNWARD. The whole point of the revision: one direction, whatever
+          // the state, so the interaction cannot vary between two sessions.
+          assert.ok(m.popover.top >= m.field.bottom - 1, `the list did not hang below its trigger ${at}`);
+          assert.ok(m.popover.top - m.field.bottom < 20 * m.scale,
+            `the list floated ${m.popover.top - m.field.bottom}px from its trigger ${at}`);
+
+          // ANCHORED: the popover spans exactly its own field. Both are
+          // CSS-positioned, so this proves the transform did not move the
+          // overlay away from the control it belongs to.
+          assert.ok(Math.abs(m.popover.left - m.field.left) < 1, `list left edge is ${m.popover.left - m.field.left}px from its field ${at}`);
+          assert.ok(Math.abs(m.popover.right - m.field.right) < 1, `list right edge is ${m.popover.right - m.field.right}px from its field ${at}`);
+
+          // Never across the trigger it belongs to.
+          assert.ok(m.popover.top >= m.field.bottom - 1, `the open list overlaps its own trigger ${at}`);
+
+          // INSIDE THE FRAME. `.screen` is the fixed logical viewport (D92); a
+          // list reaching past it is drawn outside the phone.
+          assert.ok(m.popover.top >= m.screen.top - 2, `the list reaches ${m.screen.top - m.popover.top}px above the frame ${at}`);
+          assert.ok(m.popover.bottom <= m.screen.bottom + 2, `the list reaches ${m.popover.bottom - m.screen.bottom}px below the frame ${at}`);
+
+          // CLEAR OF THE DOCK, MEASURED IN LAYOUT PIXELS. The height is measured
+          // from drawn geometry and applied as a layout length, and getting that
+          // conversion wrong is what a scale transform breaks: the list would be
+          // set half again too tall and reach past the bar it was measured
+          // against. The 1px allowance is the popover's own border - the same
+          // 1px at both scales, a constant rather than something that grows with
+          // the magnification.
+          if (m.dock) {
+            const over = (m.list.bottom - m.dock.top) / m.scale;
+            assert.ok(over <= 1, `the open list reaches ${over} layout px past the action bar ${at}`);
+          }
+          assert.ok(Math.abs(m.drawnHeight - m.maxHeight * m.scale) < 2,
+            `the list is drawn ${m.drawnHeight}px for a ${m.maxHeight}px clamp at scale ${m.scale} ${at}`);
+
+          // NEVER SHORTER THAN THE MINIMUM USABLE LENGTH (D96): three rows.
+          // Asserted here rather than enforced in the component, because a
+          // screen that cannot seat three rows below its own control is a layout
+          // defect to fix, not something to paper over at run time.
+          const rows = m.maxHeight / (m.rowHeight / m.scale);
+          assert.ok(rows >= 3, `the list was clamped to ${rows.toFixed(2)} rows, below the 3-row minimum ${at}`);
+        } finally { await context.close(); }
+      }
     }
   }
 });

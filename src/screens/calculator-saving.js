@@ -444,33 +444,6 @@ export function render(container, ctx) {
         )}</p>
         ${errorText ? warningBannerHTML(errorText, { id: 'error-saving' }) : ''}
       ` : `
-        <!-- ABOVE THE DROPDOWNS, and the placement was measured rather than
-             argued (D83). The disclosure explains a value the participant is
-             about to read, so it belongs before it; putting it under the
-             control would have them meet the changed date first and the reason
-             second.
-
-             MEASURED, because G96's finding is that this screen is tight below
-             the fold. The readout ends up in the SAME place either way - the
-             banner displaces it by its own height wherever it sits - so the
-             choice costs the readout nothing. What it buys is distance from
-             the fold: above, the banner sits 116px (default) / 122px (Large)
-             higher than it would below the dropdowns. Both fit; above has the
-             margin. See D83. -->
-        ${movedToEarliest || movedToCap ? infoBannerHTML(
-          // ONE BANNER, ONE ID, TWO STRINGS. The two moves cannot both have
-          // happened (see the patches above), so this renders at most one - and
-          // if a hand-edited session somehow arrives with both flags set, the
-          // floor's wins, because reaching a date that does NOT work is the
-          // more urgent of the two to explain.
-          //
-          // The slot is `{earliest}` for both, which is the floor's name for
-          // the cap's date - see content.js, where it is flagged rather than
-          // renamed.
-          fill(movedToEarliest ? c.dateMovedToEarliest : c.dateMovedToCap,
-            { earliest: `${MONTH_NAMES[targetMonth - 1]} ${targetYear}` }),
-          { id: 'date-moved', live: true },
-        ) : ''}
         <!-- NO DATE CONTROL AT ALL WHEN THERE IS NO DATE TO PICK (D85). An
              empty listbox is a control that asks a question with no answers;
              drawing one and letting the participant open it to find nothing is
@@ -489,6 +462,38 @@ export function render(container, ctx) {
           yearOptions,
           yearValue: targetYear,
           hint: c.dateStepperHint,
+          // BELOW THE CONTROLS SINCE D84'S REVISION, AND THIS REVERSES D83.
+          //
+          // D83 put the disclosure ABOVE the dropdowns on the reasoning that it
+          // explains a value the participant is about to read, so it should come
+          // first. That argument still holds on its own terms. What outranks it
+          // is that the banner above the controls pushed them down and left 73px
+          // (default) / 47.5px (Large) beneath the trigger - under half the 146px
+          // a usable list needs - so the year list could not open downward in this
+          // state, and opened upward instead while every other state opened down.
+          //
+          // The participant now meets the changed date in the controls first and
+          // the reason immediately under them. That is a weaker reading order than
+          // D83 wanted and a deliberate trade: the date they read is the SAME date
+          // the banner names, so the order costs them a beat rather than the fact.
+          //
+          // IT IS PASSED AS A SLOT rather than rendered as a sibling because the
+          // hint belongs after it - reading order is controls, what changed, then
+          // what to do next - and the hint lives inside this component.
+          note: movedToEarliest || movedToCap ? infoBannerHTML(
+            // ONE BANNER, ONE ID, TWO STRINGS. The two moves cannot both have
+            // happened (see the patches above), so this renders at most one - and
+            // if a hand-edited session somehow arrives with both flags set, the
+            // floor's wins, because reaching a date that does NOT work is the
+            // more urgent of the two to explain.
+            //
+            // The slot is `{earliest}` for both, which is the floor's name for
+            // the cap's date - see content.js, where it is flagged rather than
+            // renamed.
+            fill(movedToEarliest ? c.dateMovedToEarliest : c.dateMovedToCap,
+              { earliest: `${MONTH_NAMES[targetMonth - 1]} ${targetYear}` }),
+            { id: 'date-moved', live: true },
+          ) : '',
           monthAction: 'open-month-list',
           yearAction: 'open-year-list',
           monthAriaLabel: c.dateStepperMonthAriaLabel,

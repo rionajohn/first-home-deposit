@@ -602,10 +602,12 @@ test('the overlay floats: it pushes neither the readout nor the dock, and is not
   }
 });
 
-test('the list flips above the trigger when there is no room below it', async () => {
-  // D83's moved-date disclosure sits above the control and pushes it down far
-  // enough that a five-option list does not fit beneath it. Measured, not
-  // assumed: this is the state that makes the flip necessary rather than nice.
+test('the list hangs below the trigger in every state, disclosure or not', async () => {
+  // THERE IS NO UPWARD VARIANT ANY MORE (D84 as revised). This test used to
+  // assert the opposite - that the moved-date state flipped above - because the
+  // disclosure sat ABOVE the control and left too little room beneath it. The
+  // disclosure now sits BELOW the controls, the space beneath the trigger is the
+  // same whether it renders or not, and the list hangs below in both.
   // AWAITED INSIDE THE `try`, not returned from it: a returned promise settles
   // after `finally` has already closed the context, which fails as "target
   // closed" and looks like a defect in the control rather than in the harness.
@@ -619,8 +621,8 @@ test('the list flips above the trigger when there is no room below it', async ()
   };
   const below = await openAndRead(EARLIEST_MONTHS + 24);
   const moved = await openAndRead(EARLIEST_MONTHS - 1);
-  assert.equal(below.aboveTrigger, false, 'the list flipped above the trigger where there was room below it');
-  assert.equal(moved.aboveTrigger, true, 'the list opened below the trigger where it does not fit');
+  assert.equal(below.aboveTrigger, false, 'the list flipped above the trigger on an ordinary visit');
+  assert.equal(moved.aboveTrigger, false, 'the list flipped above the trigger in the moved-date state');
   assert.ok(below.withinVisibleArea && moved.withinVisibleArea);
 });
 

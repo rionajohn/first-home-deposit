@@ -934,7 +934,7 @@ export function segmentedControlHTML({ options, selected, action }) {
  * The closed trigger keeps the box `.date-select__control` already drew, so the
  * frame reads as it did through three control changes now.
  */
-export function dateSelectHTML({ monthOptions, monthValue, yearOptions, yearValue, hint, monthAction, yearAction, monthAriaLabel, yearAriaLabel }) {
+export function dateSelectHTML({ monthOptions, monthValue, yearOptions, yearValue, hint, note = '', monthAction, yearAction, monthAriaLabel, yearAriaLabel }) {
   const field = ({ options, value, action, ariaLabel, name }) => {
     const listId = `date-${name}-list`;
     const optId = (v) => `date-${name}-opt-${v}`;
@@ -969,6 +969,7 @@ export function dateSelectHTML({ monthOptions, monthValue, yearOptions, yearValu
         ${field({ options: monthOptions, value: monthValue, action: monthAction, ariaLabel: monthAriaLabel, name: 'month' })}
         ${field({ options: yearOptions, value: yearValue, action: yearAction, ariaLabel: yearAriaLabel, name: 'year' })}
       </div>
+      ${note}
       <p class="date-select__hint">${hint}</p>
     </div>
   `;
@@ -1065,7 +1066,6 @@ export function bindDateSelect(container, { onPick }) {
     // the trigger.
     const bringFocusBack = popover.contains(document.activeElement);
     popover.hidden = true;
-    popover.classList.remove('date-select__popover--above');
     trigger.setAttribute('aria-expanded', 'false');
     if (onOutside) { document.removeEventListener('pointerdown', onOutside, true); onOutside = null; }
     openName = null;
@@ -1116,57 +1116,35 @@ export function bindDateSelect(container, { onPick }) {
     // the list gets is whatever the chosen side offers, up to this.
     const wanted = rowH * 5 + 2;
 
-    // THE MINIMUM USABLE LENGTH, AND THE ONLY THING THAT DECIDES THE SIDE
-    // (DECISIONS.md D96, amending D84's rule). Three rows: enough to read as a
-    // list, to show the selection with a neighbour either side, and to make the
-    // scrollbar's presence obvious. Below this a list has to be scrolled before
-    // it can be understood, and flipping is the better of two bad options.
+    // THE LIST ALWAYS HANGS BELOW THE TRIGGER (DECISIONS.md D84 as revised;
+    // D96 pinned the ordinary visit, this pins the rest). There is no upward
+    // variant left and no side to choose - `useAbove` and its hysteresis are
+    // gone, along with the `--above` class they toggled.
     //
-    // D84 CHOSE THE SIDE ON `wanted`, and that is what changed. Asking for five
-    // rows below and flipping whenever fewer were available put the decision on
-    // a knife edge: on an ordinary visit the space below and the space above
-    // are within one row of each other, so the side was settled by a couple of
-    // pixels of copy. Measured at v102, the ordinary visit hung below by ONE
-    // layout pixel at default text (below 203, above 202) and had ALREADY
-    // flipped at Large (below 190.7, above 214.3) - the same build answering
-    // the same question two ways because of a text size. A two-line caption
-    // then moved it 22px and every framed viewport flipped.
+    // WHY DIRECTION IS PINNED RATHER THAN CHOSEN. This is a research
+    // instrument. A participant who triggered the moved-date disclosure used to
+    // see the list open one way and a participant who did not saw it open the
+    // other, on the same screen and the same task - interaction variance
+    // between sessions, on the date branch GAPS.md G107 is measuring, and
+    // exactly the class of thing D92 removed from layout. Measured at v104 the
+    // side was also settled by a single layout pixel on an ordinary visit and
+    // answered differently at Large text, so "chosen" never meant "stable".
     //
-    // DIRECTION IS A REQUIREMENT HERE, NOT AN INCIDENTAL PROPERTY, because this
-    // is a research instrument: the date branch is one of the two options
-    // GAPS.md G107 is measuring, and an interaction that answers differently
-    // between two sessions is variance of exactly the kind D92 removed from
-    // layout. So the ordinary visit hangs below, and the list is SHORTENED to
-    // whatever fits rather than moved to where five rows would.
-    const minUsable = rowH * 3 + 2;
-    const decisive = rowH * 2;
+    // WHAT MADE PINNING POSSIBLE. The disclosure used to sit ABOVE the controls
+    // and pushed them down, leaving 73px (default) / 47.5px (Large) beneath the
+    // trigger against a 146px minimum - less than half, so downward could not
+    // be honoured in that state at all. Moving the disclosure BELOW the
+    // controls raises the field by its own height and hands that space back.
+    // See D84's revision for the measured figures.
+    //
+    // THE CLAMP TAKES WHAT IS THERE, with no floor that could exceed it: a
+    // `Math.max(rowH * 2, ...)` floor would reach past the dock the moment the
+    // space fell under two rows, which is the one thing the measurement is for.
+    // The three-row minimum is asserted in the tests rather than enforced here,
+    // because a screen that cannot seat it is a layout defect to be fixed, not
+    // a case for this function to paper over at run time.
     const below = px(bottom - t.bottom) - gap;
-    const above = px(t.top - top) - gap;
-
-    // TWO REASONS TO FLIP, AND NEITHER OF THEM IS "five rows would not fit".
-    //
-    //   1. The space below cannot seat a usable list at all. This is the
-    //      fallback the minimum exists for: a two-row list below is worse than
-    //      a five-row list above, so the flip is the right answer.
-    //   2. The list would be short below AND above is DECISIVELY better - two
-    //      whole rows better. This is the hysteresis, and it is what stops a
-    //      near-tie from deciding direction.
-    //
-    // A MINIMUM ALONE CANNOT SEPARATE THE TWO STATES, which is why there are
-    // two clauses rather than one. Measured across both viewports and both text
-    // sizes, the ordinary visit bottoms out at 165.4px below and D84's
-    // disclosure visit tops out at 158px - a 7.4px window, narrower than the
-    // rounding on a row. The DIFFERENCE between the sides separates cleanly
-    // where the raw space does not: at most 74.2px on an ordinary visit, at
-    // least 174px with the disclosure present. Two rows sits between them with
-    // 21.8px of margin on the tighter side.
-    //
-    // `above > below` guards both: flipping to a side that is worse than the
-    // one being left is never right, whatever the other clauses say.
-    const useAbove = above > below
-      && (below < minUsable || (below < wanted && above > below + decisive));
-    popover.classList.toggle('date-select__popover--above', useAbove);
-    list.style.maxHeight = `${Math.max(rowH * 2, Math.min(wanted, useAbove ? above : below))}px`;
+    list.style.maxHeight = `${Math.min(wanted, below)}px`;
 
     // --- Opens ON the selection, with what is above it in view -------------
     // A participant on 2045 must see 2045, not 2027. One row of headroom, so
