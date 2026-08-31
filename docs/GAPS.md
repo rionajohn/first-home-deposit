@@ -3981,10 +3981,13 @@ participant will now see.
 
 ---
 
-## G106. Frame 10's heading names the mechanism, not the goal. WIRED, BLOCKED PENDING COPY
+## G106. Frame 10's heading names the mechanism, not the goal. CLOSED 31 August 2026 - DECISIONS.md D94
 
-*Raised 31 August 2026 from the pilot session of the same date, with `DECISIONS.md` D93. The key is
-wired and renders `[AWAITING COPY]`; the string is outstanding. **Do not close on the wiring.***
+*Raised 31 August 2026 from the pilot session of the same date (pilot finding **P2**), with
+`DECISIONS.md` D93, which wired the key and rendered `[AWAITING COPY]` rather than writing a string
+in a build session. **Closed by D94**, which landed the approved copy: "How would you like to save
+for your deposit?" - the participant's own phrasing, offered unprompted at 20:17. The string was
+supplied and approved; it was not written here.*
 
 ### The numbering, first, because the brief asked for a number this file already holds
 
@@ -4051,3 +4054,147 @@ directly beneath the options and is already keyed. It was **left standing rather
 was not part of what failed, and emptying a line that worked would widen a copy pass that has one
 line to write. It is named here so the copy pass can judge it against the new heading rather than
 discover it afterwards.
+
+### How it closed, 31 August 2026
+
+The heading is `How would you like to save for your deposit?`, landed by `DECISIONS.md` D94 and
+verified character for character in a browser. It was **supplied and approved, not written here** -
+which is the whole reason D93 left a placeholder rather than filling the gap itself, and the reason
+this entry stayed open through a build that rendered `[AWAITING COPY]` on a live screen.
+
+**No supporting line was added.** The copy brief was explicit that the screen carries a reading-effort
+finding and that adding text works against it. `pickOneCaption` was neither added to nor removed - see
+G108, which records why the "work out" inside it was not rewritten in the same pass.
+
+**What this entry does NOT close.** The heading was one half of P2. The option labels still name
+inputs rather than outcomes, and the participant's 19:48 question - "what am I working out exactly?" -
+was about the result, not the input. That half is **G107**, opened as a measurement rather than a
+fix. Closing G106 is not evidence that P2 is resolved, and the next session is what settles it.
+
+**One thing this answers for G105.** That entry closed asking where the other numbering comes from,
+after a brief asserted G99 and G111 against numbers this file holds for unrelated defects. The copy
+brief supplied **P2** as the pilot finding reference and asked that the number be located by reading
+this file rather than assumed. That is the convention G105 asked for, arrived at from the other
+direction: pilot findings are P-numbered in the session document and gaps are G-numbered here, and
+the two are cross-referenced rather than conflated. G105's question can be marked answered if that is
+confirmed as the standing scheme.
+
+---
+
+## G107. The heading now names an outcome and both option labels still name inputs. REPORT ONLY - MEASURE, DO NOT FIX
+
+*Opened 31 August 2026 with `DECISIONS.md` D94, as the untested half of pilot finding **P2**. This
+entry is a **measurement**, not a defect with a known fix. **Do not change the option labels against
+it.** Nothing here is to be implemented; the next moderated session is what decides whether anything
+should be.*
+
+### The asymmetry D94 leaves behind
+
+D94 rewrote the heading from the calculation to the participant's goal: "How would you like to save
+for your deposit?" The two options beneath it did not move, and they are still written the other way
+round:
+
+| | Names | |
+| --- | --- | --- |
+| Heading | the participant's **goal** | "How would you like to save for your deposit?" |
+| `segmentMonthlyLabel` | an **input** they supply | "Set a monthly amount" |
+| `segmentDateLabel` | an **input** they supply | "Set a target date" |
+
+So the screen now asks a question about an outcome and offers two answers about inputs.
+
+### Why that might still be the defect
+
+The quote D94 was written from is the 20:17 one, where the participant describes what would have
+worked. **The 19:48 one is the question they actually asked**, and it is not the same question:
+
+> "Yeah, what does the screen mean? How would you like to work this out? What am I working out
+> exactly?"
+
+"What am I working out **exactly**" is a question about the **result** - what comes out of this - not
+about what they are being asked to type in. The heading fix answers "why am I here"; it does not
+necessarily answer "what will I get". If the labels are what carried the confusion, the heading alone
+moves the participant one step and stops them at the next.
+
+Against that: at 20:17 the participant read both labels back correctly and unprompted - "Set a
+monthly amount or set a target date? That makes a bit more sense" - which is evidence the labels were
+legible *once the heading gave them a subject*. Both readings fit the transcript, and that is exactly
+why this is a measurement and not a change.
+
+### The prediction to test, stated before the session
+
+In the next moderated session, on frame 10, with no moderator intervention:
+
+- **If the participant reads the heading cleanly and then hesitates on the two options** - re-reads
+  them, asks what either one gives them, or asks a variant of "what do I get" - then the labels are
+  the remaining half of P2 and should be reframed as **outcomes** rather than inputs. The shape, for
+  the copy pass that would follow and not to be written now: "when I could have my deposit" and "how
+  much to save each month".
+- **If they move straight through**, the heading fix was sufficient and no further change is needed.
+  Record that and close this entry.
+
+**Stated in advance on purpose.** Written after the session, either outcome can be read as confirming
+whichever change was already wanted. The two branches above are the whole value of this entry, and
+they are worth nothing if they are decided retrospectively.
+
+### Why not just fix it now
+
+Two reasons, and the second is the load-bearing one.
+
+The labels are approved copy that a participant has read back correctly, so rewriting them on a
+prediction trades a known-legible string for an untested one.
+
+And the prototype is a research instrument. P2 cost a session: every observation on frame 10 after
+19:53 is downstream of a moderator explanation. Changing two more strings on the same screen in the
+same pass means the next session tests **heading plus labels** as one lump, and a clean run tells us
+nothing about which of the three strings did the work. One change, one session, one answer.
+
+---
+
+## G108. Three strings on frame 10 still contain "work out", the wording D94 rules out. REPORT ONLY
+
+*Opened 31 August 2026 with `DECISIONS.md` D94. **Not implemented, and deliberately.** Raised because
+D94 sets a standing rule that three live strings already break, and a rule recorded without its known
+exceptions is a rule nobody can apply.*
+
+### The rule, and what survives it
+
+D94's standing rule: copy on frame 10 is written from the participant's goal, and **"work out" is not
+reused** - it is the exact phrase the participant could not parse, so it is spent on this screen
+whichever string it sits in.
+
+Three live strings in `content['/calculator/saving']` still carry it:
+
+| Key | String | What it is |
+| --- | --- | --- |
+| `pickOneCaption` | "Pick one and we'll **work out** the other." | The supporting line beneath the options |
+| `provenanceKeyLabel` | "How we **worked** these **out**" | The provenance key's label |
+| `taxRateCaption` | "**Worked out** from your salary" | A row caption in "Already filled in" |
+
+`pickOneCaption` is the one that matters most: it sits **directly beneath the new heading and the two
+options**, so the phrase the participant failed on is now one line below the phrase written to replace
+it. D81's own note already records that `pickOneCaption` and `provenanceKeyLabel` are first person
+together - they were written as a set, and they read as one.
+
+### Why they were not rewritten in the same pass
+
+The copy brief that landed D94 supplied **one** approved string and said the change was copy only,
+with the option labels left exactly as they were. Rewriting three more strings would have been
+writing copy in a build session, which is the practice D93 was created to stop and which this file
+would otherwise be recording for a third time.
+
+There is also a real question of whether the rule should reach all three, and it is not this file's to
+answer. `pickOneCaption` is framing copy on the failed question, so the rule plainly applies.
+`provenanceKeyLabel` and `taxRateCaption` describe **derivation** - the app genuinely did work these
+out, and "worked out from your salary" is doing the job D34 wants a provenance caption to do. A blanket
+ban may cost more in clarity there than the phrase costs in association.
+
+### To close
+
+A copy decision on each of the three, supplied rather than inferred, through `fca-copy-check` as
+`shared.regulatory` wording is. The likely answer is that `pickOneCaption` is rewritten or dropped and
+the two provenance strings are exempted with the exemption written into D94's rule - but that is a
+prediction, not a decision, and it is recorded here as one.
+
+**Sequencing note.** If `pickOneCaption` is rewritten before the next moderated session, it changes a
+second string on frame 10 and G107's measurement stops being clean for the reason G107 gives. Either
+change it *with* the labels after G107 reports, or leave all three until then.

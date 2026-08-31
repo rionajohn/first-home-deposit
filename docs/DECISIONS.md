@@ -9000,3 +9000,89 @@ frame 33 in a fresh tab.
 Restore the string to `content['/calculator/saving'].headline`. Reversing to the old wording would
 reinstate a heading the pilot showed to be blocking, so the reason would have to be a different
 heading rather than that one.
+
+---
+
+## D94. Frame 10's heading names the participant's goal, and "work out" is spent on this screen
+
+**Date.** 31 August 2026. Lands the string D93 left `[AWAITING COPY]`, closing `GAPS.md` G106 and
+opening G107 and G108. Copy only: no layout, interaction or control changed.
+
+### The string, and where it came from
+
+    content['/calculator/saving'].headline = 'How would you like to save for your deposit?'
+
+**It is the participant's own phrasing**, offered unprompted at 20:17 on 31 August 2026 - after they
+had failed the screen, while describing what would have worked:
+
+> "it would be better off just saying, you know, how would you like to save for your deposit? Set a
+> monthly amount or set a target date? That makes a bit more sense."
+
+The heading it replaces, "How would you like to work this out?", named the calculation rather than
+the participant's goal. They could not proceed without the moderator explaining the choice verbally
+at 19:53 and again at 20:07, having asked at 19:48 "what am I working out exactly?".
+
+**Supplied and approved, not written here.** That distinction is the whole reason D93 rendered a
+placeholder on a live screen rather than filling the gap itself, and it is what makes this entry a
+record of a decision taken elsewhere rather than a copy decision taken in a build session.
+
+### The standing rule this sets
+
+**Copy on frame 10 is written from the participant's goal, not from the app's arithmetic.** Saving
+for a deposit is what the participant came to do. Working it out is what the app does about it, and a
+heading that names the second gives the two options beneath it no subject to attach to - which is
+precisely how a screen with two legible options became one nobody could answer.
+
+**And "work out" is not reused on this screen.** It is the exact phrase that failed, so it is spent
+here whichever string it appears in, whether or not that string is otherwise fine. This is stricter
+than the finding strictly requires and is meant to be: the phrase now carries a known failure, and
+re-earning it one string at a time is not worth the sessions it would cost to find out.
+
+The rule is **forward-looking, and it has three known exceptions today** - `pickOneCaption`,
+`provenanceKeyLabel` and `taxRateCaption` all still contain it. They were not rewritten, because this
+pass had one approved string and rewriting three more would be writing copy in a build session, which
+is the practice D93 exists to stop. They are recorded as **G108** so the rule is not read as a
+description of the screen's current state, which it is not.
+
+### What was deliberately not done
+
+**No supporting line was written.** The brief was explicit that the screen carries a reading-effort
+finding and that adding text works against it, and no `subheading` key was created for it - D93 did
+not create one either, so there was nothing to remove. `pickOneCaption` predates both decisions and
+is neither the key the brief meant nor this pass's to touch.
+
+**The option labels are unchanged**, including their wording and their order. They are the untested
+half of the finding, and G107 opens as a measurement on them rather than a fix: the participant's
+19:48 question was about the *result*, and both labels still name *inputs*. Changing them now would
+mean the next session tests the heading and the labels as one lump and a clean run would not say
+which string did the work. One change, one session, one answer.
+
+### Verified
+
+In a fresh tab, never a reload (D59), at 390x844: the heading renders `How would you like to save for
+your deposit?` character for character against the approved string, in `h2.screen-title`; no
+`[AWAITING COPY]` remains anywhere on the screen in either variant; the outline is `H1 "Deposit
+calculator"` then `H2 "How would you like to save for your deposit?"`, so it is announced as a
+heading at the level its position calls for with the accessible name matching the rendered string;
+both options are still `<button>`s, tabbable, focusable, selecting on Enter and reporting
+`aria-pressed="true"`, with `aria-pressed` moving between them exactly as it did under D93; and the
+heading is rendered on both variants, surviving the mode switch.
+
+`smoke.test.mjs` 30/30, `overlap.test.mjs` 74/74, `date-ceiling.test.mjs` 41/41,
+`action-bar.test.mjs` 79/79, `stale-session.test.mjs` 6/6. The layout tests carry weight here for the
+same reason they did under D93 and more of it: the approved string is longer than both the
+placeholder and the heading it replaces, so it is the wrap case, at both text sizes, with the
+segmented control directly beneath it.
+
+`CACHE_VERSION` and `BUILD_VERSION` v101 to v102, a paired hand-edit, for the reason the README gives
+and D93 already hit: `./src/content.js` is in `SHELL_ASSETS`, the shell is served cache-first with no
+revalidation, and **a v101 shell carrying the placeholder was served locally during D93's
+verification**. Shipping the approved string under v101 would leave any browser holding that build
+rendering `[AWAITING COPY]` on a live screen. Confirmed reading "Build v102" on frame 33 in a fresh
+tab.
+
+### To reverse
+
+Restore the previous string to `content['/calculator/saving'].headline`. That reinstates a heading a
+pilot participant could not proceed past without two moderator interventions, so the reason would
+have to be a third heading rather than a return to the second.

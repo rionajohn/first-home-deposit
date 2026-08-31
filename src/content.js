@@ -550,25 +550,26 @@ const content = {
   '/calculator/saving': {
     appBarTitle: 'Deposit calculator',
     stepLabel: 'Step 2 of 3',
-    // AWAITING COPY (DECISIONS.md D93, GAPS.md G106). THE HEADING NAMES THE
-    // MECHANISM, NOT THE GOAL. "How would you like to work this out?" says what
-    // the app is about to do; it never says what is being worked out or why the
-    // participant is choosing. The pilot participant on 31 August 2026 stopped
-    // here twice and the moderator had to explain the choice aloud both times:
-    // "What am I working out exactly?" (19:48) and, at 20:17, "I don't
-    // understand what that means. Like, it would be better off just saying, you
-    // know, how would you like to save for your deposit?"
+    // THE PARTICIPANT'S OWN WORDS (DECISIONS.md D94, closing GAPS.md G106,
+    // pilot finding P2). This heading named the CALCULATION - "How would you
+    // like to work this out?" - and the participant could not proceed. The
+    // moderator explained the choice aloud at 19:53 and again at 20:07. At
+    // 19:48 they had asked "what am I working out exactly?", and at 20:17,
+    // describing what would have worked, they offered this string unprompted:
+    // "it would be better off just saying, you know, how would you like to save
+    // for your deposit?"
     //
-    // THE OPTIONS BENEATH IT WERE UNDERSTOOD once read aloud, so this is a
-    // framing fix and nothing else. `segmentMonthlyLabel`, `segmentDateLabel`
-    // and `pickOneCaption` are left standing rather than blanked with it - they
-    // are already keyed and already carried the participant, and emptying a
-    // line that worked would widen a copy pass that has one line to write.
+    // IT NAMES THE PARTICIPANT'S GOAL, NOT THE APP'S ARITHMETIC, which is the
+    // standing rule D94 sets for every string on this screen. Saving for a
+    // deposit is what they came to do; working it out is what the app does
+    // about it, and a heading that names the second gives the two options
+    // beneath it no subject.
     //
-    // IT RENDERS AS THE LITERAL PLACEHOLDER, in the `<h2>` the real heading
-    // occupies, so a build that ships without the string says so on the screen
-    // rather than showing a blank band where the question was.
-    headline: '[AWAITING COPY]',
+    // "WORK OUT" IS NOT REUSED HERE. It is the exact wording that failed, so it
+    // is spent as a phrase on this screen regardless of which string it appears
+    // in. Three older strings still carry it - see GAPS.md G108, which is a
+    // record rather than a licence to reword them in a build session.
+    headline: 'How would you like to save for your deposit?',
     segmentMonthlyLabel: 'Set a monthly amount',
     segmentDateLabel: 'Set a target date',
     pickOneCaption: "Pick one and we'll work out the other.",
