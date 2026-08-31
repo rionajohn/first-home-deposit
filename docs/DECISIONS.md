@@ -8410,3 +8410,89 @@ longer than the span and never past the cap. Removing the co-bound fails it.
 
 Full suite: 396 tests, 395 passing, 1 skipped (G91), 0 failing.
 
+---
+
+## D88. The floor disclosure is trimmed, and it is still one line too long at Large
+
+**Date.** 31 August 2026. The copy half of a two-part change whose second half is **not done**: the
+option list keeps D84's five-option height and its flip, because the state that change exists for still
+does not fit.
+
+### What was asked, and what it was for
+
+D84's listbox opens above its trigger when there is no room below, and that flip is reachable in the
+common case: with either disclosure showing, the trigger sits low enough that a 242px five-option list
+does not fit above the action bar. Opening upward puts the list over the disclosure that just explained
+why the date changed - the participant opens the control to respond to a message and the message
+disappears behind it.
+
+The fix is a fixed three-option list (146px) that always opens downward. Measured, five of six states
+had room; the sixth, **the floor disclosure at Large text**, was 13px short - traced to
+`dateMovedToEarliest` rendering four lines at Large against `dateMovedToCap`'s three, a 25px difference.
+Trimming the copy was chosen over shaving the 48px row height (which would contradict
+`--touch-target-min` across the whole build for 13px on one screen) or closing the 8px popover gap
+(which is doing the work that separates the list from its trigger).
+
+### The trim
+
+> We've moved your date to {earliest}, the soonest you could get there on what you now have left over.
+
+replacing
+
+> We've moved your date to {earliest}. With what you now have left over each month, that's the soonest
+> you could get there.
+
+"each month" goes because the readout directly beneath carries those words already; the second sentence
+becomes a subordinate clause. The change, the new date and the reason all survive.
+
+### It did not do the job, and the numbers say why
+
+| | Before | After |
+| --- | --- | --- |
+| Default text | 114px, 4 lines | **92px, 3 lines** |
+| **Large text** | **127px, 4 lines** | **127px, 4 lines - unchanged** |
+
+**Twenty-one characters bought a line at default and nothing at all at Large.** Large is 15% bigger type
+in the same 281px box, so the saving fell short of a whole line there.
+
+The floor-disclosure-at-Large state is therefore still **133px of room against 146px of list**, still
+13px short, and **the flip stays**. Section 2 of the change was not attempted: the instruction was to
+stop rather than compensate by shaving the row height or the gap, and further cutting is copy that this
+build does not own.
+
+### The budget, measured, so the next attempt does not have to guess
+
+The text box is **281px** at Large with a 25.3px line height. Rendering successive word-boundary
+prefixes of the new string, the longest that still fits three lines ends at "...on what you now" -
+**87 characters** with the date filled in.
+
+| String | Rendered length | Lines at Large |
+| --- | --- | --- |
+| `dateMovedToEarliest` (new) | 103 | 4 |
+| **The budget** | **~87** | **3** |
+| `dateMovedToCap` | 85 | 3 |
+
+So it is **about 16 characters too long**. `dateMovedToCap` is the worked example of a string that fits.
+
+Two caveats on the number. It is a WIDTH budget and characters are only a proxy - a line of narrow
+letters holds more. And the date is interpolated: "February 2027" is 13 characters and "September 2034"
+is 14, so the worst case is a character longer than measured.
+
+### The height coupling is load-bearing, and both keys now say so
+
+Whatever finally fits, **the two disclosures being the same height is what will make the
+floor-at-Large state work**, and once the flip is removed there is no fallback if either grows. Both
+keys in `content.js` carry a comment naming this decision and the measured budget - recorded as a
+constraint on future copy edits rather than as a note about tidiness, because the failure mode is a
+control that quietly starts opening upward again.
+
+### What is NOT in this build
+
+- The three-option height. The list is still five options.
+- The removal of the flip. The above/below branch, the placement calculation and the
+  `--above` modifier are all untouched.
+- Any of D84's tests are unchanged, because nothing they assert has changed.
+
+Suite: 396 tests, 395 passing, 1 skipped (G91), 0 failing. Four shots of the trimmed banner, both
+themes, both text sizes.
+

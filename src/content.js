@@ -659,7 +659,28 @@ const content = {
     // disabled; Continue is live at the moved date.
     //
     // One slot: {earliest}, the month and year it was moved to.
-    dateMovedToEarliest: "We've moved your date to {earliest}. With what you now have left over each month, that's the soonest you could get there.",
+    // TRIMMED (DECISIONS.md D88), AND THE TARGET IS NOT YET MET. "each month"
+    // went because the readout directly beneath carries those words already,
+    // and the second sentence became a subordinate clause; the change, the new
+    // date and the reason are all still here.
+    //
+    // IT IS THREE LINES AT DEFAULT TEXT NOW AND STILL FOUR AT LARGE. Measured:
+    // the banner went 114px -> 92px at default and stayed at 127px at Large,
+    // because Large is 15% bigger type in the same 281px box and 21 characters
+    // was not enough to save a line there.
+    //
+    // THE BUDGET, MEASURED, IS ABOUT 87 CHARACTERS with the date filled in -
+    // the longest word-boundary prefix of this string that still fits three
+    // lines at Large ends at "...on what you now". This string renders 103, so
+    // it is roughly 16 characters too long. `dateMovedToCap` below renders 85
+    // and fits.
+    //
+    // WHY THE LENGTH MATTERS AT ALL: D88 was meant to fix the option list at a
+    // three-option height opening downward, and the one state that does not fit
+    // is this banner at Large - 133px of room against 146px of list. The list
+    // still flips above the trigger there (D84), which is the defect that was
+    // to be removed. Further cutting is copy, and copy is the project owner's.
+    dateMovedToEarliest: "We've moved your date to {earliest}, the soonest you could get there on what you now have left over.",
 
     // THE SAME MOVE AT THE OTHER END OF THE LIST (DECISIONS.md D86, closing
     // GAPS.md G102). The list is capped at the month the balance reaches the
@@ -674,6 +695,12 @@ const content = {
     // follows it. Here their position IMPROVED - they will reach their goal
     // sooner than the date they had chosen - so the news is the reason, and
     // the move is the consequence. Two situations, two shapes.
+    //
+    // ITS LENGTH IS LOAD-BEARING (DECISIONS.md D88). This one fits three lines
+    // at Large - 85 characters against a measured budget of about 87 - and the
+    // state it produces has 12px of room to spare below the trigger. Lengthen
+    // it and the option list stops fitting there too. `dateMovedToEarliest`
+    // above is the one still over budget.
     //
     // THE SLOT IS `{earliest}`, WHICH IS THE FLOOR'S NAME FOR A DIFFERENT DATE.
     // Kept exactly as supplied: each key is filled by its own `fill()` call, so
