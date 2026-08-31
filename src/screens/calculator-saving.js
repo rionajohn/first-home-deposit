@@ -334,14 +334,30 @@ export function render(container, ctx) {
   // pair therefore cannot express a date outside the range, in any combination,
   // without a single comparison at selection time.
   //
-  // WITHOUT A CAP the year list falls back to `YEAR_LIST_SPAN` (G97), and the
-  // selected year is always included even if it sits past the span, so a
+  // THE LIST ENDS AT WHICHEVER OF THE CAP AND THE SPAN COMES FIRST (D87). Two
+  // different jobs, and neither subsumes the other: the CAP is correctness -
+  // past it the solve is negative - and the SPAN is proportion, because a
+  // ninety-year list is absurd whatever the model says.
+  //
+  // The span was written as a fallback for the no-cap session (D85, G97) on the
+  // assumption that the cap would be the tighter bound. Measured, it usually is
+  // not: at the balance a real session reaches the calculator with, the crossing
+  // is thirty years out and the span is what ends the list; the cap only wins
+  // once a participant has saved a good deal. Both are load-bearing, so both
+  // are applied.
+  //
+  // The selected year is always included even if it sits past both, so a
   // restored session holding a far-future date renders its own value rather
-  // than silently showing a different one.
+  // than silently showing a different one - and the move-to-cap above has
+  // already brought any such date inside the cap, so this only ever widens the
+  // list past the SPAN, never past the cap.
   const floorYear = floor === null ? targetYear : floor.year;
-  const lastYear = cap !== null
-    ? Math.max(cap.year, floorYear)
-    : Math.max(floorYear + YEAR_LIST_SPAN, targetYear);
+  const spanEnd = floorYear + YEAR_LIST_SPAN;
+  const lastYear = Math.max(
+    cap !== null ? Math.min(cap.year, spanEnd) : spanEnd,
+    floorYear,
+    targetYear,
+  );
   const yearOptions = [];
   for (let y = floorYear; y <= lastYear; y += 1) yearOptions.push({ value: y, label: String(y) });
   const firstMonth = floor !== null && targetYear === floor.year ? floor.month : 1;

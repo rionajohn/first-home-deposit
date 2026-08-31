@@ -3338,9 +3338,31 @@ the list would be 90 years.
 first. That was deliberately NOT done here, because it would make this constant a co-bound again rather
 than the fallback D85 records it as. Raised so the choice is visible.
 
-*Status: **open - a figure awaiting confirmation, not a defect, and now reached only by the
-nothing-saved session.** Nothing is wrong with 20; it is simply not the spec's number, because the spec
-has none. Confirm it, replace it, or record it as intentionally this build's own. If it is replaced, the
+### AMENDED AGAIN 31 AUGUST 2026: PROMOTED FROM FALLBACK TO CO-BOUND - `DECISIONS.md` D87
+
+The demotion above rested on an assumption that the measurement contradicts. **The cap is usually the
+LOOSER bound, not the tighter one**, so the constant is not a rare fallback - it is what ends the list
+in the common case:
+
+| Session | Cap year | Span end | Which wins |
+| --- | --- | --- | --- |
+| Shared seed (saved 21,000) | 2034 | 2047 | cap |
+| A real session (saved 8,950, 280k at 10%) | 2057 | 2048 | **span** |
+| The same, saved 1,000 | 2117 | 2049 | **span** |
+| The same, saved 25,000 | 2029 | 2047 | cap |
+| Nothing saved | none | 2050 | span |
+
+The list now ends at whichever comes first. Both bounds stay: the cap is correctness (past it the solve
+is negative), the span is proportion (a ninety-year list is absurd whatever the model says).
+
+**THIS ENTRY HAS NOW NARROWED TWICE AND THE FIGURE HAS NOT CHANGED ONCE**, which is the thing to hold on
+to. Its standing has gone the rule (D83) -> the fallback (D85) -> a co-bound (D87), and at each step it
+looked smaller than it is. `YEAR_LIST_SPAN = 20` is still invented, still absent from `build-spec.md`,
+and still the horizon a participant actually meets on most sessions.
+
+*Status: **open - a figure awaiting confirmation, not a defect, and doing more work than either previous
+amendment implied.** Nothing is wrong with 20; it is simply not the spec's number, because the spec has
+none. Confirm it, replace it, or record it as intentionally this build's own. If it is replaced, the
 constant is the only place it lives.*
 
 ---

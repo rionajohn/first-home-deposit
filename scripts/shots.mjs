@@ -111,6 +111,9 @@
  *                saving-near-cap       frame 10b at the last date the list
  *                                      offers - the month the balance reaches
  *                                      the goal unaided (D85).
+ *                saving-span-wins      frame 10b where the crossing is far out,
+ *                                      so YEAR_LIST_SPAN and not the cap is
+ *                                      what ends the year list (D87).
  *                saving-narrow-list    frame 10b where floor and cap are close
  *                                      enough that the whole range sits in one
  *                                      year, so both bounds fall on one month
@@ -554,6 +557,11 @@ const ERROR_STATES = {
   }),
   'saving-near-cap': () => ({
     ...monthsFromToday(capMonths() ?? 0),
+  }),
+  'saving-span-wins': () => ({
+    // Barely anything saved, so the balance takes ninety years to reach the
+    // goal unaided and the twenty-year span is the tighter of the two bounds.
+    'saved-toward-deposit': { value: 1000, provenance: 'read' },
   }),
   'saving-narrow-list': () => ({
     // Saved high enough that the whole range collapses into one year, which is

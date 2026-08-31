@@ -851,6 +851,36 @@ test('monthsToReachAmount is monotonic in the monthly amount, which is why floor
   }
 });
 
+test('the list never runs longer than the span, whichever bound is doing the work', async () => {
+  // D87: the list ends at whichever of the cap and the span comes first. The
+  // two do different jobs - the cap is correctness, the span is proportion -
+  // and which one wins depends entirely on how much the participant has saved,
+  // so this checks both branches and the no-cap one in the same sweep.
+  const YEAR_LIST_SPAN = 20;
+  const cases = [
+    ['cap wins (the shared seed)', {}],
+    ['span wins (a far-off crossing)', { 'saved-toward-deposit': { value: 1000, provenance: 'read' } }],
+    ['no cap at all', { 'saved-toward-deposit': { value: 0, provenance: 'read' } }],
+  ];
+  for (const [label, extra] of cases) {
+    const { context, page } = await openAt(null, extra);
+    try {
+      const seen = await probe(page);
+      const span = seen.yearOptions[seen.yearOptions.length - 1] - seen.yearOptions[0];
+      assert.ok(span <= YEAR_LIST_SPAN, `${label}: the list runs ${span} years, past the ${YEAR_LIST_SPAN}-year span`);
+      // And never past the cap either, wherever it is.
+      const state = { ...FULL, ...extra };
+      const unaided = monthsToGoalUnaided(state);
+      if (!unaided.error && Number.isFinite(unaided.value)) {
+        const capYear = dateAtMonths(Math.floor(unaided.value)).targetYear;
+        assert.ok(seen.yearOptions[seen.yearOptions.length - 1] <= capYear, `${label}: the list runs past the cap year ${capYear}`);
+      }
+    } finally {
+      await context.close();
+    }
+  }
+});
+
 test('with nothing saved there is no cap, and the year span falls back to the constant', async () => {
   // GAPS.md G97, demoted rather than closed: nothing compounds from nothing, so
   // there is no crossing and the invented horizon is what is left.

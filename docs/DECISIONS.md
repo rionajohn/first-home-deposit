@@ -8349,3 +8349,64 @@ comparison. `date-ceiling.test.mjs`: 36 tests to 40. Suppressing the flag fails 
 
 Full suite: 395 tests, 394 passing, 1 skipped (G91), 0 failing.
 
+---
+
+## D87. The year span becomes a co-bound rather than a fallback
+
+**Date.** 31 August 2026. Amends `GAPS.md` G97 for the second time. Nothing about the cap, the floor or
+either disclosure changes.
+
+### The measurement that reversed the assumption
+
+D85 wrote `YEAR_LIST_SPAN = 20` down as the FALLBACK for the one session with no crossing to cap at, on
+the assumption that the cap would otherwise be the tighter bound. **It usually is not.**
+
+| Session | Floor year | Cap year | Span end | Which wins | Years offered |
+| --- | --- | --- | --- | --- | --- |
+| Shared seed - saved 21,000, left-over 1,150 | 2027 | 2034 | 2047 | **cap** | 8 |
+| A real session - saved 8,950, left-over 640, 280k at 10% | 2028 | 2057 | 2048 | **span** | 21 |
+| The same, saved 1,000 | 2029 | 2117 | 2049 | **span** | 21 |
+| The same, saved 25,000 | 2027 | 2029 | 2047 | **cap** | 3 |
+| Nothing saved | 2030 | none | 2050 | span, no cap | 21 |
+
+**The cap only wins once a participant has saved a good deal.** At the balance a real session reaches
+the calculator with, the crossing is thirty years out and the span is what ends the list; at 1,000 saved
+it is ninety years out. The fixture is the unrepresentative case - it holds 21,000, which is most of its
+own goal.
+
+### The decision
+
+**The list ends at whichever comes first.** Both bounds stay and both are load-bearing, because they do
+different jobs and neither subsumes the other:
+
+- **The cap is correctness.** Past it `monthlyAmountFromDate` returns a negative payment, which D85
+  showed does not stay on screen - it commits, inverts D2's range and passes both of `monthsToTarget`'s
+  guards.
+- **The span is proportion.** A ninety-year year list is absurd whatever the model says, and twenty
+  years is a defensible horizon for a first-home deposit.
+
+`Math.min(cap.year, floorYear + YEAR_LIST_SPAN)`, with the span alone where there is no cap.
+
+**Not tied to `MORTGAGE_TERM_YEARS`**, for the reason G97 has recorded since it was raised: a mortgage
+term is not a saving horizon, and borrowing one figure for the other is how two unrelated things end up
+moving together.
+
+### G97 is amended, not closed, for the second time
+
+The constant is still invented, still absent from `build-spec.md`, and still needs a source. What has
+changed twice is only its standing: **the rule (D83) -> the fallback (D85) -> a co-bound (D87)**. That
+progression is recorded in G97 itself, because a figure whose role keeps narrowing is easy to lose track
+of, and it is still the same unsourced 20.
+
+### Verification
+
+Eight shots, both themes, both text sizes: the year list where the span wins and where the cap wins.
+
+**No D85 test asserted a length the co-bound shortens** - checked rather than assumed. The shared seed is
+a cap-wins case at 8 years, so every existing assertion about the seed's list is untouched, and the
+nothing-saved test asserts 21 years, which the span gives either way. The gap that left is now covered:
+one new test sweeps all three branches - cap wins, span wins, no cap - and asserts the list never runs
+longer than the span and never past the cap. Removing the co-bound fails it.
+
+Full suite: 396 tests, 395 passing, 1 skipped (G91), 0 failing.
+
