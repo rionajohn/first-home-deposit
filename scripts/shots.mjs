@@ -104,6 +104,10 @@
  *                                      is already saved, so the cap sits
  *                                      behind the floor and the control is
  *                                      replaced by a statement (D85).
+ *                saving-moved-to-cap   frame 10b with a date PAST the cap, which
+ *                                      the screen moves down to it and
+ *                                      discloses (D86). The mirror of
+ *                                      saving-date-below-bound.
  *                saving-near-cap       frame 10b at the last date the list
  *                                      offers - the month the balance reaches
  *                                      the goal unaided (D85).
@@ -542,6 +546,11 @@ const ERROR_STATES = {
     // already saved. Derived through the model rather than written here, so it
     // follows the seed.
     ...goalAt(0.05),
+  }),
+  'saving-moved-to-cap': () => ({
+    // Forty months past the cap, computed from the model so it is past it
+    // whatever the seed holds.
+    ...monthsFromToday((capMonths() ?? 0) + 40),
   }),
   'saving-near-cap': () => ({
     ...monthsFromToday(capMonths() ?? 0),

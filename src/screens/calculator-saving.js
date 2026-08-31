@@ -293,29 +293,37 @@ export function render(container, ctx) {
   // anything downstream reads it, and the locals are reassigned to match so
   // this render and the store cannot disagree about which date is on screen.
   let movedToEarliest = state.dateMovedToEarliest === true;
+  let movedToCap = state.dateMovedToCap === true;
   if (solveFor === 'amount' && floor !== null && monthsFromNow(targetMonth, targetYear) < boundMonths) {
     targetMonth = floor.month;
     targetYear = floor.year;
     movedToEarliest = true;
-    setState({ targetMonth, targetYear, dateMovedToEarliest: true });
+    movedToCap = false;
+    setState({ targetMonth, targetYear, dateMovedToEarliest: true, dateMovedToCap: false });
   }
 
   // A SELECTION ABOVE THE CAP, which is the same shape at the other end: the
   // participant picks a date, raises their saved total or lowers their goal on
   // another screen, and comes back to find the crossing has moved behind their
-  // date. It is moved to the cap so the control cannot show a value its own
-  // list does not contain.
+  // date. It is moved down to the cap so the control cannot show a value its
+  // own list does not contain - AND THE MOVE IS DISCLOSED (D86, closing GAPS.md
+  // G102). D46 at both ends rather than one: a value the participant set may be
+  // replaced only if the replacement is visible to them, and under D85 this
+  // half was silent.
   //
-  // NO DISCLOSURE IS SHOWN, AND THAT IS A KNOWN GAP RATHER THAN AN OVERSIGHT.
-  // D46 says a value the participant set may be replaced only if the
-  // replacement is visible to them, and this replacement is silent - the
-  // mirrored `dateMovedToEarliest` would need its own string, which is copy
-  // this pass does not own. Recorded as GAPS.md G102 so it is not lost.
+  // THE TWO MOVES ARE MUTUALLY EXCLUSIVE, and this enforces it rather than
+  // trusting it. A selection cannot be below the floor and above the cap at
+  // once - the floor cannot exceed the cap while the goal is ahead (D85's
+  // monotonicity assertion), and where the goal is met there is no list and
+  // neither branch runs. Each patch therefore writes its own flag and clears
+  // the other, so no sequence of renders can leave both set.
   if (solveFor === 'amount' && cap !== null && !noWorkableDate
       && monthsFromNow(targetMonth, targetYear) > capMonths) {
     targetMonth = cap.month;
     targetYear = cap.year;
-    setState({ targetMonth, targetYear });
+    movedToCap = true;
+    movedToEarliest = false;
+    setState({ targetMonth, targetYear, dateMovedToCap: true, dateMovedToEarliest: false });
   }
 
   // THE LISTS, BOUNDED AS A PAIR AT BOTH ENDS (D83's rule, mirrored by D85).
@@ -433,8 +441,18 @@ export function render(container, ctx) {
              the fold: above, the banner sits 116px (default) / 122px (Large)
              higher than it would below the dropdowns. Both fit; above has the
              margin. See D83. -->
-        ${movedToEarliest ? infoBannerHTML(
-          fill(c.dateMovedToEarliest, { earliest: `${MONTH_NAMES[targetMonth - 1]} ${targetYear}` }),
+        ${movedToEarliest || movedToCap ? infoBannerHTML(
+          // ONE BANNER, ONE ID, TWO STRINGS. The two moves cannot both have
+          // happened (see the patches above), so this renders at most one - and
+          // if a hand-edited session somehow arrives with both flags set, the
+          // floor's wins, because reaching a date that does NOT work is the
+          // more urgent of the two to explain.
+          //
+          // The slot is `{earliest}` for both, which is the floor's name for
+          // the cap's date - see content.js, where it is flagged rather than
+          // renamed.
+          fill(movedToEarliest ? c.dateMovedToEarliest : c.dateMovedToCap,
+            { earliest: `${MONTH_NAMES[targetMonth - 1]} ${targetYear}` }),
           { id: 'date-moved', live: true },
         ) : ''}
         <!-- NO DATE CONTROL AT ALL WHEN THERE IS NO DATE TO PICK (D85). An
@@ -591,12 +609,12 @@ export function render(container, ctx) {
     // floor allowed - there is nothing for a handler guard to re-check and
     // nothing that can disagree with the control.
     //
-    // `dateMovedToEarliest: false` ON BOTH. The disclosure says the app moved
-    // the date; the moment the participant picks one themselves it is no longer
-    // describing anything, and it must not survive into a state it did not
+    // BOTH FLAGS CLEARED ON EVERY PICK. Either disclosure says the app moved
+    // the date; the moment the participant picks one themselves neither is
+    // describing anything, and neither must survive into a state it did not
     // cause.
     function commitDate(patch) {
-      const next = setState({ ...patch, dateMovedToEarliest: false });
+      const next = setState({ ...patch, dateMovedToEarliest: false, dateMovedToCap: false });
       rerenderInPlace(container, render, { ...ctx, state: next });
     }
 
@@ -611,18 +629,27 @@ export function render(container, ctx) {
     if (!noWorkableDate) bindDateSelect(container, {
       onPick: (name, value) => {
         if (name === 'month') { commitDate({ targetMonth: value }); return; }
-        // CHANGING THE YEAR RE-DERIVES THE MONTH LIST, and the one case where
-        // that costs the participant their month is handled here rather than
+        // CHANGING THE YEAR RE-DERIVES THE MONTH LIST, and the two cases where
+        // that costs the participant their month are handled here rather than
         // left to produce a value outside the list. Picking the floor's year
-        // while holding a month before the floor's month leaves the selected
-        // month off the new list; it is raised to the floor's month.
+        // while holding an earlier month raises it to the floor's month;
+        // picking the CAP's year while holding a later one lowers it to the
+        // cap's (D86). Clamped at both ends, because the list is.
+        //
+        // THE CLAMP AT THE TOP IS WHAT KEEPS THE CAP DISCLOSURE HONEST. Without
+        // it, picking the cap year while holding a later month left a date past
+        // the cap, which the render then corrected - and announced, with a
+        // banner saying the app had moved their date when in fact they had just
+        // moved it themselves. The disclosure is for an UPSTREAM edit moving the
+        // cap, not for the participant's own pick being tidied.
         //
         // THIS IS THE RESIDUE OF D82'S FIRST OPEN QUESTION, unchanged by D84 and
-        // smaller than that question was: both values are in view, the
+        // D86 and smaller than that question was: both values are in view, the
         // participant is working the date control, and the month list visibly no
         // longer contains the month they had. See D83.
         const lowest = floor !== null && value === floor.year ? floor.month : 1;
-        commitDate({ targetYear: value, targetMonth: Math.max(targetMonth, lowest) });
+        const highest = cap !== null && value === cap.year ? cap.month : 12;
+        commitDate({ targetYear: value, targetMonth: Math.min(Math.max(targetMonth, lowest), highest) });
       },
     });
   }

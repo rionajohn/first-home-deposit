@@ -865,10 +865,11 @@ test('with nothing saved there is no cap, and the year span falls back to the co
   }
 });
 
-test('a selection above the cap is moved down to it', async () => {
-  // The mirror of D83's moved-floor case. It is moved SILENTLY, which is a D46
-  // gap recorded as GAPS.md G102 - the disclosure needs a string this pass does
-  // not own. This asserts the move, not the silence.
+test('a selection above the cap is moved down to it, AND the move is disclosed', async () => {
+  // The mirror of D83's moved-floor case, and disclosed since D86 - it was
+  // silent under D85, which was the D46 gap GAPS.md G102 recorded.
+  const { default: content } = await import('../src/content.js');
+  const c = content['/calculator/saving'];
   const { context, page } = await openAt(CAP_MONTHS + 40);
   try {
     const seen = await probe(page);
@@ -877,8 +878,97 @@ test('a selection above the cap is moved down to it', async () => {
     assert.equal(seen.monthValue, cap.targetMonth);
     assert.equal(seen.stored.year, cap.targetYear, 'the store still holds the date past the cap');
     assert.equal(seen.stored.month, cap.targetMonth);
+    assert.ok(seen.hasMoved, 'the date was moved down with nothing on screen saying so - D46');
+    const monthName = new Date(cap.targetYear, cap.targetMonth - 1, 1).toLocaleString('en-GB', { month: 'long' });
+    assert.ok(seen.movedText.includes(`${monthName} ${cap.targetYear}`), `the disclosure does not name the date it moved to: "${seen.movedText}"`);
+    assert.doesNotMatch(seen.movedText, /\{[a-z]+\}/, 'an unfilled slot reached the screen');
+    // IT IS THE CAP'S STRING, NOT THE FLOOR'S. The two lead differently on
+    // purpose (D86) and normalising them to one shape would lose the reason.
+    assert.notEqual(seen.movedText, c.dateMovedToEarliest, 'the floor\'s wording was used for a move down to the cap');
+    assert.notEqual(seen.movedText, c.dateMovedToCap, 'the template rendered without its slot filled');
   } finally {
     await context.close();
+  }
+});
+
+test('the cap disclosure is a polite status, not an error', async () => {
+  const { context, page } = await openAt(CAP_MONTHS + 40);
+  try {
+    const seen = await probe(page);
+    assert.equal(seen.movedRole, 'status');
+    assert.equal(seen.movedLive, 'polite');
+    assert.equal(seen.movedGlyph, 'icon--info-circle', 'the disclosure is drawn as an error');
+    assert.equal(seen.hasErrorBanner, false, 'an error banner was drawn beside the disclosure');
+    assert.equal(seen.disabled, false, 'Continue is disabled at a date the cap allows');
+  } finally {
+    await context.close();
+  }
+});
+
+test('the cap disclosure appears only when something was MOVED, not on every capped list', async () => {
+  // The check that caught a real defect: picking the cap's year while holding a
+  // later month used to leave a date past the cap, which the render corrected
+  // and announced - a banner saying the app had moved their date when they had
+  // just moved it themselves. The year pick clamps at both ends now (D86).
+  for (const months of [CAP_MONTHS, CAP_MONTHS - 20, EARLIEST_MONTHS]) {
+    const { context, page } = await openAt(months);
+    try {
+      assert.equal((await probe(page)).hasMoved, false, `a disclosure was drawn on arrival at ${months} months, where nothing moved`);
+    } finally {
+      await context.close();
+    }
+  }
+  // And picking the cap year with a later month held: clamped, not announced.
+  const { context, page } = await openAt(CAP_MONTHS - 20);
+  try {
+    const cap = dateAtMonths(CAP_MONTHS);
+    await pick(page, 'month', 12);
+    await pick(page, 'year', cap.targetYear);
+    const seen = await probe(page);
+    assert.equal(seen.hasMoved, false, 'the participant\'s own year pick raised a disclosure');
+    assert.equal(seen.monthValue, cap.targetMonth, 'the month was not clamped to the cap on a year pick');
+  } finally {
+    await context.close();
+  }
+});
+
+test('the two disclosures are mutually exclusive, and only one banner ever renders', async () => {
+  // A selection cannot be below the floor and above the cap at once - the floor
+  // cannot exceed the cap while the goal is ahead (D85's monotonicity), and
+  // where the goal is met neither branch runs. Each move clears the other's
+  // flag, so no sequence of renders leaves both set. Seeded with both anyway,
+  // which is a state the app cannot produce, to pin what happens if one ever
+  // arrives: the floor's wins and exactly one banner is drawn.
+  const { context, page } = await openAt(CAP_MONTHS - 20, { dateMovedToEarliest: true, dateMovedToCap: true });
+  try {
+    const { default: content } = await import('../src/content.js');
+    const count = await page.evaluate(() => document.querySelectorAll('#date-moved').length);
+    assert.equal(count, 1, `${count} disclosure banners rendered at once`);
+    const seen = await probe(page);
+    assert.ok(seen.movedText.startsWith("We've moved your date"), 'the floor\'s wording did not win when both flags were set');
+    void content;
+  } finally {
+    await context.close();
+  }
+});
+
+test('both disclosures clear when the participant picks a date', async () => {
+  for (const [label, months] of [['floor', EARLIEST_MONTHS - 1], ['cap', CAP_MONTHS + 40]]) {
+    const { context, page } = await openAt(months);
+    try {
+      const before = await probe(page);
+      assert.ok(before.hasMoved, `${label}: nothing was disclosed to clear`);
+      // Pick a year the list definitely offers and that is not the current one.
+      const other = before.yearOptions.find((y) => y !== before.yearValue) ?? before.yearOptions[0];
+      await pick(page, 'year', other);
+      const after = await probe(page);
+      assert.equal(after.hasMoved, false, `${label}: the disclosure survived the participant picking a date`);
+      assert.equal(after.stored.movedFlag, false, `${label}: dateMovedToEarliest survived the pick`);
+      assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('yfh-state')).dateMovedToCap), false, `${label}: dateMovedToCap survived the pick`);
+      assert.deepEqual(after.committed, before.committed, `${label}: a pick committed a section 6 figure`);
+    } finally {
+      await context.close();
+    }
   }
 });
 

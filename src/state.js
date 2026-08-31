@@ -262,6 +262,21 @@ export function defaultState() {
     // date has no business being restored beside figures that are not.
     dateMovedToEarliest: false,
 
+    // Frame 10b — DID THE APP MOVE THE DATE DOWN TO THE CAP?
+    //
+    // `dateMovedToEarliest`'s mirror at the other end of the list (DECISIONS.md
+    // D86, closing GAPS.md G102). The list is capped at the month the balance
+    // reaches the goal unaided (D85), and an upstream edit - a higher saved
+    // total, a lower property value, a lower deposit percentage - can move that
+    // cap behind a date the participant already picked. The date is moved down
+    // to the cap, and this records that it happened so the screen can say so.
+    //
+    // MUTUALLY EXCLUSIVE WITH `dateMovedToEarliest`, and enforced rather than
+    // assumed: a selection cannot be below the floor and above the cap at the
+    // same time, so each move writes its own flag and clears the other in the
+    // same patch. Neither survives the participant picking a date.
+    dateMovedToCap: false,
+
     // Frame 09 (Property and deposit) — IS THE PROPERTY VALUE FIELD SITTING
     // EMPTY WHILE THE PARTICIPANT RE-TYPES IT?
     //

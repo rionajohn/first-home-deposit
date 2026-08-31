@@ -660,6 +660,28 @@ const content = {
     //
     // One slot: {earliest}, the month and year it was moved to.
     dateMovedToEarliest: "We've moved your date to {earliest}. With what you now have left over each month, that's the soonest you could get there.",
+
+    // THE SAME MOVE AT THE OTHER END OF THE LIST (DECISIONS.md D86, closing
+    // GAPS.md G102). The list is capped at the month the balance reaches the
+    // goal unaided (D85), and an upstream edit can move that cap behind a date
+    // the participant already picked - a higher saved total, a lower property
+    // value, a lower deposit percentage. Their date is moved DOWN to the cap
+    // and this discloses it, which is D46's rule at both ends rather than one.
+    //
+    // IT LEADS WITH THE REASON WHERE THE FLOOR'S LEADS WITH THE CHANGE, and the
+    // difference is deliberate and must not be normalised away. At the floor
+    // the participant met a limit: the change is the news and the reason
+    // follows it. Here their position IMPROVED - they will reach their goal
+    // sooner than the date they had chosen - so the news is the reason, and
+    // the move is the consequence. Two situations, two shapes.
+    //
+    // THE SLOT IS `{earliest}`, WHICH IS THE FLOOR'S NAME FOR A DIFFERENT DATE.
+    // Kept exactly as supplied: each key is filled by its own `fill()` call, so
+    // nothing collides, and the rendered sentence is identical whatever the
+    // slot is called. Flagged rather than renamed because renaming it would be
+    // editing copy this build does not own. `{latest}` would read better in
+    // code if it is ever revisited.
+    dateMovedToCap: "Good news - you'll get there sooner than that now. We've moved your date to {earliest}.",
     primaryCta: 'Continue',
     secondaryCta: 'Save and exit',
   },

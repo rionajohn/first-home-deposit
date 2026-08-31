@@ -8280,3 +8280,72 @@ month list. Worth recording: the file that exists because of D77 grew a D77 defe
 
 Full suite: 391 tests, 390 passing, 1 skipped (G91), 0 failing.
 
+---
+
+## D86. The move down to the cap is disclosed, and its copy leads with the reason rather than the change
+
+**Date.** 31 August 2026. Closes `GAPS.md` G102. Nothing else about D85's cap changes.
+
+### What was silent
+
+D85 moved a selection sitting above the cap down to it and said nothing. The participant picks 2034,
+edits a figure on frame 11, comes back to 2028 with no account of how. That is the D46 breach
+`dateMovedToEarliest` exists to prevent, at the other end of the same list - and D85 recorded it as
+knowingly incomplete because the mirrored string was copy that pass did not own.
+
+### The treatment mirrors D83's exactly
+
+`content['/calculator/saving'].dateMovedToCap`, rendered from a stored flag (`dateMovedToCap` in
+`state.js`), above the dropdowns, cleared when the participant picks a date on either list, through
+`infoBannerHTML` with `infoCircle`, `role="status"` and `aria-live="polite"` - not the error banner and
+not `role="alert"`, because nothing is wrong and nothing is disabled (D78).
+
+### The copy leads with the reason, and that is deliberate
+
+> Good news - you'll get there sooner than that now. We've moved your date to {earliest}.
+
+against the floor's
+
+> We've moved your date to {earliest}. With what you now have left over each month, that's the soonest
+> you could get there.
+
+**At the floor the participant met a limit**: the change is the news, and the reason follows to explain
+why they could not have what they asked for. **Here their position improved** - they will reach their
+goal sooner than the date they had picked - so the news IS the reason, and the move is the consequence
+of it. Two different situations, two different shapes. **They must not be normalised to one.**
+
+**The slot is `{earliest}` in both, which is the floor's name for the cap's date.** Kept exactly as
+supplied rather than renamed: each key is filled by its own `fill()` call so nothing collides, and the
+rendered sentence is identical whatever the slot is called. Renaming it would be editing copy this
+build does not own. `{latest}` would read better in code if it is ever revisited.
+
+### Mutually exclusive, and enforced rather than assumed
+
+A selection cannot be below the floor and above the cap at once: the floor cannot exceed the cap while
+the goal is ahead (D85's monotonicity assertion), and where the goal is met there is no list and neither
+branch runs. **Each move writes its own flag and clears the other in the same patch**, so no sequence of
+renders can leave both set, and the render draws at most one banner from one id.
+
+**If both are somehow set** - a hand-edited session, which the app cannot produce - **the floor's wins**,
+because a date that does not work is the more urgent of the two to explain. Asserted, so the behaviour
+is pinned rather than incidental.
+
+### One defect found by checking the disclosure fires only on a real move
+
+Picking the CAP's year while holding a later month left a date past the cap, which the render then
+corrected - **and announced**, with a banner saying the app had moved their date when the participant
+had just moved it themselves. The year pick now clamps the month at BOTH ends
+(`Math.min(Math.max(month, lowest), highest)`), mirroring the floor clamp D83 already had, so the month
+lands on the cap directly and nothing is announced.
+
+The disclosure is for an UPSTREAM edit moving the cap, not for the participant's own pick being tidied.
+That distinction is what the check "appears only when something was moved" was written to hold, and it
+caught this on the first run.
+
+### Verification
+
+Eight shots, both themes, both text sizes: the cap disclosure and the floor disclosure side by side for
+comparison. `date-ceiling.test.mjs`: 36 tests to 40. Suppressing the flag fails 3 of them.
+
+Full suite: 395 tests, 394 passing, 1 skipped (G91), 0 failing.
+

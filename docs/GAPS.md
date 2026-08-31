@@ -3752,7 +3752,7 @@ it when G99 closes - they are different things in different files.*
 
 ---
 
-## G102. A date moved DOWN to the cap is not disclosed, where one moved UP to the floor is
+## G102. A date moved DOWN to the cap is not disclosed, where one moved UP to the floor is. CLOSED 31 August 2026 - DECISIONS.md D86
 
 *Raised 31 August 2026 with `DECISIONS.md` D85. **A D46 gap, and a knowingly incomplete one** - the
 missing half is copy, and copy was not this pass's to write.*
@@ -3779,8 +3779,20 @@ project owner's. Moving the date silently was chosen over the alternatives: leav
 put a value in the trigger that its own list does not contain, and refusing the upstream edit was
 rejected in G98's own reasoning.
 
-*Status: **open, and REACHABLE.** No facilitator gesture, no seeded state - three routes reach it
-(`saved-toward-deposit` up via frames 03/06 or 11, `property-value` down, `deposit-pct` down). Closing
-it needs one string and one flag, mirroring D83 exactly: a `dateMovedToLatest` key and its own state
-flag, cleared the same way. Everything else is already in place.*
+**CLOSED 31 AUGUST 2026. `DECISIONS.md` D86.** One string (`dateMovedToCap`) and one flag
+(`dateMovedToCap` in `state.js`), mirroring D83 exactly - above the dropdowns, from a stored flag,
+cleared on the next pick, `infoBannerHTML` with `role="status"` polite. The key name landed as
+`dateMovedToCap` rather than the `dateMovedToLatest` guessed at above.
+
+**The copy deliberately does NOT mirror the floor's shape**, and D86 records why: at the floor the
+participant met a limit, so the change leads and the reason follows; here their position improved, so
+the reason leads and the move follows. Two situations, two shapes.
+
+**One defect was found by closing it.** Picking the cap's own year while holding a later month left a
+date past the cap, which the render corrected and then announced - a disclosure saying the app had moved
+the date when the participant had just moved it themselves. The year pick now clamps the month at both
+ends, mirroring the floor clamp D83 already had.
+
+*Status: **closed.** The two disclosures are mutually exclusive by construction - each move clears the
+other's flag - and that is asserted rather than assumed.*
 
