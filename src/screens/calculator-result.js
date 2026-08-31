@@ -449,11 +449,19 @@ export function render(container, ctx) {
   if (chartVisible && !showTable) {
     bindGrowthChart(container, {
       pointCount,
-      onActivate: (index) => {
-        if (index === activeIndex) return;
-        const next = setState({ chartActiveIndex: index });
-        rerenderInPlace(container, render, { ...ctx, state: next });
-        container.querySelector('[data-chart-area]')?.focus({ preventScroll: true });
+      // PERSISTED, NOT RE-RENDERED. The chart repaints itself in place, so the
+      // element holding the pointer capture survives a drag and the whole
+      // screen is not rebuilt on every `pointermove`. The write is still here
+      // because the index has to outlive a chip press or a navigation.
+      onActivate: (index) => setState({ chartActiveIndex: index }),
+      // The readout is outside the chart, so the chart cannot repaint it - but
+      // it must move with the guide or the two would state different figures.
+      // Rendered from the point's own accessible name, so there is one source.
+      onPaint: ({ date, amount }) => {
+        const figure = container.querySelector('.figure-display');
+        const caption = container.querySelector('.figure-input__caption');
+        if (figure) figure.textContent = amount;
+        if (caption) caption.textContent = fill(c.readoutCaptionTemplate, { date, amount });
       },
     });
   }

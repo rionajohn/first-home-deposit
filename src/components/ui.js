@@ -1455,9 +1455,52 @@ export function chartTableHTML({ points, series, headers, caption, selectedSuffi
  * it commits to a vertical pan through `touch-action: pan-y` - is handled by
  * the same rule, so the scroll case needs no branch of its own.
  */
-export function bindGrowthChart(container, { pointCount, onActivate }) {
+export function bindGrowthChart(container, { pointCount, onActivate, onPaint }) {
   const area = container.querySelector('[data-chart-area]');
   if (!area || pointCount < 1) return;
+
+  const points = [...container.querySelectorAll('.growth-chart__point')];
+  const guide = container.querySelector('.growth-chart__guide');
+  const guideValue = container.querySelector('[data-chart-guide-value]');
+  const dateLabel = container.querySelector('.growth-chart__point-date');
+
+  /**
+   * REPAINTS IN PLACE RATHER THAN RE-RENDERING THE SCREEN, and that is not an
+   * optimisation. A full re-render replaces the element holding the POINTER
+   * CAPTURE, so a drag that left the plot stopped tracking at the edge - the
+   * "control jamming" the capture exists to prevent. It also replaced the whole
+   * screen on every `pointermove` of a scrub.
+   *
+   * Everything it needs is already on the points: their positions are their own
+   * inline styles and their figures are their own accessible names, which is
+   * the string a screen reader gets. So there is no second copy of the
+   * arithmetic here, and the caller still owns the index.
+   */
+  const paint = (index) => {
+    const point = points[index];
+    if (!point) return;
+    const [date, amount] = (point.getAttribute('aria-label') ?? '').split(', ');
+    const left = point.style.left;
+    const bottom = point.style.bottom;
+
+    for (const [i, el] of points.entries()) {
+      el.classList.toggle('growth-chart__point--active', i === index);
+      el.setAttribute('aria-selected', String(i === index));
+    }
+    area.setAttribute('aria-activedescendant', point.id);
+
+    if (guide) { guide.style.bottom = bottom; guide.style.width = left; }
+    if (guideValue) { guideValue.style.bottom = bottom; guideValue.textContent = amount ?? ''; }
+    if (dateLabel) {
+      dateLabel.style.left = left;
+      dateLabel.style.bottom = bottom;
+      dateLabel.textContent = date ?? '';
+      const pct = parseFloat(left);
+      dateLabel.classList.toggle('growth-chart__point-date--end', pct > 85);
+      dateLabel.classList.toggle('growth-chart__point-date--start', pct < 15);
+    }
+    onPaint?.({ index, date, amount });
+  };
 
   const indexFromEvent = (event) => {
     const rect = area.getBoundingClientRect();
@@ -1469,7 +1512,11 @@ export function bindGrowthChart(container, { pointCount, onActivate }) {
   let scrubbing = false;
   let pinned = false;
 
-  const move = (event) => onActivate(indexFromEvent(event));
+  const move = (event) => {
+    const index = indexFromEvent(event);
+    paint(index);
+    onActivate(index);
+  };
 
   area.addEventListener('pointerdown', (event) => {
     scrubbing = true;
@@ -1504,6 +1551,7 @@ export function bindGrowthChart(container, { pointCount, onActivate }) {
     if (next === null) return;
     event.preventDefault();
     pinned = true;
+    paint(next);
     onActivate(next);
   });
 
@@ -1514,7 +1562,6 @@ export function bindGrowthChart(container, { pointCount, onActivate }) {
   // value is the answer to the question the participant is asking. Measured
   // against the rendered boxes rather than against an assumed row height, so it
   // follows the Large text size.
-  const guideValue = container.querySelector('[data-chart-guide-value]');
   if (guideValue) {
     const guideBox = guideValue.getBoundingClientRect();
     for (const label of container.querySelectorAll('.growth-chart__tick-label')) {
