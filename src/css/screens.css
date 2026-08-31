@@ -1194,7 +1194,12 @@
   transform: translateX(-1px);
 }
 
-/* Data viz / Growth chart */
+/* Data viz / Growth chart (DECISIONS.md D100) --------------------------------
+   REBUILT FROM BARS TO A LINE. `.growth-chart__bar`, `__bar-group` and
+   `__bars` are gone with the bar rendering; what replaced them is a polyline
+   in an SVG plus positioned points, a horizontal guide, and an x-axis that is
+   a SCALE rather than a flex row (pilot finding P10 - four labels distributed
+   independently of eleven bars, so no label sat under the mark it named). */
 .growth-chart {
   display: flex;
   flex-direction: column;
@@ -1210,95 +1215,167 @@
   box-sizing: border-box;
 }
 
-.growth-chart__baseline {
+/* THE SCRUB TARGET, and it is the whole plot rather than the points: at the
+   24-month default the points sit at a 13.3px pitch, against 44px (Apple HIG)
+   and 24px (WCAG 2.5.8). Quartering the resolution would have bought 38.1px,
+   still short. Removing the aiming removes the problem.
+
+   `touch-action: pan-y` lets the browser direction-lock: a vertical gesture
+   scrolls `.screen-content` (and chains to the page at short window heights,
+   D92) and never reaches the handler; a horizontal one is delivered as pointer
+   events. Nothing is stolen - `overflow-x` is hidden in both views. */
+.growth-chart__area {
   position: absolute;
   left: 48px;
   right: 0;
   bottom: 16px;
+  top: 0;
+  touch-action: pan-y;
+  cursor: crosshair;
+}
+
+.growth-chart__area:focus-visible {
+  outline: 2px solid var(--color-accent-neutral);
+  outline-offset: 2px;
+}
+
+.growth-chart__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.growth-chart__line {
+  fill: none;
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* The two series still clear 3:1 against each other and against the plot in
+   both themes - the pair D73's amendment measured. The unselected line is the
+   lighter of them and is drawn thinner, so the selected one reads as the
+   subject without colour being the only carrier (WCAG 1.4.1); the pill control
+   and the readout caption both name the selection in words. */
+.growth-chart__line--active { stroke: var(--color-label); }
+.growth-chart__line--other {
+  stroke: var(--color-border-control);
+  stroke-width: 1.5px;
+}
+
+.growth-chart__tick {
+  position: absolute;
+  left: 48px;
+  right: 0;
   height: 1px;
   background: var(--color-border-subtle);
 }
 
-.growth-chart__y-label {
+.growth-chart__tick-label {
   position: absolute;
   left: 0;
+  width: 44px;
   margin: 0;
+  transform: translateY(50%);
+  text-align: right;
   font-size: var(--text-footnote-size);
   line-height: var(--text-footnote-line);
   color: var(--color-label-secondary);
 }
 
-.growth-chart__y-label--top {
-  top: 0;
-}
-
-.growth-chart__y-label--bottom {
-  bottom: 16px;
-}
-
-.growth-chart__bars {
+/* HORIZONTAL AND NOTHING ELSE. A vertical drop would land between year ticks
+   and point at nothing readable - the axis carries years, so there is no mark
+   for it to meet. Dotted so it reads as a measuring line rather than as a
+   third series. */
+.growth-chart__guide {
   position: absolute;
-  left: 48px;
-  right: 0;
-  bottom: 16px;
-  height: calc(100% - 16px);
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  left: 0;
+  height: 0;
+  border-top: 1px dotted var(--color-label-secondary);
+  pointer-events: none;
 }
 
-.growth-chart__bar-group {
-  flex: 1 1 0;
-  min-width: 0;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-/* TWO GREYS THAT MEASURE, NOT TWO THAT LOOK DIFFERENT (D73's amendment).
-   The bands were `--color-accent-neutral` at two opacities, which resolves to
-   2.67:1 in light and 2.36:1 in dark - under 3:1, so a hatch was carrying the
-   distinction. An exhaustive search of the palette found three pairs that
-   clear 3:1 against EACH OTHER and 3:1 against the plot background in BOTH
-   themes, and this is the widest of them: 5.18:1 light, 4.54:1 dark.
-
-   The second test is what eliminates most pairs. `accent-neutral` against
-   `surface-raised` reaches 7.29:1 light and 4.86:1 dark, but `surface-raised`
-   is 1.06:1 against the page, so the upper band would vanish wherever it did
-   not overlap the lower one. A band has to be visible against the plot, not
-   only against its neighbour. */
-.growth-chart__bar {
-  width: 60%;
-  background: var(--color-label);
-}
-
-/* The upper band. The hatch it used to carry is gone: it existed because no
-   two fills in this palette reached 3:1, and now two do. */
-.growth-chart__bar--high {
-  border-radius: 2px 2px 0 0;
-  background: var(--color-border-control);
-}
-
-.growth-chart__bar--low {
-  border-radius: 2px 2px 0 0;
-}
-
-.growth-chart__x-axis {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  padding-left: 48px;
-  box-sizing: border-box;
-}
-
-.growth-chart__x-axis p {
+.growth-chart__guide-value {
+  position: absolute;
+  left: 0;
+  width: 44px;
   margin: 0;
+  transform: translateY(50%);
+  text-align: right;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+/* TOLD APART BY SIZE AND SHAPE, NEVER BY FILL ALONE (WCAG 1.4.1): the active
+   point is larger and carries a ring. */
+.growth-chart__point {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: 0 0 -2.5px -2.5px;
+  border-radius: 50%;
+  background: var(--color-label);
+  pointer-events: none;
+}
+
+.growth-chart__point--active {
+  width: 11px;
+  height: 11px;
+  margin: 0 0 -5.5px -5.5px;
+  background: var(--color-surface);
+  border: 3px solid var(--color-label);
+}
+
+/* ABOVE THE POINT, NEVER BELOW IT: below is under the thumb on every
+   interaction. The room is bought in the caller's maxScale headroom, which
+   D100 moved from 1.05 to 1.20 for exactly this - measured, the label
+   collided with the plot's upper bound by 17.3px at default text and 20px at
+   Large, in the screen's own default state. */
+.growth-chart__point-date {
+  position: absolute;
+  margin: 0 0 10px 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  font-weight: 600;
+  color: var(--color-label);
+  pointer-events: none;
+}
+
+/* CLAMPED AT THE ENDS. The at-rest active point is the LAST one, so a centred
+   label hangs half outside the plot in the screen's own default state - which
+   is what the first shot of this chart showed, "August 2028" clipped by the
+   right edge. */
+.growth-chart__point-date--end { transform: translateX(-100%); }
+.growth-chart__point-date--start { transform: none; }
+
+/* A SCALE, NOT A FLEX ROW. Each label is positioned at its own moment's
+   percentage of the plot width, in the same coordinate space the line is drawn
+   in, so a label at x% names the moment at x% whether or not a point falls
+   there. Which labels survive is decided by bindGrowthChart's measured
+   thinning rule, not by a count. */
+.growth-chart__x-axis {
+  position: relative;
+  height: var(--text-footnote-line);
+  margin-left: 48px;
+}
+
+.growth-chart__x-label {
+  position: absolute;
+  margin: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
   font-size: var(--text-footnote-size);
   line-height: var(--text-footnote-line);
   color: var(--color-label-secondary);
 }
+
+.growth-chart__x-label--now { transform: none; }
 
 .growth-chart__legend {
   display: flex;
@@ -1320,18 +1397,72 @@
   color: var(--color-label-secondary);
 }
 
-/* MATCHING MODIFIERS, WHICH THIS DID NOT HAVE (GAPS.md G90). Both legend
-   rows rendered from one class with no modifier, so the legend showed two
-   identical squares and nothing connected either row to either bar. Each row
-   now takes the fill of the band it names. */
+/* MATCHING MODIFIERS, WHICH THIS DID NOT HAVE (GAPS.md G90). Each row now
+   takes the stroke of the series it names. */
 .growth-chart__swatch {
   width: 12px;
-  height: 12px;
+  height: 3px;
   border-radius: 2px;
   background: var(--color-label);
 }
 
 .growth-chart__swatch--high { background: var(--color-border-control); }
+
+/* NOTHING IN THE INTERACTION DEPENDS ON MOTION. The snap is a state change
+   rather than an animation, so this drops any transition and leaves the
+   behaviour identical. */
+@media (prefers-reduced-motion: reduce) {
+  .growth-chart__guide,
+  .growth-chart__point,
+  .growth-chart__point-date,
+  .growth-chart__guide-value {
+    transition: none !important;
+  }
+}
+
+/* Frame 12's table view - the chart's text alternative, and under D102 the
+   only finer-than-year date resolution on the screen at rest. */
+.growth-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.growth-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+}
+
+.growth-table__caption {
+  text-align: left;
+  padding-bottom: var(--space-sm);
+  color: var(--color-label-secondary);
+}
+
+.growth-table th,
+.growth-table td {
+  padding: var(--space-sm) var(--space-xs);
+  text-align: right;
+  border-bottom: 1px solid var(--color-border-subtle);
+  white-space: nowrap;
+}
+
+.growth-table th[scope="row"] {
+  text-align: left;
+  font-weight: 400;
+  color: var(--color-label-secondary);
+}
+
+.growth-table thead th {
+  text-align: right;
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.growth-table thead th:first-child { text-align: left; }
+
+.growth-table__selected { font-weight: 600; }
 
 .timing-figures {
   display: flex;

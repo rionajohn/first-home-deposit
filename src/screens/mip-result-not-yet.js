@@ -45,7 +45,7 @@ import {
   rerenderInPlace,
 } from '../components/ui.js';
 import { LISA_CAP_PROPERTY_VALUE } from '../model/rates.js';
-import { formatCurrency, formatMonthsDuration } from '../format.js';
+import { formatCurrency, formatYear } from '../format.js';
 import { gap, neededLoanAmount, borrowRange, maxProperty, monthsToReachAmount } from '../model/model.js';
 import { arrowUp } from '../icons.js';
 
@@ -108,7 +108,7 @@ export function render(container, ctx) {
           {
             number: 1,
             title: fill(c.step1TitleTemplate, { amount: gapResult.error ? '—' : formatCurrency(gapResult.value) }),
-            caption: fill(c.step1CaptionTemplate, { months: Number.isFinite(monthsToClose) ? formatMonthsDuration(monthsToClose) : '—' }),
+            caption: fill(c.step1CaptionTemplate, { year: Number.isFinite(monthsToClose) ? formatYear(Math.ceil(monthsToClose), state.sessionAnchor) : '—' }),
           },
           {
             number: 2,

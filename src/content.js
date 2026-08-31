@@ -874,16 +874,54 @@ const content = {
     // --- The comparison that replaced the range (D72) -----------------------
     // Every chip frame 09 offers gets a row, so a participant who chose 20% or
     // 25% sees their own choice rather than a band that stops at 15%.
-    compareHeading: 'How this compares',
+    // NAMES A NEIGHBOURHOOD, NOT A MENU (DECISIONS.md D101). It read "How this
+    // compares", which is a comparison of alternatives - and at 24:48 the
+    // participant objected to being shown options they had not chosen. The
+    // comparison is not removed (D46 keeps the discarded values visible); the
+    // framing is. It avoids "compare" and "options", both of which invite the
+    // reading that these are offers.
+    compareHeading: 'Deposits either side of yours',
     compareRowSublabelTemplate: '{pct} deposit',
     // THE SELECTED ROW SAYS SO IN WORDS. `rate-band-row--highlighted` marks it
     // visually, but colour and weight must not be the only carriers (WCAG
     // 1.4.1), and this is the one row on the screen whose meaning depends on
     // being told apart from the others.
     compareRowSelectedSublabelTemplate: '{pct} deposit - your choice',
-    compareWithinTemplate: 'within {months}',
+    // `compareWithinTemplate` ("within {months}") IS RETIRED (DECISIONS.md
+    // D101). The value slot it filled is now the attainment YEAR in the row's
+    // leading position - the row leads with the date reached rather than with
+    // the deposit amount, which is the 24:48 reframing.
     compareAlreadyLabel: 'already saved',
-    compareProvenanceCaption: 'Time to save each one, at what you are putting away now',
+    // THE MARKER THE PARTICIPANT ASKED FOR AT 24:27. A literal character, not
+    // an icon and not an emoji: it renders after each row's year and opens the
+    // caption below, so the caption is bound to the figures it describes
+    // rather than floating free of them. `aria-describedby` carries the same
+    // binding for assistive technology, which does not depend on the glyph
+    // being announced.
+    compareFootnoteMarker: '*',
+    // NAMES WHICH RATE, which it did not (the plan's 7.6). It read "at what you
+    // are putting away now" and silently meant `monthly-low`; the card now
+    // follows the series selection, so the caption has to say that the figures
+    // move with the control above them.
+    compareProvenanceCaption: "* Time to save each one, at the amount you've picked.",
+    // WHEN TWO ROWS LAND IN THE SAME YEAR (the plan's 7.5). Year-only is a
+    // claim about what the model can honestly assert, so the collision is NAMED
+    // rather than formatted around - the card-wide fallback to month and year
+    // was withdrawn because a granularity that varies with the arithmetic is
+    // worse than one that holds.
+    //
+    // TWO SLOTS, AND BOTH NUMBERS STAY, as a deliberate exception to the
+    // one-number-per-sentence rule: two numbers are the entire content of the
+    // string. The slots exist because "two of these" made the participant hunt
+    // for the colliding rows, so splitting the sentence to satisfy the rule
+    // would undo a fix made for a measured reason. `{a}` is the lower
+    // percentage, row order.
+    //
+    // TWO SLOTS AND NOT THREE. A three-way collision would need a third, and it
+    // is unreachable at every rate the app can commit - 0 in 28,400 measured
+    // configurations. See GAPS.md; unreachable is not fixed.
+    compareSameYearNoteTemplate:
+      "The {a} and {b} deposits are close enough that you'd reach them in the same year.",
     chartHeading: 'How your savings would build up',
     // --- THE RANGE CONTROL (D73) --------------------------------------------
     //
@@ -924,7 +962,14 @@ const content = {
     chartRangeLabels: [
       { months: 6, label: '6 m', ariaLabel: '6 m, six months' },
       { months: 12, label: '1 yr', ariaLabel: '1 yr, one year' },
-      { months: 36, label: '3 yr', ariaLabel: '3 yr, three years' },
+      // "2 yr" REPLACES "3 yr" AND IS THE DEFAULT (DECISIONS.md D100). The
+      // window opens at 24 months, which was not one of the five chips, and a
+      // group with nothing pressed is the state D73 rejected - there is then no
+      // way back to the default once a chip is pressed. A SIXTH chip does not
+      // fit: components.css records the row as "334px of a 350px column", 16px
+      // of slack. So one is replaced rather than added, and the count stays
+      // five.
+      { months: 24, label: '2 yr', ariaLabel: '2 yr, two years' },
       { months: 60, label: '5 yr', ariaLabel: '5 yr, five years' },
       { months: null, label: 'Max', ariaLabel: 'Max, the whole time to reach your goal' },
     ],
@@ -936,11 +981,94 @@ const content = {
     // The live region's whole contents. A chart cannot be announced usefully -
     // twelve bar groups and an axis - so the region carries a summary and the
     // chart itself stays out of it. One number per sentence.
-    chartRangeAnnouncementTemplate: 'Showing {range}. Savings reach {amount}.',
+    chartRangeAnnouncementTemplate: 'Showing to {range}. Savings reach {amount}.',
     chartCaptionTemplate: 'With interest at {aer} a year. Illustrative.',
     xAxisNow: 'Now',
     legendTemplate: 'At {amount} a month',
     yAxisFloor: '£0',
+
+    // --- THE READOUT, THE POINT DETAIL AND THE ENDPOINT (D100, D102) --------
+    //
+    // `readoutCaptionTemplate` LEADS WITH THE DATE deliberately: the caption
+    // exists to stop a scrubbed value being read as the window-end value, and
+    // the date is the disambiguator, so it goes first.
+    //
+    // ITS `{date}` IS A MONTH AND YEAR, and it is the ONE exception to D102's
+    // year-only rule, named rather than discovered later (the plan's 10.6).
+    // Year-only governs what the screen CLAIMS about reaching the goal; this
+    // reports where the pointer sits on a plotted curve, which is an
+    // observation about the data rather than an assertion about the future.
+    // The boundary that keeps it coherent: the endpoint line and the
+    // comparison rows stay year-only, so nothing on this screen that says a
+    // goal WOULD BE REACHED ever names a month.
+    readoutCaptionTemplate: "By {date} you'd have saved {amount}.",
+    chartSeriesLegend: 'Which monthly amount',
+    chartPlotAriaLabel: 'Savings projection. Use the arrow keys to move between months.',
+    chartPointAriaLabelTemplate: '{date}, {amount}',
+
+    // "IF YOU KEEP SAVING THIS AMOUNT", NOT "AT THIS RATE". The first draft
+    // read "At this rate", which is ambiguous on this screen:
+    // `chartCaptionTemplate` states an interest rate three elements below it,
+    // so "this rate" could be read as the interest rate rather than as the
+    // participant's own contribution - on the screen's strongest claim. The
+    // replacement names the assumption the participant CONTROLS rather than
+    // one they do not.
+    //
+    // `{year}` IS THE YEAR ALONE (D102). Conditional mood, no recommendation.
+    endpointTemplate: "If you keep saving this amount, you'd reach your {amount} goal in {year}.",
+
+    // ALWAYS VISIBLE, DIRECTLY BENEATH THE ENDPOINT LINE, NOT BEHIND A
+    // DISCLOSURE (DECISIONS.md D103). A participant who does not open a
+    // disclosure gets nothing from it, and the endpoint is the strongest claim
+    // on the screen.
+    //
+    // "ESTIMATE" STAYS IN THE FIRST THREE WORDS. It is the word doing the
+    // regulatory work: a sentence opening by listing what is held constant
+    // reads as a description of the method, one opening with "This is an
+    // estimate" reads as a qualification of the claim. Do not reorder this in a
+    // shortening pass.
+    //
+    // CHANGE OF CIRCUMSTANCES IS DELIBERATELY ABSENT. It is the least specific
+    // of the four uncovered assumptions, it is obvious in a way the other three
+    // are not, and a fourth clause starts to read as boilerplate that gets
+    // skipped.
+    projectionAssumptions:
+      'This is an estimate. It assumes nothing changes: what you save, interest rates, or the deposit you need.',
+    projectionAssumptionsLinkLabel: 'How we worked out these figures',
+
+    // --- THE TABLE VIEW (D100) ----------------------------------------------
+    // The text alternative for the chart, and under D102 the only place on this
+    // screen carrying date resolution finer than a year at rest. Its toggle is
+    // a visible peer of the chart, not a hidden affordance - see D102.
+    chartViewLegend: 'How to show this',
+    chartViewChartLabel: 'Chart',
+    chartViewTableLabel: 'Table',
+    chartTableCaption: 'What you would have saved, month by month',
+    chartTableMonthHeader: 'Month',
+    chartTableSelectedSuffix: 'your choice',
+
+    // --- THE ATTAINED STATE (D99) -------------------------------------------
+    // The goal is already covered by what the participant holds. NOT an error
+    // and it must not read as one (D78): nothing they did is wrong.
+    //
+    // "this deposit", not "your goal": a participant can be past the selected
+    // percentage and short of a larger one, which is what the second sentence
+    // of the body depends on.
+    goalAttainedHeadline: "You've already saved enough for this deposit.",
+    // ONE FIGURE, NOT TWO. The goal amount is already stated in the breakdown
+    // directly above, and this sentence's job is reassurance rather than
+    // arithmetic, so the second figure costs nothing to drop.
+    //
+    // THE SECOND SENTENCE IS LOAD-BEARING. The comparison card is still drawn
+    // in this state (D46), so without it a participant who has met the smallest
+    // deposit is told they are done and given no reason to look at the rows
+    // still ahead of them.
+    //
+    // "toward", not "towards", to match `goalHeading` on this same screen. The
+    // codebase carries thirteen instances of "toward" in participant copy; see
+    // GAPS.md for the standardisation sweep this did not take.
+    goalAttainedBody:
+      "Your {saved} already covers what you'd need. You can still change your deposit amount, or carry on saving toward a larger one.",
     // ITS SECOND CLAUSE IS GONE (D73). It read "- the chart shows progress to 5
     // years", which was true only while the chart had one fixed range. The
     // clause could have been made range-aware, but it would then have restated
@@ -952,7 +1080,12 @@ const content = {
     // The first clause keeps "5 years" correctly: that is the MODEL's window,
     // `monthsToTarget`'s own beyond-window boundary, and has nothing to do with
     // which range the chart is drawing.
-    beyondWindowNote: 'This could take more than 5 years at your current rate.',
+    // `beyondWindowNote` IS RETIRED (DECISIONS.md D100). It read "This could
+    // take more than 5 years at your current rate", and it existed because the
+    // model stops projecting in detail at 60 months and the screen could then
+    // say nothing more. The endpoint line now names the attainment year
+    // unconditionally, at every window, so the note restated a limit the
+    // participant can no longer observe.
     whyBiggerHeading: 'Why a bigger deposit helps',
     benefitRows: [
       {
@@ -1007,6 +1140,14 @@ const content = {
     tableRateRowLabel: 'Typical rate',
     tableMonthlyRowLabel: 'Monthly',
     tableInterestRowLabelTemplate: 'Interest, {years} yrs',
+    // ADDED, NOT CONVERTED (DECISIONS.md D98). This screen had no time figure
+    // at all - five rows, none of them about when. At 26:20 the participant
+    // asked, on this screen, "how long, like max should be, how long it will
+    // take me to get to that amount of money". The row answers that against
+    // each column's own deposit, at what they are putting aside now.
+    //
+    // Year only, for D102's reason: it is a claim about reaching a goal.
+    tableReachedRowLabel: 'Saved by',
     bannerTextTemplate:
       "Between the first column and the last, that's about {monthlyDiff} a month, and around {interestDiff} over {years} years.",
     balancingParagraph:
@@ -1577,7 +1718,14 @@ const content = {
     basedOnValue: 'salary, deposit and commitments',
     nextStepsTitle: 'Some things you could do next',
     step1TitleTemplate: 'Save around {amount} more toward your deposit',
-    step1CaptionTemplate: "Around {months} at what you're putting aside each month",
+    // A DATE, NOT A DURATION (DECISIONS.md D98). It read "Around {months} at
+    // what you're putting aside each month" and rendered an elapsed duration
+    // through `formatMonthsDuration`. The participant should not have to add a
+    // duration to today's date in their head.
+    //
+    // YEAR ONLY, matching frame 12's endpoint line: this is a claim about when
+    // a goal would be reached, which is exactly what D102's rule governs.
+    step1CaptionTemplate: "By {year} at what you're putting aside each month",
     step2TitleTemplate: 'Look at a property target closer to {amount}',
     step2Caption: 'Would close the gap now',
     step3Title: 'Speak to an adviser',
@@ -1864,6 +2012,15 @@ const content = {
     resetHeader: 'Reset',
     resetRowLabel: 'Clear all progress and start again',
     buildCaptionTemplate: 'Build {version}. Figures are illustrative throughout.',
+    // THE DAY THIS SESSION'S DATES ARE MEASURED FROM (DECISIONS.md D97), beside
+    // the build version and for the same reason: a screenshot taken during a
+    // session has to be interpretable afterwards. A stale anchor produces wrong
+    // years with nothing else on screen to reveal it.
+    //
+    // A NEW KEY rather than a second slot in `buildCaptionTemplate`, so that
+    // caption's wording - which G-numbered work has already been through -
+    // is untouched.
+    anchorCaptionTemplate: 'Dates worked out from {anchor}.',
     // Shown only when Cache Storage holds a shell version that is not the one
     // running. Deliberately says "downloaded", not "running": the whole fault
     // this replaced was a caption that named a version the page was not

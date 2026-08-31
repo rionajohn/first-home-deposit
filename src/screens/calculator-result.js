@@ -3,20 +3,42 @@
  * reference/frames/12 Deposit calculator - your deposit range.png.
  *
  * Variants built (build-spec.md section 2):
- *   - within the chart window: months-to-target <= 60 — the normal case
- *   - beyond the chart window: months-to-target > 60 — no wireframe drawn
- *     (DECISIONS.md D7 fallback); the chart still plots to 5 years
- *     (build-spec.md's own rule) with a note that it may take longer
+ *   - the ordinary case: a projection with length, chart drawn
+ *   - attained: `goalAttained(state)` — no chart, no chips, no series control,
+ *     no readout, no table; the comparison card stays (D46). D99
  *   - unreachable: savings-rate (here, both monthly-low and monthly-high)
  *     = 0 — no wireframe drawn (D7 fallback); the growth chart and timing
  *     rows are replaced with the shared empty-state-card pattern
  *
- * THE CHART'S THRESHOLD LINES ARE GONE (D73) and its range is a control. It
- * plotted 5/10/15% of the property value as fixed lines, which forced the
- * y-axis up to £70,875 and left the savings curve at 44% of the plot at five
- * years and 16% at six months. The axis now follows the curve and the chips
- * choose the window; deposit context is the comparison card's job, which does
- * it with amounts and timeframes rather than three unlabelled rules.
+ * THE CHART IS A LINE WITH AN INTERACTIVE POINT (DECISIONS.md D100), rebuilt
+ * from bars after the 31 August 2026 pilot. The participant liked it on sight
+ * and could not extract a single number from it: "I don't have a y-axis to
+ * know what the value is. I can't hover and see what the values are either"
+ * (21:42), and "I still don't know whether I would choose to have it at 200
+ * pounds a month or 400 quid" (23:28). The chart existed to support choosing a
+ * contribution and did not support that choice.
+ *
+ * What answers it, in the order the requirements are numbered in the plan:
+ *   1. a readout naming the exact amount, always visible, reporting the active
+ *      point — the primary fix, and it must never become interaction-only
+ *   2. a labelled y-axis, so the chart is readable without interacting
+ *   3. an endpoint line naming the goal and the year it is reached
+ *   4. an x-axis that is a SCALE, closing pilot finding P10
+ *   5. a projection bounded at goal attainment, never overshooting
+ *   6. a table view of the same points array
+ *   7. nothing carried by colour alone
+ *
+ * EVERY DATE THIS SCREEN CLAIMS IS A YEAR (D102). The projection is not
+ * accurate to the month and stating it to the month invites a participant to
+ * read it as a commitment. The two exceptions report a COORDINATE on a plotted
+ * curve rather than an arrival — the readout under the chart and the table's
+ * own column — and they are named exceptions rather than oversights. The
+ * boundary: nothing that says a goal WOULD BE REACHED names a month.
+ *
+ * ALL DATES DERIVE FROM `state.sessionAnchor` (D97), stamped once at session
+ * start and discarded whole on a month mismatch, never from a render-time
+ * `new Date()`. A stale anchor would produce wrong years with nothing on
+ * screen to reveal it.
  *
  * `CHART_DEPOSIT_PCTS` still supplies the "Why a bigger deposit helps" card's
  * low and mid figures, which is why it is still imported.
@@ -26,7 +48,7 @@
  * frame 30 (deposit and rates); the one inside the How-this-works card
  * (which repeats frame 06's own money-in/essential-spending card verbatim)
  * goes to frame 29 (saving amount), matching how position-summary.js wires
- * the same card.
+ * the same card. A THIRD now sits under the endpoint line — see below.
  */
 import {
   appBarHTML,
@@ -34,22 +56,51 @@ import {
   infoBannerHTML,
   flagRowHTML,
   growthChartHTML,
+  chartTableHTML,
+  bindGrowthChart,
   chipRowHTML,
+  pillSegmentsHTML,
   rateBandRowHTML,
   figureRowHTML,
+  figureDisplayHTML,
   infoLinkHTML,
   howThisWorksCardHTML,
   emptyStateCardHTML,
   rerenderInPlace,
 } from '../components/ui.js';
-import { formatCurrency, formatPercent, formatMonthsDuration } from '../format.js';
-import { balanceAtMonth, monthsToReachAmount, checkpointAmount, monthsToTarget, stampDuty, combinedGoal } from '../model/model.js';
+import { formatCurrency, formatPercent, formatMonthYear, formatYear, axisTicks } from '../format.js';
+import { balanceAtMonth, monthsToReachAmount, checkpointAmount, goalMonths, goalAttained, stampDuty, combinedGoal } from '../model/model.js';
 import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS, CHART_MIN_RANGE_MONTHS, neighbourPcts } from '../model/rates.js';
 
 export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
 
+/** Twenty-four plotted points, or one per month where the window is shorter.
+ *  Constant across every window so the scrub's snap granularity does not
+ *  change with the chip pressed (the plan's 6.6.1). */
+const MAX_POINTS = 24;
+
+/** D100's headroom, moved from D73's 1.05. The date label sits ABOVE the
+ *  active point and the active point at rest is the highest one, so at 1.05 the
+ *  screen's DEFAULT state was the colliding state — measured, by 17.3px at
+ *  default text and 20px at Large. This is the space that label occupies. */
+const CHART_HEADROOM = 1.20;
+
 function fill(template, values) {
   return Object.entries(values).reduce((s, [k, v]) => s.replace(`{${k}}`, v), template);
+}
+
+/** Months from the anchor to 1 January of each year the window spans, as a
+ *  percentage of the window. The x-axis is a scale: a label at x% names the
+ *  moment at x%, whether or not a point falls there. */
+function yearLabelsFor(anchorDate, rangeMonths) {
+  const base = new Date(anchorDate);
+  const labels = [];
+  for (let m = 1; m <= rangeMonths; m += 1) {
+    const d = new Date(base.getFullYear(), base.getMonth() + m, 1);
+    if (d.getMonth() !== 0) continue;
+    labels.push({ label: String(d.getFullYear()), pct: (m / rangeMonths) * 100 });
+  }
+  return labels;
 }
 
 export function render(container, ctx) {
@@ -71,6 +122,7 @@ export function render(container, ctx) {
     return;
   }
 
+  const anchor = state.sessionAnchor;
   const propertyValue = state['property-value'].value;
   const savedTowardDeposit = state['saved-toward-deposit'].value;
   const monthlyLow = state['monthly-low'].value;
@@ -79,53 +131,119 @@ export function render(container, ctx) {
   const essentialSpending = state['essential-spending'].value;
   const leftOverValue = state['left-over'].value;
 
-  // ONLY THE BENEFIT CARD READS THESE NOW (D73). They fed the chart's
-  // threshold lines and its axis; both are gone. `rangeLowAmount` and
-  // `rangeHighAmount` went with them - the first had already been dead since
-  // D72 deleted the range figure.
+  // ONLY THE BENEFIT CARD READS THESE (D73).
   const [lowPctValue, midPctValue] = CHART_DEPOSIT_PCTS;
 
-
-  // The participant's own choice, which this screen leads with now (D72).
   const depositPctValue = state['deposit-pct'].value;
   const stampDutyValue = state['stamp-duty'].value;
   const combinedGoalValue = state['combined-goal'].value;
 
-  const monthsResult = monthsToTarget(state);
-  const unreachable = monthsResult.error === 'unreachable';
-  const beyondWindow = monthsResult.error === 'beyond-window';
-  // THE GOAL IS BEHIND THEM, so "the whole time to reach your goal" names
-  // nothing (D73's third amendment). `monthsToTarget` returns 0 at the goal and
-  // a NEGATIVE number past it - at 60,000 against a 52,500 goal it returns
-  // -17.5 - and `Math.ceil` carried that straight into the range, so the chart
-  // projected backwards: bars descending, an x-axis of "0 mo", and a live
-  // region announcing a figure lower than the participant already had.
-  const goalMet = savedTowardDeposit >= combinedGoalValue;
+  // THE SELECTED CONTRIBUTION, and one control now governs the whole screen
+  // (the plan's 7.6): the chart, the readout, the endpoint line AND the
+  // comparison card all project at it. Defaults to 'low' in state.js, which is
+  // what keeps D72's "the conservative end cannot disappoint" intent alive as a
+  // default rather than as a floor.
+  const series = state.chartSeries === 'high' ? 'high' : 'low';
+  const selectedRate = series === 'high' ? monthlyHigh : monthlyLow;
 
-  // The chart's window, in months. A view setting (D73): it changes what the
-  // chart draws and never what the model projects.
-  //
-  // THREE THINGS GUARD THE "Max" RESOLUTION, and each was a defect first.
-  //   `goalMet`      the chip is not offered at all, so the range cannot be
-  //                  derived from a projection that has nothing left to run.
-  //   `> 0`          rather than a truthy test. `monthsToTarget` returns
-  //                  exactly 0 at the goal, which is falsy, so the old test
-  //                  fell through to the five-year fallback by accident.
-  //   `Math.max`     the floor. Near the goal the projection is a month or
-  //                  two, and "the whole time" must not draw a shorter window
-  //                  than the "6 mo" chip beside it.
-  const rangeMonths = state.chartRangeMonths
-    ?? (!goalMet && monthsResult.value > 0
-      ? Math.max(CHART_MIN_RANGE_MONTHS, Math.ceil(monthsResult.value))
-      : CHART_WINDOW_MONTHS);
+  // ONE PREDICATE, ONE PLACE (D99). This was computed inline as `goalMet`.
+  const attained = goalAttained(state);
+  const unreachable = monthlyLow <= 0 && monthlyHigh <= 0;
 
-  // TWELVE POINTS UNLESS THERE ARE NOT TWELVE MONTHS (D73's third amendment).
-  // The months were `Math.round(i * rangeMonths / 12)`, which duplicates
-  // whenever the range is under twelve - the "6 mo" chip drew bars in identical
-  // pairs, six distinct months across twelve bars. One point per month at
-  // short ranges; the bars simply get wider.
-  const pointCount = Math.min(12, rangeMonths);
+  // THE PROJECTION ENDS AT GOAL ATTAINMENT (D99), never at a fixed horizon and
+  // never past the goal. Rounded UP: rounding down ends the chart the month
+  // before the goal is met, drawing a final point below the goal beside a line
+  // saying it is reached. D85's cap rounds the other way because the unsafe
+  // direction there is the other one — the rule is one, the rounding is not.
+  const endpoint = goalMonths(state, selectedRate);
+  const attainmentMonths = !attained && endpoint.value !== null && Number.isFinite(endpoint.value) && endpoint.value > 0
+    ? Math.ceil(endpoint.value)
+    : null;
 
+  // THE WINDOW OPENS AT 24 MONTHS (D100, reversing D73's amendment). D73 moved
+  // the default to "Max" so a participant would see the whole shape first,
+  // which assumes the barrier was not seeing the projection. The pilot showed
+  // the barrier was being unable to read any value off it. Widening a window
+  // cannot fix an unreadable chart; requirement 1 now puts a figure on screen
+  // unconditionally, so the window is free to serve the near-term question.
+  const rangeMonths = attained
+    ? CHART_WINDOW_MONTHS
+    : state.chartRangeMonths
+      ?? (attainmentMonths !== null ? Math.max(CHART_MIN_RANGE_MONTHS, attainmentMonths) : CHART_WINDOW_MONTHS);
+
+  const pointCount = Math.max(1, Math.min(MAX_POINTS, rangeMonths));
+
+  // The points array. RENDERED BY BOTH THE CHART AND THE TABLE and recomputed
+  // by neither, which is what guarantees the table exposes every value the
+  // guide can reveal rather than a second derivation that could drift.
+  const points = [];
+  for (let i = 1; i <= pointCount; i += 1) {
+    const months = Math.round((i * rangeMonths) / pointCount);
+    points.push({
+      months,
+      date: formatMonthYear(months, anchor),
+      low: balanceAtMonth({ startingBalance: savedTowardDeposit, monthlyAmount: monthlyLow, months }),
+      high: balanceAtMonth({ startingBalance: savedTowardDeposit, monthlyAmount: monthlyHigh, months }),
+    });
+  }
+  const maxScale = Math.max(...points.map((p) => Math.max(p.low, p.high))) * CHART_HEADROOM;
+  for (const p of points) {
+    p.lowPct = (p.low / maxScale) * 100;
+    p.highPct = (p.high / maxScale) * 100;
+  }
+
+  // A POINT IS ACTIVE AT REST — the last in the window (the plan's 6.6.2b). On
+  // touch there is no hover, so nothing would hint the chart is interactive;
+  // with a point already active, scrubbing reads as moving something that is
+  // there rather than discovering something hidden. It also collapses a
+  // redundancy: the at-rest readout and the window's end are one state, so the
+  // readout has one rule — it reports the active point, always.
+  const activeIndex = Math.max(0, Math.min(pointCount - 1, state.chartActiveIndex ?? pointCount - 1));
+  const activePoint = points[activeIndex];
+  const activeAmount = series === 'high' ? activePoint.high : activePoint.low;
+
+  // ONE DERIVED ARRAY, HOISTED ABOVE THE TEMPLATE (the plan's 10.3). The rows
+  // used to compute `monthsToReachAmount` inside the `.map()` callback and
+  // discard it, so the collision predicate and the note below the card — which
+  // render outside that closure — had nothing to read. Deriving it once means
+  // the rows, the predicate and the note read ONE array rather than three
+  // derivations that could disagree, and `monthsToReachAmount` is called once
+  // per row rather than twice.
+  const compareRows = neighbourPcts(depositPctValue).map((pct) => {
+    const amount = propertyValue * pct;
+    const goalAtPct = amount + stampDutyValue;
+    const alreadySaved = savedTowardDeposit >= goalAtPct;
+    const months = alreadySaved
+      ? 0
+      : monthsToReachAmount({ startingBalance: savedTowardDeposit, targetAmount: goalAtPct, monthlyAmount: selectedRate });
+    return {
+      pct,
+      pctLabel: formatPercent(pct, 0),
+      amount,
+      alreadySaved,
+      months,
+      year: alreadySaved || !Number.isFinite(months) ? null : formatYear(Math.ceil(months), anchor),
+      selected: pct === depositPctValue,
+    };
+  });
+
+  // THE COLLISION, READ OFF THE SAME ARRAY. Rows carrying `compareAlreadyLabel`
+  // have no year and are excluded — 7.5's "live rows". Two slots and not three:
+  // a three-way collision is unreachable at every rate the app can commit.
+  const liveYears = compareRows.filter((r) => r.year !== null).map((r) => r.year);
+  const collidingYear = liveYears.find((y, i) => liveYears.indexOf(y) !== i) ?? null;
+  const colliding = collidingYear === null ? [] : compareRows.filter((r) => r.year === collidingYear);
+
+  const marker = c.compareFootnoteMarker;
+  const chartVisible = !unreachable && !attained;
+  const showTable = state.chartView === 'table';
+
+  const seriesOptions = [
+    { value: 'low', label: fill(c.legendTemplate, { amount: formatCurrency(monthlyLow) }) },
+    { value: 'high', label: fill(c.legendTemplate, { amount: formatCurrency(monthlyHigh) }) },
+  ];
+
+  const yearLabels = yearLabelsFor(anchor, rangeMonths);
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
@@ -134,11 +252,6 @@ export function render(container, ctx) {
       <p class="provenance-caption">${fill(c.depositBasisCaptionTemplate, { pct: formatPercent(depositPctValue, 0), property: formatCurrency(propertyValue) })}</p>
       ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions-deposit' })}
 
-      <!-- WHAT THEY WOULD SAVE TOWARD, and the answer to GAPS.md G85 (D72).
-           The deposit and the goal are different figures and this screen shows
-           both, so they are shown as an addition rather than as two headline
-           numbers a participant has to reconcile. The total is the same figure
-           /tracker states, from the same key. -->
       <h3 class="section-heading">${c.goalHeading}</h3>
       <div class="assumptions-list">
         ${figureRowHTML({ label: c.goalDepositLabel, trailing: formatCurrency(depositTargetValue) })}
@@ -146,123 +259,136 @@ export function render(container, ctx) {
         ${figureRowHTML({ label: c.goalTotalLabel, trailing: formatCurrency(combinedGoalValue) })}
       </div>
 
-      <!-- THREE ROWS, WINDOWED ON THE SELECTION (D72's amendment): the chosen
-           percentage, one step below and one step above. It showed all five,
-           which made the participant's own choice one of a list rather than the
-           subject of the screen, and put the two furthest options - the ones
-           they had implicitly rejected by choosing - in the same visual weight
-           as their neighbours.
-
-           "neighbourPcts" is frame 09's own windowing rule, moved into rates.js
-           so the two screens cannot disagree about what a step is. At the ends
-           of the set it extends rather than shrinking, so the count never
-           changes and the selected row is simply not always the middle one. -->
+      <!-- THE COMPARISON CARD IS DRAWN IN EVERY STATE INCLUDING THE ATTAINED
+           ONE (D46, D101): a discarded participant value stays visible. What
+           changed is the framing, not the presence — the participant objected
+           at 24:48 to being shown options they had not chosen, and each row now
+           LEADS WITH THE YEAR REACHED rather than with the deposit amount, so
+           the set reads as a neighbourhood around their own choice. -->
       <h3 class="section-heading">${c.compareHeading}</h3>
       <div class="card comparison-card">
-        ${(() => { const shown = neighbourPcts(depositPctValue); return shown.map((pct, i) => {
-          const amount = propertyValue * pct;
-          const goalAtPct = amount + stampDutyValue;
-          const selected = pct === depositPctValue;
-          const pctLabel = formatPercent(pct, 0);
-          const sublabel = fill(
-            selected ? c.compareRowSelectedSublabelTemplate : c.compareRowSublabelTemplate,
-            { pct: pctLabel },
-          );
-          // The SLOWER end, deliberately: one figure rather than a two-sided
-          // range in a narrow value column, and the conservative end is the
-          // one that cannot disappoint. `monthly-low` can be dragged to zero,
-          // which is the non-finite case.
-          const monthsLater = monthsToReachAmount({ startingBalance: savedTowardDeposit, targetAmount: goalAtPct, monthlyAmount: monthlyLow });
-          const value = savedTowardDeposit >= goalAtPct
-            ? c.compareAlreadyLabel
-            : Number.isFinite(monthsLater)
-              ? fill(c.compareWithinTemplate, { months: formatMonthsDuration(Math.ceil(monthsLater), { abbreviated: true }) })
-              : '—';
-          return `
-            ${rateBandRowHTML({ label: formatCurrency(amount), sublabel, value, highlighted: selected })}
-            ${i < shown.length - 1 ? '<hr class="divider" />' : ''}
-          `;
-        }).join(''); })()}
+        ${compareRows.map((row, i) => `
+          ${rateBandRowHTML({
+            label: row.alreadySaved ? c.compareAlreadyLabel : row.year === null ? '—' : `${row.year}${marker}`,
+            sublabel: fill(row.selected ? c.compareRowSelectedSublabelTemplate : c.compareRowSublabelTemplate, { pct: row.pctLabel }),
+            value: formatCurrency(row.amount),
+            highlighted: row.selected,
+            describedBy: 'compare-provenance',
+          })}
+          ${i < compareRows.length - 1 ? '<hr class="divider" />' : ''}
+        `).join('')}
       </div>
-      <p class="provenance-caption">${c.compareProvenanceCaption}</p>
+      ${colliding.length >= 2 ? `<p class="provenance-caption">${fill(c.compareSameYearNoteTemplate, { a: colliding[0].pctLabel, b: colliding[1].pctLabel })}</p>` : ''}
+      <p class="provenance-caption" id="compare-provenance">${c.compareProvenanceCaption}</p>
 
-      <!-- THE 5/10/15 TIMING ROWS ARE GONE (D72). They stated a timeframe for
-           three fixed percentages, two of which the participant may not have
-           chosen and two of frame 09's chips they never covered. The comparison
-           above does the same job for all five, with the participant's own
-           choice marked. "timingWithinTemplate", "timingRangeTemplate" and
-           "timingAlreadyTemplate" went with them.
-
-           The unreachable empty state stays: at a zero savings rate there is no
-           timeframe for any percentage, and the card says so once rather than
-           the comparison saying it five times. -->
       ${unreachable ? emptyStateCardHTML({ title: c.unreachableHeadline, body: c.unreachableBody, ctaLabel: c.unreachableCta, ctaAction: 'set-amount' }) : ''}
 
       <p class="legal-text">${reg.estimateDisclosure}</p>
 
-      ${unreachable ? '' : `
+      ${attained ? `
+        ${infoBannerHTML(`${c.goalAttainedHeadline} ${fill(c.goalAttainedBody, { saved: formatCurrency(savedTowardDeposit) })}`, { live: true })}
+      ` : ''}
+
+      ${chartVisible ? `
         <h3 class="section-heading">${c.chartHeading}</h3>
-        ${(() => {
-          // TWELVE TICKS ACROSS WHATEVER RANGE IS SHOWN, so the bar count and
-          // spacing never change - only the months each bar stands for.
-          const points = [];
-          for (let i = 1; i <= pointCount; i += 1) {
-            const months = Math.round((i * rangeMonths) / pointCount);
-            points.push({ months, low: balanceAtMonth({ startingBalance: savedTowardDeposit, monthlyAmount: monthlyLow, months }), high: balanceAtMonth({ startingBalance: savedTowardDeposit, monthlyAmount: monthlyHigh, months }) });
-          }
-          // THE AXIS FOLLOWS THE CURVE (D73). It used to be forced up to the
-          // 15% threshold line, which put the curve at 44% of the plot at five
-          // years and 16% at six months. With the lines gone it tracks the
-          // highest bar plus 5% headroom, so every range fills the plot.
-          const maxScale = Math.max(...points.map((p) => p.high)) * 1.05;
-          const chartPoints = points.map((p) => ({
-            label: formatMonthsDuration(p.months),
-            lowPct: (p.low / maxScale) * 100,
-            highPct: (p.high / maxScale) * 100,
-          }));
-          const xAxisLabels = [c.xAxisNow, formatMonthsDuration(rangeMonths / 3, { abbreviated: true }), formatMonthsDuration((rangeMonths / 3) * 2, { abbreviated: true }), formatMonthsDuration(rangeMonths, { abbreviated: true })];
-          return growthChartHTML({
-            points: chartPoints,
-            xAxisLabels,
-            // `shade` pairs each row with the segment it names. The order is
-            // high then low, matching the stack read top down.
-            legend: [
-              { label: fill(c.legendTemplate, { amount: formatCurrency(monthlyHigh) }), shade: 'high' },
-              { label: fill(c.legendTemplate, { amount: formatCurrency(monthlyLow) }), shade: 'low' },
+
+        <!-- THE VIEW TOGGLE IS A VISIBLE PEER OF THE CHART, not a hidden
+             affordance (D102). Under year-only the table is the ONLY place on
+             this screen carrying date resolution finer than a year at rest, so
+             burying it would remove month resolution from the screen entirely
+             for anyone who does not scrub. -->
+        <p class="visually-hidden" id="chart-view-legend">${c.chartViewLegend}</p>
+        <div role="group" aria-labelledby="chart-view-legend">
+          ${pillSegmentsHTML({
+            options: [
+              { value: 'chart', label: c.chartViewChartLabel },
+              { value: 'table', label: c.chartViewTableLabel },
             ],
-            yTop: formatCurrency(maxScale),
-            yBottom: c.yAxisFloor,
-          });
-        })()}
-        <!-- BELOW THE CHART, NOT ABOVE IT (D73's amendment). A control reads
-             as belonging to the thing it follows, and above the chart it
-             separated the heading from what the heading names. -->
-        <p class="visually-hidden" id="chart-range-legend">${c.chartRangeLegend}</p>
+            selected: showTable ? 'table' : 'chart',
+            action: 'select-chart-view',
+          })}
+        </div>
+
+        <p class="visually-hidden" id="chart-series-legend">${c.chartSeriesLegend}</p>
+        <div role="group" aria-labelledby="chart-series-legend">
+          ${pillSegmentsHTML({ options: seriesOptions, selected: series, action: 'select-chart-series' })}
+        </div>
+
+        ${showTable ? chartTableHTML({
+          points,
+          series,
+          headers: { month: c.chartTableMonthHeader, low: seriesOptions[0].label, high: seriesOptions[1].label },
+          caption: c.chartTableCaption,
+          selectedSuffix: c.chartTableSelectedSuffix,
+          valueFormatter: formatCurrency,
+        }) : growthChartHTML({
+          points,
+          yTicks: axisTicks(maxScale),
+          yearLabels,
+          nowLabel: c.xAxisNow,
+          legend: [
+            { label: seriesOptions[1].label, shade: 'high' },
+            { label: seriesOptions[0].label, shade: 'low' },
+          ],
+          series,
+          activeIndex,
+          plotLabel: c.chartPlotAriaLabel,
+          pointLabelTemplate: (p) => fill(c.chartPointAriaLabelTemplate, {
+            date: p.date,
+            amount: formatCurrency(series === 'high' ? p.high : p.low),
+          }),
+          valueFormatter: formatCurrency,
+        })}
+
+        <!-- REQUIREMENT 1, AND IT IS THE PRIMARY FIX. Always visible, and it
+             reports the ACTIVE POINT rather than a fixed figure — at rest that
+             is the window's end, because the at-rest active point is the last
+             one. It must never become interaction-only: making the scrub the
+             only route to a value would fix the second half of the 21:42 quote
+             and reintroduce the first. -->
+        ${figureDisplayHTML({
+          value: formatCurrency(activeAmount),
+          caption: fill(c.readoutCaptionTemplate, { date: activePoint.date, amount: formatCurrency(activeAmount) }),
+          live: true,
+        })}
+
         <div role="group" aria-labelledby="chart-range-legend">
+          <p class="visually-hidden" id="chart-range-legend">${c.chartRangeLegend}</p>
           ${chipRowHTML({
-            // The "Max" chip (months: null) is dropped once the goal is met -
-            // see `goalMet` above. Its label would otherwise name a journey
-            // that is over.
+            // A chip longer than the projection would draw chart past the
+            // goal, which requirement 5 forbids.
             chips: c.chartRangeLabels
-              .filter((r) => !(goalMet && r.months === null))
+              .filter((r) => r.months === null || attainmentMonths === null || r.months <= attainmentMonths)
               .map((r) => ({ value: r.months, label: r.label, ariaLabel: r.ariaLabel })),
-            // `selected` compares against the STORED value, so the "Max"
-            // chip (null) is pressed exactly when nothing has been chosen.
-            // With "Max" gone the stored null matches nothing, so the fallback
-            // range is marked instead and the row is never left with no
-            // selection.
-            selected: goalMet && state.chartRangeMonths === null ? CHART_WINDOW_MONTHS : state.chartRangeMonths,
+            selected: state.chartRangeMonths,
             action: 'select-chart-range',
           })}
         </div>
         <p class="provenance-caption">${c.chartRangeNoteText}</p>
         <p class="visually-hidden" role="status" aria-live="polite">${fill(c.chartRangeAnnouncementTemplate, {
-          range: formatMonthsDuration(rangeMonths),
-          amount: formatCurrency(balanceAtMonth({ startingBalance: savedTowardDeposit, monthlyAmount: monthlyHigh, months: rangeMonths })),
+          range: formatYear(rangeMonths, anchor),
+          amount: formatCurrency(points[points.length - 1][series]),
         })}</p>
+
+        <!-- REQUIREMENT 3. Drawn at every window and in every non-attained
+             state, and it carries requirement 5 at the default window: the
+             projection ends at attainment even when the chart is showing two
+             years of it. YEAR ONLY (D102). -->
+        ${attainmentMonths !== null ? `<p class="body-text-lg-primary">${fill(c.endpointTemplate, {
+          amount: formatCurrency(combinedGoalValue),
+          year: formatYear(attainmentMonths, anchor),
+        })}</p>` : ''}
+
+        <!-- ALWAYS VISIBLE, DIRECTLY BENEATH THE ENDPOINT LINE, NEVER BEHIND A
+             DISCLOSURE (D103). A participant who does not open a disclosure
+             gets nothing from it, and the endpoint is the strongest claim on
+             the screen. The link answers rule 3A: it is the only projection on
+             the screen that had no route to the sheet behind it. -->
+        <p class="provenance-caption">${c.projectionAssumptions}</p>
+        ${infoLinkHTML({ label: c.projectionAssumptionsLinkLabel, action: 'open-assumptions-saving-endpoint' })}
+
         <p class="legal-text">${fill(c.chartCaptionTemplate, { aer: formatPercent(RATES.bankRate) })}</p>
-        ${beyondWindow ? infoBannerHTML(c.beyondWindowNote) : ''}
-      `}
+      ` : ''}
 
       <div class="card why-bigger-deposit-card">
         <h3 class="section-heading">${c.whyBiggerHeading}</h3>
@@ -301,31 +427,46 @@ export function render(container, ctx) {
 
   bindAppBarLeading(container);
 
-  // The card is a disclosure now (D12). rerenderInPlace, not a bare render:
-  // it restores the scroller's offset and refocuses the very button that was
-  // pressed (found by its data-action + data-disclosure-id), so the card
-  // opens under the participant's thumb rather than throwing the screen back
-  // to the top and dropping focus to <body>.
-  // THE RANGE CHIPS (D73). `rerenderInPlace`, not a bare render: it holds the
-  // scroller's offset and refocuses the chip that was pressed, so the chart
-  // redraws under the participant's thumb rather than throwing them to the top
-  // of a screen the chart is already well down.
+  const redraw = (patch) => {
+    const next = setState(patch);
+    rerenderInPlace(container, render, { ...ctx, state: next });
+  };
+
+  // THE ACTIVE INDEX IS THE CALLER'S, and `bindGrowthChart` only reports moves
+  // — so the readout, the guide and the in-plot labels all render from ONE
+  // number rather than from three listeners that could disagree.
+  if (chartVisible && !showTable) {
+    bindGrowthChart(container, {
+      pointCount,
+      onActivate: (index) => {
+        if (index === activeIndex) return;
+        const next = setState({ chartActiveIndex: index });
+        rerenderInPlace(container, render, { ...ctx, state: next });
+        container.querySelector('[data-chart-area]')?.focus({ preventScroll: true });
+      },
+    });
+  }
+
   container.querySelectorAll('[data-action="select-chart-range"]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      // `data-value` is the string "null" for the "Max" chip, since that
-      // is what the template interpolates. Anything non-numeric resolves to
-      // null, which is the stored form of "use my own projection".
       const raw = btn.dataset.value;
-      const next = setState({ chartRangeMonths: raw === 'null' ? null : Number(raw) });
-      rerenderInPlace(container, render, { ...ctx, state: next });
+      // The active index is reset with the window: an index into a 24-point
+      // array means a different month once the window changes, and carrying it
+      // over would move the readout without the participant touching it.
+      redraw({ chartRangeMonths: raw === 'null' ? null : Number(raw), chartActiveIndex: null });
     });
   });
 
+  container.querySelectorAll('[data-action="select-chart-series"]').forEach((btn) => {
+    btn.addEventListener('click', () => redraw({ chartSeries: btn.dataset.value }));
+  });
+
+  container.querySelectorAll('[data-action="select-chart-view"]').forEach((btn) => {
+    btn.addEventListener('click', () => redraw({ chartView: btn.dataset.value }));
+  });
+
   container.querySelectorAll('[data-action="toggle-disclosure"]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const next = setState({ resultHowWeWorkedOpen: !state.resultHowWeWorkedOpen });
-      rerenderInPlace(container, render, { ...ctx, state: next });
-    });
+    btn.addEventListener('click', () => redraw({ resultHowWeWorkedOpen: !state.resultHowWeWorkedOpen }));
   });
 
   container.querySelector('[data-action="open-assumptions-deposit"]').addEventListener('click', () => {
@@ -333,9 +474,11 @@ export function render(container, ctx) {
     window.location.hash = '#/assumptions/deposit';
   });
 
-  container.querySelector('[data-action="open-assumptions-saving"]').addEventListener('click', () => {
-    setState({ returnFrame: '/calculator/result' });
-    window.location.hash = '#/assumptions/saving';
+  container.querySelectorAll('[data-action="open-assumptions-saving"], [data-action="open-assumptions-saving-endpoint"]').forEach((el) => {
+    el.addEventListener('click', () => {
+      setState({ returnFrame: '/calculator/result' });
+      window.location.hash = '#/assumptions/saving';
+    });
   });
 
   container.querySelector('[data-action="open-ltv-info"]').addEventListener('click', () => {

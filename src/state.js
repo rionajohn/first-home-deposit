@@ -88,11 +88,6 @@ const COLLAPSIBLE_DEFAULTS = {
   // DECISIONS.md D70's second amendment. The tracker's "What makes up your
   // goal" disclosure. Closed on load like every other one (D12).
   goalBreakdownOpen: false,
-  // DECISIONS.md D73. Frame 12's growth-chart range, in months. A VIEW
-  // setting, not a figure: it changes the window on the projection and never
-  // the projection, so it is not a section 6 key and nothing in model/ reads
-  // it. Defaults to the full window, which is what the chart drew before the
-  // control existed.
   // Frame 19 (Before you run the check) — its three chevron sections.
   mipAskedOpen: false,
   mipBenefitsOpen: false,
@@ -173,6 +168,25 @@ export function defaultState() {
     // browser harnesses, and `shots.mjs`'s spread over a stored session -
     // keeps working on the same shape.
     buildVersion: BUILD_VERSION,
+
+    // THE DAY THIS SESSION'S DATES ARE MEASURED FROM (DECISIONS.md D97).
+    //
+    // Stamped once, here, and never rewritten by a screen. Every calendar date
+    // the app renders derives from it - `formatMonthYear`, `formatYear` and
+    // `formatMonthYearRange` all take it as their `fromDate`.
+    //
+    // NOT `RATES.asAt`, WHICH IS WHAT /tracker USED AND WHY THIS EXISTS. D3
+    // pins the Bank Rate so figures cannot drift between sessions, and that
+    // reasoning was applied to the rendering date as well - a different fact.
+    // A rate is pinned so figures hold still; a "today" must be current or
+    // every date derived from it is wrong. On 31 August 2026 the tracker's
+    // "On track for" dates were a full calendar month early for exactly that
+    // reason. `RATES.asAt` keeps its provenance job on frames 29/30/31.
+    //
+    // DERIVED AT RENDER, NEVER CACHED. No module holds a `const TODAY`, so a
+    // discard-and-restart is visible immediately rather than at the next
+    // reload.
+    sessionAnchor: new Date().toISOString().slice(0, 10),
 
     // Navigation / journey flags (build-spec.md section 1 and 2)
     journeyStarted: false,
@@ -346,8 +360,31 @@ export function defaultState() {
   // sheet and came back. It is a view setting, not a disclosure: it should
   // persist for the session exactly as theme and text size do, which is why it
   // sits with them.
-  chartRangeMonths: null,
-  theme: 'greyscale', // 'greyscale' | 'brand'
+  chartRangeMonths: 24,
+
+    // Frame 12's plotted series and view (DECISIONS.md D100). View settings on
+    // exactly `chartRangeMonths`' terms: they change what the chart draws and
+    // never what the model projects, they are not section 6 figures, and they
+    // are not in `STAGE_KEYS`.
+    //
+    // `chartSeries` DEFAULTS TO 'low', AND THAT IS LOAD-BEARING (the plan's
+    // 7.6). The comparison card now follows this selection rather than being
+    // hard-wired to `monthly-low`, which is a trade against D72's "the
+    // conservative end is the one that cannot disappoint". D72's intent
+    // survives only because the default is the conservative end: a participant
+    // who touches nothing meets the conservative picture and reaches the
+    // optimistic one by choosing it. Change this default and that trade is
+    // undone.
+    chartSeries: 'low', // 'low' | 'high'
+    chartView: 'chart', // 'chart' | 'table'
+    // Which point on frame 12's line carries the guide, the value and the date.
+    // Null means "the last point in the window", which is the at-rest state:
+    // one point is ALWAYS active, because on touch there is no hover and
+    // nothing would otherwise hint the chart responds (the plan's 6.6.2b).
+    // Reset to null whenever the window changes - an index into a 24-point
+    // array names a different month once the window moves.
+    chartActiveIndex: null,
+    theme: 'greyscale', // 'greyscale' | 'brand'
     textSize: 'default', // 'default' | 'large'
     stage: 'setting-up', // 'setting-up' | 'saving' | 'ready-to-check'
     resultOutcome: 'likely', // 'likely' | 'not-yet'
@@ -408,6 +445,44 @@ function load() {
       const fresh = defaultState();
       // Written back immediately so the discard happens once rather than on
       // every subsequent load in this tab.
+      persist(fresh);
+      return fresh;
+    }
+
+    // A SESSION ANCHORED TO ANOTHER MONTH IS DISCARDED THE SAME WAY
+    // (DECISIONS.md D97). The same branch, for a second reason.
+    //
+    // Calendar dates need a "today", and durations did not. A stale anchor
+    // produces wrong years with NOTHING ON SCREEN TO REVEAL IT, so a screenshot
+    // taken during a session could not be interpreted afterwards - which is the
+    // failure mode this whole date conversion introduces and has to answer.
+    //
+    // MONTH GRANULARITY, NOT DAY. Every date derives from a month floor
+    // (`formatMonthYear` and `dateAtMonths` both build from the 1st), so a day
+    // change moves nothing on screen and discarding on one would retire a
+    // multi-day facilitator setup for no gain. Never discarding is the failure
+    // mode above.
+    //
+    // DISCARDED WHOLE RATHER THAN RE-STAMPED, and that is the load-bearing
+    // choice. Re-stamping keeps the session and silently moves every projected
+    // date, so a screenshot taken before the boundary and one taken after
+    // disagree with nothing on screen to say why. D59's own reasoning applies
+    // unchanged: what comes back is exactly a first load, which every screen
+    // already handles. The cost is a session lost across a month boundary,
+    // which no moderated session spans.
+    //
+    // IT ALSO BOUNDS THE FRAME 10 TRANSITIONAL STATE (the plan's 3.3). That
+    // screen is frozen and still reads the wall clock; because this discard
+    // keeps `sessionAnchor` in the current month, the two cannot name different
+    // months while a participant is looking at them.
+    const anchorMonth = String(stored.sessionAnchor ?? '').slice(0, 7);
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    if (anchorMonth !== currentMonth) {
+      console.warn(
+        `[yfh] Stored session was anchored to ${stored.sessionAnchor ?? '(unstamped)'}; ` +
+        `this month is ${currentMonth}. Discarding it and starting a new session.`,
+      );
+      const fresh = defaultState();
       persist(fresh);
       return fresh;
     }

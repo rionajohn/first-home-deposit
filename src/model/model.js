@@ -449,6 +449,77 @@ export function monthsToGoalUnaided(state, aer = RATES.bankRate) {
 }
 
 /**
+ * THE ONE BOUNDING RULE (the plan's section 5.2, DECISIONS.md D99): the month
+ * at which a balance, growing at the Bank Rate with `monthlyAmount` added at
+ * the start of each month, first equals `combined-goal`. Every bound in the
+ * calculator is this function at a different contribution -
+ *
+ *   frame 10b's list floor   at `left-over`     (earliestWorkableMonths)
+ *   frame 10b's list cap     at zero            (monthsToGoalUnaided)
+ *   frame 12's projection    at the contribution being plotted
+ *
+ * SIGNED, and the sign is a real state rather than an error. A negative value
+ * means the crossing is in the past, which is `monthsToGoalUnaided`'s existing
+ * documented contract and is kept here so the two cannot disagree.
+ *
+ * THE ZERO-CONTRIBUTION CASE FALLS THROUGH TO THE CLOSED FORM rather than to
+ * `monthsToReachAmount`, which returns `Infinity` at a non-positive monthly
+ * amount - deliberately, and for a question about a participant's saving
+ * rather than about interest alone. That is why this function exists instead
+ * of a third call site choosing between the two.
+ *
+ * ROUNDING IS THE CALLER'S. The rule is one; the rounding is not, and each
+ * direction is chosen by which error is unsafe at that consumer (D85's
+ * precedent, and the plan's 5.2 table). Frame 12 rounds UP: rounding down ends
+ * the projection the month before the goal is met.
+ *
+ * FRAME 10b IS NOT MIGRATED ONTO THIS in this pass - `/calculator/saving` is
+ * frozen pending GAPS.md G107. It already implements the rule by two routes,
+ * and `monthsToGoalUnaided` below is untouched so its returned values stay
+ * bit-identical (`date-ceiling.test.mjs` passing unchanged is the proof).
+ */
+export function goalMonths(state, monthlyAmount, aer = RATES.bankRate) {
+  const savedTowardDeposit = state['saved-toward-deposit'];
+  const target = combinedGoal(state);
+  const provenance = combineProvenance(savedTowardDeposit, target);
+
+  if (target.error) return fail(target.error, provenance);
+
+  const p0 = savedTowardDeposit.value ?? 0;
+  const goal = target.value;
+  const r = monthlyRate(aer);
+
+  // Nothing compounds from nothing, and no contribution is being added, so
+  // there is no such month. Same answer `monthsToGoalUnaided` gives.
+  if (monthlyAmount <= 0) {
+    if (p0 <= 0) return ok(Infinity, provenance);
+    return ok(Math.log(goal / p0) / Math.log(1 + r), provenance);
+  }
+
+  const annuityFactor = (monthlyAmount * (1 + r)) / r;
+  const x = (goal + annuityFactor) / (p0 + annuityFactor);
+  return ok(Math.log(x) / Math.log(1 + r), provenance);
+}
+
+/**
+ * THE ATTAINED STATE, one predicate in one place (the plan's 5.2 and 5.4).
+ * `calculator-result.js` computed this inline as `goalMet` and
+ * `calculator-saving.js` reaches the same state by a different route
+ * (`capMonths < boundMonths`); D85 records that the two coincide. This names
+ * it so a third screen cannot invent a fourth spelling.
+ *
+ * Guarded rather than compared bare: a null on either side would coerce to 0
+ * and report a met goal on a session that has not set one.
+ */
+export function goalAttained(state) {
+  const saved = state['saved-toward-deposit'];
+  const target = combinedGoal(state);
+  if (target.error) return false;
+  if (!saved || typeof saved.value !== 'number') return false;
+  return saved.value >= target.value;
+}
+
+/**
  * Months to reach an arbitrary target amount, for an arbitrary starting
  * balance and monthly contribution — frame 12's three timing rows (one per
  * deposit-pct threshold: 5%, 10%, 15%) each need this against a different

@@ -55,6 +55,7 @@
  */
 import { appBarHTML, bindAppBarLeading, pillSegmentsHTML, rerenderInPlace } from '../components/ui.js';
 import { BUILD_VERSION, SHELL_CACHE_PREFIX } from '../cache-version.js';
+import { formatFullDate } from '../format.js';
 import { applyScenarioClasses } from '../router.js';
 import { stagePatch } from '../stage.js';
 import { chevronRight } from '../icons.js';
@@ -154,6 +155,13 @@ export function render(container, ctx) {
 
       <div class="settings-footer" data-role="settings-footer">
         <p class="settings-footer__text" data-role="build-caption">${fill(c.buildCaptionTemplate, { version: BUILD_VERSION })}</p>
+        <!-- THE DAY THIS SESSION'S DATES ARE MEASURED FROM (DECISIONS.md D97),
+             beside the build version and for the same reason: a screenshot
+             taken during a session has to be interpretable afterwards. A stale
+             anchor produces wrong years with nothing else on screen to reveal
+             it, which is the failure mode calendar dates introduce and
+             durations did not have. -->
+        <p class="settings-footer__text" data-role="anchor-caption">${fill(c.anchorCaptionTemplate, { anchor: formatFullDate(state.sessionAnchor) })}</p>
       </div>
     </main>
   `;

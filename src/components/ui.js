@@ -1256,49 +1256,125 @@ export function rangeFigureHTML({ lowText, highText, caption, markerPct, trackLa
 }
 
 /**
- * Data viz / Growth chart (frame 12): a bar chart projecting saved balance at
- * two contribution rates (monthly-low/high) over a range the caller chooses.
+ * Data viz / Growth chart (frame 12): a LINE projecting the saved balance at
+ * two contribution rates (monthly-low/high) over a range the caller chooses,
+ * with one point always active and an interactive detail on it.
  *
- * `points` is `[{ label, lowPct, highPct }]` (0-100 bar heights, one per
- * x-axis tick) and `legend` is `[{ label, shade }]` where shade is 'low' or
- * 'high'. All percentages are computed by the caller from model figures; this
- * function only renders.
+ * REBUILT FROM BARS TO A LINE (DECISIONS.md D100). The bars were not what
+ * failed - what failed was that no value could be read off them (pilot, 21:42
+ * and 23:28) - but they are not the shape that supports a continuous scrub
+ * across a two-year window, and two stacked bands are harder to compare at a
+ * point than two lines.
  *
- * THE THREE THRESHOLD LINES ARE GONE (D73). They marked 5/10/15% of the
- * property value and were the reason the y-axis had to reach £70,875, which
- * left the savings curve at 44% of the plot at five years and 16% at six
- * months - unusable for the very ranges the range control exists to show. They
- * were also a weaker duplicate of the comparison card D72 added, which lists
- * the same percentages with amounts AND timeframes. The axis now follows the
- * curve, and deposit context lives entirely in that card.
+ * `points` is `[{ months, date, year, low, high, lowPct, highPct }]`, one per
+ * plotted mark, computed by the caller from model figures; this function only
+ * renders. `series` is 'low' or 'high' and selects which line the detail
+ * reports. `activeIndex` is the point whose guide, value and date are drawn.
  *
- * THE TWO SERIES ARE NOT TOLD APART BY COLOUR. They are one stacked band -
- * `--low` solid at the bottom, `--high` above it - and the two resolve to
- * 2.67:1 in light and 2.36:1 in dark, under the 3:1 D70 measured this palette
- * against. `--high` therefore carries a hatch, and the legend swatches carry
- * matching modifiers. Before D73 both legend swatches rendered from one class
- * with no modifier at all, so nothing connected either row to either bar.
+ * THE MODEL, IN ONE PLACE (the plan's 6.6.0):
+ *
+ *   One point is always active. Its value is drawn at the Y-AXIS EDGE, at the
+ *   end of a HORIZONTAL guide running from the point to the axis. Its date is
+ *   drawn ABOVE the point. The whole plot area is the target; there is NO HIT
+ *   TESTING ON THE CIRCLES.
+ *
+ * THE GUIDE IS HORIZONTAL AND NOTHING ELSE. A vertical drop to the x-axis would
+ * land between year ticks and point at nothing readable - the axis carries
+ * years, so there is no mark for it to meet.
+ *
+ * THE X-AXIS IS A SCALE, NOT A ROW OF CAPTIONS (the plan's 6.4, closing pilot
+ * finding P10). It used to draw four labels with `justify-content:
+ * space-between` in a separate flex row from the bars, which had a different
+ * count - so no label sat under the mark it named, and the participant counted
+ * roughly 11 bars against 4 labels and was right. Each label is now absolutely
+ * positioned at its own moment's percentage of the plot width, in the same
+ * coordinate space the line is drawn in. Labels and marks cannot disagree about
+ * position because both are placed by one linear time mapping.
+ *
+ * WHY THE LINE IS SVG AND THE POINTS ARE NOT. The polyline is drawn in a
+ * `viewBox="0 0 100 100"` with `preserveAspectRatio="none"`, so the caller's
+ * percentages are the coordinates directly and no pixel geometry is duplicated
+ * here. That squashes anything with intrinsic shape, which is why the points
+ * are positioned HTML rather than SVG circles - a circle in that viewBox draws
+ * as an ellipse, and D100 requires the active point to be told apart by SIZE
+ * AND SHAPE rather than by colour (WCAG 1.4.1). `vector-effect` keeps the
+ * stroke from stretching with it.
  */
-export function growthChartHTML({ points, xAxisLabels, legend, yTop, yBottom }) {
+export function growthChartHTML({
+  points,
+  yTicks,
+  yearLabels,
+  nowLabel,
+  legend,
+  series,
+  activeIndex,
+  plotLabel,
+  pointLabelTemplate,
+  valueFormatter,
+}) {
+  const key = series === 'high' ? 'highPct' : 'lowPct';
+  const other = series === 'high' ? 'lowPct' : 'highPct';
+  const at = (p) => p[key];
+  const xOf = (i) => (points.length <= 1 ? 0 : (i / (points.length - 1)) * 100);
+
+  const polyline = (prop) => points.map((p, i) => `${xOf(i)},${100 - p[prop]}`).join(' ');
+  const active = points[activeIndex] ?? points[points.length - 1];
+  const activeX = xOf(activeIndex);
+  const activeY = at(active);
+
   return `
     <div class="growth-chart">
       <div class="growth-chart__plot">
-        <div class="growth-chart__baseline"></div>
+        ${yTicks.map((t) => `
+          <div class="growth-chart__tick" style="bottom:${t.pct}%" aria-hidden="true"></div>
+          <p class="growth-chart__tick-label" style="bottom:${t.pct}%">${valueFormatter(t.value)}</p>
+        `).join('')}
 
-        <p class="growth-chart__y-label growth-chart__y-label--top">${yTop}</p>
-        <p class="growth-chart__y-label growth-chart__y-label--bottom">${yBottom}</p>
-        <div class="growth-chart__bars">
-          ${points.map((p) => `
-            <div class="growth-chart__bar-group" aria-label="${p.label}">
-              <div class="growth-chart__bar growth-chart__bar--high" style="height:${p.highPct - p.lowPct}%"></div>
-              <div class="growth-chart__bar growth-chart__bar--low" style="height:${p.lowPct}%"></div>
-            </div>
+        <!-- THE SCRUB TARGET IS THIS ELEMENT, 305x224 logical, not the points
+             at a 13.3px pitch (the plan's 6.6.1). One focus stop, with
+             aria-activedescendant naming the active point - D84's listbox
+             contract applied to a different control. touch-action: pan-y is
+             in the stylesheet: vertical gestures scroll, horizontal ones
+             scrub. -->
+        <div class="growth-chart__area"
+             role="group"
+             tabindex="0"
+             aria-label="${plotLabel}"
+             aria-activedescendant="growth-point-${activeIndex}"
+             data-chart-area>
+          <svg class="growth-chart__svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+            <polyline class="growth-chart__line growth-chart__line--other" points="${polyline(other)}" vector-effect="non-scaling-stroke" />
+            <polyline class="growth-chart__line growth-chart__line--active" points="${polyline(key)}" vector-effect="non-scaling-stroke" />
+          </svg>
+
+          <!-- The guide, drawn from the active point LEFTWARD to the axis. -->
+          <div class="growth-chart__guide" style="bottom:${activeY}%;width:${activeX}%" aria-hidden="true"></div>
+
+          ${points.map((p, i) => `
+            <div class="growth-chart__point${i === activeIndex ? ' growth-chart__point--active' : ''}"
+                 id="growth-point-${i}"
+                 role="option"
+                 aria-selected="${i === activeIndex}"
+                 aria-label="${pointLabelTemplate(p)}"
+                 style="left:${xOf(i)}%;bottom:${at(p)}%"></div>
           `).join('')}
+
+          <!-- ABOVE THE POINT, NEVER BELOW IT (the plan's 6.6.2c): a label
+               beneath the point is under the finger on every interaction. The
+               room for it is bought in the caller's maxScale headroom, which
+               D100 moved from 1.05 to 1.20 for this. -->
+          <p class="growth-chart__point-date${activeX > 85 ? ' growth-chart__point-date--end' : activeX < 15 ? ' growth-chart__point-date--start' : ''}" style="left:${activeX}%;bottom:${activeY}%">${active.date}</p>
         </div>
+
+        <!-- The value the guide terminates in, in the axis gutter. -->
+        <p class="growth-chart__guide-value" style="bottom:${activeY}%" data-chart-guide-value>${valueFormatter(at(active) === null ? 0 : (series === 'high' ? active.high : active.low))}</p>
       </div>
+
       <div class="growth-chart__x-axis">
-        ${xAxisLabels.map((l) => `<p>${l}</p>`).join('')}
+        <p class="growth-chart__x-label growth-chart__x-label--now" style="left:0%">${nowLabel}</p>
+        ${yearLabels.map((l) => `<p class="growth-chart__x-label" style="left:${l.pct}%" data-year-label>${l.label}</p>`).join('')}
       </div>
+
       <div class="growth-chart__legend">
         ${legend.map((l) => `
           <div class="growth-chart__legend-row">
@@ -1309,6 +1385,151 @@ export function growthChartHTML({ points, xAxisLabels, legend, yTop, yBottom }) 
       </div>
     </div>
   `;
+}
+
+/**
+ * Frame 12's table view (DECISIONS.md D100), the text alternative for the chart
+ * above and - under D102's year-only rule - the only place on that screen
+ * carrying date resolution finer than a year at rest.
+ *
+ * IT RENDERS THE SAME `points` ARRAY THE CHART RENDERS and recomputes nothing.
+ * That is what guarantees it exposes every value the guide can reveal, rather
+ * than a second derivation that could drift from the first.
+ *
+ * THE SELECTED COLUMN IS MARKED IN WORDS, not by a fill: this is the same
+ * WCAG 1.4.1 rule the comparison card's "- your choice" follows.
+ */
+export function chartTableHTML({ points, series, headers, caption, selectedSuffix, valueFormatter }) {
+  const mark = (which) => (which === series ? ` (${selectedSuffix})` : '');
+  return `
+    <div class="growth-table-wrap">
+      <table class="growth-table">
+        <caption class="growth-table__caption">${caption}</caption>
+        <thead>
+          <tr>
+            <th scope="col">${headers.month}</th>
+            <th scope="col">${headers.low}${mark('low')}</th>
+            <th scope="col">${headers.high}${mark('high')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${points.map((p) => `
+            <tr>
+              <th scope="row">${p.date}</th>
+              <td${series === 'low' ? ' class="growth-table__selected"' : ''}>${valueFormatter(p.low)}</td>
+              <td${series === 'high' ? ' class="growth-table__selected"' : ''}>${valueFormatter(p.high)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/**
+ * Binds frame 12's chart: the scrub, hover, click-to-pin, keyboard traversal
+ * and the year-label thinning (DECISIONS.md D100).
+ *
+ * `onActivate(index)` is called with the newly active point. The CALLER owns
+ * the active index; this function only reports moves, so the readout, the
+ * guide and the in-plot labels all render from one number rather than from
+ * three listeners that could disagree.
+ *
+ * ACTIVATION IS BY RATIO, NEVER BY A PIXEL OFFSET, and this is the one thing in
+ * here that must not be "simplified". D92 draws the frame at a CSS scale, so
+ * `getBoundingClientRect()` returns VISUAL pixels while layout is in LOGICAL
+ * ones. `(clientX - rect.left) / rect.width` is scale-invariant and correct at
+ * every window size without this handler knowing the scale exists; the same
+ * expression written as a pixel offset divided by a logical width works at one
+ * window size and silently mis-aims at the other. See CLAUDE.md's standing rule.
+ *
+ * NOTHING IS CLEARED ON RELEASE (the plan's 6.6.2a). While a finger is on the
+ * screen it covers what is being read, so a detail that cleared on lift could
+ * never be read at all. `pointercancel` - which is what the browser fires when
+ * it commits to a vertical pan through `touch-action: pan-y` - is handled by
+ * the same rule, so the scroll case needs no branch of its own.
+ */
+export function bindGrowthChart(container, { pointCount, onActivate }) {
+  const area = container.querySelector('[data-chart-area]');
+  if (!area || pointCount < 1) return;
+
+  const indexFromEvent = (event) => {
+    const rect = area.getBoundingClientRect();
+    if (!rect.width) return 0;
+    const ratio = (event.clientX - rect.left) / rect.width;
+    return Math.max(0, Math.min(pointCount - 1, Math.round(ratio * (pointCount - 1))));
+  };
+
+  let scrubbing = false;
+  let pinned = false;
+
+  const move = (event) => onActivate(indexFromEvent(event));
+
+  area.addEventListener('pointerdown', (event) => {
+    scrubbing = true;
+    pinned = true;
+    // Capture so a drag that leaves the plot keeps tracking rather than
+    // stopping at the edge, which reads as the control jamming.
+    if (area.setPointerCapture && event.pointerId !== undefined) {
+      try { area.setPointerCapture(event.pointerId); } catch { /* not capturable */ }
+    }
+    move(event);
+  });
+
+  area.addEventListener('pointermove', (event) => {
+    // Hover moves the active point WITHOUT a click (the plan's 6.6.5) - the
+    // pointer path is the one the sessions actually observe. A pinned point
+    // still follows the pointer while it is over the plot; what pinning buys
+    // is surviving `pointerleave`.
+    if (scrubbing || event.pointerType !== 'touch') move(event);
+  });
+
+  // Both end the gesture and NEITHER clears the active point.
+  area.addEventListener('pointerup', () => { scrubbing = false; });
+  area.addEventListener('pointercancel', () => { scrubbing = false; });
+
+  area.addEventListener('keydown', (event) => {
+    const current = Number(area.getAttribute('aria-activedescendant')?.replace('growth-point-', '') ?? 0);
+    let next = null;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowUp') next = Math.min(pointCount - 1, current + 1);
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') next = Math.max(0, current - 1);
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End' || event.key === 'Escape') next = pointCount - 1;
+    if (next === null) return;
+    event.preventDefault();
+    pinned = true;
+    onActivate(next);
+  });
+
+  // THE GUIDE VALUE AND THE Y-TICK LABELS SHARE THE 48px GUTTER, so whenever
+  // the active point sits near a tick the two draw on top of each other - which
+  // the first shot of this chart showed at the at-rest point, £19,611 landing on
+  // £20,000. The tick is the one that gives way: it is context, and the guide
+  // value is the answer to the question the participant is asking. Measured
+  // against the rendered boxes rather than against an assumed row height, so it
+  // follows the Large text size.
+  const guideValue = container.querySelector('[data-chart-guide-value]');
+  if (guideValue) {
+    const guideBox = guideValue.getBoundingClientRect();
+    for (const label of container.querySelectorAll('.growth-chart__tick-label')) {
+      const box = label.getBoundingClientRect();
+      const overlaps = box.top < guideBox.bottom && box.bottom > guideBox.top;
+      label.style.visibility = overlaps ? 'hidden' : '';
+    }
+  }
+
+  // THE THINNING RULE, MEASURED RATHER THAN ESTIMATED (the plan's 6.4). A year
+  // label is kept only if its left edge clears the previously kept label's
+  // right edge by 8px. Measured from the rendered text, so it follows the Large
+  // text size instead of a constant that would be right at one of them.
+  const labels = [...container.querySelectorAll('[data-year-label]')];
+  let lastRight = -Infinity;
+  for (const label of labels) {
+    const box = label.getBoundingClientRect();
+    if (box.left < lastRight + 8) { label.hidden = true; continue; }
+    label.hidden = false;
+    lastRight = box.right;
+  }
 }
 
 /**
@@ -1584,9 +1805,14 @@ export function statRowHTML({ label, value, caption }) {
  * optional highlight border for the row matching the participant's own
  * chosen deposit %.
  */
-export function rateBandRowHTML({ label, sublabel, value, highlighted }) {
+export function rateBandRowHTML({ label, sublabel, value, highlighted, describedBy = null }) {
+  // `describedBy` BINDS THE ROW TO ITS FOOTNOTE (DECISIONS.md D101). The
+  // participant asked at 24:27 for a marker tying the caption to the figures it
+  // describes; the visible marker is a literal character in `content.js`, and
+  // this is the same binding for assistive technology, which must not depend on
+  // a glyph being announced.
   return `
-    <div class="rate-band-row${highlighted ? ' rate-band-row--highlighted' : ''}">
+    <div class="rate-band-row${highlighted ? ' rate-band-row--highlighted' : ''}"${describedBy ? ` aria-describedby="${describedBy}"` : ''}>
       <div class="rate-band-row__content">
         <p class="rate-band-row__label">${label}</p>
         <p class="rate-band-row__sublabel">${sublabel}</p>

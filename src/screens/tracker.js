@@ -52,7 +52,7 @@ import {
 } from '../components/ui.js';
 import { formatCurrency, formatPercent, formatMonthYearRange } from '../format.js';
 import { onTrackFor, rateBandForDepositPct } from '../model/model.js';
-import { RATES, CHART_DEPOSIT_PCTS } from '../model/rates.js';
+import { CHART_DEPOSIT_PCTS } from '../model/rates.js';
 import { MOCK_POSITION } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
 import { isRootEntry } from '../router.js';
@@ -392,6 +392,13 @@ export function render(container, ctx) {
         ${statRowHTML({ label: c.interestLabel, value: formatCurrency(MOCK_POSITION.thisMonthInterest), caption: c.interestRowCaption })}
         <hr class="divider" />
         ${statRowHTML({
+          // `state.sessionAnchor`, NOT `RATES.asAt` (DECISIONS.md D97, amending
+          // D3). D3 pins the Bank Rate so figures cannot drift between
+          // sessions, and that reasoning was applied to the rendering date as
+          // well - a different fact. The rate date was 30 July 2026 while this
+          // was rendering on 31 August, so every date in this row was a full
+          // calendar month EARLY, on a screen participants see. A rate is
+          // pinned so figures hold still; a "today" must be current.
           label: c.onTrackLabel,
           // THE VALUE DECIDES, NOT THE ERROR CODE. Beyond-window carries a
           // range like any other projection (D68 change 1), so it renders like
@@ -400,7 +407,7 @@ export function render(container, ctx) {
           // genuinely have no value, and the caption follows the figure for the
           // same reason: nothing renders, nothing to claim a derivation for.
           value: onTrack.value
-            ? formatMonthYearRange(onTrack.value.low, onTrack.value.high, RATES.asAt)
+            ? formatMonthYearRange(onTrack.value.low, onTrack.value.high, state.sessionAnchor)
             : '—',
           caption: onTrack.value ? c.onTrackCaption : null,
         })}

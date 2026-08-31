@@ -56,6 +56,23 @@
 /** A stored figure: a value and where it came from (build-spec.md section 6). */
 export const f = (v, p = 'read') => ({ value: v, provenance: p });
 
+/**
+ * THE SESSION ANCHOR EVERY HARNESS MUST SEED (DECISIONS.md D97).
+ *
+ * `load()` discards a stored session whole when its anchor month is not the
+ * current month - the same branch D59's build stamp takes, for the second
+ * reason that a stale anchor produces wrong years with nothing on screen to
+ * reveal it. A fixture written without one is therefore discarded on arrival,
+ * every screen falls back to a fresh store, and guard-driven screens redirect:
+ * that is what two smoke failures looked like the first time this landed, and
+ * they looked like screen defects rather than like a missing seed key.
+ *
+ * COMPUTED AT RUN TIME, not pinned. A pinned anchor would pass today and start
+ * discarding every fixture on the first of next month, which is the same class
+ * of dated-constant failure D59 exists to catch.
+ */
+export const SEED_ANCHOR = new Date().toISOString().slice(0, 10);
+
 export const FULL = {
   // --- Section 5: the monthly position, read from the connected accounts ----
   'money-in': f(2600), 'essential-spending': f(1450), 'left-over': f(1150, 'derived'),
@@ -113,4 +130,8 @@ export const FULL = {
   // own defaults; they are stated rather than left absent so a script reading
   // this fixture can see which position it is starting from.
   skippedAhead: false, skipAheadStash: null,
+
+  // See SEED_ANCHOR above. Without this every harness's fixture is discarded on
+  // load and the screens under test render from a fresh store.
+  sessionAnchor: SEED_ANCHOR,
 };

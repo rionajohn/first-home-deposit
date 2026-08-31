@@ -136,6 +136,56 @@ export function formatMonthYearRange(lowMonths, highMonths, fromDate) {
 }
 
 /**
+ * "YYYY" for a whole-number month offset from `fromDate` — frame 12's x-axis,
+ * endpoint line and comparison rows (DECISIONS.md D102, the plan's 6.10).
+ *
+ * YEAR ONLY, AND THAT IS THE DECISION RATHER THAN A FORMATTING CHOICE. A
+ * projection is not accurate to the month, and stating it to the month invites
+ * a participant to read it as a commitment. Every date the screen CLAIMS at
+ * rest goes through this; the two that report a coordinate on a plotted curve
+ * rather than an arrival — the scrub readout and the table's own column — go
+ * through `formatMonthYear` above (the plan's 10.6 and 6.6.9).
+ *
+ * Takes the anchor as a parameter for `formatMonthYear`'s reason, and callers
+ * pass `state.sessionAnchor` (D97) rather than `RATES.asAt`: a pinned rate
+ * dates the figures, not the day the projection is measured from.
+ */
+export function formatYear(monthsFromNow, fromDate) {
+  const base = new Date(fromDate);
+  return String(new Date(base.getFullYear(), base.getMonth() + Math.round(monthsFromNow), 1).getFullYear());
+}
+
+/**
+ * Round-pound tick values for frame 12's y-axis (the plan's 6.3), as
+ * `[{ value, pct }]` from 0 up to the last step at or below `maxScale`.
+ *
+ * IT EXISTS SO THE AXIS READS IN ROUND POUNDS rather than in `maxScale / 4`.
+ * The scale follows the curve and the curve is an annuity-due solve, so
+ * quartering it gives labels like "£13,142" — four figures a participant has
+ * to parse before they can read anything off the chart, which is the failure
+ * this whole pass is repairing.
+ *
+ * The step is the 1 / 2 / 5 decade above `maxScale / count`, the standard
+ * choice, so the labels land on values a reader already thinks in. `pct` is
+ * the position as a percentage of `maxScale` — NOT of the last tick — so the
+ * ticks stay in the same coordinate space the points are plotted in.
+ */
+export function axisTicks(maxScale, count = 4) {
+  if (!Number.isFinite(maxScale) || maxScale <= 0) return [{ value: 0, pct: 0 }];
+
+  const rough = maxScale / count;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rough)));
+  const normalised = rough / magnitude;
+  const step = (normalised <= 1 ? 1 : normalised <= 2 ? 2 : normalised <= 5 ? 5 : 10) * magnitude;
+
+  const ticks = [];
+  for (let v = 0; v <= maxScale + step / 1000; v += step) {
+    ticks.push({ value: v, pct: (v / maxScale) * 100 });
+  }
+  return ticks;
+}
+
+/**
  * "D Month YYYY" (frames 29/30/31's "as at" footer captions — DECISIONS.md
  * D3: these read RATES.asAt rather than a hand-typed date, so the figure on
  * screen can't drift from the rate the model actually used). Takes the date

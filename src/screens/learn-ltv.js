@@ -43,13 +43,14 @@ import {
   infoBannerHTML,
   rerenderInPlace,
 } from '../components/ui.js';
-import { formatCurrency, formatPercent } from '../format.js';
+import { formatCurrency, formatPercent, formatYear } from '../format.js';
 import {
   depositTarget,
   loanAmount,
   rateBandForDepositPct,
   monthlyMortgagePayment,
   totalMortgageInterest,
+  monthsToReachAmount,
 } from '../model/model.js';
 import { CHART_DEPOSIT_PCTS, MORTGAGE_TERM_YEARS } from '../model/rates.js';
 import { chartBarCircle, chevronRight, playCircle } from '../icons.js';
@@ -78,6 +79,13 @@ export function render(container, ctx) {
   const loan = loanAmount(state);
   const essentialSpending = state['essential-spending'].value;
   const leftOverValue = state['left-over'].value;
+  // D98's "Saved by" row. `stamp-duty` may be unset on a session that reached
+  // this screen without committing a goal, so it is guarded rather than read
+  // bare - `formatCurrency(null)` renders as £0 rather than failing, which is
+  // D46's whole lesson.
+  const savedTowardDeposit = state['saved-toward-deposit'].value ?? 0;
+  const stampDutyValue = state['stamp-duty'].value ?? 0;
+  const savingsRate = state['savings-rate'].value ?? 0;
   // This screen carries frame 06's How-this-works card verbatim. Nothing
   // else on it reads account data: the whole table is property-value x
   // deposit-pct.
@@ -154,6 +162,22 @@ export function render(container, ctx) {
             <tr>
               <th scope="row">${fill(c.tableInterestRowLabelTemplate, { years: MORTGAGE_TERM_YEARS })}</th>
               ${columns.map((col) => `<td class="${col.highlighted ? 'ltv-comparison-table__highlight' : ''}">${formatCurrency(col.interest)}</td>`).join('')}
+            </tr>
+            <!-- ADDED, NOT CONVERTED (DECISIONS.md D98). This screen carried no
+                 time figure at all, and at 26:20 the participant asked on this
+                 screen "how long, like max should be, how long it will take me
+                 to get to that amount of money". Year only, per D102: it is a
+                 claim about reaching a goal. Em dash where the rate is zero,
+                 which monthsToReachAmount reports as Infinity. -->
+            <tr>
+              <th scope="row">${c.tableReachedRowLabel}</th>
+              ${columns.map((col) => {
+                const months = monthsToReachAmount({ startingBalance: savedTowardDeposit, targetAmount: col.depositAmt + stampDutyValue, monthlyAmount: savingsRate });
+                const label = savedTowardDeposit >= col.depositAmt + stampDutyValue
+                  ? content['/calculator/result'].compareAlreadyLabel
+                  : Number.isFinite(months) ? formatYear(Math.ceil(months), state.sessionAnchor) : '—';
+                return `<td class="${col.highlighted ? 'ltv-comparison-table__highlight' : ''}">${label}</td>`;
+              }).join('')}
             </tr>
           </tbody>
         </table>
