@@ -154,6 +154,13 @@
  *              all, which is a thing this harness can now do and could not
  *              before. Only meaningful with `--solve=amount`.
  *                                                       default none
+ *   --focus    A whole number of Tab presses to make before the shot, so the
+ *              keyboard focus ring is in the picture. Real key presses, since
+ *              the ring is on `:focus-visible` and a scripted `.focus()` does
+ *              not necessarily raise it. Added for DECISIONS.md D92, where the
+ *              question was whether the ring survives the frame's scale
+ *              transform.
+ *                                                       default none
  *   --session  `seeded` or `opening`. `seeded` writes the shared seed into
  *              sessionStorage before the first paint, which is what every
  *              option above is described against. `opening` writes NOTHING and
@@ -273,6 +280,7 @@ const DEFAULTS = {
   solve: 'date',
   date: '',
   list: '',
+  focus: '',
   error: 'none',
   scroll: 'top',
   stage: '',
@@ -483,6 +491,11 @@ if (!DRAFT_STATES.includes(args.draft)) {
 const DATE_LISTS = ['', 'month', 'year'];
 if (!DATE_LISTS.includes(args.list)) {
   console.error(`Unknown --list "${args.list}". One of: ${DATE_LISTS.filter(Boolean).join(', ')}.`);
+  process.exit(1);
+}
+
+if (args.focus !== '' && !/^[1-9][0-9]*$/.test(args.focus)) {
+  console.error(`--focus takes a whole number of Tab presses, not "${args.focus}".`);
   process.exit(1);
 }
 
@@ -753,6 +766,26 @@ async function openDateList(page) {
   await page.waitForTimeout(250);
 }
 
+/**
+ * `--focus`: presses Tab n times so the shot carries a visible focus ring.
+ *
+ * REAL TAB PRESSES, NOT `.focus()`. shell.css draws the ring on
+ * `:focus-visible` only, which a scripted focus does not necessarily satisfy -
+ * a shot taken after `el.focus()` can show no ring at all and would be
+ * evidence of nothing. Added for D92: the frame is drawn through a scale
+ * transform, and a focus ring is the one piece of chrome the browser draws
+ * rather than the stylesheet, so whether it survives the transform is a thing
+ * to be looked at rather than assumed.
+ */
+async function tabTo(page) {
+  if (args.focus === '') return;
+  for (let i = 0; i < Number(args.focus); i += 1) {
+    await page.keyboard.press('Tab');
+    await page.waitForTimeout(40);
+  }
+  await page.waitForTimeout(150);
+}
+
 const slug = (route) => route.replace(/^\//, '').replace(/\//g, '-') || 'root';
 
 function shotName({ route, entry, state, theme, text, scroll }) {
@@ -974,6 +1007,7 @@ try {
               // screen does not report a missing disclosure as well.
               await openDisclosure(page);
               await openDateList(page);
+              await tabTo(page);
 
               if (state === 'ahead' && entry !== 'mip') {
                 const control = await page.$('[data-action="set-skip-ahead"][data-value="ahead"]');

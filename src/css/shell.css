@@ -23,6 +23,14 @@
   --frame-height: 852px;
   --frame-bezel: 14px;
 
+  /* The framed/frameless breakpoint, as a value `shell-scale.js` can read: a
+     media query cannot be written in terms of a custom property, so the 768
+     in this file's one `@media` rule and this token are the same number
+     written twice and have to move together. It is here rather than in the
+     script so the stylesheet stays the place the frame's dimensions are
+     defined. */
+  --frame-breakpoint: 768px;
+
   /* --- Reserved safe-area space inside the phone screen (DECISIONS.md D14) ---
      The 393x852 Figma frame is a whole device screen, and part of that height
      belongs to the system: 59px at the top for the status-bar area and 34px at
@@ -86,14 +94,21 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 2px;
 }
 
-/* --- The page itself never scrolls, in either view ---
-   Framed (>=768px) the phone is the thing that scrolls, not the page behind
-   it: a real phone's content is clipped by the device, and reaching it by
-   scrolling the browser window instead would be an artefact of the mock, not
-   the interaction being tested. `#app-frame` is scaled with a transform,
-   which does not shrink its layout box, so on a short viewport the unscaled
-   box would otherwise push the body past 100vh and hand the participant a
-   browser scrollbar down the side of the frame.
+/* --- The page itself does not scroll, except where the frame cannot fit ---
+   Framed (>=768px) the phone is normally the thing that scrolls, not the page
+   behind it: a real phone's content is clipped by the device, and reaching it
+   by scrolling the browser window instead would be an artefact of the mock,
+   not the interaction being tested.
+
+   D92 AMENDS THIS IN ONE CASE AND ONE ONLY. The frame is never rendered below
+   its natural size, so on a window shorter than the frame the page has to
+   scroll or the bottom of the phone is unreachable. `overflow-y` is therefore
+   `auto` at framed widths — which is a no-op at every window tall enough,
+   because `shell-scale.js` sizes `#app-frame` to the frame's RENDERED height
+   and the gutter collapses to keep it inside the viewport wherever it can.
+   `overflow-x` stays hidden in both views: the scale never exceeds what the
+   window is wide enough for, so a horizontal scrollbar would only ever be a
+   sub-pixel artefact.
 
    Frameless (<768px) `.screen` is already exactly 100vh with its own
    `overflow: hidden`, so this changes nothing there — it just makes "the
@@ -249,30 +264,92 @@ body::-webkit-scrollbar,
   display: contents;
 }
 
-/* --- 768px and above: framed, centred, scaled to fit viewport height --- */
+/* --- 768px and above: framed, centred, scaled UP to fill the window ---------
+
+   THE LOGICAL VIEWPORT IS FIXED AND THE RENDERED FRAME IS SCALED. DECISIONS.md
+   D92. The phone lays out against 393x852 at every window size, so every
+   breakpoint, wrap point and line length inside it is identical on a 1280x720
+   laptop and a 2560x1440 desktop; only the magnification differs. A frame that
+   grew to fill the window instead would resolve the internal breakpoints
+   differently and stop being the same instrument between one session and the
+   next.
+
+   THE SCALE IS COMPUTED IN `src/shell-scale.js`, not here. It writes
+   `--frame-scale` and `--frame-gutter` onto `:root` on load, on resize and on
+   orientationchange. The values below are the fallbacks that apply before it
+   runs and if it never runs: scale 1 and the full gutter, i.e. exactly the
+   frame at its natural size. Nothing here depends on the script having run.
+
+   The transform sits on `.device-bezel` and the LAYOUT box on `#app-frame`. A
+   transform does not change the layout box, so if the two were the same
+   element a frame rendered above 1.0 would paint outside a box the page had
+   never reserved space for — unreachable below the fold, and clipped rather
+   than scrollable. `#app-frame` is therefore sized to the RENDERED dimensions
+   and the bezel is centred inside it (`margin-inline: auto`) before being
+   scaled about its own top centre, which lands its scaled edges exactly on
+   that box. */
 @media (min-width: 768px) {
+  :root {
+    /* Fallbacks. Overwritten on `:root` by shell-scale.js; see above. */
+    --frame-scale: 1;
+    --frame-gutter: var(--space-4xl);
+    --frame-total-width: calc(var(--frame-width) + var(--frame-bezel) * 2);
+    --frame-total-height: calc(var(--frame-height) + var(--frame-bezel) * 2);
+  }
+
   body {
     background: var(--color-canvas);
     display: flex;
     justify-content: center;
-    align-items: center;
-    padding: var(--space-4xl) 0;
+    /* `flex-start`, not `center`. A centred flex child taller than its
+       container overflows in BOTH directions, and the overflow above the top
+       edge cannot be scrolled to — the participant would lose the top of the
+       phone on a short window rather than the bottom of it. */
+    align-items: flex-start;
+    padding: var(--frame-gutter) 0;
+    /* Only ever a scroll on a window shorter than the frame's rendered
+       height; see the html/body rule above. */
+    overflow-y: auto;
+  }
+
+  /* The page's own scrollbar is the one this build does NOT hide. It appears
+     only on a window too short to hold the frame, it is outside the bezel
+     rather than inside it, and it is the only sign a facilitator gets that the
+     bottom of the phone is below the fold. `.screen` and everything inside it
+     keep the hidden treatment set further up. */
+  html,
+  body {
+    scrollbar-width: auto;
+    -ms-overflow-style: auto;
+  }
+
+  /* `revert`, not a value of our own: this hands the two pseudo-elements back
+     to the UA stylesheet, which is the only thing that knows what a scrollbar
+     on this platform is supposed to look like. Needed as well as
+     `scrollbar-width` above, because the rule further up sets
+     `display: none` on them and Blink honours `::-webkit-scrollbar` again the
+     moment `scrollbar-width` is back to `auto`. */
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    width: revert;
+    height: revert;
+    display: revert;
   }
 
   #app-frame {
     display: block;
-    /* Scale-to-fit: shrink the frame (never grow it) so it never overflows
-       a short viewport — e.g. a 1366x768 laptop over Teams — without
-       scrolling or clipping. */
-    --frame-total-height: calc(var(--frame-height) + var(--frame-bezel) * 2);
-    --frame-scale: min(1, calc((100vh - var(--space-4xl) * 2) / var(--frame-total-height)));
-    transform: scale(var(--frame-scale));
+    width: calc(var(--frame-total-width) * var(--frame-scale));
+    height: calc(var(--frame-total-height) * var(--frame-scale));
+    flex: 0 0 auto;
   }
 
   .device-bezel {
     display: block;
-    width: calc(var(--frame-width) + var(--frame-bezel) * 2);
-    height: calc(var(--frame-height) + var(--frame-bezel) * 2);
+    width: var(--frame-total-width);
+    height: var(--frame-total-height);
+    margin-inline: auto;
+    transform: scale(var(--frame-scale));
+    transform-origin: top center;
     padding: var(--frame-bezel);
     border-radius: var(--radius-device);
     /* Belt and braces on the clipping rule: `.screen` already clips its own

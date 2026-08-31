@@ -300,6 +300,13 @@ Frame 33's Theme control offers Greyscale and Brand (`build-spec.md` section 7).
 
 `overflow` on the scroll containers themselves is deliberately untouched - they stay `overflow-y: auto`, so wheel, touch, momentum and focus-driven scrolling all still work; only the visible track is gone. Tabbing to a control below the fold still scrolls it into view. Verified: keyboard-Tab and wheel both still scroll, and no scroll container reports a visible track.
 
+*Amended 31 August 2026 by **D92**, in two particulars. The transform is no longer on `#app-frame`:
+that element is now the layout box, sized to the frame's rendered dimensions, and `.device-bezel`
+carries the `scale()`. And the page DOES scroll, at framed widths only, on a window shorter than the
+frame - the frame is never drawn below its natural size any more, so scrolling is what makes the
+bottom of the phone reachable. The page's own scrollbar is no longer hidden at framed widths for the
+same reason. Everything else here stands, including every scrollbar inside the bezel.*
+
 **To reverse.** Both changes are contained to `src/css/shell.css`.
 
 ### The reserved safe-area space, and why it is not the status bar
@@ -8744,3 +8751,176 @@ recorded in the table with `[UNKNOWN]` in both cells and raised as `GAPS.md` G10
 **To reverse.** Delete the section from `docs/README.md` and the three rules from `CLAUDE.md`. The
 reflog that the backfill was read from expires 90 days after each entry, so the dates are not
 recoverable from this repository once that window passes: the table is the only remaining record.
+
+---
+
+## D92. The logical viewport is fixed and the rendered frame is scaled
+
+**Date.** 31 August 2026. `src/css/shell.css`, `src/shell-scale.js` (new), one measurement in
+`src/components/ui.js`, and `scripts/frame-scale.test.mjs` (new). No screen, no copy, no figure and
+no breakpoint changes.
+
+### What was wrong
+
+The pilot session on 31 August 2026 was run at **150% browser zoom from beginning to end**, and the
+participant disclosed it at 32:32 only after finishing: "I have been viewing this entire page in 150
+and I didn't realise that 100% is this small one around that this might be an issue for people."
+
+Every judgement that session produced about type size, colour weight, axis legibility and reading
+effort was therefore made at a magnification the next participant has no reason to reproduce. That
+is a threat to the comparability of findings between sessions, not a presentation complaint, and it
+blocks further sessions until the default is legible.
+
+The cause is in this file's own history. The frame was scaled to FIT - `min(1, ...)`, shrinking on a
+short window and never growing on a tall one - so the largest the phone was ever drawn was its
+natural 393x852, on a 2560x1440 desktop as much as on a laptop. A 393px-wide phone occupies 15% of
+that display's width, and 17px body text at 100% zoom on it is what the participant could not read.
+
+### The trap that was not taken
+
+The obvious fix is to let the frame fill the space it is given. **It must not.** The frame is a
+simulation of a phone, and if its width becomes fluid the internal breakpoints resolve differently,
+the layout inside changes, and every finding from the pilot becomes uncomparable with the sessions
+after it. The instrument would no longer be the same instrument.
+
+### The decision
+
+**The logical viewport stays fixed and the rendered frame is magnified.** `.screen` lays out against
+`--frame-width` x `--frame-height` at every window size - 393x852, unchanged, and NOT the 390x844 the
+brief proposed as a starting point: this build's frame has been 393x852 since the first commit,
+because the Figma source for frame 01 is unambiguously `w-[393px]` (shell.css's own header records
+this), and re-establishing a different one would move every wrap point in the build.
+
+The frame is then drawn through a CSS `scale()` about its top centre. Everything inside is untouched:
+same breakpoints, same font sizes, same spacing, same wrapping, same line lengths. Only the
+magnification differs, which is exactly what a participant changing browser zoom would have got - and
+now they do not have to.
+
+| Window | Scale | Frame drawn | Page scrolls |
+| --- | --- | --- | --- |
+| 1280x720 | 1.0 | 421x880 | yes, by 160px |
+| 1280x900 | 1.0 | 421x880 | no |
+| 2560x1440 | 1.5 | 632x1320 | no |
+
+### The four rules the scale obeys
+
+**Derived from height.** The frame is far taller than it is wide, so height is what runs out first.
+Width is a second bound rather than the driver, and exists only so a narrow-but-tall window cannot
+scale the frame wider than the page can hold.
+
+**Never below 1.0.** This reverses the previous behaviour deliberately. On a window shorter than the
+frame the page scrolls instead of the frame shrinking. Shrinking would put the prototype back below
+100% and reintroduce the defect this exists to remove, and the two failures are not comparable in
+cost: a participant who cannot see the bottom of a phone knows it and scrolls, where a participant
+reading type that is 30% too small does not know and simply finds the app harder than it is.
+
+**Capped at 1.5, and the figure is the participant's own.** 150% is the magnification they chose for
+themselves and read a whole session at, which makes it the one upper bound in this build that is
+evidence rather than taste. Uncapped, a 4K display would draw the phone about 900px wide, past any
+phone a participant has held.
+
+**The gutter collapses before the frame does.** `--space-4xl` of breathing room above and below is
+what a window with room to spare gets; a window without it gives that space to the frame instead. A
+900px-tall window - a maximised browser on a 1080p display, the commonest session setup there is -
+would otherwise scroll by 60px purely to hold two margins. Where the cap binds, the gutter re-derives
+from what the frame actually took, so the frame is centred in what is left rather than pinned to the
+top with the remainder falling below it.
+
+### Why the computation is JavaScript
+
+`src/shell-scale.js`, no dependency, reading `--frame-width`, `--frame-height`, `--frame-bezel`,
+`--space-4xl` and `--frame-breakpoint` off the stylesheet so no dimension is written twice. It sets
+`--frame-scale` and `--frame-gutter` on `:root`, on load and on a debounced `resize` /
+`orientationchange`.
+
+A `clamp()` in the stylesheet was the first attempt and was rejected for two reasons.
+
+1. **The scale is a length divided by a length.** CSS expresses that only through type-changing
+   `calc()` division, which is CSS Values 4. It resolves in Chromium 151, measured rather than
+   assumed - and an engine that does not support it drops the whole declaration, leaving no
+   transform at all, silently, on a browser nobody checked, in the middle of a session.
+2. **`#app-frame` needs the rendered height as a real layout box.** A transform does not resize a
+   layout box, so a frame drawn above 1.0 would paint outside a box the page never reserved: clipped
+   rather than scrollable, and unreachable below the fold. The same number is needed as a scale
+   factor and as a length, and is derived once.
+
+The stylesheet still declares `--frame-scale: 1` and the full gutter as fallbacks, so the state
+before the script runs, and if it never runs, is the frame at its natural size.
+
+**Under Node the module is inert.** Four test scripts and `shots.mjs` reach it through the import
+graph with no `document`, so `root` is null and every entry point returns early. Found by running
+them, not by reasoning about it.
+
+### The transform moved off `#app-frame` and onto `.device-bezel`
+
+`#app-frame` is now the LAYOUT box, sized to the frame's rendered dimensions, and `.device-bezel` is
+the element the transform is on, centred inside it with `margin-inline: auto` and scaled about its
+own top centre so its scaled edges land exactly on that box. D14 and `GAPS.md` G32 both describe the
+transform as sitting on `#app-frame`; that is this decision's change, and both carry a note.
+
+### D14's "the page never scrolls" is amended, in one case only
+
+D14 made the page unscrollable in both views, on the reasoning that the phone is what scrolls and
+reaching content by scrolling the browser window would be an artefact of the mock. That stands
+everywhere the frame fits. Where it does not - a window shorter than 880px - `overflow-y: auto` at
+framed widths is what makes the bottom of the phone reachable at all, and it is a no-op at every
+window tall enough. `overflow-x` stays hidden in both views.
+
+**And the page's own scrollbar is now the one this build does not hide.** G32 hid every scrollbar
+because a desktop track inside a phone mock reads as a browser artefact. That reasoning is about
+tracks INSIDE the bezel and is unchanged; this one is outside it, appears only on a window too short
+to hold the frame, and is the only sign a facilitator gets that the bottom of the phone is below the
+fold. A frame cut off with no affordance is the worse failure.
+
+### The one measurement that had to be converted
+
+`bindDateSelect` in `src/components/ui.js` - frame 10b's overlay listbox (D84) - is the only control
+in the build positioned from measured geometry rather than from CSS alone. It measures the space
+between its trigger and the action bar with `getBoundingClientRect()`, which reports what is DRAWN,
+and applies the result as a `max-height`, which is resolved BEFORE the transform. Left alone, a frame
+drawn at 1.5 would have measured half again more space than exists and set a list half again too
+tall, reaching past the very bar it was measured against. The measurements are divided by
+`frameScale()`. Anchoring itself needed nothing: the popover is `position: absolute` inside
+`.date-select__field`, so it moves and scales with its trigger whatever the transform does.
+
+### Verification
+
+`scripts/frame-scale.test.mjs`, 7 tests, ~17s. It asserts the CONTRACT rather than the appearance,
+because the property that matters is one no screenshot can show:
+
+- `.screen` measures exactly `--frame-width` x `--frame-height` in layout pixels at both window
+  sizes, and what is drawn is that box times the scale.
+- The layout fingerprint of **every** element inside the frame - tag, class, `offsetTop`,
+  `offsetLeft`, `offsetWidth`, `offsetHeight`, computed `font-size` - is identical at 1280x720 and
+  2560x1440, across three screens. A single differing row would mean an internal breakpoint had
+  resolved differently and the two sessions were no longer measuring the same thing.
+- The scale is never below 1 and never above the cap; a short window scrolls by exactly its
+  overflow; a tall window does not scroll at all; neither produces horizontal overflow.
+- The listbox spans its own field, hangs from its trigger, and its clamped height stays clear of the
+  dock **measured in layout pixels**, so both window sizes answer to the same number rather than one
+  1.5x looser.
+- Focus rings stay 2 logical pixels at 2px offset and stay inside the phone at both sizes.
+- The scale recomputes on resize, in both directions, after the debounce.
+
+Screenshots: frame 10b closed, frame 10b with the year list open, frame 10b with a keyboard focus
+ring, and frame 33, each at 1280x720 and at 2560x1440, all on fresh tabs. `shots.mjs` gains
+`--focus=<n>`, which presses Tab that many times before the shot - real key presses, because the ring
+is on `:focus-visible` and a scripted `.focus()` does not necessarily raise it.
+
+Suite: 408 tests, 407 passing, 1 skipped (G91's known intermittent), 0 failing - every script
+`CLAUDE.md` lists plus the new one. `CACHE_VERSION` v100, `BUILD_VERSION` v100, confirmed reading
+"Build v100" on frame 33 in a fresh tab.
+
+**One thing a headless screenshot cannot show.** The restored page scrollbar: this Chromium draws
+overlay scrollbars, so the track does not appear in a PNG. What was verified instead is that
+`scrollbar-width` computes to `auto` on `html` and `body` at framed widths, that the page scrolls by
+exactly its overflow (160px at 1280x720), and that a wheel over the phone chains to the page once
+`.screen-content` reaches its end - so the bottom of the frame is reachable with the cursor anywhere,
+not only over the canvas beside it.
+
+### To reverse
+
+Delete `src/shell-scale.js` and its two imports, and restore `#app-frame`'s
+`transform: scale(min(1, ...))` with `.device-bezel` back to a plain fixed-size box. The frame
+returns to shrink-to-fit and the prototype returns to being unreadable at 100% zoom, so the reason
+for reversing would need to be a different fix for the same finding rather than a return to it.

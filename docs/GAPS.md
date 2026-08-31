@@ -303,6 +303,14 @@ rule removed. Scrollbars are hidden in both views while the content stays scroll
 and keyboard - `overflow-y: auto` on the scroll containers is untouched, so focus-driven scrolling
 still works. No screenshot exemption: this changes what surrounds the screen, not what is on it.*
 
+*Amended 31 August 2026 by **D92** / G105. (a) is now stated the other way round: the transform sits
+on `.device-bezel` and `#app-frame` is the layout box, sized to the frame's rendered dimensions, so a
+frame drawn ABOVE its natural size still has a box the page reserved for it. The page scrolls at
+framed widths on a window too short to hold the frame, and the page's own scrollbar - outside the
+bezel - is no longer hidden, because it is the only sign the bottom of the phone is below the fold.
+Every scrollbar inside the bezel stays hidden, which is what this entry was about. (b) stands
+unchanged.*
+
 ---
 
 **G33. Keyboard-only scrolling in a region with no focusable content - open, low risk.** With the
@@ -3907,3 +3915,66 @@ Deployment reason cells rather than being guessed into either shape.
 Confirm which reading is right. If any participant session was run on the evening of 28 August
 2026, check its start time against 20:41 first, because that is the only case where the answer
 changes what a session should be reported against.
+
+---
+
+## G105. The prototype was unreadable at 100% browser zoom, and the pilot session was run at 150%. CLOSED 31 August 2026 - DECISIONS.md D92
+
+*Raised and closed 31 August 2026. The finding is the pilot session's; the defect was in the shell.*
+
+### What was found
+
+At 32:32 of the pilot session on 31 August 2026, after the tasks were finished, the participant
+disclosed that they had viewed the whole session magnified:
+
+> "I have been viewing this entire page in 150 and I didn't realise that 100% is this small one
+> around that this might be an issue for people."
+
+They had found the prototype unreadable at 100% and changed the browser zoom before starting, and
+said so only at the end.
+
+### Why it is a gap and not a preference
+
+Every judgement that session produced about type size, colour weight, axis legibility and reading
+effort was made at a magnification the next participant has no reason to reproduce. The instrument
+was not the same instrument between that session and the next one, which makes the two sets of
+findings uncomparable on exactly the dimensions the study is measuring. It blocked further sessions
+rather than sitting in a backlog.
+
+### The cause
+
+`shell.css` scaled the frame to FIT: `min(1, ...)`, shrinking on a short window and never growing on
+a tall one. The largest the phone was ever drawn was its natural 393x852 - on a 2560x1440 desktop as
+much as on a laptop, where it occupies 15% of the display's width.
+
+*Status: **closed** (D92) - the logical viewport stays fixed at 393x852 and the rendered frame is
+scaled, from available height, never below 1.0 and capped at 1.5. The layout inside the frame is
+asserted identical at 1280x720 and 2560x1440 by `scripts/frame-scale.test.mjs`, which is the property
+that makes findings from before and after this change comparable with each other.*
+
+### Two numbers in the brief that this repository does not have, and Riona needs to settle
+
+The brief for this change asked for **G99** to be closed and for **G111** (flat visual hierarchy) to
+be noted as unblocked. Neither is what those numbers hold here, and nothing was renumbered to make
+them fit:
+
+| Asked for | What this file actually has |
+| --- | --- |
+| G99, the zoom finding | **G99 is `rangeFromCentral` inverts on a negative central** - a model defect, open, unrelated |
+| G111, flat visual hierarchy | **There is no G111.** This file ends at G104 |
+
+So the finding is recorded here as **G105**, the next free number, per `CLAUDE.md`'s rule that the
+last number in the file is what the next one follows. G99 is untouched and stays open.
+
+**To close.** Confirm where the other numbering comes from - most likely a separate session-findings
+document that numbers its own observations - and either say which entry here corresponds to "flat
+visual hierarchy", or raise it as a gap in its own right so it has a number in this file. It cannot
+be inferred: no open entry here is about visual hierarchy, and guessing one would attach a pilot
+finding to the wrong defect.
+
+**What is true regardless of the numbering:** whatever entry records the flat visual hierarchy
+finding, it was raised by a participant reading the prototype at 150%, so the observation behind it
+was made at the wrong magnification. **It must be reassessed at 100% zoom against this build before
+it is actioned.** Type weight and contrast that read as flat at 150% may not at 100%, and a
+treatment applied on the strength of the 150% reading would be a change made for a state no
+participant will now see.

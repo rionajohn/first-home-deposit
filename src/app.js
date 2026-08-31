@@ -29,6 +29,10 @@
  */
 
 import config from './config.js';
+// Sizes the device frame to the window before the first screen paints
+// (DECISIONS.md D92). Imported for its side effect and registered first, so
+// no screen is ever measured or shown at a scale that is about to change.
+import './shell-scale.js';
 import { registerRoute, startRouter } from './router.js';
 import { render as renderHome } from './screens/home.js';
 import { render as renderJourney } from './screens/journey.js';

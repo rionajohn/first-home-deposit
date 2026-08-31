@@ -13,6 +13,7 @@
 
 import { goBack, exitFlow } from '../router.js';
 import { formatDigits } from '../format.js';
+import { frameScale } from '../shell-scale.js';
 import {
   arrowLeft,
   checkmark,
@@ -1090,15 +1091,30 @@ export function bindDateSelect(container, { onPick }) {
     openName = name;
 
     // --- Which side, and how tall ------------------------------------------
+    // MEASURED IN DEVICE PIXELS, APPLIED IN LAYOUT PIXELS, so the two have to
+    // be converted between. `getBoundingClientRect()` reports the size a box
+    // is DRAWN at, and at framed widths the whole phone is drawn through a
+    // scale transform (DECISIONS.md D92); `max-height` is a CSS length and is
+    // resolved before that transform. Divide the measurements by the scale and
+    // the numbers are back in the units the declaration is written in.
+    //
+    // Left as-was, a frame rendered at 1.5 would measure 1.5x the space that
+    // actually exists and set a max-height half again too tall - the list
+    // would reach past the dock it is measured against, which is the one thing
+    // this block exists to prevent. Anchoring itself is unaffected: the
+    // popover is positioned by CSS inside `.date-select__field` (screens.css),
+    // so it moves and scales with its trigger whatever the transform does.
+    const scale = frameScale();
+    const px = (n) => n / scale;
     const t = trigger.getBoundingClientRect();
     const top = scroller ? scroller.getBoundingClientRect().top : 0;
     const bottom = dock ? dock.getBoundingClientRect().top : window.innerHeight;
     const gap = 8;
     const rows = list.querySelectorAll('[role="option"]');
-    const rowH = rows.length ? rows[0].getBoundingClientRect().height : 48;
+    const rowH = rows.length ? px(rows[0].getBoundingClientRect().height) : 48;
     const wanted = rowH * 5 + 2;
-    const below = bottom - t.bottom - gap;
-    const above = t.top - top - gap;
+    const below = px(bottom - t.bottom) - gap;
+    const above = px(t.top - top) - gap;
     const useAbove = below < wanted && above > below;
     popover.classList.toggle('date-select__popover--above', useAbove);
     list.style.maxHeight = `${Math.max(rowH * 2, Math.min(wanted, useAbove ? above : below))}px`;

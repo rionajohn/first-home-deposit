@@ -29,7 +29,7 @@
  * src/cache-version.js's BUILD_VERSION in step with the version
  * below; see that file's own comment for why the two are separate.
  */
-const CACHE_VERSION = 'v99';
+const CACHE_VERSION = 'v100';
 const CACHE_NAME = `yfh-shell-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
@@ -54,6 +54,7 @@ const SHELL_ASSETS = [
   './src/model/rates.js',
   './src/router.js',
   './src/sheet-drag.js',
+  './src/shell-scale.js',
   './src/skip-ahead.js',
   './src/stage.js',
   './src/state.js',

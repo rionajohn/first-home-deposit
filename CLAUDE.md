@@ -114,7 +114,17 @@ do not introduce a state management library.
 - Test the journey stage control: `node --test scripts/stage.test.mjs` (pure Node, no browser; asserts each stage is idempotent in both directions, that ready-to-check is the saving stage with `skipAheadPatch()` applied rather than a second goal, and that no derived figure is written by hand)
 - Test the action bar: `node --test scripts/action-bar.test.mjs` (D39's pinned bar; 20 screens x 4 viewports plus 7 sheets, asserting the bar is visible and hittable without scrolling, flush above the tab bar, and clear of the last content element when scrolled to the end)
 - Test the tab bar: `node --test scripts/bottom-nav.test.mjs` (D11's three states; asserts an enabled-but-not-current tab resolves to the same colour, weight, icon variant and indicator as a disabled one)
-- Screenshots: `node scripts/shots.mjs` (see the file header for the options; `--routes`, `--entry`, `--state`, `--theme`, `--width`, `--saved`). **Screenshots come from `scripts/shots.mjs`, never from a harness generated inline.** Extend the script if it cannot do what a pass needs; do not rebuild one in a heredoc. Output goes to the gitignored `.screenshots/`, with a contact sheet beside the PNGs.
+- Test the frame's rendered scale: `node --test scripts/frame-scale.test.mjs` (drives Chromium; D92's
+  fixed logical viewport and scaled frame at 1280x720 and 2560x1440. Asserts the CONTRACT, not the
+  appearance: `.screen` measures `--frame-width` x `--frame-height` in LAYOUT pixels at both, what is
+  drawn is that box times the scale, and the layout fingerprint of every element inside the frame is
+  identical between the two window sizes across three screens - which is the property that keeps
+  findings comparable between sessions and the one thing a screenshot cannot show. Also the bounds
+  (never below 1, never above the cap), that a short window scrolls rather than shrinking, frame 10b's
+  overlay listbox anchoring and its height clamp measured in layout pixels, focus rings, and the
+  debounced recompute on resize. ~17s. **Run this after anything touching `shell.css`, `#app-frame` or
+  `.device-bezel`.**)
+- Screenshots: `node scripts/shots.mjs` (see the file header for the options; `--routes`, `--entry`, `--state`, `--theme`, `--width`, `--focus`, `--saved`). **Screenshots come from `scripts/shots.mjs`, never from a harness generated inline.** Extend the script if it cannot do what a pass needs; do not rebuild one in a heredoc. Output goes to the gitignored `.screenshots/`, with a contact sheet beside the PNGs.
 - Seed state for every browser-driven script lives in `scripts/session-seed.mjs`. One copy, imported by `shots.mjs`, `overlap.test.mjs`, `action-bar.test.mjs` and `inset-shots.mjs`. A key that selects one script's variant belongs in that script's own overrides, not in the shared seed.
 
 ## Stack rules
