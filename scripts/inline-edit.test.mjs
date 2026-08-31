@@ -439,3 +439,170 @@ for (const [role, typed] of [
     assert.equal(await page.evaluate(() => window.location.hash), '#/calculator/result');
   });
 }
+
+// ---------------------------------------------------------------------------
+// THE CEILING, NAMED BESIDE THE RANGE. DECISIONS.md D90.
+//
+// `errorExceedsLeftOver` says a range is more than what is left over without
+// saying what that is. The label states it. The assertions below are about the
+// two agreeing and about the breach still blocking - the label is an addition
+// to this screen, not a relaxation of it.
+// ---------------------------------------------------------------------------
+
+/** The ceiling as a plain number, read out of the store rather than assumed. */
+const ceilingFromStore = () => page.evaluate(() => JSON.parse(sessionStorage.getItem('yfh-state'))['left-over'].value);
+
+const reviewState = () => page.evaluate(() => {
+  const limit = document.querySelector('#monthly-saving-max');
+  const lo = document.querySelector('[data-role="edit-monthly-low"]');
+  const hi = document.querySelector('[data-role="edit-monthly-high"]');
+  const banner = document.querySelector('.warning-banner');
+  const stored = JSON.parse(sessionStorage.getItem('yfh-state'));
+  return {
+    labelText: limit?.textContent ?? null,
+    describedLow: lo?.getAttribute('aria-describedby') ?? null,
+    describedHigh: hi?.getAttribute('aria-describedby') ?? null,
+    limitId: limit?.id ?? null,
+    highValue: hi?.value ?? null,
+    hasBanner: !!banner,
+    ctaDisabled: document.querySelector('.action-bar .button--primary').disabled,
+    committed: { rate: stored['savings-rate'], low: stored['monthly-low'], high: stored['monthly-high'] },
+  };
+});
+
+test('the ceiling is named beside the range, with no error showing', async () => {
+  await page.goto(`${base}/#/calculator/review`);
+  await page.waitForSelector('[data-role="edit-monthly-low"]');
+  const seen = await reviewState();
+  const ceiling = await ceilingFromStore();
+  const { formatCurrency } = await import('../src/format.js');
+  assert.equal(seen.hasBanner, false, 'the seed is already in error, so this asserts the wrong state');
+  assert.ok(seen.labelText, 'the ceiling is not named anywhere on the row');
+  assert.ok(seen.labelText.includes(formatCurrency(ceiling)), `the label "${seen.labelText}" does not carry the ceiling ${formatCurrency(ceiling)}`);
+  assert.doesNotMatch(seen.labelText, /\{[a-z]+\}/, 'an unfilled slot reached the screen');
+});
+
+test('both fields point at the label, so either one announces the ceiling', async () => {
+  await page.goto(`${base}/#/calculator/review`);
+  await page.waitForSelector('[data-role="edit-monthly-low"]');
+  const seen = await reviewState();
+  assert.ok(seen.limitId, 'the label carries no id to reference');
+  assert.equal(seen.describedLow, seen.limitId, 'the low field does not describe itself with the ceiling');
+  assert.equal(seen.describedHigh, seen.limitId, 'the high field does not describe itself with the ceiling');
+});
+
+/**
+ * A FRESH TAB WITH A SEEDED RANGE, because the breach cannot be TYPED.
+ *
+ * Frame 11's own high-field handler is
+ * `clamp(parsed, monthlyLow.value, savingCeiling)` - a typed value above the
+ * ceiling snaps to it, which is GAPS.md G74 and is not something D90 changed.
+ * So `errorExceedsLeftOver` is reachable only by ARRIVING with a breaching
+ * range, and that is a real path rather than a contrivance: frame 10b's date
+ * path at the floor commits `monthly-high` as 1.1x the solved amount (D2), and
+ * the solve at the floor is just under the ceiling - £1,089.87 against £1,150
+ * on the shared seed, so the high lands at £1,198.85 and the participant meets
+ * the error on arrival having typed nothing at all.
+ *
+ * That is also why the label matters more than it first looks: the participant
+ * is refused on a screen they have only just reached, and the label is the one
+ * thing on it naming the number they have to get under.
+ */
+async function withSeededRange({ low, high }) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+  await context.addInitScript((v) => {
+    try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {}
+  }, {
+    ...FULL,
+    'monthly-low': { value: low, provenance: 'entered' },
+    'monthly-high': { value: high, provenance: 'entered' },
+    buildVersion: BUILD_VERSION,
+  });
+  const fresh = await context.newPage();
+  await fresh.goto(`${base}/#/calculator/review`, { waitUntil: 'networkidle' });
+  await fresh.waitForTimeout(250);
+  return { context, page: fresh };
+}
+
+const readReview = (target) => target.evaluate(() => {
+  const limit = document.querySelector('#monthly-saving-max');
+  const banner = document.querySelector('.warning-banner');
+  const stored = JSON.parse(sessionStorage.getItem('yfh-state'));
+  return {
+    labelText: limit?.textContent ?? null,
+    hasBanner: !!banner,
+    bannerRole: banner?.getAttribute('role') ?? null,
+    bannerGlyph: banner ? [...banner.querySelector('svg').classList].find((c) => c.startsWith('icon--') && !/^icon--(body|regular)$/.test(c)) : null,
+    ctaDisabled: document.querySelector('.action-bar .button--primary').disabled,
+    committed: { rate: stored['savings-rate'], low: stored['monthly-low'], high: stored['monthly-high'] },
+  };
+});
+
+test('the label and the error come from ONE value - the boundary is the same number', async () => {
+  // The assertion the whole change rests on: if the number shown and the number
+  // refused against could drift, the label is worse than nothing. Checked AT the
+  // boundary rather than by reading the source - a high of exactly the ceiling
+  // must pass, one above it must fail, and the label must read the same in both.
+  const { formatCurrency } = await import('../src/format.js');
+  const ceiling = FULL['left-over'].value;
+
+  const atCeiling = await withSeededRange({ low: ceiling - 200, high: ceiling });
+  try {
+    const seen = await readReview(atCeiling.page);
+    assert.equal(seen.hasBanner, false, `a high of exactly the ceiling (${ceiling}) raised the error`);
+    assert.ok(seen.labelText.includes(formatCurrency(ceiling)), `the label "${seen.labelText}" does not carry the ceiling`);
+  } finally { await atCeiling.context.close(); }
+
+  const overCeiling = await withSeededRange({ low: ceiling - 200, high: ceiling + 1 });
+  try {
+    const seen = await readReview(overCeiling.page);
+    assert.ok(seen.hasBanner, `a high of ${ceiling + 1}, one above the ceiling, raised no error`);
+    assert.ok(seen.labelText.includes(formatCurrency(ceiling)), 'the label changed when the error fired');
+  } finally { await overCeiling.context.close(); }
+});
+
+test('the breach still blocks, and the error keeps D78\'s treatment', async () => {
+  // Things D90 deliberately did NOT change, asserted together because each is a
+  // plausible thing to have relaxed while adding a label that softens the state.
+  const ceiling = FULL['left-over'].value;
+  const { context, page: fresh } = await withSeededRange({ low: ceiling + 100, high: ceiling + 400 });
+  try {
+    const before = await readReview(fresh);
+    assert.equal(before.ctaDisabled, true, 'a breaching range no longer blocks');
+    assert.equal(before.bannerRole, 'alert', 'the breach stopped being announced as an error');
+    assert.equal(before.bannerGlyph, 'icon--exclamation-triangle', 'the error banner lost its error icon');
+    assert.ok(before.labelText, 'the label vanished in the state that most needs it');
+
+    // And nothing above the ceiling reaches the store. Clicked through the DOM,
+    // past the actionability check, so the handler's own guard is tested too.
+    await fresh.evaluate(() => document.querySelector('.action-bar .button--primary').click());
+    await fresh.waitForTimeout(300);
+    const after = await readReview(fresh);
+    assert.equal(await fresh.evaluate(() => window.location.hash), '#/calculator/review', 'a breaching range navigated to the result screen');
+    assert.deepEqual(after.committed, before.committed, 'a figure was written from a breaching range');
+  } finally { await context.close(); }
+});
+
+test('a typed high above the ceiling is CLAMPED, not left standing - G74, unchanged by D90', async () => {
+  // Pinned rather than assumed, in both directions. The label names the ceiling;
+  // it does not make the field enforce it, and it does not stop the field
+  // clamping either. G74 records the clamp as a defect on this screen and D90
+  // deliberately leaves it alone - so this asserts the behaviour that IS there,
+  // and will fail if a later pass changes it without saying so.
+  const ceiling = await ceilingFromStore();
+  await page.goto(`${base}/#/calculator/review`);
+  await page.waitForSelector('[data-role="edit-monthly-high"]');
+  const field = page.locator('[data-role="edit-monthly-high"]');
+  await field.click();
+  await field.fill(String(ceiling + 500));
+  await field.dispatchEvent('change');
+  await page.waitForTimeout(250);
+  const seen = await reviewState();
+  // COMPARED AGAINST THE GROUPED FORM, because the field renders through
+  // `formatDigits` - the same trap `shots.mjs --figures` documents. Asserting
+  // against the bare number reports a working clamp as a broken one.
+  const { formatDigits } = await import('../src/format.js');
+  assert.equal(seen.highValue, formatDigits(ceiling), `a typed ${ceiling + 500} did not clamp to the ceiling - G74 has changed`);
+  assert.equal(seen.hasBanner, false, 'the clamped value raised an error, which the clamp exists to avoid');
+  assert.ok(seen.labelText, 'the label is absent while the participant is typing, which is when it is for');
+});

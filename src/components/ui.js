@@ -844,19 +844,38 @@ export function optionComparisonCardHTML({ headerText, rows, infoLinkLabel, info
  * a `join` between them is the monthly-saving range; one entry is every other
  * row.
  */
-export function reviewRowHTML({ label, value, caption, fields, join }) {
+export function reviewRowHTML({ label, value, caption, fields, join, limit }) {
   const fieldHTML = (f) => {
     const affix = (text) => `<span class="review-row__affix" aria-hidden="true">${text}</span>`;
     return `
       <span class="review-row__field">
         ${f.prefix ? affix(f.prefix) : ''}
-        <input class="review-row__input" type="text" inputmode="numeric" data-role="${f.role}" value="${f.digits}" style="width:calc(${f.digits.length}ch + 4px)" aria-label="${f.ariaLabel}" />
+        <input class="review-row__input" type="text" inputmode="numeric" data-role="${f.role}" value="${f.digits}" style="width:calc(${f.digits.length}ch + 4px)" aria-label="${f.ariaLabel}"${limit ? ` aria-describedby="${limit.id}"` : ''} />
         ${f.suffix ? affix(f.suffix) : ''}
       </span>
     `;
   };
+  // THE BOUND, BESIDE THE FIGURES IT BOUNDS (DECISIONS.md D90). A third child
+  // of the same flex row as the fields, so it sits on their line and costs the
+  // row no height when it fits - which matters because this screen is the worst
+  // cut in the build under GAPS.md G96, and a line added above an error banner
+  // pushes that banner further under the action bar.
+  //
+  // `aria-describedby` FROM BOTH FIELDS, not one, and not the row's accessible
+  // name. It describes the pair: the same ceiling bounds the low and the high,
+  // and a screen reader on either field should hear it. Putting it in the row's
+  // name instead would announce it once, on arrival, and never again while the
+  // participant is actually typing - which is the moment it is for. Same
+  // pattern D78 used to point a disabled Continue at the error explaining it.
+  //
+  // NOT A BANNER AND NOT A CAPTION. No icon, no role, no live region: it states
+  // a fact that is true whether or not anything is wrong. And not the `caption`
+  // slot below, whose meaning on this screen is PROVENANCE (D5, as refined by
+  // D62) - a bound in that slot would read as a claim about where the figure
+  // came from.
+  const limitHTML = limit ? `<span class="review-row__limit" id="${limit.id}">${limit.text}</span>` : '';
   const readout = fields
-    ? `<div class="review-row__value review-row__value--fields">${fields.map(fieldHTML).join(join ? `<span class="review-row__join">${join}</span>` : '')}</div>`
+    ? `<div class="review-row__value review-row__value--fields">${fields.map(fieldHTML).join(join ? `<span class="review-row__join">${join}</span>` : '')}${limitHTML}</div>`
     : `<p class="review-row__value">${value}</p>`;
   return `
     <div class="review-row">

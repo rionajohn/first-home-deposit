@@ -2168,6 +2168,21 @@
   gap: var(--space-xs);
 }
 
+/* The ceiling, annotating the range rather than joining it (DECISIONS.md D90).
+   Footnote size and the secondary label colour, so it reads as a note ON the
+   figures and never as a third figure among them - the fields beside it are
+   17px at full label colour. `margin-left: auto` pushes it to the end of the
+   flex line, which puts it clear of the "to" join and keeps the pair of fields
+   reading as one range. */
+.review-row__limit {
+  margin-left: auto;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  font-weight: 400;
+  color: var(--color-label-secondary);
+  white-space: nowrap;
+}
+
 /* NO 44px min-height, which is the one place this departs from
    `.figure-input__value`. Frame 10b's typed year field made the same departure
    for the same reason before D83 replaced it with a `<select>`: that rule sets

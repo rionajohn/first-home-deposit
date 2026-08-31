@@ -184,6 +184,22 @@ export function render(container, ctx) {
           // problem goes with it: there is no longer a line that can tell a
           // participant who moved no handle that they set the range.
           join: c.monthlySavingJoin,
+          // THE CEILING, FROM THE SAME VARIABLE THE ERROR IS COMPARED AGAINST
+          // (D90). `savingCeiling` is read once at the top of this render and
+          // `monthlyError` above tests `monthlyHigh.value > savingCeiling`
+          // against it - so the number the participant is shown and the number
+          // they are refused by are one value, not two derivations that could
+          // drift.
+          //
+          // GUARDED ON A POSITIVE, FINITE CEILING. `formatCurrency(null)`
+          // renders "£0", which is the silent-zero defect D46 and GAPS.md G62
+          // were both written for; a label reading "Max: £0" would be worse
+          // than no label. `left-over` is seeded at session start and frame 05
+          // refuses to commit a non-positive override, so this only ever guards
+          // a state the build does not produce.
+          limit: Number.isFinite(savingCeiling) && savingCeiling > 0
+            ? { id: 'monthly-saving-max', text: fill(c.monthlySavingMaxTemplate, { max: formatCurrency(savingCeiling) }) }
+            : null,
           fields: [
             {
               role: 'edit-monthly-low',

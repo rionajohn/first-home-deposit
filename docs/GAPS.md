@@ -3818,3 +3818,52 @@ ends, mirroring the floor clamp D83 already had.
 *Status: **closed.** The two disclosures are mutually exclusive by construction - each move clears the
 other's flag - and that is asserted rather than assumed.*
 
+---
+
+## G103. The earliest date the list offers is the one date frame 11 refuses
+
+*Raised 31 August 2026 while building `DECISIONS.md` D90, and not caused by it. Recorded here rather
+than left in a report.*
+
+### The incoherence
+
+Frame 10b's floor (D85) is the earliest month at which the solved monthly amount is **at or under**
+`left-over`. Frame 11's check is `monthly-high > left-over`. **They test different quantities.**
+`monthly-high` is `1.1x` the solved rate (D2's range spread), so a rate just under the ceiling produces
+a high just over it.
+
+Driven end to end on the shared seed: pick the earliest date the list offers, press Continue, land on
+frame 11 with the range **£980.88 to £1,198.85** against a £1,150 ceiling, `errorExceedsLeftOver`
+showing and Work it out disabled - **having typed nothing**.
+
+### It is exactly one date, and it is the first one
+
+Measured across the 41 months from the floor:
+
+| Month | Solved rate | `monthly-high` | Frame 11 |
+| --- | --- | --- | --- |
+| **6 (the floor)** | **£1,089.87** | **£1,198.85** | **blocked** |
+| 7 | £923.46 | £1,015.81 | passes |
+| 8 | £798.66 | £878.52 | passes |
+
+Only the floor month itself. The high clears the ceiling from the next month on, because the solve falls
+away steeply just past the floor.
+
+**That it is one date does not make it small.** It is the FIRST option in the list, it is the date the
+floor exists to make reachable, and "as soon as possible" is an obvious thing for a participant to pick.
+The screen offers it, solves it, shows a figure under the ceiling, and the next screen refuses it.
+
+### Not fixed here
+
+D90 was one label. Sketching the options so the next pass does not start cold:
+
+- **Floor on the HIGH rather than the rate** - the two screens would then test the same quantity. It
+  moves the floor out by a month or so and is the smallest change that makes them agree.
+- **Frame 11 tests the rate rather than the high** - the mirror. Weaker: the high is what the
+  participant is shown and what the tracker projects from.
+- **Leave it and let D90's label carry it.** The participant now at least sees the number. But they are
+  refused for a choice the previous screen presented as valid, which is the part the label cannot fix.
+
+*Status: **open, and REACHABLE** - the first option in the list, no facilitator gesture, no seeded state,
+both text sizes and palettes.*
+

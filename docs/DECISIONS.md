@@ -8584,3 +8584,101 @@ Every other state does fit, and by more than before:
 Four shots of the retrimmed banner, both themes, both text sizes. Suite: 396 tests, 395 passing, 1
 skipped (G91), 0 failing. No test changed, because nothing they assert has changed.
 
+---
+
+## D90. The left-over ceiling is named beside the range it bounds
+
+**Date.** 31 August 2026. One label on frame 11. Nothing else about the screen changes.
+
+### What was wrong
+
+`errorExceedsLeftOver` says a range is more than what is left over **without saying what that is**. The
+participant had to infer the target from a message that withholds it, and only after they had already
+been refused.
+
+### The label
+
+`content['/calculator/saving'].monthlySavingMaxTemplate` - **`Max: {max}`**, Category B, so D34 does not
+apply. `{max}` is `left-over` through the existing currency formatter.
+
+**One value, not two derivations.** `savingCeiling` is read once at the top of the render and
+`monthlyError` tests `monthlyHigh.value > savingCeiling` against the same variable, so the number shown
+and the number refused against cannot drift. `date-ceiling`'s sibling suite asserts it at the boundary
+rather than by reading the source: a high of exactly the ceiling passes, one above it fails, and the
+label reads the same in both. Re-deriving the label from `money-in - essential-spending` fails two tests.
+
+**Present always, not only on error** - the point is that the number is visible while the participant is
+typing, not after they fail.
+
+**Beside the range, not beneath it, and the placement was measured.** It is a third child of the same
+flex row as the two fields, `margin-left: auto` so it sits at the end of their line. Measured on the
+fields' own line in every state, at both text sizes - so it costs the row **zero height**, which matters
+because this screen is the worst cut in the build under `GAPS.md` G96. **G96's frame 11 measurement is
+unchanged: 110px at default, 200px at Large**, exactly the figures that entry records.
+
+Footnote size in the secondary label colour, against 17px at full label colour for the fields beside it,
+so it reads as a note ON the figures rather than a third figure among them.
+
+**`aria-describedby` from BOTH fields.** The same ceiling bounds the low and the high, and a screen
+reader on either should hear it. Not the row's accessible name, which would announce it once on arrival
+and never again while the participant is actually typing - the moment it is for. Same pattern D78 used
+to point a disabled Continue at the error explaining it.
+
+**Guarded on a positive, finite ceiling.** `formatCurrency(null)` renders "£0" - the silent-zero defect
+D46 and G62 were both written for - and a label reading "Max: £0" would be worse than no label.
+`left-over` is seeded at session start and frame 05 refuses a non-positive override, so the guard only
+covers a state the build does not produce.
+
+### Three things deliberately not changed
+
+- **The breach still blocks.** Work it out stays disabled, the banner stays an error, and it keeps D78's
+  red treatment, `exclamationTriangle` and `role="alert"`. Asserted, including that forcing the button
+  through the DOM commits nothing and navigates nowhere. A figure above the left-over must not reach the
+  tracker or the MIP flow.
+- **The fields' clamping is untouched.** See the correction below - what "untouched" means here is the
+  opposite of what the brief assumed.
+- **The banner copy is unchanged.** `errorExceedsLeftOver` stands.
+- **It is not a banner.** No `infoBannerHTML`, no icon, no role, no live region: it states a fact that is
+  true whether or not anything is wrong. And not the `caption` slot, whose meaning on this screen is
+  PROVENANCE (D5 as refined by D62) - a bound in that slot would read as a claim about where the figure
+  came from.
+
+### A correction: frame 11 CLAMPS, it does not let a typed value stand
+
+The brief for this change said the fields do not clamp and a typed value above the ceiling stands and
+raises the error "as it does today". **The build does the opposite**, and has since D62:
+
+    bindField('edit-monthly-high', (parsed) => ...
+      commitRange(monthlyLow.value, clamp(parsed, monthlyLow.value, savingCeiling)))
+
+A typed high above the ceiling snaps to it. That is `GAPS.md` **G74**, already recorded as a defect on
+this screen, and D90 leaves it exactly as it is. The consequence for this change is that
+**`errorExceedsLeftOver` cannot be reached by typing at all** - it is reachable only by ARRIVING with a
+breaching range, which is why the tests seed one rather than typing one. The clamp is now pinned by a
+test in both directions, so a later pass cannot change it silently.
+
+### Which makes the label matter more, not less
+
+The path that reaches the error is frame 10b's. Driven end to end in a browser: pick the earliest date
+the list offers, press Continue, and land on frame 11 with the range **£980.88 to £1,198.85** against a
+£1,150 ceiling, the error showing and Work it out disabled - **having typed nothing at all**. The label
+is the only thing on that screen naming the number they have to get under.
+
+That path is itself a defect and is recorded as `GAPS.md` **G103**: the floor guarantees the solved RATE
+is at or under the ceiling, and frame 11 tests the HIGH, which is 1.1x it (D2). Not fixed here - this
+pass was one label.
+
+### Frame 10 already names the same quantity, and the two agree
+
+`sliderRangeCaptionTemplate`: *"{max} is what's left each month once your essentials are covered."* Prose
+there because it sits under a slider with room; terse here because it sits inline on a row.
+
+**They cannot diverge.** Both screens read `state['left-over'].value` into a local called `savingCeiling`
+and nothing else derives it - checked rather than assumed, so no entry is needed.
+
+### Verification
+
+Twelve shots, both themes, both text sizes: the row within the ceiling, breaching it with the banner
+showing, and frame 11 with all three row errors raised. Suite: 397 tests, 396 passing, 1 skipped (G91),
+0 failing.
+

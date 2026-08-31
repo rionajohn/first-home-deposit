@@ -738,6 +738,23 @@ const content = {
     depositPctLabel: 'Deposit %age',
     savedSoFarLabel: 'Saved so far',
     savedSoFarCaption: 'The total sitting in the accounts you picked for your deposit',
+    // THE CEILING, SHOWN BESIDE THE RANGE IT BOUNDS (DECISIONS.md D90). It was
+    // named nowhere on this screen: `errorExceedsLeftOver` says the range is
+    // more than what is left over WITHOUT saying what that is, so a participant
+    // had to infer the target from a message that withholds it, and only after
+    // they had already failed.
+    //
+    // Category B - it stands alone on this screen and matches no other, so D34
+    // does not apply. Deliberately terse: it is an annotation on a row, not a
+    // sentence. Frame 10's slider states the same quantity in prose
+    // (`sliderRangeCaptionTemplate`, "{max} is what's left each month once your
+    // essentials are covered"); the two agree because they read the same
+    // `left-over` key, and this one is short because it sits inline.
+    //
+    // {max} is `left-over`, formatted - the same value `errorExceedsLeftOver`
+    // is compared against on this screen, read from the same variable so the
+    // label and the error cannot disagree.
+    monthlySavingMaxTemplate: 'Max: {max}',
     monthlySavingLabel: 'Monthly saving',
     // THE MONTHLY RANGE'S TWO CAPTIONS ARE GONE, and so is the property value's
     // "You entered this". Both rows are now permanently editable fields, so a
