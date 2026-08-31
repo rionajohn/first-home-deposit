@@ -9691,3 +9691,34 @@ enforced; that is **not licence**.
 language - "You can still X, or Y" is the sanctioned form and is symmetric between the two options),
 rule 1A (no system-proposed contribution; the highest illustrative rate is 48.4% of `left-over`,
 under the 60% line), rule 3, rule 6, rule 6A, rule 9.
+
+### AMENDED 31 August 2026: the second sentence loses its named action, and the first-three-words lock survives a challenge
+
+**`goalAttainedBody`** now reads:
+
+> Your {saved} already covers what you'd need. You could stop here, or carry on saving towards a
+> larger deposit.
+
+It read "You can still change your deposit amount, or carry on saving toward a larger one". **The old
+second clause named an action with no visible route**: the only way to change the deposit amount from
+this screen is the app-bar back arrow, which does not read as that action. A string must not name an
+affordance the screen does not offer, and adding a control on the strength of a string is the wrong
+way round - so the string changed and no control was added. The symmetry that carried it past the
+advice boundary is kept: two options of the same shape, neither recommended.
+
+It also changes "toward" back to "towards", which puts **both forms on this one screen** beside
+`goalHeading`. Recorded in `GAPS.md` rather than reconciled.
+
+**`projectionAssumptions` keeps "This is an estimate", and the release of that lock was reversed
+before it was committed.** Dropping the opening was decided on the ground that
+`shared.regulatory.estimateDisclosure` carries the same four words "150px above". **Measured on the
+built screen, it is 778px above at default text and 842px at Large**, with the whole chart between
+them and a 732px viewport - so the two are never seen together, and this line is the only thing
+carrying the word anywhere near the endpoint.
+
+**The figure that prompted the change came from this repo's own earlier report**, where "within
+roughly 150px" was written about the three qualifying lines as a group and then read as a measurement
+of this pair. The lesson is the one D77 keeps making: a number written loosely in a report gets used
+later as though it had been measured. The underlying reading problem is real and is now `GAPS.md`
+G119, along with the rule 2 gap the measurement exposed.
+

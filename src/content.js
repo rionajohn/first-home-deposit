@@ -1022,11 +1022,24 @@ const content = {
     // disclosure gets nothing from it, and the endpoint is the strongest claim
     // on the screen.
     //
-    // "ESTIMATE" STAYS IN THE FIRST THREE WORDS. It is the word doing the
-    // regulatory work: a sentence opening by listing what is held constant
-    // reads as a description of the method, one opening with "This is an
-    // estimate" reads as a qualification of the claim. Do not reorder this in a
-    // shortening pass.
+    // "ESTIMATE" STAYS IN THE FIRST THREE WORDS, AND THE RELEASE OF THAT LOCK
+    // WAS REVERSED ON A MEASUREMENT (D103's amendment). The word is the one
+    // doing the regulatory work: a sentence opening by listing what is held
+    // constant reads as a description of the method; one opening "This is an
+    // estimate" reads as a qualification of the claim.
+    //
+    // DROPPING IT WAS PROPOSED, AND THE PREMISE WAS WRONG. The reasoning was
+    // that `shared.regulatory.estimateDisclosure` already opens "This is an
+    // estimate based on..." about 150px above, so the two duplicated each
+    // other. Measured on the built screen it is **778px above at default text
+    // and 842px at Large**, with the whole chart between them - so the two are
+    // NEVER on screen together in a 732px viewport, and this line is the only
+    // place the word appears anywhere near the endpoint.
+    //
+    // The endpoint line is the strongest claim on the screen and is a projected
+    // figure, which the copy check's rule 2 requires the estimate note to sit
+    // directly beneath. Dropping the opening here would have left the whole
+    // lower half of the screen without it. See GAPS.md.
     //
     // CHANGE OF CIRCUMSTANCES IS DELIBERATELY ABSENT. It is the least specific
     // of the four uncovered assumptions, it is obvious in a way the other three
@@ -1064,11 +1077,22 @@ const content = {
     // deposit is told they are done and given no reason to look at the rows
     // still ahead of them.
     //
-    // "toward", not "towards", to match `goalHeading` on this same screen. The
-    // codebase carries thirteen instances of "toward" in participant copy; see
-    // GAPS.md for the standardisation sweep this did not take.
+    // NO NAMED ACTION WITHOUT A VISIBLE ROUTE. It read "You can still change
+    // your deposit amount", and the only route to that from this screen is the
+    // app-bar back arrow, which does not read as that action - a string must
+    // not name an affordance the screen does not offer, and adding a control on
+    // the strength of a string is the wrong way round. "You could stop here"
+    // names something the participant can do by doing nothing.
+    //
+    // THE SYMMETRY IS KEPT, which is what carried it past the advice boundary:
+    // two options of the same shape, neither recommended.
+    //
+    // "towards" HERE AND "toward" IN `goalHeading` ABOVE, so this screen now
+    // carries BOTH FORMS - which GAPS.md G118 was opened to prevent. Recorded
+    // there rather than silently reconciled: the wording is Riona's call, and
+    // one word closes it either way.
     goalAttainedBody:
-      "Your {saved} already covers what you'd need. You can still change your deposit amount, or carry on saving toward a larger one.",
+      "Your {saved} already covers what you'd need. You could stop here, or carry on saving towards a larger deposit.",
     // ITS SECOND CLAUSE IS GONE (D73). It read "- the chart shows progress to 5
     // years", which was true only while the chart had one fixed range. The
     // clause could have been made range-aware, but it would then have restated

@@ -430,14 +430,40 @@ test('9. the assumptions line is in the same viewport as the endpoint and the ch
         const texts = [...document.querySelectorAll('p')];
         const endpoint = texts.find((p) => /you'd reach your/.test(p.textContent));
         const assumptions = texts.find((p) => /It assumes nothing changes/.test(p.textContent));
+        const plot = document.querySelector('.growth-chart');
+        const estimate = texts.find((p) => /^This is an estimate based on/.test(p.textContent.trim()));
         const box = (el) => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; };
+
+        // THE BREAKDOWN, BY FLOW CHILD. 10.8 derived this block from a list of
+        // six elements; what it costs is decided by the list, not by the
+        // heights, so the useful thing to report is every child the block
+        // actually contains and what each one takes.
+        const children = [...scroller.children];
+        const from = children.indexOf(heading);
+        const to = children.indexOf(assumptions);
+        const parts = children.slice(from, to + 1).map((el) => ({
+          tag: el.tagName.toLowerCase(),
+          cls: (el.className || '').toString().split(' ')[0] || '(none)',
+          text: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 34),
+          height: Math.round(el.getBoundingClientRect().height * 10) / 10,
+        }));
+        const gap = parseFloat(getComputedStyle(scroller).rowGap) || 0;
+
         return {
           viewport: scroller.clientHeight,
           block: box(assumptions).bottom - box(heading).top,
+          // The RELAXED requirement: the plot itself, the endpoint and the
+          // assumptions line, dropping the heading and the two controls above
+          // the chart from the co-visibility block.
+          relaxed: box(assumptions).bottom - box(plot).top,
+          estimateToAssumptions: box(assumptions).top - box(estimate).bottom,
+          estimateAboveHeading: box(heading).top - box(estimate).bottom,
           endpointTop: box(endpoint).top,
           assumptionsBottom: box(assumptions).bottom,
           headingTop: box(heading).top,
           hasAssumptions: !!assumptions,
+          parts,
+          gap,
           // Not behind a disclosure: nothing between it and the endpoint may be
           // a collapsed section.
           insideDisclosure: !!assumptions.closest('[data-disclosure-id], details'),
@@ -445,7 +471,15 @@ test('9. the assumptions line is in the same viewport as the endpoint and the ch
       });
       const headroom = m.viewport - m.block;
       const derived = large ? 77.2 : 148.0;
-      console.log(`  10.8 ${large ? 'large ' : 'default'}: block ${m.block.toFixed(1)}px of ${m.viewport}px, headroom ${headroom.toFixed(1)}px (derived ${derived}px)`);
+      console.log(`
+  10.8 ${large ? 'LARGE  ' : 'DEFAULT'}: block ${m.block.toFixed(1)}px of ${m.viewport}px, headroom ${headroom.toFixed(1)}px (10.8 derived ${derived}px)`);
+      console.log(`  relaxed (plot -> assumptions): ${m.relaxed.toFixed(1)}px, headroom ${(m.viewport - m.relaxed).toFixed(1)}px`);
+      console.log(`  estimateDisclosure sits ${m.estimateToAssumptions.toFixed(1)}px above projectionAssumptions (${m.estimateAboveHeading.toFixed(1)}px above the chart heading)`);
+      console.log(`  ${m.parts.length} flow children, ${m.gap}px gap between each:`);
+      for (const p of m.parts) {
+        console.log(`    ${String(p.height).padStart(6)}  ${p.cls.padEnd(26)} ${p.text}`);
+      }
+      console.log(`    ${String((m.parts.length - 1) * m.gap).padStart(6)}  ${'(gaps)'.padEnd(26)} ${m.parts.length - 1} x ${m.gap}px`);
 
       assert.ok(m.hasAssumptions, 'the assumptions line is rendered');
       assert.equal(m.insideDisclosure, false, 'the assumptions line is not behind a disclosure');

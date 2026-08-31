@@ -4618,12 +4618,72 @@ Thirteen instances of "toward" in participant-facing copy, across `/consent`, `/
 `/assumptions/sources`. Both forms are valid British English; the inconsistency is the finding, and
 "towards" is the more common British form of the two.
 
-**What was done instead.** `goalAttainedBody` was drafted with "towards" and would have put both forms
-on one screen beside `goalHeading`'s "What you would save toward". It now reads "toward", matching its
-own screen. **No screen currently carries both forms.**
+**What was done first, and then reversed.** `goalAttainedBody` was drafted with "towards", changed to
+"toward" to match its own screen, and then - on 31 August 2026, in the revision that removed the named
+action with no visible route - changed back to "towards".
+
+**So `/calculator/result` NOW CARRIES BOTH FORMS**: `goalHeading`'s "What you would save toward" and
+`goalAttainedBody`'s "carry on saving towards a larger deposit". That is the state this entry was
+opened to prevent, and it is recorded rather than silently reconciled because the wording is Riona's
+call and the two changes had different reasons. **One word closes it in either direction.** The two
+are never visible at the same moment - `goalAttainedBody` renders only in the attained state, well
+below `goalHeading` - which is why it survived a copy check rather than being caught by one.
 
 **None of the thirteen is on frame 10**, so the freeze was never at issue - checked rather than
 assumed.
 
-**Low priority.** No participant has remarked on it, both forms are correct, and a thirteen-string
-sweep touching eight routes is a copy pass of its own rather than a tail on someone else's.
+**Low priority, but no longer only a consistency point.** No participant has remarked on it and both
+forms are correct. What raises it slightly is that one screen now carries both, which is a different
+and more visible thing than thirteen screens each being internally consistent. A thirteen-string sweep
+touching eight routes is still a copy pass of its own rather than a tail on someone else's.
+
+---
+
+## G119. Frame 12's endpoint line is a projected figure with no estimate note near it. OPEN
+
+*Raised 31 August 2026 by the `fca-copy-check` re-run on `projectionAssumptions`. **Measured, not
+asserted** - and the measurement reversed a copy decision that had already been taken.*
+
+### The rule and the geometry
+
+The copy check's rule 2: a screen showing a projected figure must carry
+`shared.regulatory.estimateDisclosure` **directly beneath it**. D100's endpoint line - "If you keep
+saving this amount, you'd reach your {amount} goal in {year}" - is a projected figure, and it is the
+strongest claim on the screen.
+
+`estimateDisclosure` renders **above the chart heading**, which puts it:
+
+| | Distance above `projectionAssumptions` |
+| --- | --- |
+| Default text | **778.0px** |
+| Large text | **842.4px** |
+
+against a **732px** scroll viewport at 390x844. **The two are never on screen together**, and the
+whole chart sits between them.
+
+### Why it surfaced when it did
+
+A proposal to drop the "This is an estimate" opening from `projectionAssumptions` was made on the
+stated ground that `estimateDisclosure` "already carries it 150px above". **That figure was wrong, and
+it came from this repo's own earlier report** - a loose "within roughly 150px" written about the three
+qualifying lines as a group, then read as a measurement of this pair. Measured, it is 778px.
+
+The change was applied, the check flagged it, and it was **reversed before it was committed**. The
+opening stands. Recorded here because the underlying gap is real whether or not that string keeps its
+first three words: **the endpoint line has no estimate note beneath it, and `projectionAssumptions` is
+currently the only thing near it that carries the word at all.**
+
+### What this is not
+
+It is not an argument for moving `estimateDisclosure`. That line has its own reason to sit where it
+does - directly beneath the comparison card's projected years - and moving it down would strip the
+card instead. **The likely answer is a second placement rather than a relocation**, which is a
+decision about a fixed regulatory line and therefore not one a build session should take alone.
+
+### Also worth knowing before this is picked up
+
+`projectionAssumptions` and `estimateDisclosure` open with the same four words. That was reported as a
+reading problem and is the reason the change above was attempted. It is real - but it is a problem
+about two lines **778px apart that a participant meets one at a time**, not about a wall, so it should
+be re-judged on the screen rather than on the earlier description of it.
+
