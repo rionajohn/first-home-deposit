@@ -1315,7 +1315,7 @@ qualification discovered later.
 
 ---
 
-### 10.7 `projectionAssumptions` - DECIDED, drafted, pending two gates
+### 10.7 `projectionAssumptions` - DECIDED by Riona, drafted, pending `fca-copy-check`
 
 **The screen gets an assumptions line.** `estimateDisclosure` and `chartCaptionTemplate` are **not
 sufficient on their own**. This closes what section 12 carried as an open item.
