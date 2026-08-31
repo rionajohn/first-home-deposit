@@ -1014,10 +1014,14 @@ cannot know which rule they are looking at, and the six sessions that trip it ge
 
 **What the six get instead.** The collision is real and must not be silent, so it is named rather than
 formatted around: where two live rows resolve to the same year, the card says so - the two deposits it
-affects are reached in the same year at this contribution. `[AWAITING COPY]`. That is the same
-treatment offered as option C for the endpoint line in 6.10.1, and it should be decided **with** that
-one rather than separately, since two different answers to one question on one screen is the state 7.6
-exists to remove. Recorded as open decision 1's second half in section 12.
+affects are reached in the same year at this contribution. **The string is approved and recorded in
+10.2**, with its two slots confirmed available in 10.3.
+
+**This is NOT the same question as the endpoint line's, and the previous draft was wrong to bind them.**
+The card's is a **within-render** collision: two of the three rows are on screen at once and say the
+same year, so a string can name both. The endpoint line renders **one** figure and cannot collide with
+itself; its case is a **cross-state** one, where switching series leaves the line unchanged. Section 12
+item 1 now separates them - 1b is settled here, 1a stays open.
 
 ### 7.6 The card follows the series selection - SETTLED, and the D72 condition is met
 
@@ -1100,7 +1104,7 @@ implementation choice.
 | File | Change |
 | --- | --- |
 | `docs/DECISIONS.md` | Six entries. **Read the last number in the file and take the next** - it stands at D96 as this plan is written, so D97 onward unless something has landed in between |
-| `docs/GAPS.md` | Three entries, from G111 onward on the same rule |
+| `docs/GAPS.md` | Four entries, from G111 onward on the same rule |
 | `docs/build-spec.md` | Row 121's chart specification is already superseded by D73; annotate it with the new default window rather than leaving a third stale reading |
 | `docs/README.md` | **No version-log row from this plan.** A row is written as part of a merge to `main`, with a reason supplied by Riona, never retrospectively |
 
@@ -1121,6 +1125,7 @@ implementation choice.
 | --- | --- |
 | G111 | Frame 21 projects to `deposit-target`, not `combined-goal` (`mip-result-not-yet.js:80`), against D70. It is now a *date* that disagrees with the tracker's, which is more visible than a duration was. **Report only - do not fix in this pass** |
 | G112 | `formatMonthsDuration` has no callers after this pass. Recorded, kept, not deleted |
+| G114 | A **three-way** same-year collision in the comparison card would break `compareSameYearNote`'s two slots. **Zero in 28,400 configurations at every rate the app can commit**; 382 only above `MOCK_POSITION`'s `left-over` ceiling (10.3). **Unreachable, not impossible** - the G92-to-G95 form. Records where the one-line detection would go if that constant ever changes |
 | G113 | The transitional state of 3.3: frame 10 anchors on the wall clock while every other screen anchors on `sessionAnchor`. Lists `calculator-saving.js` lines 144, 202-203, 238-243. Closed in one pass after the G107 session, together with migrating frame 10b's floor and cap onto `goalMonths` |
 
 ---
@@ -1152,17 +1157,39 @@ All new participant-facing copy goes through the `fca-copy-check` skill before i
 `content.js`. The MCOB 4.8A boundary is live here: a date is a projection, so the wording is "you'd
 reach", never "you should aim for". British English, hyphens not em dashes.
 
-**`content['/calculator/result']`**
+### 10.1 Register: friendly and transparent, not formal
+
+**Participant-facing copy on this screen uses contractions, active voice and plain verbs, and where a
+figure might look wrong to a participant the string says why rather than only stating it.**
+
+**The reason, stated so this does not read as a style preference.** Formality is not what keeps copy on
+the guidance side of MCOB 4.8A. **The conditional mood and the absence of a recommendation are**, and
+both survive contractions intact. "You'd reach" is exactly as conditional as "would be reached" and is
+easier to read; what would cross the boundary is "you should aim for", and that is a change of mood and
+a recommendation, not a change of register. A formal register bought no regulatory safety and cost
+comprehension, which is the thing this whole pass exists to repair.
+
+The second clause is the one the pilot argues for directly. A participant who meets a figure that looks
+wrong to them - a date further out than they expected, an amount that did not move when they expected
+it to - needs the reason beside it, not a bare restatement. `compareSameYearNote` below is the first
+string written to that rule: it does not say "these are the same", it says why they are.
+
+This register is already the house style in the strings that survived the pilot - `dateMovedToCap`'s
+"Good news - you'll get there sooner than that now", `pickOneCaption`'s "Set an amount and we'll show
+you the date" - so this records an existing practice rather than introducing one. `shared.regulatory`
+is the exception and is untouched: those are fixed wording.
+
+### 10.2 `content['/calculator/result']`
 
 | Key | Status |
 | --- | --- |
 | `chartSeriesLegend` | New - visually-hidden group label for the series control |
 | `chartSeriesCaptionTemplate` | New - the readout caption, naming the selected contribution in words |
-| `readoutCaptionTemplate` | New - `[AWAITING COPY]`, slots `{date}`, `{amount}`. **It always names the date the figure belongs to** (6.2), so a scrubbed value cannot be read as the window-end value |
-| `chartPlotAriaLabel`, `chartPointAriaLabelTemplate` | New - the scrub target's accessible name and each point's, slots `{date}`, `{amount}`. Read by `aria-activedescendant` (6.6.2) |
+| `readoutCaptionTemplate` | New - `[AWAITING COPY]`, slots `{date}`, `{amount}`. **It always names the date the figure belongs to** (6.2). **Its granularity is not settled** - section 12, item 1c |
+| `chartPlotAriaLabel`, `chartPointAriaLabelTemplate` | New - the scrub target's accessible name and each point's, slots `{date}`, `{amount}`. Read by `aria-activedescendant` (6.6.6). Same granularity question as the readout |
 | `chartRangeLabels` | **"3 yr" replaced by "2 yr"** (24 months), which becomes the default. `ariaLabel` follows the WCAG 2.5.3 rule the existing five already keep: it opens with the visible label |
-| `endpointTemplate` | New - `[AWAITING COPY]`, slots `{amount}`, `{year}`. **Year, not month** (6.10). A second variant may be needed for the same-year collision, depending on open decision 1 (6.10.1) |
-| `compareSameYearNote` | New - `[AWAITING COPY]`, for the comparison card's collision case (7.5). Decided **with** the endpoint's, not separately |
+| `endpointTemplate` | New - `[AWAITING COPY]`, slots `{amount}`, `{year}`. **Year, not month** (6.10). **No same-year variant is needed** - see section 12, item 1a |
+| **`compareSameYearNote`** | **New - APPROVED, 31 August 2026. Slots `{a}` and `{b}`**, the two colliding deposit percentages in row order, so `{a}` is the lower. Renders below the comparison card when two live rows resolve to the same year (7.5)<br><br>> The {a} and {b} deposits are close enough that you'd reach them in the same year.<br><br>Conditional ("you'd"), no recommendation, and it gives the reason rather than restating the coincidence - 10.1's rule, and the first string written to it. Still to go through `fca-copy-check` |
 | `chartViewChartLabel`, `chartViewTableLabel` | New - the view toggle |
 | `chartTableCaption`, `chartTableMonthHeader`, `chartTableLowHeader`, `chartTableHighHeader` | New - the table's own labels |
 | `goalAttainedHeadline`, `goalAttainedBody` | New - `[AWAITING COPY]`, slots `{saved}`, `{goal}`. Not an error and must not read as one (D78) |
@@ -1177,6 +1204,45 @@ reach", never "you should aim for". British English, hyphens not em dashes.
 | `compareAlreadyLabel` | Unchanged - already the attained-row label |
 | `legendTemplate` | Unchanged - reused by the series control |
 
+### 10.3 `compareSameYearNote`'s two slots: confirmed available, after one hoist
+
+*Confirmed rather than assumed, per the instruction. The answer is yes, with a structural condition
+that has to be specified or it will be discovered during the build.*
+
+**The values exist. They are not in scope where the note renders.** `calculator-result.js:170-190`
+builds the three rows inside an IIFE in the template literal, and computes `monthsLater` **inside the
+`.map()` callback**, where it is used for that row's value and then discarded. The note renders below
+the card, outside that closure, so as the code stands the years the collision is detected from are
+gone by the time the note needs to name them.
+
+**The fix is a hoist, not new data.** Derive `[{ pct, goal, months, year, alreadySaved }]` once, above
+the template literal; the rows map over it and the collision predicate and the note read the same
+array. That also removes a duplicate `monthsToReachAmount` call, since the predicate would otherwise
+recompute what the rows already worked out - and a predicate that recomputes its own inputs is D46's
+"the two will eventually disagree" in miniature.
+
+**`{a}` and `{b}` are the two colliding percentages in row order**, `neighbourPcts` being ascending, so
+`{a}` is the lower. Formatted with `formatPercent(pct, 0)` for "5%" and "10%", matching
+`compareRowSublabelTemplate`. **Rows resolving to `compareAlreadyLabel` carry no year and are excluded
+from the pair**, which 7.5's "live rows" already requires.
+
+**A three-way collision would break a two-slot string, and it is unreachable. Recorded rather than
+guarded.** Swept over property 100,000 to 800,000 in 10,000s x ten balances x five selections:
+
+| Contribution range | Configurations | Two-way | **Three-way** |
+| --- | --- | --- | --- |
+| Every rate the app can commit (to `left-over` 640) | 28,400 | 100 | **0** |
+| Rates above any reachable `left-over` (800 to 3,000) | 21,300 | 3,790 | **382** |
+
+**Zero three-way collisions at any rate the running app can produce**, so the approved two-slot string
+is correct for every reachable state. The 382 sit above `MOCK_POSITION`'s 640 ceiling and are reachable
+only if that constant changes or a facilitator seeds a higher `left-over`. **Unreachable, not
+impossible** - the G92-to-G95 form - and it goes in `GAPS.md` on that basis rather than buying a
+three-slot string for a state no session can reach. It is one line to detect if it ever becomes
+reachable, and the entry says where.
+
+### 10.4 The other screens
+
 **`content['/mip/result/not-yet']`** - `step1CaptionTemplate` reworded, `{months}` becomes `{date}`.
 
 **`content['/learn/ltv']`** - `tableReachedRowLabel` new ("Reached by").
@@ -1186,6 +1252,18 @@ untouched.
 
 `shared.regulatory` is untouched. No line under it is reworded, shortened, removed, or dropped from a
 screen that carries it.
+
+### 10.5 The five outstanding drafts - NOT RECEIVED
+
+**`readoutCaptionTemplate`, `endpointTemplate`, `goalAttainedHeadline`, `goalAttainedBody` and
+`compareHeading` remain `[AWAITING COPY]`.** They were to be recorded from a brief accompanying the
+31 August amendment; **that brief did not arrive with it, and the drafts are not in hand.** Nothing has
+been written in their place - inventing participant-facing copy is what D93 and D94 exist to prevent,
+and `compareSameYearNote` above shows the form an approved string is recorded in when there is one.
+
+Two of the five are also **blocked on decisions, not only on drafting**: `readoutCaptionTemplate`'s
+granularity is section 12 item 1c, and `endpointTemplate`'s wording depends on which of 6.10.1's four
+options is taken. Those two should be drafted after their decisions, not before.
 
 ---
 
@@ -1309,34 +1387,104 @@ one measurement to confirm, and three layout judgements.*
 | 5 | **The comparison card follows the series selection**, and **`chartSeries` defaults to `'low'`**. | 7.6. The D72 condition is met: the plan had never specified a default, so this amendment sets it, and D72's conservative-first intent survives as a default rather than a floor |
 | 6 | **The range chips keep a duration**, with "2 yr" replacing "3 yr" as the default. | 2.4 - the chip says how much you are looking at; the axis and the figures say what you are looking at. A span in view is a control setting, not a claim, so it does not compete with a calendar-year axis |
 | 7 | **The card-wide fallback to month and year is withdrawn.** | 7.5 - a granularity that varies with the arithmetic is worse than one that holds |
+| 8 | **`compareSameYearNote` is approved**, with slots `{a}` and `{b}` - the two colliding percentages in row order. | 10.2, and 10.3 confirms both are available after one hoist. Closes what was open decision 1's "second half" |
+| 9 | **Register: friendly and transparent, not formal** - contractions, active voice, plain verbs, and the reason beside a figure that might look wrong. | 10.1 - the conditional mood and the absence of a recommendation are what hold the MCOB 4.8A line, and both survive contractions |
 
 ### Must return a result before the build session starts
 
-1. **What the endpoint line does when both contributions land in the same year.** 6.10.1 measured the
-   cost of decision 2 on the endpoint and it is **not small at short horizons**: 84.7% of
-   configurations under two years out, 38.1% at two to five years, against 4.7% at five to ten and
-   0.0% past twenty. In a collision the series control leaves the endpoint line unchanged. Four
-   options are named in 6.10.1 and **none is recommended**; three keep decision 2 and one (D,
-   reintroducing the month below a horizon) reverses it and must be recorded as a reversal if taken.
-   **7.5's identical question for the comparison card is the second half of this and must be decided
-   with it** - two different answers to one question on one screen is the state 7.6 exists to remove.
-2. **The year-label thinning rule, confirmed against measured text.** The ceiling is calculated at 8
+1. **The three same-year questions, which the previous draft wrongly treated as one.** It recorded
+   "7.5's identical question for the comparison card is the second half of this" - they are **not the
+   same question**, and separating them is what this item now does.
+
+   **1a. The endpoint line across a series change. Real, measured, open.** Endpoint year at
+   `monthly-low` equals endpoint year at `monthly-high`, so pressing the series control leaves the
+   line unchanged: **84.7% of configurations under two years out, 38.1% at two to five, 4.7% at five
+   to ten, 0.0% past twenty** (6.10.1). Four options are named there and **none is recommended**;
+   three keep 6.10 and option D reverses it and must be recorded as a reversal if taken.
+
+   > **The line does not need a same-year *variant*, and that is now corrected.** It renders **one**
+   > figure for the selected series and cannot collide with itself in a single render. What 6.10.1's
+   > option C actually proposed was for the line to acknowledge the **unselected** series - both
+   > values are in state, so it can - and that is a cross-state comparison, not a within-render
+   > collision. `endpointTemplate` therefore needs no second variant on this ground; if option C is
+   > taken it needs *different words*, not a collision case. Section 10 is corrected to match.
+
+   **1b. The comparison card within one render. Real, measured, and its string is approved.** Two of
+   the three simultaneously visible rows resolve to the same year: **0 in 4,830 at the seeded rates,
+   6 in 9,660 across everything the app can commit** (7.5), and **0 three-way in 28,400** (10.3).
+   This is a genuine within-render collision because both values are on screen at once.
+   `compareSameYearNote` is approved and recorded in 10.2. **Not blocked** - it is settled.
+
+   **1c. The readout caption across a scrub. Not previously identified, and it is the sharpest of the
+   three.** See item 2 below; it is listed separately because it is the one that appears during the
+   interaction the redesign exists to support.
+
+   **The fourth case, endpoint year against a comparison row's year, is a non-case.** After 7.6 the
+   card projects at the selected series, and the **selected** row's goal is `deposit at that pct +
+   stamp duty`, which **is** `combined-goal` - the same goal the endpoint line uses, at the same rate.
+   **They are the same figure by construction and always agree.** The two unselected rows name
+   different goals, so agreeing with the endpoint is not a meaningful property of them. Nothing to
+   specify. *Worth noting in passing: the selected row and the endpoint line therefore state one fact
+   twice, each in its own context. That is a duplication to look at in layout (step 14), not a
+   collision to write copy for.*
+
+2. **`readoutCaptionTemplate`'s granularity. Not settled, and it must be before the build session.**
+
+   Points are monthly, so within the 24-month default window several fall in the same calendar year.
+   If `{date}` renders year-only per 6.10, scrubbing between them shows **a changing amount against an
+   unchanging date** - which reads as a fault rather than as a limitation, during the one interaction
+   the chart redesign exists to support. **The same question governs the in-plot date label above the
+   active point (6.6.0) and `chartPointAriaLabelTemplate`**, since all three render the same date from
+   the same active index; it is one decision, not three.
+
+   **Measured, at 24 plotted points per window (6.6.1):**
+
+   | Window | Distinct year captions | Longest run of identical captions |
+   | --- | --- | --- |
+   | **24 mo (default), anchor August** | **3 of 24 points** | **12** |
+   | 24 mo, across all 12 anchor months | 2 to 3 | 12 |
+   | 6 m chip | 1 to 2 of 6 | up to **6 - the whole window** |
+   | 1 yr chip | 1 to 2 of 12 | up to **12 - the whole window** |
+   | 5 yr chip | 5 to 6 of 24 | 5 |
+   | Max (148 mo, seeded persona) | 12 to 13 of 24 | 2 |
+
+   **A. Month and year in the readout only.** The distinction that makes it principled rather than an
+   oversight: **year-only governs claims about reaching the goal**, which is what the model cannot
+   honestly assert to the month; **the readout describes where a point sits on a plotted curve**,
+   which is an observation about the data rather than a claim about the future. That is 6.6.9's
+   coordinate-versus-claim argument, which the plan has already accepted for the table. It softens
+   6.10 and **must be recorded as a deliberate exception carrying that reasoning**, in D102, not left
+   to look like a slip.
+
+   **B. Year-only throughout.** Consistent, holds the line that no month appears anywhere, and accepts
+   that the caption cannot distinguish two points in the same year.
+
+   **What the numbers say, stated without settling it.** At the default window B gives 3 captions
+   across 24 points and a 12-point run where the amount moves and the date does not. On the "1 yr"
+   chip it can give **one caption for the entire window**. The cost is not confined to a boundary
+   case; it is the ordinary behaviour of the shortest two windows. Against that, A is a real softening
+   of a decision taken one amendment ago and the exception has to be written down, not assumed.
+   **Decide before the build session; `readoutCaptionTemplate` is blocked on it (10.5).**
+3. **The year-label thinning rule, confirmed against measured text.** The ceiling is calculated at 8
    labels from a ~26px "2027" at footnote size (~30px at Large, `--text-scale: 1.15`) against a 305px
    plot. A 13-label "Max" window is over it. Settled in `overlap.test.mjs` at both text sizes, not by
    eye.
 
 ### Layout judgements, taken during the build
 
-3. **Where the year label sits relative to its boundary** - centred on the January position, or
+4. **Where the year label sits relative to its boundary** - centred on the January position, or
    left-aligned from it. Centring puts the first label half outside the plot when a boundary falls
    near x=0; left-aligning reads as "this year starts here", which is what the label means. Leaning
    left-aligned, to be confirmed with item 2.
-4. **Whether the date label sits above the point or pinned to the plot's top edge.** 6.6.3 recommends
+5. **Whether the date label sits above the point or pinned to the plot's top edge.** 6.6.3 recommends
    above the point, bought with 12 points of curve height; the fallback pins it to the top edge at no
    cost in height but separates the two halves of the detail. Both are measured, so this is a layout
    call with numbers rather than an open question.
-5. **The five `[AWAITING COPY]` strings**, plus whatever item 1 adds - section 10. D85 shipped
-   `dateGoalAlreadyMet` as a placeholder on a live screen; that should not happen twice.
+6. **The five outstanding strings.** They are **not drafting work that can start now**: the brief
+   carrying them did not arrive (10.5), and two of the five are blocked on decisions above -
+   `readoutCaptionTemplate` on item 2, `endpointTemplate` on item 1a. D85 shipped
+   `dateGoalAlreadyMet` as a placeholder on a live screen; that should not happen twice, and the way
+   to avoid it is to land the two decisions first and draft against them.
 
 ### Conditions, not preferences - if one fails, a settled decision goes back
 
