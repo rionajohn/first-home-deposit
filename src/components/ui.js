@@ -1325,11 +1325,6 @@ export function growthChartHTML({
   return `
     <div class="growth-chart">
       <div class="growth-chart__plot">
-        ${yTicks.map((t) => `
-          <div class="growth-chart__tick" style="bottom:${t.pct}%" aria-hidden="true"></div>
-          <p class="growth-chart__tick-label" style="bottom:${t.pct}%">${valueFormatter(t.value)}</p>
-        `).join('')}
-
         <!-- THE SCRUB TARGET IS THIS ELEMENT, 305x224 logical, not the points
              at a 13.3px pitch (the plan's 6.6.1). One focus stop, with
              aria-activedescendant naming the active point - D84's listbox
@@ -1342,6 +1337,17 @@ export function growthChartHTML({
              aria-label="${plotLabel}"
              aria-activedescendant="growth-point-${activeIndex}"
              data-chart-area>
+          <!-- THE TICKS LIVE IN HERE, NOT IN THE PLOT, and that is a
+               correctness fix rather than a tidy-up. The plot is 240px and this
+               area is 224px (it clears the x-axis), so a tick at bottom 50%
+               of the plot and a point at bottom 50% of the area are 8px
+               apart - the gridlines did not line up with the data they were
+               labelling. One coordinate space is the only way they can agree. -->
+          ${yTicks.map((t) => `
+            <div class="growth-chart__tick" style="bottom:${t.pct}%" aria-hidden="true"></div>
+            <p class="growth-chart__tick-label" style="bottom:${t.pct}%">${valueFormatter(t.value)}</p>
+          `).join('')}
+
           <svg class="growth-chart__svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
             <polyline class="growth-chart__line growth-chart__line--other" points="${polyline(other)}" vector-effect="non-scaling-stroke" />
             <polyline class="growth-chart__line growth-chart__line--active" points="${polyline(key)}" vector-effect="non-scaling-stroke" />
@@ -1364,10 +1370,10 @@ export function growthChartHTML({
                room for it is bought in the caller's maxScale headroom, which
                D100 moved from 1.05 to 1.20 for this. -->
           <p class="growth-chart__point-date${activeX > 85 ? ' growth-chart__point-date--end' : activeX < 15 ? ' growth-chart__point-date--start' : ''}" style="left:${activeX}%;bottom:${activeY}%">${active.date}</p>
+          <!-- The value the guide terminates in, at the axis edge and in the
+               same coordinate space as the guide itself. -->
+          <p class="growth-chart__guide-value" style="bottom:${activeY}%" data-chart-guide-value>${valueFormatter(series === 'high' ? active.high : active.low)}</p>
         </div>
-
-        <!-- The value the guide terminates in, in the axis gutter. -->
-        <p class="growth-chart__guide-value" style="bottom:${activeY}%" data-chart-guide-value>${valueFormatter(at(active) === null ? 0 : (series === 'high' ? active.high : active.low))}</p>
       </div>
 
       <div class="growth-chart__x-axis">
@@ -1522,8 +1528,12 @@ export function bindGrowthChart(container, { pointCount, onActivate }) {
   // label is kept only if its left edge clears the previously kept label's
   // right edge by 8px. Measured from the rendered text, so it follows the Large
   // text size instead of a constant that would be right at one of them.
+  // THE WALK STARTS AT THE "Now" LABEL, which is fixed at x=0 and is not a
+  // year - so it was outside the loop, and the first year label could draw on
+  // top of it. It is the one label that is never thinned, so it seeds the walk.
+  const nowLabel = container.querySelector('.growth-chart__x-label--now');
   const labels = [...container.querySelectorAll('[data-year-label]')];
-  let lastRight = -Infinity;
+  let lastRight = nowLabel ? nowLabel.getBoundingClientRect().right : -Infinity;
   for (const label of labels) {
     const box = label.getBoundingClientRect();
     if (box.left < lastRight + 8) { label.hidden = true; continue; }

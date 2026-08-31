@@ -1211,8 +1211,6 @@
   position: relative;
   width: 100%;
   height: 240px;
-  padding-left: 48px;
-  box-sizing: border-box;
 }
 
 /* THE SCRUB TARGET, and it is the whole plot rather than the points: at the
@@ -1226,10 +1224,7 @@
    events. Nothing is stolen - `overflow-x` is hidden in both views. */
 .growth-chart__area {
   position: absolute;
-  left: 48px;
-  right: 0;
-  bottom: 16px;
-  top: 0;
+  inset: 0 0 16px 0;
   touch-action: pan-y;
   cursor: crosshair;
 }
@@ -1267,19 +1262,25 @@
 
 .growth-chart__tick {
   position: absolute;
-  left: 48px;
+  left: 0;
   right: 0;
   height: 1px;
   background: var(--color-border-subtle);
 }
 
+ /* ABOVE ITS OWN GRIDLINE, NOT CENTRED ON IT. Centred, the 1px rule ran
+    straight through the text - which `overlap.test.mjs` caught at both text
+    sizes on the first run. A tick label is wider than the 48px gutter as soon
+    as the figure reaches five digits ("£20,000" is about 52px at footnote
+    size, more at Large), so it necessarily overhangs into the plot; sitting it
+    above its line means the overhang crosses nothing. Widening the gutter
+    instead would have cost the plot 15px at default and more at Large, and
+    would still fail at "£120,000". */
 .growth-chart__tick-label {
   position: absolute;
   left: 0;
-  width: 44px;
-  margin: 0;
-  transform: translateY(50%);
-  text-align: right;
+  margin: 0 0 2px 0;
+  text-align: left;
   font-size: var(--text-footnote-size);
   line-height: var(--text-footnote-line);
   color: var(--color-label-secondary);
@@ -1300,10 +1301,8 @@
 .growth-chart__guide-value {
   position: absolute;
   left: 0;
-  width: 44px;
-  margin: 0;
-  transform: translateY(50%);
-  text-align: right;
+  margin: 0 0 2px 0;
+  text-align: left;
   font-size: var(--text-footnote-size);
   line-height: var(--text-footnote-line);
   font-weight: 600;
@@ -1362,7 +1361,6 @@
 .growth-chart__x-axis {
   position: relative;
   height: var(--text-footnote-line);
-  margin-left: 48px;
 }
 
 .growth-chart__x-label {

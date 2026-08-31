@@ -85,7 +85,7 @@ const readStored = (page) => page.evaluate((k) => {
 // A session that looks real: past the calculator, with figures a default
 // store does not have, so "was it discarded" is answerable by looking at any
 // one of them.
-function priorSession(buildVersion) {
+function priorSession(buildVersion, anchor = THIS_MONTH_ANCHOR) {
   const f = (value, provenance = 'read') => ({ value, provenance });
   const s = {
     'money-in': f(2240),
@@ -98,8 +98,21 @@ function priorSession(buildVersion) {
     ltvVideoSeen: true,
   };
   if (buildVersion !== undefined) s.buildVersion = buildVersion;
+  // DECISIONS.md D97. A fixture without an anchor is discarded on arrival by
+  // the SECOND rule rather than by the build stamp, so a test meaning to
+  // exercise the stamp has to carry one or it passes for the wrong reason.
+  if (anchor !== undefined) s.sessionAnchor = anchor;
   return s;
 }
+
+/** Today, and a day inside the previous calendar month. Both computed rather
+ *  than pinned: a pinned pair passes today and starts failing on the first of
+ *  next month, which is the dated-constant failure D59 exists to catch. */
+const THIS_MONTH_ANCHOR = new Date().toISOString().slice(0, 10);
+const LAST_MONTH_ANCHOR = (() => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() - 1, 15).toISOString().slice(0, 10);
+})();
 
 test('a session stamped with an older build is discarded, not merged', async () => {
   const ctx = await contextWith(priorSession('v1'));
@@ -369,6 +382,90 @@ test('a selected target year survives a reload and a back navigation, and drives
       String(chosenYear),
       'the year is still there after a back navigation',
     );
+  } finally {
+    await ctx.close();
+  }
+});
+
+// --- D97: THE SESSION ANCHOR --------------------------------------------------
+//
+// Calendar dates need a "today", and durations did not. A stale anchor produces
+// wrong years with NOTHING ON SCREEN TO REVEAL IT, so a screenshot taken during
+// a session could not be interpreted afterwards - which is the failure mode the
+// whole date conversion introduces and has to answer. These sit in this file
+// because it owns D59, and D97 is the same discard branch taken for a second
+// reason.
+
+test('a session anchored to another month is discarded whole, like a stale build', async () => {
+  const prior = priorSession(BUILD_VERSION, LAST_MONTH_ANCHOR);
+  const ctx = await contextWith(prior);
+  try {
+    const page = await ctx.newPage();
+    const warnings = [];
+    page.on('console', (m) => { if (m.type() === 'warning') warnings.push(m.text()); });
+
+    await page.goto(`${base}/index.html#/position`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+
+    const stored = await readStored(page);
+    // DISCARDED WHOLE, not merged: what comes back is exactly a first load,
+    // which is the property that makes this safe (D59's own reasoning).
+    assert.equal(stored['money-in'].value, 2500, 'the seeded figure should be the CURRENT one, not the stored one');
+    // NOT `property-value === null`: `restoredFromStorage` stays false through
+    // a discard, so `router.js` opens the fresh store in the OPENING STAGE
+    // (D48) and re-derives a goal. What proves the discard is that the stored
+    // session's own figures are gone - 420,000 was the participant's, 450,000
+    // is the stage's - which is the same reason the stale-build test above
+    // asserts on `money-in` rather than on a goal key.
+    assert.notEqual(stored['property-value'].value, 420000, 'the stored goal should not survive a discard');
+    assert.equal(stored.ltvVideoSeen, false);
+    // Re-stamped to this month, so the discard happens once rather than on
+    // every subsequent load in the tab.
+    assert.equal(stored.sessionAnchor.slice(0, 7), THIS_MONTH_ANCHOR.slice(0, 7));
+    assert.ok(warnings.some((w) => w.includes('anchored to')), 'the discard should announce itself');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('a same-month session restores untouched, and the anchor does not move', async () => {
+  const prior = priorSession(BUILD_VERSION, THIS_MONTH_ANCHOR);
+  const ctx = await contextWith(prior);
+  try {
+    const page = await ctx.newPage();
+    await page.goto(`${base}/index.html#/position`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+
+    const first = await readStored(page);
+    assert.equal(first['money-in'].value, 2240, 'a same-month session is a restore, not a discard');
+    assert.equal(first.sessionAnchor, THIS_MONTH_ANCHOR, 'the anchor is stamped once and never rewritten');
+
+    // STAMPED ONCE, NOT PER RENDER. A screen re-deriving it would move every
+    // date under a participant mid-session.
+    await page.goto(`${base}/index.html#/tracker`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(300);
+    await page.goBack();
+    await page.waitForTimeout(300);
+    const after = await readStored(page);
+    assert.equal(after.sessionAnchor, THIS_MONTH_ANCHOR, 'navigation must not re-stamp the anchor');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('frame 33 shows the anchor date beside the build version', async () => {
+  const ctx = await contextWith(priorSession(BUILD_VERSION, THIS_MONTH_ANCHOR));
+  try {
+    const page = await ctx.newPage();
+    await page.goto(`${base}/index.html#/settings`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+
+    const build = await page.textContent('[data-role="build-caption"]');
+    const anchor = await page.textContent('[data-role="anchor-caption"]');
+    assert.ok(build.includes(BUILD_VERSION), 'the build version is still on screen');
+    // The rendered form is "D Month YYYY" through formatFullDate, so the year
+    // is the part that can be asserted without restating the formatter here.
+    assert.ok(anchor.includes(String(new Date().getFullYear())), `anchor caption should name the year: ${anchor}`);
   } finally {
     await ctx.close();
   }

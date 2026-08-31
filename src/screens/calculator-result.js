@@ -155,10 +155,19 @@ export function render(container, ctx) {
   // before the goal is met, drawing a final point below the goal beside a line
   // saying it is reached. D85's cap rounds the other way because the unsafe
   // direction there is the other one — the rule is one, the rounding is not.
+  //
+  // TWO FIGURES, NOT ONE, AND THE DIFFERENCE IS THE WHOLE POINT. `attainExact`
+  // is the crossing itself and is what the "Max" WINDOW runs to, so the last
+  // plotted point lands ON the goal rather than a fraction of a month past it -
+  // rounding the window up carried it to 52,777 against a 52,500 goal, which
+  // requirement 5 forbids. `attainmentMonths` is that crossing rounded UP and
+  // is what the endpoint line's YEAR and the chip filter read, because a
+  // participant must never be told they arrive a fraction of a month early.
   const endpoint = goalMonths(state, selectedRate);
-  const attainmentMonths = !attained && endpoint.value !== null && Number.isFinite(endpoint.value) && endpoint.value > 0
-    ? Math.ceil(endpoint.value)
+  const attainExact = !attained && endpoint.value !== null && Number.isFinite(endpoint.value) && endpoint.value > 0
+    ? endpoint.value
     : null;
+  const attainmentMonths = attainExact === null ? null : Math.ceil(attainExact);
 
   // THE WINDOW OPENS AT 24 MONTHS (D100, reversing D73's amendment). D73 moved
   // the default to "Max" so a participant would see the whole shape first,
@@ -169,16 +178,18 @@ export function render(container, ctx) {
   const rangeMonths = attained
     ? CHART_WINDOW_MONTHS
     : state.chartRangeMonths
-      ?? (attainmentMonths !== null ? Math.max(CHART_MIN_RANGE_MONTHS, attainmentMonths) : CHART_WINDOW_MONTHS);
+      ?? (attainExact !== null ? Math.max(CHART_MIN_RANGE_MONTHS, attainExact) : CHART_WINDOW_MONTHS);
 
-  const pointCount = Math.max(1, Math.min(MAX_POINTS, rangeMonths));
+  const pointCount = Math.max(1, Math.min(MAX_POINTS, Math.ceil(rangeMonths)));
 
   // The points array. RENDERED BY BOTH THE CHART AND THE TABLE and recomputed
   // by neither, which is what guarantees the table exposes every value the
   // guide can reveal rather than a second derivation that could drift.
   const points = [];
   for (let i = 1; i <= pointCount; i += 1) {
-    const months = Math.round((i * rangeMonths) / pointCount);
+    // NOT rounded to a whole month: at the "Max" window the last point must
+    // land exactly on the crossing, and `balanceAtMonth` is continuous.
+    const months = (i * rangeMonths) / pointCount;
     points.push({
       months,
       date: formatMonthYear(months, anchor),
@@ -352,8 +363,8 @@ export function render(container, ctx) {
           live: true,
         })}
 
+        <p class="visually-hidden" id="chart-range-legend">${c.chartRangeLegend}</p>
         <div role="group" aria-labelledby="chart-range-legend">
-          <p class="visually-hidden" id="chart-range-legend">${c.chartRangeLegend}</p>
           ${chipRowHTML({
             // A chip longer than the projection would draw chart past the
             // goal, which requirement 5 forbids.
