@@ -659,28 +659,29 @@ const content = {
     // disabled; Continue is live at the moved date.
     //
     // One slot: {earliest}, the month and year it was moved to.
-    // TRIMMED (DECISIONS.md D88), AND THE TARGET IS NOT YET MET. "each month"
-    // went because the readout directly beneath carries those words already,
-    // and the second sentence became a subordinate clause; the change, the new
-    // date and the reason are all still here.
+    // RETRIMMED (DECISIONS.md D89) AND NOW WITHIN BUDGET: three lines at Large
+    // for every month name, measured across all twelve. Two short sentences
+    // rather than one with a subordinate clause - what happened, then what the
+    // new date means.
     //
-    // IT IS THREE LINES AT DEFAULT TEXT NOW AND STILL FOUR AT LARGE. Measured:
-    // the banner went 114px -> 92px at default and stayed at 127px at Large,
-    // because Large is 15% bigger type in the same 281px box and 21 characters
-    // was not enough to save a line there.
+    // THE EXPLICIT REASON IS GONE, and that is what was given up. It used to say
+    // the date followed from what the participant has left over each month;
+    // there is no room for it. The readout directly beneath carries the monthly
+    // figure that left-over supports, so the causal link is on screen even
+    // though the sentence no longer states it.
     //
-    // THE BUDGET, MEASURED, IS ABOUT 87 CHARACTERS with the date filled in -
-    // the longest word-boundary prefix of this string that still fits three
-    // lines at Large ends at "...on what you now". This string renders 103, so
-    // it is roughly 16 characters too long. `dateMovedToCap` below renders 85
-    // and fits.
+    // DO NOT MEASURE THIS IN CHARACTERS. D88 published a budget of "about 87
+    // characters" and it is not a usable rule: this string renders 80 and fits,
+    // `dateMovedToCap` below renders 90 and does NOT, and a neutral filler of 98
+    // fits. Where the word boundaries fall against the 281px box decides it, not
+    // the count.
     //
-    // WHY THE LENGTH MATTERS AT ALL: D88 was meant to fix the option list at a
-    // three-option height opening downward, and the one state that does not fit
-    // is this banner at Large - 133px of room against 146px of list. The list
-    // still flips above the trigger there (D84), which is the defect that was
-    // to be removed. Further cutting is copy, and copy is the project owner's.
-    dateMovedToEarliest: "We've moved your date to {earliest}, the soonest you could get there on what you now have left over.",
+    // THE ONLY RELIABLE TEST IS THE RENDERED LINE COUNT AT LARGE, WITH EVERY
+    // MONTH NAME. The date is interpolated, so a string that fits with "May" can
+    // wrap with "February" - which is exactly how `dateMovedToCap` slipped
+    // through D88. Three lines for all twelve, or the option list stops fitting
+    // above the action bar in this state.
+    dateMovedToEarliest: "We've moved your date. {earliest} is the earliest you could save your deposit.",
 
     // THE SAME MOVE AT THE OTHER END OF THE LIST (DECISIONS.md D86, closing
     // GAPS.md G102). The list is capped at the month the balance reaches the
@@ -696,11 +697,19 @@ const content = {
     // sooner than the date they had chosen - so the news is the reason, and
     // the move is the consequence. Two situations, two shapes.
     //
-    // ITS LENGTH IS LOAD-BEARING (DECISIONS.md D88). This one fits three lines
-    // at Large - 85 characters against a measured budget of about 87 - and the
-    // state it produces has 12px of room to spare below the trigger. Lengthen
-    // it and the option list stops fitting there too. `dateMovedToEarliest`
-    // above is the one still over budget.
+    // THIS ONE IS NOW THE STRING OVER BUDGET (DECISIONS.md D89), and D88 said
+    // the opposite because it measured the wrong date. Rendered with "May 2034"
+    // it is three lines at Large; rendered with "February 2043" it is FOUR, and
+    // the month is interpolated so both are reachable. Measured across all
+    // twelve month names, its worst case is four lines and 127px - which leaves
+    // 133px below the trigger against the 146px a three-option list needs,
+    // exactly the shortfall `dateMovedToEarliest` above used to have.
+    //
+    // SO THE THREE-OPTION LIST STILL CANNOT OPEN DOWNWARD IN EVERY STATE, and
+    // the list keeps D84's flip until this string comes down to three lines at
+    // Large for every month. Cutting it is copy, and copy is the project
+    // owner's. `dateMovedToEarliest` above is the worked example of one that
+    // passes.
     //
     // THE SLOT IS `{earliest}`, WHICH IS THE FLOOR'S NAME FOR A DIFFERENT DATE.
     // Kept exactly as supplied: each key is filled by its own `fill()` call, so

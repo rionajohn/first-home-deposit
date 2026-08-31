@@ -8496,3 +8496,91 @@ control that quietly starts opening upward again.
 Suite: 396 tests, 395 passing, 1 skipped (G91), 0 failing. Four shots of the trimmed banner, both
 themes, both text sizes.
 
+---
+
+## D89. The floor disclosure now fits - and the cap disclosure turns out not to
+
+**Date.** 31 August 2026. The second copy attempt at making a three-option list open downward in every
+state. **The floor string now fits and the change still cannot be made**, because a string D88 measured
+as passing does not.
+
+### The retrim
+
+> We've moved your date. {earliest} is the earliest you could save your deposit.
+
+replacing D88's
+
+> We've moved your date to {earliest}, the soonest you could get there on what you now have left over.
+
+Two short sentences rather than one with a subordinate clause: what happened, then what the new date
+means. **Three lines at Large for all twelve month names**, measured across every one rather than
+against the shared seed's date - which is how the defect below slipped past D88.
+
+**What was given up.** The explicit reason - that the date follows from what they have left over - is
+gone; there is no room for it. The readout directly beneath carries the monthly figure that left-over
+supports, so the causal link is on screen even though the sentence no longer states it. That is a real
+loss and it is the price of the space.
+
+**"your deposit", not "this deposit".** Both render identically at 80 characters and three lines, so the
+choice was purely how it reads. "your" is what the rest of the build says - "of your £28,000 deposit
+goal", "the accounts you picked for your deposit", "Your deposit" - and "this deposit" is oddly
+demonstrative about something that is theirs.
+
+*One accuracy note, flagged rather than changed because it is copy.* The date is computed against
+`combinedGoal`, which includes stamp duty (D70), so "save your deposit" understates what the date is
+for. That is the same imprecision `GAPS.md` G88 already records on frame 21, and it applies to
+`dateMovedToCap` equally.
+
+### The measurement that stops the change again
+
+`dateMovedToCap` is **four lines at Large when the month name is long**:
+
+| Rendered with | Lines at Large | Banner |
+| --- | --- | --- |
+| "May 2034" - the shared seed's cap | 3 | 102px |
+| **"February 2043"** | **4** | **127px** |
+
+Driven in a browser on a seed whose cap lands in February: **133px of room below the trigger against
+the 146px a three-option list needs. Short by 13px** - the identical shortfall the floor string had, now
+in the other banner.
+
+**D88 measured this string as passing, and it was measuring the wrong date.** Its own entry noted the
+caveat - "the date is interpolated... the worst case is a character longer than measured" - and then did
+not apply it to `dateMovedToCap`. That is the error to own: a caveat written down and not acted on is
+worth no more than one never noticed.
+
+### D88's character budget is withdrawn
+
+D88 published "about 87 characters" as the budget. **It is not a usable rule**, and the numbers now
+contradict it in both directions:
+
+| String | Rendered length | Lines at Large |
+| --- | --- | --- |
+| `dateMovedToEarliest` (new) | 80 | 3 |
+| `dateMovedToCap` | 90 | **4** |
+| A neutral filler | 98 | 3 |
+
+Where the word boundaries fall against the 281px box decides it, not the count. **The only reliable
+test is the rendered line count at Large, with every month name**, and both keys now say so in
+`content.js` rather than carrying a number that invites the same mistake again.
+
+### Section 2 is not attempted, for the second time
+
+The three-option height and the removal of the flip are not in this build. The list keeps D84's
+five-option height and its above/below branch, because the state the change exists for - a disclosure
+showing at Large - still does not fit, only for the other banner now.
+
+Every other state does fit, and by more than before:
+
+| State | Text | Room below | Needs | |
+| --- | --- | --- | --- | --- |
+| No disclosure | default / Large | 288px / 276px | 146px | fits |
+| Floor disclosure | default / Large | 180px / **158px** | 146px | **fits, 12px spare** |
+| Cap disclosure, short month | default / Large | 180px / 158px | 146px | fits |
+| **Cap disclosure, long month** | **Large** | **133px** | 146px | **short by 13px** |
+
+### Verification
+
+Four shots of the retrimmed banner, both themes, both text sizes. Suite: 396 tests, 395 passing, 1
+skipped (G91), 0 failing. No test changed, because nothing they assert has changed.
+
