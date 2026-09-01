@@ -95,7 +95,9 @@ const activeIndex = (page) => page.evaluate(() => {
   return Number(id.replace('growth-point-', ''));
 });
 
-const pointCount = (page) => page.evaluate(() => document.querySelectorAll('.growth-chart__point').length);
+// The LOW series' points: the only ones that exist at every x, and the ones
+// carrying the ids `aria-activedescendant` names (D117).
+const pointCount = (page) => page.evaluate(() => document.querySelectorAll('.growth-chart__point--low').length);
 
 /** The plot's box in VISUAL pixels, which is what a pointer event carries. */
 const areaBox = (page) => page.locator('[data-chart-area]').boundingBox();
@@ -204,22 +206,25 @@ test('2. the active state survives release, pointer-leave and pointercancel', as
 
 // --- 3. A point is active on load ---------------------------------------------
 
-test('3. a point is active on load, with its guide and value drawn', async () => {
+test('3. a point is active on load, with the readout block drawn', async () => {
   const { context, page } = await openChart();
   try {
     const n = await pointCount(page);
     assert.equal(await activeIndex(page), n - 1, 'the last point in the window is active at rest');
     const drawn = await page.evaluate(() => ({
-      active: document.querySelectorAll('.growth-chart__point--active').length,
-      guide: document.querySelector('.growth-chart__guide')?.getBoundingClientRect().width ?? 0,
-      value: document.querySelector('[data-chart-guide-value]')?.textContent.trim() ?? '',
-      caption: document.querySelector('.figure-input__caption')?.textContent.trim() ?? '',
+      activeLow: document.querySelectorAll('.growth-chart__point--low.growth-chart__point--active').length,
+      selection: !!document.querySelector('.growth-chart__selection'),
+      year: document.querySelector('[data-readout-year]')?.textContent.trim() ?? '',
+      low: document.querySelector('[data-readout-value="low"]')?.textContent.trim() ?? '',
+      high: document.querySelector('[data-readout-value="high"]')?.textContent.trim() ?? '',
     }));
-    assert.equal(drawn.active, 1, 'exactly one point is active');
-    assert.ok(drawn.guide > 0, 'the guide is drawn before any interaction');
-    assert.match(drawn.value, /^£[\d,]+$/, `the guide terminates in a value: "${drawn.value}"`);
-    // The YEAR is in the caption, not in the plot (D111).
-    assert.match(drawn.caption, /\d{4}/, `the caption names the active year: "${drawn.caption}"`);
+    assert.equal(drawn.activeLow, 1, 'exactly one low-series point is active');
+    assert.ok(drawn.selection, 'the full-height selection line is drawn before any interaction');
+    assert.match(drawn.year, /^\d{4}$/, `the readout names the active year: "${drawn.year}"`);
+    // BOTH amounts, which is the point of removing the selector. The high
+    // series may have ended by the last year, which renders as an em dash.
+    assert.match(drawn.low, /^£[\d,]+$/, `the readout carries the low amount: "${drawn.low}"`);
+    assert.ok(drawn.high.length > 0, 'the readout carries a high-series cell');
   } finally {
     await context.close();
   }
@@ -227,35 +232,13 @@ test('3. a point is active on load, with its guide and value drawn', async () =>
 
 // --- 4. No label below the active point --------------------------------------
 
-test('4. the guide value stays inside the plot at the highest point', async () => {
-  // WHAT THIS ASSERTED BEFORE, AND WHY IT CHANGED. It checked the in-plot year
-  // label sat above the active point and inside the plot's upper bound, which
-  // is what D100 bought the 1.20 headroom for. D111 removed that label, so the
-  // headroom now holds nothing but the curve itself - and the only in-plot text
-  // left is the guide value at the axis edge. That is what must still clear.
-  for (const large of [false, true]) {
-    const { context, page } = await openChart({ large });
-    try {
-      const n = await pointCount(page);
-      const box = await areaBox(page);
-      for (let i = 0; i < n; i += 1) {
-        await page.mouse.move(box.x + (box.width * i) / (n - 1), box.y + box.height / 2);
-        await page.waitForTimeout(40);
-      }
-      const g = await page.evaluate(() => {
-        const r = (s) => document.querySelector(s)?.getBoundingClientRect();
-        return { value: r('[data-chart-guide-value]'), point: r('.growth-chart__point--active'), plot: r('[data-chart-area]') };
-      });
-      assert.ok(g.value.top >= g.plot.top - 1,
-        `${large ? 'large' : 'default'}: the guide value overflows the plot's top by ${(g.plot.top - g.value.top).toFixed(1)}px`);
-      assert.ok(g.value.bottom <= g.plot.bottom + 1,
-        `${large ? 'large' : 'default'}: the guide value overflows the plot's bottom`);
-      assert.ok(g.point.top >= g.plot.top - 1, 'the highest point is inside the plot');
-    } finally {
-      await context.close();
-    }
-  }
-});
+// TESTS 4, 8 AND 11 ARE RETIRED AS MOOT (D118), not fixed. All three were about
+// the horizontal guide to the y-axis and the value at its end: that the value
+// stayed inside the plot, that it agreed with the readout beneath the chart, and
+// that it never sat on a tick label. D118 replaced the guide with a full-height
+// selection line that carries no value, and D116 moved the figures into the
+// in-plot readout block - so none of the three has a subject any more. Test 13
+// asserts what replaced them.
 
 // --- 5. Vertical scroll from a gesture starting on the plot -------------------
 
@@ -384,39 +367,9 @@ test('7. under prefers-reduced-motion nothing animates, and everything still wor
 
 // --- 8. The readout and the in-plot label are one figure ----------------------
 
-test('8. the readout and the in-plot value are the same figure at every point', async () => {
-  // They render from ONE active index, so they cannot disagree - and that is the
-  // property, rather than a coincidence to be sampled at the default state.
-  const { context, page } = await openChart();
-  try {
-    const n = await pointCount(page);
-    const box = await areaBox(page);
-    for (let i = 0; i < n; i += 1) {
-      await page.mouse.move(box.x + (box.width * i) / (n - 1), box.y + box.height / 2);
-      await page.waitForTimeout(35);
-      const read = await page.evaluate(() => ({
-        readout: document.querySelector('.figure-display')?.textContent.trim(),
-        caption: document.querySelector('.figure-input__caption')?.textContent.trim(),
-        guide: document.querySelector('[data-chart-guide-value]')?.textContent.trim(),
-        // The year is no longer drawn in the plot (D111), so it is read from
-        // the caption - which is now the only place it appears.
-        date: document.querySelector('.figure-input__caption')?.textContent.trim().replace(/^By\s+/, ''),
-      }));
-      assert.equal(read.guide, read.readout, `point ${i}: the guide value and the readout disagree`);
-      assert.ok(read.caption.includes(read.date), `point ${i}: the caption does not name the active date`);
-      // THE CAPTION NO LONGER REPEATS THE FIGURE (D105). `figureDisplayHTML`
-      // renders it directly above, so stating it twice was one of the three
-      // places the same amount appeared on this screen.
-      assert.ok(!read.caption.includes('£'), `point ${i}: the caption repeats the figure: "${read.caption}"`);
-    }
-  } finally {
-    await context.close();
-  }
-});
-
 // --- 9. The plan's 10.8 block measurement, now that the elements exist -------
 
-test('9. the plot, the endpoint and the assumptions line are co-visible', async () => {
+test('9. the goal block and its caveat are co-visible', async () => {
   // 10.8 DERIVED this from the tokens before anything was built: a 732px scroll
   // viewport at 390x844 (844 less a 56px app bar and a 56px tab bar) against a
   // block of 584px at default text and 654.8px at Large. This asserts the
@@ -432,9 +385,11 @@ test('9. the plot, the endpoint and the assumptions line are co-visible', async 
         const heading = [...document.querySelectorAll('.section-heading')]
           .find((h) => /how your savings/i.test(h.textContent));
         const texts = [...document.querySelectorAll('p')];
-        const endpoint = texts.find((p) => /you'd reach your/.test(p.textContent));
+        const endpoint = texts.find((p) => /When you'd reach your/.test(p.textContent))
+          ?? document.querySelector('.goal-block__heading');
         const assumptions = texts.find((p) => /It assumes nothing changes/.test(p.textContent));
         const plot = document.querySelector('.growth-chart');
+        const goalBlock = document.querySelector('.goal-block');
         const estimate = texts.find((p) => /^This is an estimate based on/.test(p.textContent.trim()));
         const box = (el) => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; };
 
@@ -459,7 +414,16 @@ test('9. the plot, the endpoint and the assumptions line are co-visible', async 
           // The RELAXED requirement: the plot itself, the endpoint and the
           // assumptions line, dropping the heading and the two controls above
           // the chart from the co-visibility block.
-          relaxed: box(assumptions).bottom - box(plot).top,
+          // D112 RE-DERIVED (D120). Its block was plot -> endpoint ->
+          // assumptions, and those three are no longer contiguous: the claim is
+          // now the goal block ABOVE the chart and the caveat sits directly
+          // beneath it, with the chart below both. The requirement was always
+          // "a claim and its caveat must be seen together", so the block is now
+          // the goal block through the assumptions note.
+          relaxed: box(assumptions).bottom - box(goalBlock).top,
+          // Reported, not asserted: whether the answer and the evidence are
+          // also co-visible is a different question D112 never asked.
+          blockThroughChart: box(plot).bottom - box(goalBlock).top,
           estimateToAssumptions: box(assumptions).top - box(estimate).bottom,
           estimateAboveHeading: box(heading).top - box(estimate).bottom,
           endpointTop: box(endpoint).top,
@@ -479,10 +443,11 @@ test('9. the plot, the endpoint and the assumptions line are co-visible', async 
       // two toggles above the plot are navigation, and a participant who has
       // scrolled past them has lost nothing they need to read the figure.
       const headroom = m.viewport - m.relaxed;
-      const derived = large ? 47.3 : 104.0;
+      const derived = large ? 627.3 : 576.0;
       console.log(`
   10.8 ${large ? 'LARGE  ' : 'DEFAULT'}: block ${m.block.toFixed(1)}px of ${m.viewport}px, headroom ${headroom.toFixed(1)}px (10.8 derived ${derived}px)`);
-      console.log(`  relaxed (plot -> assumptions): ${m.relaxed.toFixed(1)}px, headroom ${(m.viewport - m.relaxed).toFixed(1)}px`);
+      console.log(`  D112 re-derived (goal block -> assumptions): ${m.relaxed.toFixed(1)}px, headroom ${(m.viewport - m.relaxed).toFixed(1)}px`);
+      console.log(`  goal block -> chart bottom: ${m.blockThroughChart.toFixed(1)}px (reported, not asserted)`);
       console.log(`  estimateDisclosure sits ${m.estimateToAssumptions.toFixed(1)}px above projectionAssumptions (${m.estimateAboveHeading.toFixed(1)}px above the chart heading)`);
       console.log(`  ${m.parts.length} flow children, ${m.gap}px gap between each:`);
       for (const p of m.parts) {
@@ -549,39 +514,6 @@ test('10. the table toggle is a visible peer of the chart, above the fold', asyn
 
 // --- 11. The one collision left on the plot ----------------------------------
 
-test('11. the guide value never sits on a visible y-axis label', async () => {
-  // D111 removed the in-plot year label, which removed the collision the
-  // bordered callout was built to resolve. ONE PAIR IS LEFT - the guide value
-  // and a tick label, which share the axis edge - and the tick gives way.
-  // Asserted at every point and at both text sizes, because which tick is level
-  // with the value is a function of the figures and the text size.
-  for (const large of [false, true]) {
-    const { context, page } = await openChart({ large });
-    try {
-      const n = await pointCount(page);
-      const box = await areaBox(page);
-      for (let i = 0; i < n; i += 1) {
-        await page.mouse.move(box.x + (box.width * i) / (n - 1), box.y + box.height / 2);
-        await page.waitForTimeout(60);
-        const hit = await page.evaluate(() => {
-          const g = document.querySelector('[data-chart-guide-value]').getBoundingClientRect();
-          return [...document.querySelectorAll('.growth-chart__tick-label')]
-            .filter((el) => getComputedStyle(el).visibility !== 'hidden')
-            .map((el) => el.getBoundingClientRect())
-            .some((t) => g.left < t.right && g.right > t.left && g.top < t.bottom && g.bottom > t.top);
-        });
-        assert.equal(hit, false, `${large ? 'large' : 'default'} point ${i}: the guide value sits on a visible tick`);
-      }
-      // AND THE YEAR IS NOT DRAWN IN THE PLOT ANY MORE. It is readable from the
-      // point's x position and stated once, in the readout caption.
-      const inPlotYear = await page.evaluate(() => document.querySelectorAll('.growth-chart__point-date, [data-chart-callout]').length);
-      assert.equal(inPlotYear, 0, 'the in-plot year label and the callout are gone');
-    } finally {
-      await context.close();
-    }
-  }
-});
-
 // --- 12. The table's own height ----------------------------------------------
 
 test('12. the table fits at 390x844 with both series side by side', async () => {
@@ -616,6 +548,63 @@ test('12. the table fits at 390x844 with both series side by side', async () => 
       // Item 6: the chips window the chart AND the table, so they are hidden
       // rather than disabled while the table shows.
       assert.equal(t.chips, 0, 'the range chips are absent, not disabled, in table view');
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+// --- 13. The in-plot readout block, and what it lands on ----------------------
+
+test('13. the readout block clears the y-axis labels and the lines', async () => {
+  // D116 puts the readout INSIDE the plot, top left, below the topmost tick.
+  // What it can land on is measured rather than predicted: the upper series
+  // passes close beneath it in the middle years, and the tick labels share the
+  // same left edge.
+  for (const large of [false, true]) {
+    const { context, page } = await openChart({ large });
+    try {
+      const m = await page.evaluate(() => {
+        const box = (el) => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }; };
+        const hit = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+        const readout = box(document.querySelector('[data-chart-readout]'));
+        const area = box(document.querySelector('[data-chart-area]'));
+        const ticks = [...document.querySelectorAll('.growth-chart__tick-label')]
+          .map((el) => ({ text: el.textContent.trim(), ...box(el) }));
+        const pts = [...document.querySelectorAll('.growth-chart__point')]
+          .map((el) => ({ cls: el.className, ...box(el) }));
+        return {
+          readout,
+          area,
+          insidePlot: readout.top >= area.top - 1 && readout.left >= area.left - 1,
+          tickHits: ticks.filter((t) => hit(readout, t)).map((t) => t.text),
+          pointHits: pts.filter((p) => hit(readout, p)).length,
+          topTick: ticks[ticks.length - 1],
+        };
+      });
+      const label = large ? 'large ' : 'default';
+      console.log(`  readout ${label}: ${(m.readout.bottom - m.readout.top).toFixed(1)}px tall, tick hits [${m.tickHits.join(', ')}], point hits ${m.pointHits}`);
+      assert.equal(m.insidePlot, true, `${label}: the readout is inside the plot`);
+      assert.ok(m.readout.top >= m.topTick.bottom - 1,
+        `${label}: the readout overlaps the topmost y-axis value by ${(m.topTick.bottom - m.readout.top).toFixed(1)}px`);
+      // NO *VISIBLE* TICK UNDER IT. A tick it covers is hidden rather than
+      // drawn through - the block is the answer and the tick is context, which
+      // is the precedence the guide value it replaces already followed.
+      const visibleHits = await page.evaluate(() => {
+        const box = (el) => el.getBoundingClientRect();
+        const r = box(document.querySelector('[data-chart-readout]'));
+        return [...document.querySelectorAll('.growth-chart__tick-label')]
+          .filter((el) => getComputedStyle(el).visibility !== 'hidden')
+          .map(box)
+          .filter((b) => r.left < b.right && r.right > b.left && r.top < b.bottom && r.bottom > b.top)
+          .length;
+      });
+      assert.equal(visibleHits, 0, `${label}: a VISIBLE y-axis label sits under the readout`);
+      // The upper series passes behind the block in the middle years and is
+      // MASKED there - measured, and accepted rather than avoided: a block that
+      // moved to dodge the curve would move as the participant scrubs. Reported
+      // rather than asserted at zero, so the figure stays visible in the log.
+      assert.ok(m.pointHits <= 6, `${label}: the readout masks ${m.pointHits} points, more than expected`);
     } finally {
       await context.close();
     }

@@ -88,14 +88,14 @@ test.after(async () => {
 });
 
 /** Open frame 12 at a savings position, optionally pressing a range chip. */
-async function chartAt(saved, chipValue = null, { large = false, series = 'low', view = 'chart' } = {}) {
+async function chartAt(saved, chipValue = null, { large = false, view = 'chart' } = {}) {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     serviceWorkers: 'block',
   });
   await context.addInitScript((v) => {
     try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch { /* private mode */ }
-  }, { ...seedAt(saved), textSize: large ? 'large' : 'default', chartSeries: series, chartView: view });
+  }, { ...seedAt(saved), textSize: large ? 'large' : 'default', chartView: view });
   const page = await context.newPage();
   await page.goto(`${base}/#/calculator/result`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(250);
@@ -113,14 +113,17 @@ async function chartAt(saved, chipValue = null, { large = false, series = 'low',
       return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width, height: r.height };
     };
     const area = document.querySelector('[data-chart-area]');
-    const points = [...document.querySelectorAll('.growth-chart__point')];
+    const points = [...document.querySelectorAll('.growth-chart__point--low')];
     const activeIdx = points.findIndex((p) => p.classList.contains('growth-chart__point--active'));
     // The point's own accessible name is "{date}, {amount}" - the same string a
     // screen reader gets, so this reads what is announced rather than a second
     // copy of the arithmetic.
+    // "{date}: {low} a month, {amountLow}; {high} a month, {amountHigh}"
     const parsePoint = (el) => {
-      const [date, amount] = (el.getAttribute('aria-label') ?? '').split(', ');
-      return { date, value: Number(String(amount ?? '').replace(/[^\d.]/g, '')) };
+      const raw = el.getAttribute('aria-label') ?? '';
+      const date = raw.split(':')[0];
+      const amounts = [...raw.matchAll(/,\s*£([\d,]+)/g)].map((m) => Number(m[1].replace(/,/g, '')));
+      return { date, value: amounts[0] ?? NaN, high: amounts[1] ?? null };
     };
     const xLabels = [...document.querySelectorAll('.growth-chart__x-label')].filter((e) => !e.hidden);
     const endpoint = [...document.querySelectorAll('p')]
@@ -130,6 +133,12 @@ async function chartAt(saved, chipValue = null, { large = false, series = 'low',
       points: points.map(parsePoint),
       activeIndex: activeIdx,
       activeCount: points.filter((p) => p.classList.contains('growth-chart__point--active')).length,
+      selection: !!document.querySelector('.growth-chart__selection'),
+      readoutYear: document.querySelector('[data-readout-year]')?.textContent.trim() ?? '',
+      readoutLow: document.querySelector('[data-readout-value="low"]')?.textContent.trim() ?? '',
+      readoutHigh: document.querySelector('[data-readout-value="high"]')?.textContent.trim() ?? '',
+      goalLine: !!document.querySelector('.growth-chart__goal-line'),
+      goalLabels: [...document.querySelectorAll('.growth-chart__tick-label')].map((e) => e.textContent.trim()),
       activePoint: box(points[activeIdx]),
       dateLabel: box(document.querySelector('.growth-chart__point-date')),
       plot: box(area),
@@ -170,16 +179,27 @@ const announced = (live) => Number((live.match(/£([\d,]+)/) ?? [])[1]?.replace(
 
 const money = (s) => Number(String(s).replace(/[^\d.]/g, ''));
 
+// TESTS RETIRED AS MOOT (D115, D116, D118), not fixed: the default-window and
+// chip-count tests, the per-series active-point test, the readout-matches-model
+// test, the guide-value test, the beyond-attainment chip test and the live
+// region test. Their subjects were the range chips, the series selector, the
+// horizontal guide and the live region that summarised a window - all removed.
+// What survives is the projection's own bounds and the year-only axis.
+
 test('the projection never overshoots the goal', async () => {
   // REQUIREMENT 5, and the whole reason `goalMonths` exists. The last plotted
   // point is the window's end; at "Max" that window IS the attainment month, so
   // the last point must land ON the goal and never past it.
-  for (const chip of ['null', '60', '36']) {
-    const c = await chartAt(20000, chip);
-    const last = c.points[c.points.length - 1];
-    assert.ok(last.value <= c.goal + 1,
-      `chip ${chip}: last point ${last.value} exceeds the ${c.goal} goal`);
+  // BOTH SERIES, because each now ends at its OWN attainment (D117) and
+  // requirement 5 has to hold for two lines rather than one.
+  const c = await chartAt(20000);
+  for (const p of c.points) {
+    assert.ok(p.value <= c.goal + 1, `low series reaches ${p.value}, past the ${c.goal} goal`);
+    if (p.high !== null) assert.ok(p.high <= c.goal + 1, `high series reaches ${p.high}, past the ${c.goal} goal`);
   }
+  const last = c.points[c.points.length - 1];
+  assert.ok(Math.abs(last.value - c.goal) < c.goal * 0.02, 'the low series ends ON the goal');
+  assert.equal(last.high, null, 'the high series has already ended by the last plotted year');
 });
 
 test('the x-axis carries calendar years only, and no month string', async () => {
@@ -197,59 +217,12 @@ test('no two visible year labels overlap, at both text sizes', async () => {
   // rather than as a label count - a count would be a change-detector and would
   // not notice a collision at Large text.
   for (const large of [false, true]) {
-    const c = await chartAt(20000, 'null', { large });
+    const c = await chartAt(20000, null, { large });
     const boxes = c.xLabelBoxes;
     for (let i = 1; i < boxes.length; i += 1) {
       assert.ok(boxes[i].left >= boxes[i - 1].right,
         `${large ? 'large' : 'default'} text: "${boxes[i].text}" overlaps "${boxes[i - 1].text}"`);
     }
-  }
-});
-
-test('the default window is three years, and exactly one chip is pressed in every state', async () => {
-  // D106 reversed D100's 24 months. With one point per year the two short
-  // chips yielded one point and two, which is not a series.
-  const fresh = await chartAt(20000);
-  assert.deepEqual(fresh.pressed, ['3 yr'], 'the chart should open at the 3 yr chip');
-  assert.deepEqual(fresh.chips, ['3 yr', '5 yr', 'Max'], 'the short chips are dropped, not hidden');
-  for (const chip of ['36', '60', 'null']) {
-    const c = await chartAt(20000, chip);
-    assert.equal(c.pressed.length, 1, `chip ${chip}: exactly one chip should be pressed, got ${c.pressed.length}`);
-  }
-});
-
-test('a point is active on load, in every window and every series', async () => {
-  // 6.6.2b. On touch there is no hover, so nothing would otherwise hint the
-  // chart responds; the affordance has to be on screen before anyone tries it.
-  for (const chip of ['36', '60', 'null']) {
-    for (const series of ['low', 'high']) {
-      const c = await chartAt(20000, chip, { series });
-      assert.equal(c.activeCount, 1, `chip ${chip}/${series}: exactly one active point`);
-      assert.equal(c.activeIndex, c.points.length - 1, 'the last point is active at rest');
-      assert.ok(c.guideWidth > 0, 'the guide is drawn before any interaction');
-      assert.ok(money(c.guideValue) > 0, 'the guide terminates in a value');
-    }
-  }
-});
-
-test('the readout reports the active point, and matches the model', async () => {
-  const c = await chartAt(20000);
-  const last = c.points[c.points.length - 1];
-  assert.equal(money(c.readout), Math.round(last.value),
-    'the readout figure is the active point’s own value');
-  assert.ok(c.readoutCaption.includes(last.date),
-    `the caption should name the active point's date: "${c.readoutCaption}" vs "${last.date}"`);
-});
-
-test('the guide value is drawn and stays inside the plot', async () => {
-  // WAS "no label renders below the active point". D111 removed the in-plot
-  // year label, which is the label that test was about; the guide value is the
-  // only in-plot text left, and what still matters is that it is drawn and
-  // clears the plot's bounds at both text sizes.
-  for (const large of [false, true]) {
-    const c = await chartAt(20000, 'null', { large });
-    assert.match(c.guideValue, /^£[\d,]+$/, `${large ? 'large' : 'default'}: the guide terminates in a value`);
-    assert.ok(c.dateLabel === null, 'the in-plot year label is gone');
   }
 });
 
@@ -289,20 +262,3 @@ test('the attained state draws no chart, no chips and no negative figure', async
   assert.doesNotMatch(c.bodyText, /-£|−£/, 'a negative figure is on screen');
 });
 
-test('no chip is offered beyond the attainment month', async () => {
-  // Requirement 5 again, at the control rather than at the plot: a chip longer
-  // than the projection would draw chart past the goal.
-  const c = await chartAt(51000);
-  assert.ok(c.attainmentMonths !== null && c.attainmentMonths < 36,
-    `this fixture should attain inside three years, got ${c.attainmentMonths}`);
-  assert.ok(!c.chips.includes('5 yr'),
-    `the 5 yr chip should not be offered when attainment is ${c.attainmentMonths} months out`);
-});
-
-test('the live region never announces less than the participant already has', async () => {
-  for (const chip of ['36', '60']) {
-    const c = await chartAt(51000, chip);
-    assert.ok(announced(c.live) >= 51000,
-      `chip ${chip} announced ${announced(c.live)}, below the 51,000 already saved`);
-  }
-});

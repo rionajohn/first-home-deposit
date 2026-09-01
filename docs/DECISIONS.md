@@ -10107,3 +10107,193 @@ added above the plot spends it.
 the chart heading**, outside the block entirely. Removing two rows shortened the SCROLL, which is a
 different thing from shortening the block, and reading the improvement as coming from the card would
 credit the wrong change.
+
+---
+
+## D115. The range chips are removed. Second reversal of that set, and D107's asymmetry is resolved
+
+**Date.** 1 September 2026. **Reverses D106, and moots D107.**
+
+**Decision.** There is no window control. The chart always draws the whole projection, which is what
+the "Max" chip did. `chartRangeMonths`, `chartRangeLabels`, `chartRangeLegend` and
+`chartRangeNoteText` are all retired.
+
+**THIS IS THE THIRD SETTING OF THAT CHIP SET AND THE SECOND REVERSAL**, which is worth stating plainly
+rather than burying: D100 replaced "3 yr" with "2 yr" and made it the default; D106 dropped the two
+short chips and made "3 yr" the default because yearly plotting made them degenerate; this removes the
+control. Each step was right on its own evidence and the sequence is still a sequence, so the next
+person to reach for a window control should read all three before adding one back.
+
+**Why removing it rather than defaulting it.** The chart's job is the comparison between two
+contributions, and every window shorter than the projection cuts one of the two lines off before it
+reaches the goal - which is the thing being compared. A control whose every setting but one damages
+the comparison is not a control worth keeping.
+
+**D107's accessibility asymmetry is RESOLVED, not accepted.** That entry recorded that hiding the
+chips in table view gave the table's users strictly less control over the same data than chart users
+had, and held it open as a real cost. **There is no control to withhold now**, so both views offer
+exactly the same thing. That is the better way to close an asymmetry than the alternative D107 named -
+drawing the chips above the table as well - because it removes the difference rather than duplicating
+the control.
+
+---
+
+## D116. The series selector is removed, and the readout moves inside the plot
+
+**Date.** 1 September 2026.
+
+**Decision.** Both contributions are drawn at all times, both carry plotted points, and there is no
+control to select between them. `chartSeries` is retired rather than defaulted. The readout moves
+from beneath the chart to a block **inside the plot, top left, below the topmost y-axis value**,
+carrying the selected year and **both** amounts.
+
+**The reason is the whole point of the change.** A participant should never have to switch views to
+compare two figures. With a selector, comparing £400 against £600 meant pressing, reading,
+remembering, pressing back and reading again - and the pilot's own difficulty was holding two numbers
+at once ("I still don't know whether I would choose to have it at 200 pounds a month or 400 quid",
+23:28). **The comparison now happens in one place**: one block, one year, two amounts, updating
+together.
+
+**WCAG 1.4.1 with points on both series.** Both lines carry points now, so a fill difference between
+two greys is no longer enough. The carrier is **line style**: solid for the lower contribution, dashed
+for the higher, which survives greyscale, the dark theme and a reader who cannot separate the two
+greys. The readout rows carry matching swatches and name each amount in words.
+
+**What the block lands on, measured rather than predicted.**
+
+| | Block height | Y-axis labels covered | Plotted points covered |
+| --- | --- | --- | --- |
+| Default text | 72.0px | `£31,500` | 3 |
+| Large text | 81.6px | `£31,500` | 5 |
+
+**The tick gives way and the line is masked, and the second half is the accepted cost.** A covered
+tick label is hidden - context yielding to the answer, the precedence the guide value already
+followed. The upper series passes *behind* the block in the middle years and is occluded there. **A
+block that moved to dodge the curve would move as the participant scrubs**, and a readout that jumps
+around is worse than one that hides a segment of a line still visible either side of it. Recorded as a
+trade rather than as a defect, and asserted at a bound so a future change that doubles the occlusion
+fails the test.
+
+---
+
+## D117. Each line ends at its own attainment, and the endpoint sentence becomes a block
+
+**Date.** 1 September 2026. **Replaces `endpointTemplate`.**
+
+**Each line stops where it reaches the goal.** Requirement 5 - the projection must not overshoot -
+now has to hold for two lines, and it cannot hold for both if they share an end. The window runs to
+the LATER attainment (the lower contribution's) and the higher contribution's values are `null` past
+its own, so its line visibly stops earlier and further left. **That difference IS the comparison and
+needs no annotation.** Null rather than clamped: a flat run at the goal would say the participant kept
+saving and stayed level.
+
+**The endpoint sentence is replaced by a two-row block.** With no selection the sentence had to state
+both years, which put FOUR numbers in one sentence and bound each year to its amount across an
+elision. The copy check flagged it twice - Rule 5 on the count, and Rule 4 because the trailing "or"
+clause resolved on the optimistic case whatever the word order.
+
+> When you'd reach your {amount} goal
+> {low} a month - {yearLow}*
+> {high} a month - {yearHigh}*
+
+**A block binds each pair by POSITION rather than by grammar.** Two rows, two numbers each, no
+elision, no "or". That answers both flags **structurally rather than by rewording**, which is why a
+copy problem was solved with a layout change.
+
+**IT SITS ABOVE THE CHART/TABLE TOGGLE, and the placement is the decision.** When you reach the goal
+is true whether you are looking at the chart or the table, so anything below the toggle would read as
+belonging to whichever view is showing. Above it, the block reads as a fact about the plan and the two
+views read as ways of examining it. It also leads with the answer to the question the pilot asked at
+26:20 and did not get.
+
+---
+
+## D118. The horizontal guide becomes a full-height selection line
+
+**Date.** 1 September 2026. **Reverses the guide decision.**
+
+**The guide could serve one value and there are two.** It ran horizontally from the active point to
+the y-axis and terminated in that point's figure; with both series shown there is no single value for
+it to carry.
+
+**A connector joining the two points was considered and fails in two states**, both reachable and both
+ordinary: **zero-length at year 0**, where both series start from the same balance and there is
+nothing to join, and **non-existent past the higher contribution's attainment**, where only one line
+is left.
+
+**A full-height vertical line at the selected year has neither failure.** It exists at every x, works
+where one series has ended, and marks the selection without implying a value - the readout block
+carries the figures.
+
+**D111's discipline applied before removing it.** The guide's one dependent was
+`hideTicksUnderGuideValue`, which existed because the guide's figure sat in the axis gutter and could
+land on a tick label. That sweep is not deleted: it is **re-pointed at the readout block**, which
+occupies the same gutter and has the same collision. The rule outlived the element it was written for,
+which is exactly what that discipline exists to catch.
+
+---
+
+## D119. The goal line keeps its dash and loses its label
+
+**Date.** 1 September 2026.
+
+The goal is drawn as a dashed rule across the plot and is **not labelled**. The figure is stated once,
+in D117's block heading. A label here would be the second place, and it would sit in the same band as
+the y-axis tick labels while not being one of them.
+
+---
+
+## D120. D112's co-visibility block is re-derived, not re-measured
+
+**Date.** 1 September 2026.
+
+**D112's block was plot -> endpoint -> assumptions. Those three are no longer contiguous.** D117 moved
+the claim above the chart and D103's caveat moved with it, so the chart now sits *below* both.
+
+**The requirement was never about the plot.** It was that **a claim and its caveat must be seen
+together**, which is why D103 refused to put the caveat behind a disclosure. So the block is now the
+**goal block through the assumptions note**, and the two are adjacent:
+
+| | Block | Headroom against 732px |
+| --- | --- | --- |
+| Default text | **160.0px** | **+572.0px** |
+| Large text | **200.5px** | **+531.5px** |
+
+**The measurement is now nearly vacuous, and that is the honest outcome rather than a win to claim.**
+Two adjacent elements are co-visible by construction; the 34px `--safe-bottom` margin D112 worried
+about is no longer close to binding. The assertion is kept because the block can grow again, not
+because the number is interesting.
+
+**Reported and NOT asserted: the goal block through the bottom of the chart** is 622.0px at default and
+670.6px at Large. Whether the answer and the evidence should be co-visible is a different question
+D112 never asked, and it is left as an observation rather than converted into a requirement nobody has
+argued for.
+
+---
+
+## D121. D72 is dropped, not transferred
+
+**Date.** 1 September 2026.
+
+**D72's intent** - that the screen should not lead with the optimistic case - **had three carriers in
+succession and now has none.**
+
+| | Carrier | Ended by |
+| --- | --- | --- |
+| D72 | The comparison card hard-wired to `monthly-low` | D101, which made the card follow the series selection |
+| D101 / the plan's 7.6 | `chartSeries` defaulting to `'low'` | D116, which removed the selector |
+| - | **Nothing** | - |
+
+**Sentence order was considered and rejected.** The endpoint sentence could have led with the lower
+contribution, and the copy check was asked directly whether that would carry the intent. It would not:
+in an "X, or Y" construction the second element reads as the alternative being offered, and it was
+also the better outcome, so recency and desirability both landed on it. More fundamentally **a default
+is a state the participant must act to leave, whereas a reading emphasis is one they cannot act on at
+all** - the two are not the same kind of thing, and calling the second a handover of the first would
+have been an overclaim.
+
+**So it is recorded as a knowing loss.** The screen now presents both contributions with no
+conservative default and no conservative emphasis. **Anyone later wondering why should find this
+entry**, and should know that the alternative was examined rather than overlooked: what replaced the
+protection is that both figures are always visible, which is a different kind of answer to the same
+worry - the participant is not shown one number and left to discover the other.

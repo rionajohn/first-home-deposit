@@ -1303,84 +1303,89 @@ export function rangeFigureHTML({ lowText, highText, caption, markerPct, trackLa
 export function growthChartHTML({
   points,
   yTicks,
+  goalPct,
   yearLabels,
   nowLabel,
   legend,
-  series,
   activeIndex,
   plotLabel,
   pointLabelTemplate,
+  readout,
   valueFormatter,
 }) {
-  const key = series === 'high' ? 'highPct' : 'lowPct';
-  const other = series === 'high' ? 'lowPct' : 'highPct';
-  const at = (p) => p[key];
   const xOf = (i) => (points.length <= 1 ? 0 : (i / (points.length - 1)) * 100);
 
-  const polyline = (prop) => points.map((p, i) => `${xOf(i)},${100 - p[prop]}`).join(' ');
+  // NULLS ARE GAPS, NOT ZEROES. Past its own attainment a series has no value -
+  // it stopped - and a polyline segment drawn to 0 would say it fell to nothing.
+  const polyline = (prop) => points
+    .map((p, i) => (p[prop] === null ? null : `${xOf(i)},${100 - p[`${prop}Pct`]}`))
+    .filter(Boolean)
+    .join(' ');
+
   const active = points[activeIndex] ?? points[points.length - 1];
   const activeX = xOf(activeIndex);
-  const activeY = at(active);
 
   return `
     <div class="growth-chart">
       <div class="growth-chart__plot">
-        <!-- THE SCRUB TARGET IS THIS ELEMENT, 305x224 logical, not the points
-             at a 13.3px pitch (the plan's 6.6.1). One focus stop, with
-             aria-activedescendant naming the active point - D84's listbox
-             contract applied to a different control. touch-action: pan-y is
-             in the stylesheet: vertical gestures scroll, horizontal ones
-             scrub. -->
         <div class="growth-chart__area"
              role="group"
              tabindex="0"
              aria-label="${plotLabel}"
              aria-activedescendant="growth-point-${activeIndex}"
              data-chart-area>
-          <!-- THE TICKS LIVE IN HERE, NOT IN THE PLOT, and that is a
-               correctness fix rather than a tidy-up. The plot is 240px and this
-               area is 224px (it clears the x-axis), so a tick at bottom 50%
-               of the plot and a point at bottom 50% of the area are 8px
-               apart - the gridlines did not line up with the data they were
-               labelling. One coordinate space is the only way they can agree. -->
           ${yTicks.map((t) => `
             <div class="growth-chart__tick" style="bottom:${t.pct}%" aria-hidden="true"></div>
             <p class="growth-chart__tick-label" style="bottom:${t.pct}%">${valueFormatter(t.value)}</p>
           `).join('')}
 
+          <!-- THE GOAL, DRAWN AND NOT LABELLED (D119). The figure is stated
+               once, in the goal block's heading above the chart; a label here
+               would be the second place and would sit in the same band as the
+               tick labels it is not one of. -->
+          ${goalPct === null ? '' : `<div class="growth-chart__goal-line" style="bottom:${goalPct}%" aria-hidden="true"></div>`}
+
+          <!-- A FULL-HEIGHT LINE AT THE SELECTED YEAR (D118), replacing the
+               horizontal guide to the y-axis. That guide could serve one value;
+               there are two now. A connector joining the two points fails in
+               two states - zero length at year 0, where both series start from
+               the same figure, and non-existent past the higher contribution's
+               attainment, where only one line is left. A full-height line
+               exists at every x, works where one series has ended, and marks
+               the selection without implying a value. The block carries the
+               figures. -->
+          <div class="growth-chart__selection" style="left:${activeX}%" aria-hidden="true"></div>
+
           <svg class="growth-chart__svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-            <polyline class="growth-chart__line growth-chart__line--other" points="${polyline(other)}" vector-effect="non-scaling-stroke" />
-            <polyline class="growth-chart__line growth-chart__line--active" points="${polyline(key)}" vector-effect="non-scaling-stroke" />
-            ${points.map((p, i) => `<circle class="growth-chart__dot growth-chart__dot--other" cx="${xOf(i)}" cy="${100 - p[other]}" r="1.2" vector-effect="non-scaling-stroke" />`).join('')}
+            <polyline class="growth-chart__line growth-chart__line--high" points="${polyline('high')}" vector-effect="non-scaling-stroke" />
+            <polyline class="growth-chart__line growth-chart__line--low" points="${polyline('low')}" vector-effect="non-scaling-stroke" />
           </svg>
 
-          <!-- The guide, drawn from the active point LEFTWARD to the axis. -->
-          <div class="growth-chart__guide" style="bottom:${activeY}%;width:${activeX}%" aria-hidden="true"></div>
-
           ${points.map((p, i) => `
-            <div class="growth-chart__point${i === activeIndex ? ' growth-chart__point--active' : ''}"
+            ${p.high === null ? '' : `<div class="growth-chart__point growth-chart__point--high${i === activeIndex ? ' growth-chart__point--active' : ''}" style="left:${xOf(i)}%;bottom:${p.highPct}%"></div>`}
+            <div class="growth-chart__point growth-chart__point--low${i === activeIndex ? ' growth-chart__point--active' : ''}"
                  id="growth-point-${i}"
                  role="option"
                  aria-selected="${i === activeIndex}"
                  aria-label="${pointLabelTemplate(p)}"
-                 style="left:${xOf(i)}%;bottom:${at(p)}%"></div>
+                 style="left:${xOf(i)}%;bottom:${p.lowPct}%"></div>
           `).join('')}
 
-          <!-- THE IN-PLOT YEAR LABEL IS GONE (D111), AND THE CALLOUT WITH IT
-               (D110's amendment). The year is already readable from the point's
-               position on the x-axis and is stated in the readout caption below
-               the plot, so drawing it beside the point was a third statement of
-               the same fact. THE VALUE STAYS: it is not readable from the axis
-               without the guide, and "I don't have a y-axis to know what the
-               value is" (pilot, 21:42) is the complaint the guide answers.
-
-               The callout existed to arbitrate between the year label, the
-               value and the axis labels near the origin, where all three
-               converge. With the year label gone there is one pair left, and
-               bindGrowthChart's tick sweep already resolves it. -->
-          <!-- The value the guide terminates in, at the axis edge and in the
-               same coordinate space as the guide itself. -->
-          <p class="growth-chart__guide-value" style="bottom:${activeY}%" data-chart-guide-value>${valueFormatter(series === 'high' ? active.high : active.low)}</p>
+          <!-- THE READOUT IS INSIDE THE PLOT, TOP LEFT, BELOW THE TOPMOST
+               Y-AXIS VALUE (D116). It carries the selected year and BOTH
+               amounts, which is the whole point of removing the selector: the
+               comparison happens in one place rather than by switching views.
+               pointer-events none, so it never intercepts a scrub. -->
+          <div class="growth-chart__readout" data-chart-readout>
+            <p class="growth-chart__readout-year" data-readout-year>${active.date}</p>
+            ${readout.map((r) => `
+              <p class="growth-chart__readout-row">
+                <span class="growth-chart__readout-swatch growth-chart__readout-swatch--${r.shade}" aria-hidden="true"></span>
+                <span class="growth-chart__readout-label">${r.label}</span>
+                <span class="growth-chart__readout-value" data-readout-value="${r.shade}">${r.value(active)}</span>
+              </p>
+            `).join('')}
+          </div>
         </div>
       </div>
 
@@ -1402,19 +1407,13 @@ export function growthChartHTML({
 }
 
 /**
- * Frame 12's table view (DECISIONS.md D100), the text alternative for the chart
- * above and - under D102's year-only rule - the only place on that screen
- * carrying date resolution finer than a year at rest.
+ * Frame 12's table view (D100), the chart's text alternative.
  *
- * IT RENDERS THE SAME `points` ARRAY THE CHART RENDERS and recomputes nothing.
- * That is what guarantees it exposes every value the guide can reveal, rather
- * than a second derivation that could drift from the first.
- *
- * THE SELECTED COLUMN IS MARKED IN WORDS, not by a fill: this is the same
- * WCAG 1.4.1 rule the comparison card's "- your choice" follows.
+ * BOTH COLUMNS, ALWAYS (D116). It had a selector above it choosing which
+ * contribution to mark; with the selector gone from the chart it is gone from
+ * here too, and the two columns stand side by side as they always did.
  */
-export function chartTableHTML({ points, series, headers, caption, selectedSuffix, valueFormatter }) {
-  const mark = (which) => (which === series ? ` (${selectedSuffix})` : '');
+export function chartTableHTML({ points, headers, caption, valueFormatter }) {
   return `
     <div class="growth-table-wrap">
       <table class="growth-table">
@@ -1422,16 +1421,16 @@ export function chartTableHTML({ points, series, headers, caption, selectedSuffi
         <thead>
           <tr>
             <th scope="col">${headers.month}</th>
-            <th scope="col">${headers.low}${mark('low')}</th>
-            <th scope="col">${headers.high}${mark('high')}</th>
+            <th scope="col">${headers.low}</th>
+            <th scope="col">${headers.high}</th>
           </tr>
         </thead>
         <tbody>
           ${points.map((p) => `
             <tr>
               <th scope="row">${p.date}</th>
-              <td${series === 'low' ? ' class="growth-table__selected"' : ''}>${valueFormatter(p.low)}</td>
-              <td${series === 'high' ? ' class="growth-table__selected"' : ''}>${valueFormatter(p.high)}</td>
+              <td>${p.low === null ? '' : valueFormatter(p.low)}</td>
+              <td>${p.high === null ? '' : valueFormatter(p.high)}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -1467,13 +1466,14 @@ export function bindGrowthChart(container, { pointCount, onActivate, onPaint }) 
   const area = container.querySelector('[data-chart-area]');
   if (!area || pointCount < 1) return;
 
-  const points = [...container.querySelectorAll('.growth-chart__point')];
-  const guide = container.querySelector('.growth-chart__guide');
-  const guideValue = container.querySelector('[data-chart-guide-value]');
+  // THE LOW SERIES' POINTS ONLY. Both series draw points now, but only the low
+  // one exists at every x - the high one stops at its own attainment - so it is
+  // the one that carries the ids `aria-activedescendant` names and the one
+  // whose count is the traversal length.
+  const points = [...container.querySelectorAll('.growth-chart__point--low')];
+  const selection = container.querySelector('.growth-chart__selection');
+  const readoutYear = container.querySelector('[data-readout-year]');
 
-  const overlaps = (a, b) => a && b
-    && a.left < b.right && a.right > b.left
-    && a.top < b.bottom && a.bottom > b.top;
 
   /**
    * REPAINTS IN PLACE RATHER THAN RE-RENDERING THE SCREEN, and that is not an
@@ -1490,20 +1490,20 @@ export function bindGrowthChart(container, { pointCount, onActivate, onPaint }) 
   const paint = (index) => {
     const point = points[index];
     if (!point) return;
-    const [date, amount] = (point.getAttribute('aria-label') ?? '').split(', ');
     const left = point.style.left;
-    const bottom = point.style.bottom;
 
-    for (const [i, el] of points.entries()) {
-      el.classList.toggle('growth-chart__point--active', i === index);
-      el.setAttribute('aria-selected', String(i === index));
+    // Both series' points at this x take the active state, and only the LOW
+    // series carries the id - it is the one that exists at every x, so
+    // `aria-activedescendant` always has something to name.
+    for (const el of container.querySelectorAll('.growth-chart__point')) {
+      el.classList.toggle('growth-chart__point--active', el.style.left === left);
     }
+    for (const [i, el] of points.entries()) el.setAttribute('aria-selected', String(i === index));
     area.setAttribute('aria-activedescendant', point.id);
 
-    if (guide) { guide.style.bottom = bottom; guide.style.width = left; }
-    if (guideValue) { guideValue.style.bottom = bottom; guideValue.textContent = amount ?? ''; }
-    hideTicksUnderGuideValue();
-    onPaint?.({ index, date, amount });
+    if (selection) selection.style.left = left;
+    hideTicksUnderReadout();
+    onPaint?.({ index, left });
   };
 
   const indexFromEvent = (event) => {
@@ -1514,25 +1514,28 @@ export function bindGrowthChart(container, { pointCount, onActivate, onPaint }) 
   };
 
   /**
-   * THE GUIDE VALUE AND THE Y-TICK LABELS SHARE THE AXIS EDGE, so whenever the
-   * active point sits level with a tick the two draw on top of each other. The
-   * TICK gives way: it is context, and the guide value is the answer to the
-   * question the participant is asking. Measured against the rendered boxes
-   * rather than an assumed row height, so it follows the Large text size.
-   *
-   * THIS IS NOW THE ONLY COLLISION ON THE PLOT (D110's amendment). It used to
-   * arbitrate between the guide value, the in-plot year label and the ticks and
-   * needed a bordered callout to resolve all three; D111 removed the year
-   * label, which left one pair and a rule that already handled it.
+   * THE READOUT BLOCK COVERS PART OF THE AXIS GUTTER, so a y-tick label can end
+   * up underneath it. The TICK gives way - it is context, and the block is the
+   * answer to the question being asked - which is the precedence the guide
+   * value it replaces already followed.
    */
-  function hideTicksUnderGuideValue() {
-    if (!guideValue) return;
-    const guideBox = guideValue.getBoundingClientRect();
+  function hideTicksUnderReadout() {
+    const readout = container.querySelector('[data-chart-readout]');
+    if (!readout) return;
+    const r = readout.getBoundingClientRect();
     for (const label of container.querySelectorAll('.growth-chart__tick-label')) {
-      label.style.visibility = overlaps(guideBox, label.getBoundingClientRect()) ? 'hidden' : '';
+      const b = label.getBoundingClientRect();
+      label.style.visibility = (r.left < b.right && r.right > b.left && r.top < b.bottom && r.bottom > b.top)
+        ? 'hidden' : '';
     }
   }
 
+  /**
+   * THE OLD TICK SWEEP IS GONE WITH THE GUIDE VALUE (D118). It existed because that
+   * value sat in the axis gutter and could land on a tick label; there is no
+   * in-plot value at the axis any more - the readout block carries both figures
+   * in the top left, clear of the ticks by construction.
+   */
   let scrubbing = false;
   let pinned = false;
 
@@ -1579,7 +1582,7 @@ export function bindGrowthChart(container, { pointCount, onActivate, onPaint }) 
     onActivate(next);
   });
 
-  hideTicksUnderGuideValue();
+  hideTicksUnderReadout();
 
   // THE THINNING RULE, MEASURED RATHER THAN ESTIMATED (the plan's 6.4). A year
   // label is kept only if its left edge clears the previously kept label's

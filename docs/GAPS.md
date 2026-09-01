@@ -4770,3 +4770,45 @@ that the first answer was chosen under a misread constraint rather than as a jud
 participant wanted, because the next objection of this shape should be tested against the constraint
 before the workaround is designed.
 
+---
+
+## G121. On the target-date branch the table's second column is arithmetic, not a second choice. OPEN
+
+*Raised 1 September 2026 with D116, which removed the series selector and left both columns showing
+at once. **Not fixable in that pass** - closing it means changing what frame 10b commits, and frame 10
+is frozen under G107.*
+
+### The two branches do not produce comparable pairs
+
+Frame 12's chart and table both plot `monthly-low` and `monthly-high`, and where those two figures
+come from depends on which branch of frame 10 step 2 the participant took:
+
+| Branch | What it commits | What the two columns mean |
+| --- | --- | --- |
+| **Monthly amount** (the slider) | `monthly-low` and `monthly-high` **both entered directly** - the two handles | **Two real choices**, the range the participant set themselves |
+| **Target date** (10b) | `savings-rate` solved from the chosen date, then `monthly-low`/`monthly-high` = `rangeFromCentral` at **0.9x / 1.1x** | **One figure and an arithmetic band around it.** The second column is the first plus ten per cent |
+
+### Why it matters more now than it did
+
+Until D116 the screen showed ONE series at a time and the selector made the pair feel like two
+settings. Both columns are now permanently side by side, in the chart, in the readout block and in the
+table, presented **identically in both branches**. A participant on the date branch is therefore shown
+a comparison between their amount and a figure 10 per cent larger, laid out exactly like the
+monthly-branch participant's two genuine choices - and nothing on the screen distinguishes the two
+cases.
+
+D117's goal block sharpens it again: it states two years, one per contribution, as though both were
+things the participant might do.
+
+### What closing it would take, and why not now
+
+The fix is upstream: frame 10b would have to commit a genuinely second contribution - the plan
+suggests the `left-over` ceiling as the natural pair, being the most the participant could put aside -
+rather than a band around the solved figure. **That is a change to `/calculator/saving`, which is
+frozen pending the G107 measurement**, so it is not attempted here.
+
+**D2's range rule is not the defect and should not be blamed for it.** `rangeFromCentral` is doing
+exactly what D2 asks of it; what changed is that a range built to express *uncertainty about one
+figure* is now being rendered as a *comparison between two options*. Whoever takes this should decide
+which of those the two columns are meant to be before changing either end.
+

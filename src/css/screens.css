@@ -1260,12 +1260,12 @@
    which survives a greyscale palette, the dark theme, and a participant who
    cannot separate the two greys. The pill control and the readout caption name
    the selection in words as well. */
-.growth-chart__line--active {
+.growth-chart__line--low {
   stroke: var(--color-label);
   stroke-dasharray: none;
 }
 
-.growth-chart__line--other {
+.growth-chart__line--high {
   stroke: var(--color-border-control);
   stroke-width: 1.5px;
   stroke-dasharray: 5 4;
@@ -1275,10 +1275,85 @@
    line rather than needing a second set of positioned elements. Smaller than
    the selected series' points, which is the same size-and-shape rule the active
    point follows. */
-.growth-chart__dot--other {
-  fill: var(--color-border-control);
-  stroke: none;
+/* THE GOAL, DRAWN AND NOT LABELLED (D119). Dashed so it reads as a threshold
+   rather than as a third series, and lighter than either line. */
+.growth-chart__goal-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px dashed var(--color-label-secondary);
 }
+
+/* A FULL-HEIGHT LINE AT THE SELECTED YEAR (D118). It exists at every x, works
+   where the higher series has already ended, and marks the selection without
+   implying a value - which the horizontal guide it replaces could not do once
+   there were two values to serve. */
+.growth-chart__selection {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px solid var(--color-label);
+  pointer-events: none;
+}
+
+/* THE READOUT, INSIDE THE PLOT, TOP LEFT (D116). It carries the selected year
+   and BOTH amounts, so the comparison happens in one place rather than by
+   switching a control.
+
+   `top: var(--text-footnote-line)` clears the topmost y-axis tick label, which
+   sits at the plot's top edge - the block begins BELOW it rather than over it.
+   `pointer-events: none` so it never intercepts a scrub that crosses it. */
+.growth-chart__readout {
+  position: absolute;
+  left: 0;
+  top: calc(var(--text-footnote-line) + var(--space-xs));
+  padding: var(--space-xs) var(--space-sm) var(--space-xs) 0;
+  /* OPAQUE AND ABOVE THE PLOT. Measured, the block lands on a y-tick label and
+     on points of the upper series as that line climbs through the top left.
+     The tick is hidden by `hideTicksUnderReadout`; the LINE is masked behind
+     the block, which is the accepted cost - see D116. A block that moved to
+     avoid the curve would move as the participant scrubs, and a readout that
+     jumps is worse than one that occludes a segment of a line still visible
+     either side of it. */
+  background: var(--color-bg);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.growth-chart__readout-year {
+  margin: 0;
+  font-size: var(--text-title2-size);
+  line-height: var(--text-title2-line);
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.growth-chart__readout-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  color: var(--color-label-secondary);
+}
+
+.growth-chart__readout-value {
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.growth-chart__readout-swatch {
+  width: 10px;
+  height: 3px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+  background: var(--color-label);
+}
+
+.growth-chart__readout-swatch--high { background: var(--color-border-control); }
 
 .growth-chart__tick {
   position: absolute;
@@ -1341,12 +1416,18 @@
   pointer-events: none;
 }
 
+.growth-chart__point--high { background: var(--color-border-control); }
+
 .growth-chart__point--active {
   width: 11px;
   height: 11px;
   margin: 0 0 -5.5px -5.5px;
   background: var(--color-surface);
   border: 3px solid var(--color-label);
+}
+
+.growth-chart__point--high.growth-chart__point--active {
+  border-color: var(--color-border-control);
 }
 
 /* The in-plot year label and its collision callout are gone (D111, D110's
@@ -2201,3 +2282,28 @@
   cursor: default;
 }
 
+/* Frame 12's goal block (D117), above the chart/table toggle. Two rows, each
+   binding a contribution to the year it reaches the goal BY POSITION rather
+   than by grammar - which is what answers the copy check's four-numbers-in-one-
+   sentence flag structurally rather than by rewording. */
+.goal-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: 100%;
+}
+
+.goal-block__heading {
+  margin: 0 0 var(--space-xs) 0;
+  font-size: calc(20px * var(--text-scale));
+  line-height: calc(26px * var(--text-scale));
+  font-weight: 600;
+  color: var(--color-label);
+}
+
+.goal-block__row {
+  margin: 0;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+  color: var(--color-label);
+}

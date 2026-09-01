@@ -352,38 +352,13 @@ export function defaultState() {
 
     // Frame 33 scenario controls (build-spec.md section 7) — testing only,
     // not part of the feature being tested.
-    // DECISIONS.md D73. Frame 12's growth-chart range, in months; null is the
-  // "Max" chip, resolved at render from the participant's own projection.
-  //
-  // NOT IN `COLLAPSIBLE_DEFAULTS`, and it was, briefly. That object is reset by
-  // `resetCollapsibles()` on every hash-driven navigation (D12), so a range the
-  // participant had chosen was silently thrown away the moment they opened a
-  // sheet and came back. It is a view setting, not a disclosure: it should
-  // persist for the session exactly as theme and text size do, which is why it
-  // sits with them.
-  chartRangeMonths: 36,
-
-    // Frame 12's plotted series and view (DECISIONS.md D100). View settings on
-    // exactly `chartRangeMonths`' terms: they change what the chart draws and
-    // never what the model projects, they are not section 6 figures, and they
-    // are not in `STAGE_KEYS`.
-    //
-    // `chartSeries` DEFAULTS TO 'low', AND THAT IS LOAD-BEARING (the plan's
-    // 7.6). The comparison card now follows this selection rather than being
-    // hard-wired to `monthly-low`, which is a trade against D72's "the
-    // conservative end is the one that cannot disappoint". D72's intent
-    // survives only because the default is the conservative end: a participant
-    // who touches nothing meets the conservative picture and reaches the
-    // optimistic one by choosing it. Change this default and that trade is
-    // undone.
-    chartSeries: 'low', // 'low' | 'high'
+    // `chartRangeMonths` AND `chartSeries` ARE RETIRED (D115, D116). The chart
+    // always draws the whole projection and always draws both contributions, so
+    // there is no window to choose and no series to select. Both were view
+    // settings on the same terms as `chartView` below; both are gone rather
+    // than defaulted, because a setting nothing can change is a setting that
+    // will be read later as one that can.
     chartView: 'chart', // 'chart' | 'table'
-    // Which point on frame 12's line carries the guide, the value and the date.
-    // Null means "the last point in the window", which is the at-rest state:
-    // one point is ALWAYS active, because on touch there is no hover and
-    // nothing would otherwise hint the chart responds (the plan's 6.6.2b).
-    // Reset to null whenever the window changes - an index into a 24-point
-    // array names a different month once the window moves.
     chartActiveIndex: null,
     theme: 'greyscale', // 'greyscale' | 'brand'
     textSize: 'default', // 'default' | 'large'

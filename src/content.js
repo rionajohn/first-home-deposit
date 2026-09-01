@@ -910,66 +910,12 @@ const content = {
     // gone from the screen, and GAPS.md G114 - the three-way collision the two
     // slots could not have named - closes as moot rather than as fixed.
     chartHeading: 'How your savings would build up',
-    // --- THE RANGE CONTROL (D73) --------------------------------------------
-    //
-    // `chartReferenceCaption` and `chartGoalAboveNoteTemplate` ARE DELETED,
-    // with the threshold lines they described. They existed to say the three
-    // lines were a fixed reference rather than the participant's choice; there
-    // are no lines now, and the comparison card carries deposit context.
-    //
-    // The chips are abbreviations, so each carries a spoken accessible name -
-    // "6 m" announced as written is not a name a participant can act on.
-    // FIVE OPTIONS, AND THE LAST IS THE DEFAULT (D73's amendment). The chart
-    // opened at five years, which is a window rather than an answer; it now
-    // opens at the whole time the projection runs to, so a participant sees
-    // the shape of the thing before they narrow it.
-    //
-    // "Max" IS A CHIP RATHER THAN AN UNPRESSED STATE. Leaving every chip
-    // unpressed at the default would give a group with nothing selected and,
-    // worse, no way back once one is pressed - the default would be reachable
-    // only by leaving the screen. Its `months` is null because the value is
-    // the participant's own projection, resolved at render.
-    //
-    // Its label is not a duration for the same reason: at the seeded figures
-    // it is 10 years 7 months, and a chip reading "10 yr 7 m" would be both
-    // unwieldy and different for every participant. It was "To goal" and is
-    // now "Max" - shorter, and it no longer competes for width with the four
-    // durations beside it.
-    // EVERY ACCESSIBLE NAME OPENS WITH THE VISIBLE LABEL, and that is WCAG
-    // 2.5.3 Label in Name rather than a stylistic choice. `aria-label`
-    // REPLACES the button's text for the accessible name, so a speech-input
-    // participant saying "click 5 yr" could not activate a button named "Show
-    // 5 years". Four of the five failed that on the pass that introduced them:
-    // only "6 mo" survived, being a prefix of "6 months"; "6 m" still is.
-    //
-    // The elaboration after the comma is what the abbreviation does not say.
-    // "Max" alone says nothing at all about the range, which is why it needs
-    // the longest of them - and why it names no duration: the range is the
-    // participant's own projection and differs for each of them.
-    chartRangeLabels: [
-      // "6 m" AND "1 yr" ARE DROPPED (D106, reversing D100). With one point per
-      // year they yielded one point and two - a window too short to carry a
-      // readable yearly series at all. The feature addresses a long-term goal.
-      // "2 yr" REPLACES "3 yr" AND IS THE DEFAULT (DECISIONS.md D100). The
-      // window opens at 24 months, which was not one of the five chips, and a
-      // group with nothing pressed is the state D73 rejected - there is then no
-      // way back to the default once a chip is pressed. A SIXTH chip does not
-      // fit: components.css records the row as "334px of a 350px column", 16px
-      // of slack. So one is replaced rather than added, and the count stays
-      // five.
-      { months: 36, label: '3 yr', ariaLabel: '3 yr, three years' },
-      { months: 60, label: '5 yr', ariaLabel: '5 yr, five years' },
-      { months: null, label: 'Max', ariaLabel: 'Max, the whole time to reach your goal' },
-    ],
-    chartRangeLegend: 'How far ahead',
-    // `chartRangeNoteText` IS RETIRED (D114). D73 added it so that switching to
-    // a shorter window and seeing a smaller figure could not read as the
-    // projection having changed rather than the window on it. The ENDPOINT LINE
-    // now does that job better: it states the goal and the year and does not
-    // move when a chip is pressed, so a participant sees the projection hold
-    // still rather than reading a sentence saying it does. See D114 for what
-    // that handover gives up.
-    chartRangeAnnouncementTemplate: 'Showing to {range}. Savings reach {amount}.',
+    // THE RANGE CHIPS ARE RETIRED (D115), and this is the SECOND reversal of
+    // that set - D100 replaced "3 yr" with "2 yr" and made it the default, D106
+    // dropped the two short chips and made "3 yr" the default, and this removes
+    // the control. The chart always draws the whole projection, which is what
+    // the "Max" chip did. `chartRangeLabels`, `chartRangeLegend` and
+    // `chartRangeNoteText` all go with it.
     chartCaptionTemplate: 'With interest at {aer} a year. Illustrative.',
     xAxisNow: 'Now',
     legendTemplate: 'At {amount} a month',
@@ -994,22 +940,36 @@ const content = {
     // a second time - one of three places £52,500 appeared on the same screen,
     // and a large part of why it read as unorganised. The caption's job is to
     // say WHICH POINT the figure belongs to, which is the date and nothing else.
-    readoutCaptionTemplate: 'By {date}',
-    chartSeriesLegend: 'Which monthly amount',
+    // `readoutCaptionTemplate` AND `chartSeriesLegend` ARE RETIRED (D116). The
+    // large readout beneath the chart is gone - its figure and year are in the
+    // in-plot block now - and there is no series to select, so nothing needs a
+    // group label.
     chartPlotAriaLabel: 'Savings projection. Use the arrow keys to move between months.',
-    chartPointAriaLabelTemplate: '{date}, {amount}',
+    // BOTH AMOUNTS, because there is no selected series any more: the point's
+    // accessible name has to carry what the in-plot block carries.
+    chartPointAriaLabelTemplate: '{date}: {low} a month, {amount}; {high} a month, {amountHigh}',
 
-    // "IF YOU KEEP SAVING THIS AMOUNT", NOT "AT THIS RATE". The first draft
-    // read "At this rate", which is ambiguous on this screen:
-    // `chartCaptionTemplate` states an interest rate three elements below it,
-    // so "this rate" could be read as the interest rate rather than as the
-    // participant's own contribution - on the screen's strongest claim. The
-    // replacement names the assumption the participant CONTROLS rather than
-    // one they do not.
+    // THE ENDPOINT SENTENCE IS REPLACED BY A TWO-ROW BLOCK (D117), and the
+    // reason is structural rather than editorial. With no series selected the
+    // sentence had to state BOTH years, which put four numbers in one sentence
+    // and bound each year to its amount across an elision - "in {yearLow} at
+    // {low} a month, or {yearHigh} at {high} a month". The copy check flagged
+    // it on Rule 5 for the count and on Rule 4 because the trailing "or" clause
+    // resolved on the optimistic case whatever the word order.
     //
-    // `{year}` IS THE YEAR ALONE (D102). Conditional mood, no recommendation.
-    endpointTemplate: "If you keep saving this amount, you'd reach your {amount} goal in {year}.",
-
+    // A BLOCK BINDS EACH PAIR BY POSITION rather than by grammar. Two rows, two
+    // numbers each, no elision, no "or". That answers both flags by structure
+    // instead of by rewording, which is why it is a layout change carrying a
+    // copy decision rather than the other way round.
+    goalBlockHeadingTemplate: "When you'd reach your {amount} goal",
+    goalBlockRowTemplate: '{amount} a month - {year}',
+    // Binds both year figures to `projectionAssumptions` beneath them.
+    // A MARKER RETURNS HERE HAVING BEEN RETIRED FROM THE COMPARISON CARD, and
+    // the two cases are different: that card has ONE row sitting directly
+    // beneath its own caption, where adjacency is the binding. Here TWO figures
+    // share ONE caveat, which is what a marker is for - and what the pilot
+    // participant asked for at 24:27.
+    goalBlockMarker: '*',
     // ALWAYS VISIBLE, DIRECTLY BENEATH THE ENDPOINT LINE, NOT BEHIND A
     // DISCLOSURE (DECISIONS.md D103). A participant who does not open a
     // disclosure gets nothing from it, and the endpoint is the strongest claim
