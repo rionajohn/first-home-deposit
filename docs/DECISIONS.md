@@ -10581,3 +10581,182 @@ says nothing about that.
 
 **And the total is the operative figure.** It feeds the goal block's heading, the chart's axis top and
 both projections - so a caveat on an INPUT while the OUTPUT stood unqualified was the wrong way round.
+
+---
+
+## D131. "Why a bigger deposit helps" moves to the screen where the deposit percentage is chosen
+
+**Date.** 1 September 2026. Moves the section from frame 12 (`/calculator/result`) to frame 09
+(`/calculator/property`). Opens `GAPS.md` G123. **A move, not a rewrite:** the heading, all three
+reason blocks, their supporting lines and the layout are unchanged, and no financial figure was
+re-derived.
+
+### The reasoning
+
+The section explains what a larger deposit buys: less borrowed, better rates, more lenders. On frame
+12 it arrived **after the deposit percentage had been committed two screens earlier**, so it explained
+a choice the participant could no longer act on without navigating back through frames 10 and 11. On
+frame 09 it sits directly beneath the chip row that sets that percentage.
+
+The pilot supports the placement rather than the concept. At 27:40, of the Loan-to-Value drill-down:
+
+> "I feel as though I could have got all my information, like quite literally just on this front
+> page, right, even scrolling down, I could have gotten everything that I wanted from here."
+
+The concept was valuable and the placement was not. **The quote is taken from the brief; it is not in
+any document in this repo** - the session transcript is external, and `GAPS.md` G106 records that
+pilot findings are P-numbered there while gaps are G-numbered here.
+
+### Where exactly it sits, and why
+
+Beneath the "What each one means" card, above the flag row. **Options first, reasoning underneath:**
+the card answers "what would each percentage come to" with figures, and this section answers "why
+would I want a bigger one" in prose. A participant scanning for their own number reaches it before
+the argument for changing it.
+
+**Nothing on frame 09 moved to accommodate it.** It was appended after the card inside the same
+guarded branch, so every element above the card is at the pixel it was at before. The chip row, and
+the card's heading and first row, are still above the fold at 390x844.
+
+**It renders only where the card renders** - not in the empty state, not in the error state. This is
+not tidiness: the first row multiplies the property value, and in the empty state that value is
+`null`, which `formatCurrency` renders as **GBP 0** rather than failing. A screen may only display a
+figure derived from a key its own guard tested - `CLAUDE.md`'s state rule, D46, and D38's third
+amendment. The empty-state card keeps its own Loan-to-Value link, so the explainer stays reachable
+when the section is not drawn.
+
+### The duplicate link, and which one was kept
+
+The move put "What is Loan-to-Value?" on frame 09 twice: at the foot of the comparison card and at the
+foot of the moved section, one card apart. **The card's link was kept; the section's was removed.**
+
+**The link belongs at first encounter with the term, not after the explanation.** The card is where
+"Loan-to-Value" first appears on the screen, and it appears there three times with a figure attached
+to each - 95%, 90%, 85% against their deposits. A participant meeting the term for the first time
+looks immediately beneath the thing that used it.
+
+**This reverses the reasoning this pass first recorded, and the reversal is the part worth reading.**
+The first decision kept the section's link on the grounds that the section is what explains
+Loan-to-Value, so its foot is where a reader who has just been told the term matters looks for more.
+**That reasoning was sound while the two were on different screens** - on frame 12 the section stood
+alone, with no card above it and nothing else on the screen using the term, so its own foot was the
+only "more" position available. It stops holding the moment the card sits directly above the section:
+the explanation the reader would have gone looking for is now already on the screen, between the term
+and the link, so a link below it answers a question the section has just answered and sends the reader
+away from the answer.
+
+Recorded rather than quietly swapped, because a reader who finds only the second placement cannot tell
+whether the first was considered. It was, and it was right about a screen that no longer exists.
+
+`optionComparisonCardHTML` is unchanged, byte for byte - it draws its link exactly as it always has,
+and frame 09 passes `infoLinkLabel` and `infoLinkAction` as it always did. **The conditional this pass
+briefly added to that component was reverted**: with the link back on the card, no caller omits a
+label, and a guard nothing exercises is a claim about callers that do not exist.
+
+**No handler was added, and none was orphaned.** Frame 09 binds one
+`const ltvInfoBtn = container.querySelector('[data-action="open-ltv-info"]')` behind `if (ltvInfoBtn)`,
+shared by the empty-state card and now by the comparison card, so moving the link between two
+positions on the same screen rebinds rather than re-wires. The unguarded
+`querySelector(...).addEventListener(...)` shape that would have thrown on every render was checked
+for here and **is not present** - that shape was frame 12's, and it was removed with the card.
+
+**The empty-state card keeps its own link**, and that is load-bearing rather than incidental: the
+comparison card is not drawn when there is no property value, so without it the explainer would be
+unreachable from frame 09 exactly when a participant who has never met the term is deciding what to
+type. **Verified by the diff rather than in the browser**: the empty-state branch has no changed line
+in this pass, and the empty state could not be reached by seeding - the store rebuilds
+`property-value` from its own defaults, and `propertyValueCleared` does not survive a restore. Saying
+so is more honest than reporting a browser check that never entered the state it claimed to.
+
+### The band does not follow the chip row, and that is now visible
+
+`CHART_DEPOSIT_PCTS` supplies 5% and 10% to the first row on frame 09 exactly as it did on frame 12,
+so the row reads "GBP 22,500 less at 10% than at 5%" whichever chip is pressed. Beneath a live chip
+row that is a figure naming a band the participant may not be on. **Moved verbatim rather than made
+selection-aware**, because re-banding it would change a financial figure, and would also change what
+the row means - a fixed band illustrates a relationship, a following band reports the participant's
+own next step. Neither is a build session's to decide. Recorded as **G123**, open, with three unranked
+options and an instruction not to implement any of them against the entry.
+
+### What frame 12 loses
+
+The chart caption is now followed directly by "See what this means for borrowing". Nothing reads as
+orphaned: the section was a self-contained `.card` between the caption and that button, and both sides
+of the join are complete statements. No heading, divider or spacing artefact remains -
+`.screen-content` uses a uniform 16px flow gap, so removing a child closes the gap rather than leaving
+one.
+
+**The brief asked whether the "This could take more than 5 years at your current rate" banner still
+has somewhere sensible to sit. That banner does not exist.** `beyondWindowNote` was retired by **D100**
+once the endpoint line began naming the attainment year unconditionally, so the section had no such
+banner above it at the time of this move.
+
+### Verified
+
+At 390x844, on a fresh tab, **on the app's own default session** - see the note below the table, which
+corrects how these figures were originally described:
+
+| | Frame 09 before | Frame 09 after | Frame 12 before | Frame 12 after |
+| --- | --- | --- | --- | --- |
+| `.screen-content` scroll height | 1082px | **1528px** | 2086px | **1580px** |
+| `.why-bigger-deposit-card` | 0 | **1** | 1 | **0** |
+| `open-ltv-info` links | 1 | **1** | 1 | **0** |
+
+Frame 09 gains 458px and frame 12 loses 506px. **The 48px difference is the removed duplicate link**,
+which is one `.info-link` at its measured 48px - the two figures reconcile exactly rather than
+approximately.
+
+**A correction about how these were measured, kept rather than quietly fixed.** The measurement script
+written for this pass seeded `sessionStorage` under the key `first-home-deposit`. **The store's key is
+`yfh-state`** (`STORAGE_KEY` in `state.js`), so every seed was a no-op and all four figures were taken
+on the app's DEFAULT session rather than on `session-seed.mjs`'s `FULL`. **The numbers stand and the
+deltas are valid** - before and after were measured the same way, on the same session, so the
+comparison is like for like, and the default session's own £450,000 is what produced the £22,500 in
+the first benefit row. What was wrong was the description, and it was wrong in the direction that
+matters: a reader would have believed the figures came from the shared fixture every other
+browser-driven script uses. Caught when a seeded empty-state probe returned a filled screen three
+times running.
+
+The moral is `CLAUDE.md`'s own: a value measured against a reference the screen does not show has to
+name that reference. A seed that silently does nothing looks exactly like a seed that worked.
+
+All three reason blocks render in full on frame 09, with their labels, bodies and captions. The
+heading outline is H1 "Deposit calculator" -> H2 "What sort of property are you thinking about?" ->
+H3 "How much would you put down?" -> H3 "What each one means" -> H3 "Why a bigger deposit helps", so
+the moved heading is announced at the level its position calls for, no level is skipped, and **DOM
+order matches visual order** - the section is the last flow child before the flag row. Frame 12's
+outline loses its H3 "Why a bigger deposit helps" and is otherwise unchanged.
+
+**D112's block measurement did not move, and was not expected to.** Goal block through the assumptions
+line: **212.0px at default text and 252.5px at Large**, against a 732px viewport - headroom 520.0px and
+479.5px, byte-identical to the same measurement taken on a stash of this change. The block spans the
+goal block down to the assumptions note, both of which sit **above** the chart; the removed section sat
+below it, so it was never inside the block and returned no height to it. The 34px `--safe-bottom`
+assertion passes on 479.5px of Large headroom, unchanged. The brief's expected 576.0px and 627.3px are
+10.8's **derived** reference figures, printed beside the measurement on the same log line, not the
+measured block.
+
+**No test moved with the section and none was retired**, because none referenced it: `why-bigger`,
+`whyBigger`, `benefitRows` and `benefit-row` appear nowhere under `scripts/`. The section is covered
+generically - `overlap.test.mjs` walks every frame row at both text sizes and now walks it on frame 09
+instead of frame 12, and `action-bar.test.mjs` re-measured frame 09's bar against 458px more content.
+Suite: **423 tests, 422 passing, 1 skipped (G91's known intermittent), 0 failing.**
+
+`CACHE_VERSION` and `BUILD_VERSION` **v110 to v112**, a paired hand-edit, two bumps in one pass.
+Required rather than routine: `./src/content.js` is in `SHELL_ASSETS` and the shell is served
+cache-first with no revalidation, so a browser holding v110 would render the section on frame 12 and
+not on frame 09. **The second bump is for the same reason applied to this pass's own verification** -
+a v111 shell, carrying the Loan-to-Value link at the foot of the section rather than the card, was
+served locally while the first placement was being measured. Shipping the revised placement under
+v111 would leave any browser holding that build drawing the link in the position this entry reverses.
+It is the case D93 and D94 each hit in turn.
+
+### To reverse
+
+Move `whyBiggerHeading` and `benefitRows` back to `content['/calculator/result']`, restore the card and
+its `open-ltv-info` handler on frame 12, and restore `CHART_DEPOSIT_PCTS` to that file's imports.
+Frame 09's `optionComparisonCardHTML` call needs nothing done to it: it passes `infoLinkLabel` and
+`infoLinkAction` exactly as it did before this pass, so the card keeps its link either way.
+
+Reversing would put the explanation back after the decision it informs, so the reason would have to be
+that frame 09 is the wrong home rather than that frame 12 was the right one.

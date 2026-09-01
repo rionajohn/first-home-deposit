@@ -540,6 +540,35 @@ const content = {
     comparisonTechnicalTemplate: '{ltv} Loan-to-Value',
     ltvInfoLinkLabel: 'What is Loan-to-Value?',
     emptyStateCaption: "Enter a property value and we'll show you what each deposit %age would come to.",
+    // MOVED HERE FROM `/calculator/result` (DECISIONS.md D131), intact: the
+    // heading, all three reason blocks, their supporting lines and the layout.
+    // It sits with the choice it informs rather than after it.
+    //
+    // `bodyTemplate`'s BAND IS FIXED AT 5% -> 10% and does NOT follow the chip
+    // row above it - `CHART_DEPOSIT_PCTS` supplies both percentages, exactly as
+    // it did on frame 12. That was unremarkable on a screen where the choice
+    // was already made; beneath a live chip row it is a figure that can name a
+    // band the participant is not on. Moved verbatim rather than made
+    // selection-aware, because re-banding it would change a financial figure in
+    // a build session. Recorded as GAPS.md G123.
+    whyBiggerHeading: 'Why a bigger deposit helps',
+    benefitRows: [
+      {
+        label: 'You borrow less',
+        bodyTemplate: '{amount} less at {highPct} than at {lowPct}',
+        caption: 'So there is less to pay back, and less interest on it',
+      },
+      {
+        label: 'Lenders offer better rates',
+        body: 'Rates improve at each step down in Loan-to-Value',
+        caption: 'The rate is set by how much of the property you are borrowing',
+      },
+      {
+        label: 'More lenders will consider you',
+        body: 'Fewer deals are available above 90% Loan-to-Value',
+        caption: 'A larger deposit widens the choice',
+      },
+    ],
     lisaCapBannerText: 'A Lifetime ISA can only be used for a home costing {cap} or less. Above that, taking the money out costs 25% of what you withdraw.',
     errorNonNumeric: "That doesn't look like a property value. Enter a whole number greater than zero.",
     flagLabel: "Something doesn't look right",
@@ -1073,25 +1102,12 @@ const content = {
     // say nothing more. The endpoint line now names the attainment year
     // unconditionally, at every window, so the note restated a limit the
     // participant can no longer observe.
-    whyBiggerHeading: 'Why a bigger deposit helps',
-    benefitRows: [
-      {
-        label: 'You borrow less',
-        bodyTemplate: '{amount} less at {highPct} than at {lowPct}',
-        caption: 'So there is less to pay back, and less interest on it',
-      },
-      {
-        label: 'Lenders offer better rates',
-        body: 'Rates improve at each step down in Loan-to-Value',
-        caption: 'The rate is set by how much of the property you are borrowing',
-      },
-      {
-        label: 'More lenders will consider you',
-        body: 'Fewer deals are available above 90% Loan-to-Value',
-        caption: 'A larger deposit widens the choice',
-      },
-    ],
-    ltvInfoLinkLabel: 'What is Loan-to-Value?',
+    // "Why a bigger deposit helps" AND ITS `ltvInfoLinkLabel` MOVED TO
+    // `/calculator/property` (DECISIONS.md D131). The section explains what a
+    // larger deposit buys; on this screen it arrived after the deposit
+    // percentage had been committed two screens earlier, so it explained a
+    // choice the participant could no longer act on without going back. It now
+    // sits beneath the chip row that sets that percentage.
     assumptionsBannerText: "These figures assume your saving stays the same and rates don't change.",
     howWeWorkedTitle: 'How we worked this out',
     howWeWorkedIntro: "These figures come from your accounts. You didn't have to type anything in.",

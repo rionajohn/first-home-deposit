@@ -40,8 +40,9 @@
  * `new Date()`. A stale anchor would produce wrong years with nothing on
  * screen to reveal it.
  *
- * `CHART_DEPOSIT_PCTS` still supplies the "Why a bigger deposit helps" card's
- * low and mid figures, which is why it is still imported.
+ * `CHART_DEPOSIT_PCTS` IS NO LONGER IMPORTED (D131). It supplied the low and
+ * mid figures for the "Why a bigger deposit helps" card, and that card has
+ * moved to `/calculator/property`, where the deposit percentage is chosen.
  *
  * Two "how did we work this out" links are wired to their build-spec.md
  * section 1 destinations: the one directly under the range figure goes to
@@ -67,7 +68,7 @@ import {
 } from '../components/ui.js';
 import { formatCurrency, formatPercent, formatYear } from '../format.js';
 import { balanceAtMonth, monthsToReachAmount, checkpointAmount, goalMonths, goalAttained, stampDuty, combinedGoal } from '../model/model.js';
-import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS, CHART_MIN_RANGE_MONTHS } from '../model/rates.js';
+import { RATES, CHART_WINDOW_MONTHS, CHART_MIN_RANGE_MONTHS } from '../model/rates.js';
 
 export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
 
@@ -130,9 +131,6 @@ export function render(container, ctx) {
   const depositTargetValue = state['deposit-target'].value;
   const essentialSpending = state['essential-spending'].value;
   const leftOverValue = state['left-over'].value;
-
-  // ONLY THE BENEFIT CARD READS THESE (D73).
-  const [lowPctValue, midPctValue] = CHART_DEPOSIT_PCTS;
 
   const depositPctValue = state['deposit-pct'].value;
   const stampDutyValue = state['stamp-duty'].value;
@@ -373,18 +371,6 @@ export function render(container, ctx) {
         <p class="legal-text">${fill(c.chartCaptionTemplate, { aer: formatPercent(RATES.bankRate) })}</p>
       ` : ''}
 
-      <div class="card why-bigger-deposit-card">
-        <h3 class="section-heading">${c.whyBiggerHeading}</h3>
-        ${c.benefitRows.map((row) => `
-          <div class="benefit-row">
-            <p class="benefit-row__label">${row.label}</p>
-            <p class="benefit-row__body">${row.bodyTemplate ? fill(row.bodyTemplate, { amount: formatCurrency(propertyValue * (midPctValue - lowPctValue)), highPct: formatPercent(midPctValue, 0), lowPct: formatPercent(lowPctValue, 0) }) : row.body}</p>
-            <p class="benefit-row__caption">${row.caption}</p>
-          </div>
-        `).join('')}
-        ${infoLinkHTML({ label: c.ltvInfoLinkLabel, action: 'open-ltv-info' })}
-      </div>
-
       <button type="button" class="button button--primary" data-action="save-goal">${c.primaryCta}</button>
 
       ${infoBannerHTML(c.assumptionsBannerText)}
@@ -464,11 +450,6 @@ export function render(container, ctx) {
       setState({ returnFrame: '/calculator/result' });
       window.location.hash = '#/assumptions/saving';
     });
-  });
-
-  container.querySelector('[data-action="open-ltv-info"]').addEventListener('click', () => {
-    setState({ returnFrame: '/calculator/result' });
-    window.location.hash = '#/learn/ltv';
   });
 
   const setAmountBtn = container.querySelector('[data-action="set-amount"]');

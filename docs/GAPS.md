@@ -4891,3 +4891,53 @@ dependencies were asserted before it was removed** - see D130 - which is the sam
 | Default | 736.0px | **688.0px**, clears by 44.0px |
 | Large | 821.1px | 767.7px, reported |
 
+
+---
+
+## G123. The "you borrow less" figure is banded 5% -> 10% and does not follow the chip row above it. OPEN
+
+*Raised 1 September 2026 with `DECISIONS.md` D131, which moved "Why a bigger deposit helps" from
+frame 12 to frame 09. **This is a consequence of the move, not a defect the move introduced into the
+string** - the figure was already banded this way on frame 12 and was moved verbatim. What changed is
+what sits next to it.*
+
+### The finding
+
+`benefitRows[0].bodyTemplate` reads `'{amount} less at {highPct} than at {lowPct}'`, and both
+percentages come from `CHART_DEPOSIT_PCTS` - `[0.05, 0.10, 0.15]` - so the row always renders "less at
+10% than at 5%" whichever deposit percentage is selected. At the seeded £450,000 it reads
+**"£22,500 less at 10% than at 5%"**.
+
+On frame 12 that was unremarkable. The deposit percentage had been committed two screens earlier,
+nothing on the screen invited a change to it, and the row read as a general illustration of a
+relationship.
+
+**On frame 09 it sits roughly 340px below a live chip row offering 5, 10, 15, 20 and 25%.** A
+participant on 20% now reads a figure naming a band they are not on, directly beneath the control that
+sets the band. The string states its own reference - "at 10% than at 5%" is on screen, so this is not
+`CLAUDE.md`'s unnamed-reference fault class - but stating the reference and being adjacent to a
+control that contradicts it are different problems.
+
+### Why it was not fixed in the same pass
+
+Making the row follow `depositPct` would change which financial figure is displayed, which
+`CLAUDE.md` forbids in a build session, and it would also change what the row MEANS: a fixed band
+illustrates a relationship, a following band reports the participant's own next step. Those are two
+different pieces of copy and the second has not been written or approved. D93's rule applies - the
+key is wired, the question is recorded, and the string is not invented here.
+
+### The options, unranked
+
+1. **Leave it.** The band is stated, and a fixed illustration beneath a chip row may read as an
+   example rather than as a claim about the selection. Untested.
+2. **Follow the selection**, so a participant on 20% reads the step from 15% to 20%. Needs new copy,
+   and needs a rule for the 5% chip, which has no step below it.
+3. **Name it as an example** in the row's own caption, leaving the arithmetic alone.
+
+**Do not implement any of these against this entry.** It is a question for a copy pass or a session,
+not a build.
+
+### What would settle it
+
+The next moderated session, watching whether a participant on a chip other than 10% reads the row as
+being about their own selection. That is observable directly and does not need to be asked.

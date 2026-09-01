@@ -41,7 +41,7 @@ import {
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { depositTarget, loanAmount, ltv, stampDuty, combinedGoal, ftbReliefLost } from '../model/model.js';
-import { AREA_AVERAGE_PROPERTY_VALUE, DEPOSIT_PCT_OPTIONS, DEFAULT_DEPOSIT_PCT, LISA_CAP_PROPERTY_VALUE, neighbourPcts } from '../model/rates.js';
+import { AREA_AVERAGE_PROPERTY_VALUE, CHART_DEPOSIT_PCTS, DEPOSIT_PCT_OPTIONS, DEFAULT_DEPOSIT_PCT, LISA_CAP_PROPERTY_VALUE, neighbourPcts } from '../model/rates.js';
 
 export const anchors = ['guidanceNotAdvice'];
 
@@ -62,6 +62,12 @@ export function render(container, ctx) {
   // 09a for both, but only the first is a figure - the second is a draft, and
   // must not touch `property-value`. See DECISIONS.md D46.
   const isEmpty = state.propertyValueCleared || propertyValue.value === null;
+  // THE BAND IS FIXED, NOT THE SELECTION (D131). `CHART_DEPOSIT_PCTS` supplies
+  // 5% and 10% here exactly as it did on frame 12, so the "you borrow less"
+  // figure names the same illustrative step whichever chip is pressed. Named
+  // rather than inlined so the next reader sees that it does not follow
+  // `depositPct` above. GAPS.md G123.
+  const [bandLowPct, bandHighPct] = CHART_DEPOSIT_PCTS;
   // D70. Derived live from the field's own committed value, exactly as
   // `isAboveLisaCap` below is - both banners appear as soon as the value
   // commits, and neither reads a stored flag.
@@ -141,7 +147,32 @@ export function render(container, ctx) {
            </div>`
         : errorText
           ? ''
-          : optionComparisonCardHTML({ headerText: c.comparisonHeaderText, rows: comparisonRows, infoLinkLabel: c.ltvInfoLinkLabel, infoLinkAction: 'open-ltv-info', selectedLabel: c.comparisonSelectedLabel })}
+          : `
+            ${optionComparisonCardHTML({ headerText: c.comparisonHeaderText, rows: comparisonRows, infoLinkLabel: c.ltvInfoLinkLabel, infoLinkAction: 'open-ltv-info', selectedLabel: c.comparisonSelectedLabel })}
+            <!-- MOVED FROM FRAME 12 (D131). It sits BENEATH the comparison
+                 card so the participant reads the options first and the
+                 reasoning underneath, and it renders in the SAME GUARDED
+                 BRANCH as that card: the first row multiplies the property
+                 value, and in the empty state that value is null, which
+                 formatCurrency would render as a GBP 0 rather than failing.
+                 A screen may only show a figure derived from a key its own
+                 guard tested - CLAUDE.md's state rule, D46. -->
+            <div class="card why-bigger-deposit-card">
+              <h3 class="section-heading">${c.whyBiggerHeading}</h3>
+              ${c.benefitRows.map((row) => `
+                <div class="benefit-row">
+                  <p class="benefit-row__label">${row.label}</p>
+                  <p class="benefit-row__body">${row.bodyTemplate ? fill(row.bodyTemplate, { amount: formatCurrency(propertyValue.value * (bandHighPct - bandLowPct)), highPct: formatPercent(bandHighPct, 0), lowPct: formatPercent(bandLowPct, 0) }) : row.body}</p>
+                  <p class="benefit-row__caption">${row.caption}</p>
+                </div>
+              `).join('')}
+              <!-- NO LTV LINK HERE (D131, revised). The single link on the
+                   filled state sits at the foot of the comparison card above,
+                   which is where "Loan-to-Value" is first met and where it is
+                   attached to figures. A second one here would be the
+                   duplicate the move created. -->
+            </div>
+          `}
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
     </main>
