@@ -136,6 +136,18 @@ export function render(container, ctx) {
 
   // ONE PREDICATE, ONE PLACE (D99).
   const attained = goalAttained(state);
+
+  // ONE VALUE COMMITTED MEANS ONE SERIES (D136). The rule is stated here and
+  // read by every surface below: the chart's second line, the goal block's
+  // second row, the readout's second row and the table's second column all
+  // follow this one boolean.
+  //
+  // KEYED ON WHAT WAS COMMITTED, NOT ON WHICH BRANCH COMMITTED IT. The date
+  // branch is what produces a single value today (D135), but reading
+  // `solveFor` here would tie this screen to how the figure was derived; the
+  // two keys being equal is the fact that matters, and it stays true however a
+  // future branch arrives at it.
+  const singleSeries = monthlyLow === monthlyHigh;
   const unreachable = monthlyLow <= 0 && monthlyHigh <= 0;
 
   // BOTH CONTRIBUTIONS, ALWAYS, WITH NO SELECTION (D116). The participant
@@ -180,7 +192,11 @@ export function render(container, ctx) {
     // NULL, NOT CLAMPED. Past its attainment the higher series has no value to
     // plot - it stopped - and clamping to the goal would draw a flat run that
     // says it kept saving and stayed level.
-    high: attainHigh !== null && months > attainHigh
+    // NULL THROUGHOUT WHEN THERE IS ONLY ONE SERIES (D136), which is what the
+    // chart already needed to draw one line: its high polyline collapses to an
+    // empty points list and its high marks are skipped, both by the existing
+    // null guards rather than by a new branch.
+    high: singleSeries || (attainHigh !== null && months > attainHigh)
       ? null
       : balanceAtMonth({ startingBalance: savedTowardDeposit, monthlyAmount: monthlyHigh, months }),
   }));
@@ -226,10 +242,15 @@ export function render(container, ctx) {
   // NOT A REVIVAL OF D72. That intent is recorded as dropped (D121) and reading
   // order does not carry it; this is consistency, which is a different
   // argument for the same sequence.
-  const series = [
-    { shade: 'low', rate: monthlyLow, attain: attainLow, valueOf: (pt) => pt.low },
-    { shade: 'high', rate: monthlyHigh, attain: attainHigh, valueOf: (pt) => pt.high },
-  ];
+  // The goal block's rows and the in-plot readout's rows are both `series.map`,
+  // so dropping the second entry is all either needs (D136). D127's ascending
+  // order is unaffected: one entry is ordered.
+  const series = singleSeries
+    ? [{ shade: 'low', rate: monthlyLow, attain: attainLow, valueOf: (pt) => pt.low }]
+    : [
+      { shade: 'low', rate: monthlyLow, attain: attainLow, valueOf: (pt) => pt.low },
+      { shade: 'high', rate: monthlyHigh, attain: attainHigh, valueOf: (pt) => pt.high },
+    ];
 
   const activeIndex = Math.max(0, Math.min(pointCount - 1, state.chartActiveIndex ?? pointCount - 1));
 
@@ -335,7 +356,11 @@ export function render(container, ctx) {
           headers: {
             month: c.chartTableYearHeader,
             low: fill(c.chartTableSeriesHeaderTemplate, { amount: formatCurrency(series[0].rate) }),
-            high: fill(c.chartTableSeriesHeaderTemplate, { amount: formatCurrency(series[1].rate) }),
+            // UNDEFINED DROPS THE COLUMN (D136). Indexed off `series` rather
+            // than off the raw figures, so the header cannot outlive the entry
+            // it names - this line read `series[1].rate` unguarded, which is
+            // the one place on this screen that assumed two by position.
+            high: series[1] && fill(c.chartTableSeriesHeaderTemplate, { amount: formatCurrency(series[1].rate) }),
           },
           caption: c.chartTableCaption,
           valueFormatter: formatCurrency,

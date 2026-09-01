@@ -859,6 +859,13 @@ const content = {
     savedSoFarAriaLabel: 'Saved so far, editable',
     monthlyLowAriaLabel: 'Monthly saving, lower amount, editable',
     monthlyHighAriaLabel: 'Monthly saving, upper amount, editable',
+    // THE PAIR'S LABEL WITH THE DISAMBIGUATOR REMOVED (D136), not a new
+    // phrasing. "lower amount" and "upper amount" exist only to tell two
+    // fields apart; with one field there is nothing to tell it apart from, and
+    // reading "lower amount" over the only input on the row would name a
+    // bound that is not on screen. The rest of the string is the pair's,
+    // unchanged.
+    monthlySingleAriaLabel: 'Monthly saving, editable',
     monthlySavingJoin: 'to',
     provenanceKeyLabel: 'How we worked these out',
     noteBannerText: "Changing anything here won't change your savings goal until you choose to update it.",

@@ -4772,7 +4772,7 @@ before the workaround is designed.
 
 ---
 
-## G121. On the target-date branch the table's second column is arithmetic, not a second choice. OPEN
+## G121. On the target-date branch the table's second column is arithmetic, not a second choice. CLOSED 1 September 2026 - DECISIONS.md D135
 
 *Raised 1 September 2026 with D116, which removed the series selector and left both columns showing
 at once. **Not fixable in that pass** - closing it means changing what frame 10b commits, and frame 10
@@ -4811,6 +4811,30 @@ frozen pending the G107 measurement**, so it is not attempted here.
 exactly what D2 asks of it; what changed is that a range built to express *uncertainty about one
 figure* is now being rendered as a *comparison between two options*. Whoever takes this should decide
 which of those the two columns are meant to be before changing either end.
+
+### CLOSED 1 September 2026 - DECISIONS.md D135
+
+**Closed by removing the band, and this entry's own question is what decided how.** It asked whoever
+took this to settle whether the two columns are *uncertainty about one figure* or *a comparison
+between two options* before changing either end. The answer is that on the date branch there is only
+one figure, so the band was never the second thing - and the fix is to stop deriving it rather than to
+relabel it. `monthly-low`, `monthly-high` and `savings-rate` all take the solved amount.
+
+**The defect was worse than this entry recorded, and the extra half is what made it urgent.** The band
+did not merely present arithmetic as a choice: at the floor date it derived **£695.92** from an
+affordable **£632.65** against a **£640** ceiling, so the app broke its own limit and then told the
+participant *"That's more than what's left over each month. Choose a smaller range."* They had chosen
+no range. It appeared on step 3 and again on step 2 on the way back.
+
+**The suggested fix was not taken, and should not be read as still pending.** This entry proposed
+committing the `left-over` ceiling as a genuinely second contribution. That would have invented a
+second choice the participant did not make, in place of a different one they did not make. One
+contribution chosen means one committed.
+
+**What is left is smaller and is recorded separately.** The date branch now draws one line twice and
+one column twice - **G128**, with four unranked decisions and an instruction not to implement against
+it. Frame 10's freeze was crossed deliberately and narrowly; D135 records the exception and what was
+checked.
 
 ---
 
@@ -5181,3 +5205,220 @@ edited for another reason. Renaming is `insights` -> `mortgage` in the six place
 else; there is no derived figure, no stored key and no copy involved. **Do it in one commit or not at
 all** - a half-renamed id is worse than either, because `TAB_ICONS.mortgage` with `data-tab="insights"`
 fails the way D35's missing `diamondFill` did, silently until the tab is lit.
+
+---
+
+## G128. On the target-date branch frame 12 draws one line twice and one column twice. CLOSED 1 September 2026 - DECISIONS.md D136
+
+*Opened 1 September 2026 with `DECISIONS.md` D135, which closed G121 by removing the derived band.
+**This is the deliberate residue of that fix, not a regression.** D135 committed the solved figure to
+`monthly-low`, `monthly-high` and `savings-rate` alike, because frame 12 plots the pair throughout and
+a single-series state has never been designed.*
+
+### What it looks like today
+
+On the date branch, `monthly-low === monthly-high`, so frame 12 renders:
+
+| Element | What a participant sees |
+| --- | --- |
+| The chart | **Two lines at identical coordinates** - one drawn over the other, indistinguishable |
+| The in-plot readout | **Two rows carrying the same figure** |
+| The goal block | **Two mini cards naming the same contribution and the same year** |
+| The table | **Two columns of identical values** beside the year column |
+
+**It is honest and it is redundant.** Nothing on the screen is now false - the second column is no
+longer a figure the participant never chose, which was G121's complaint and is closed. What remains is
+that the screen says one true thing twice.
+
+**The monthly-amount branch is unaffected** and still shows two genuinely different contributions.
+Only the date branch coincides.
+
+### The four decisions this needs, unranked
+
+None of these is a bug fix; each is a design question with its own trade-off.
+
+1. **The chart.** Does the lone line keep the `low` shade or take one of its own? `rangeMonths` is
+   `attainLow ?? CHART_WINDOW_MONTHS`, and D117's whole construction - each series ends at its own
+   attainment, the higher line stops earlier and further left, and **that difference IS the
+   comparison** - has no meaning with one line. What the window runs to has to be restated.
+2. **The in-plot readout.** One row is structurally free. But the block loses a row, so its height
+   changes, and that height feeds **D112's co-visibility measurement**. This needs re-measuring at
+   both text sizes, not just re-rendering.
+3. **The goal block.** Does a single mini card span the row, or sit half-width beside a gap? D117 drew
+   the row as a pair.
+4. **The table.** `chartTableHTML` hard-codes three `<th>` and two `<td>` per row, with `headers.low`
+   and `headers.high` both required. **Two columns is structural, not data-driven** - the component
+   needs a signature change, and it is shared.
+
+### What was checked and is NOT a problem
+
+- **D127's ordering rule** - ascending by contribution - is trivially satisfied by one entry, and
+  nothing indexes the series by position: there is no `series[0]`/`series[1]`, no length check and no
+  two-element destructuring in `ui.js`.
+- **The empty lower-right corner** that file 05 places the legend in stays empty by construction. A
+  single rising line occupies the same lower-left-to-upper-right diagonal, and D130 already removed
+  the legend that sat there.
+
+So two of the six surfaces are clean and four need decisions.
+
+### The tests that would have to move
+
+`chart-detail.test.mjs` asserts two series unconditionally in three places: the high-series readout
+cell (line 227), `cols === 3` (line 555), and `labels.length === 2` at rest and at every point (lines
+723 and 736). **All three pass today**, because two coincident series is still two - they would need
+rewriting only when the single-series state is actually built.
+
+**Do not implement any of the four against this entry.** It is a design pass with a measurement in it,
+not a build task.
+
+### What would settle it
+
+The four decisions taken together, with the readout re-measured against D112 before anything ships. A
+session would also say whether the duplication is even noticed on the date branch - it may read as
+emphasis rather than as error, in which case the cost of the redesign is worth weighing against
+leaving it.
+
+### CLOSED 1 September 2026 - DECISIONS.md D136
+
+**All four decisions were taken** - the lone line keeps the `low` shade and the window still runs to
+`attainLow` (D117 degrades to its own trivial case rather than needing restating); the readout drops
+to one row; the goal block draws one card spanning the row, with no half-width rule added; and
+`chartTableHTML`'s second column becomes optional, dropped rather than filled with a repeat of the
+first. **The rule is keyed on `monthly-low === monthly-high`, not on the branch**, so it reads the
+same on step 3, where it also removes "£633 to £633".
+
+**Three of the six surfaces needed no code.** The goal block and the readout are both `series.map`,
+and the chart's high polyline and high marks were already null-guarded because D117 needed the higher
+series to stop at its own attainment. Setting `high: null` draws one line using machinery already
+present.
+
+**A correction to this entry, which was wrong on one point.** It said "nothing indexes the series by
+position: there is no `series[0]`/`series[1]`". That was scoped to `ui.js`, where it held - but frame
+12's own table header read **`series[1].rate` unguarded**, which is exactly the two-by-position
+assumption the entry said did not exist. It was found by building the change rather than by re-reading
+the file, which is the honest account of it. The line now indexes off `series` so the header cannot
+outlive the entry it names.
+
+**Two tests assumed two inputs unconditionally and both were updated rather than weakened** -
+`stale-session.test.mjs` now asserts the date branch shows exactly one field, which is a stronger
+claim than it made before; and `inline-edit.test.mjs`'s clamp test split in two, because clamping a
+low end up to a high end now collapses the row. That collapse, and the single field's error-rather-
+than-clamp behaviour, are **G130**.
+
+---
+
+## G129. `unreachable` is reachable through a null bound, and the guard never tests the keys the screen derives from. OPEN - LIVE STATE-RULE VIOLATION
+
+*Raised 1 September 2026 while implementing `DECISIONS.md` D135, which did not cause it and does not
+depend on it. **Independent of that change and older than it.** Fix in its own pass.*
+
+### The two halves
+
+**1. The guard does not test what the screen uses.** `calculator-result.js` guards on
+`deposit-target`, `combined-goal`, `stamp-duty` and `months-to-target.provenance`, then derives every
+figure it draws - the chart, the readout, the goal block, the table - from **`monthly-low` and
+`monthly-high`, which it never tests.**
+
+That is `CLAUDE.md`'s state rule verbatim: *a screen may only display a figure derived from a key its
+own guard tested.* The same rule D46 and D38's third amendment were each written for.
+
+**2. `null <= 0` is `true`.** Line 138 reads:
+
+    const unreachable = monthlyLow <= 0 && monthlyHigh <= 0;
+
+JavaScript coerces `null` to `0` for a relational comparison, so **a null bound satisfies the
+predicate**. With both null the screen renders its "Nothing being put aside yet - Add a monthly amount
+or a target date to see what this would take" empty state.
+
+### Why it matters, and why it is quiet
+
+A participant who has just set a target date would be told they have set nothing. **No error is
+raised, no screen is blank, and `smoke.test.mjs` would pass** - it asserts that a screen mounts and
+renders something, and this renders a real, well-formed screen. It is simply the wrong one.
+
+This is the exact shape `CLAUDE.md`'s standing constraint names: a value measured against something
+the participant cannot see, where nothing on screen reveals that it is the wrong something.
+
+**It is not reachable today**, because every path that reaches frame 12 commits both bounds - D135
+made the date branch commit the solved figure to both rather than leaving them null, which is one of
+the reasons it did so. The defect is that **nothing prevents it**, and the predicate would not
+announce it if something did.
+
+### The options, unranked
+
+1. **Add `monthly-low` and `monthly-high` to the guard**, so the screen bounces to
+   `/calculator/review` rather than rendering from untested keys. Closes half 1 directly, and makes
+   half 2 unreachable rather than merely unreached.
+2. **Make the predicate explicit about null** - `Number.isFinite(monthlyLow) && monthlyLow <= 0 && ...`
+   or a null check ahead of it - so an absent figure and a zero figure stop being the same case.
+3. **Both**, which is probably right: the guard states the precondition and the predicate stops
+   silently agreeing with a null.
+
+**Do not implement against this entry in a pass that is doing something else.** It touches the guard
+on a screen five other decisions currently rest on.
+
+### What would settle it
+
+A pass that adds the two keys to the guard, makes the predicate null-explicit, and adds a test that a
+null bound bounces rather than rendering the empty state - the assertion `smoke.test.mjs` structurally
+cannot make.
+
+---
+
+## G130. The single monthly field errors where the pair clamps, and collapsing to it is one-way. OPEN - REPORT ONLY
+
+*Raised 1 September 2026 with `DECISIONS.md` D136, which built the single-value row. **Both halves are
+deliberate choices made in that pass, recorded so they are visible rather than discovered.** Neither
+is a defect today; each is a place where the row behaves differently from the pair beside it.*
+
+### Half one: two behaviours for one bound
+
+| | Typing above `left-over` |
+| --- | --- |
+| **The pair** (`edit-monthly-low` / `edit-monthly-high`) | **Clamps.** The figure snaps to the ceiling, silently, raising no error. Frame 10's own inputs do the same; the cost is recorded as **G74** |
+| **The single field** (`edit-monthly-single`) | **Errors.** The typed figure is committed and stays on screen, `monthlyError` fires, and Continue disables |
+
+**Why they differ, from D136:** clamping on a single-field row would make the participant's typed
+figure vanish into a bound with nothing to explain it, on a row where the "Max" note is the only
+element naming a bound at all. With the pair, a clamped low end visibly snaps to the high end that is
+still on screen beside it - there is something to see it move to.
+
+**Why it is still worth recording:** the same row, one edit apart, refuses a figure two different ways.
+A participant who collapses the row (see half two) and then types 900 gets an error where a moment
+earlier they would have got a silent clamp.
+
+### Half two: the collapse is one-way from step 3
+
+**Into the single field**, from the pair, two ways: committing a target date on frame 10b (D135), or
+**typing a low end above the high end**, which clamps the low up to the high, makes them equal, and
+re-renders the row as one input. The second is not obvious - a participant correcting a typo in the
+left-hand field can collapse the row without intending to.
+
+**Out of it**, from step 3: **not at all.** There is no second input to type a second figure into. The
+only route back to a pair is frame 10's slider, which means leaving step 3.
+
+**This follows from the rule and is not a bug in it.** D136 keys on what was committed, and when both
+bounds are equal the commit genuinely carries one value - showing "£600 to £600" would be the fault
+the rule exists to remove. But "the row you were editing became a different control" is a real
+interaction, and nothing on screen announces it.
+
+### The options, unranked
+
+1. **Leave both.** The collapse is correct by the rule, and the error is better than a silent clamp on
+   a one-field row. Untested either way.
+2. **Make the single field clamp too**, for consistency with the pair, and accept that the typed
+   figure disappears without explanation. Closes half one at the cost of the thing D136 chose against.
+3. **Make the pair error too**, which would close half one from the other end and also close G74 - but
+   it changes frame 10's inputs as well, since they share the expressions, and that is a wider change
+   than either entry asks for.
+4. **Announce the collapse**, so a participant who did not intend it can see what happened. Needs
+   copy, and copy is not written in a build session.
+
+**Do not implement any of these against this entry.** Options 2 and 3 trade one recorded decision for
+another, and 4 needs approved copy.
+
+### What would settle it
+
+A session in which a participant on the monthly branch types a low end above their high end. That is
+the unintended path, it is observable directly, and it is the only one of the two halves a participant
+can stumble into. The date-branch path is intentional and needs no observation to justify.

@@ -11175,3 +11175,282 @@ Restore `insights: 'Insights'`, the three `*TabHint` strings and their `aria-lab
 `keyFill` back for `diamond` / `diamondFill`. Reversing would put back a label the pilot participant
 named as the session's strongest objection, so the reason would have to be new evidence about the
 word rather than a preference for the old glyph.
+
+---
+
+## D135. The target-date branch commits the solved figure, not a band around it
+
+**Date.** 1 September 2026. **Closes `GAPS.md` G121.** Opens **G128** and **G129**. Changes what frame
+10b COMMITS, not what it renders - and the one visible consequence on the frozen screen is recorded
+below as a deliberate, scoped exception.
+
+### The defect, which was worse than G121 recorded
+
+G121 recorded that the date branch derives `monthly-low`/`monthly-high` as `rangeFromCentral` at
+0.9x/1.1x around one solved figure, so frame 12's second column is arithmetic rather than a second
+real choice. **It also manufactured an error out of an affordable answer.**
+
+Measured on the seeded persona, at the floor date:
+
+| | |
+| --- | --- |
+| `left-over` ceiling | **£640** |
+| Solved monthly amount | **£632.65** - affordable, and the date list will not offer a date that is not |
+| Derived band | £569.39 to **£695.92** |
+| Result | £695.92 **breaks the ceiling**, so the range check refused it |
+
+So a participant who picked a date the app itself offered, solving an amount the app itself confirmed
+they could afford, was told: **"That's more than what's left over each month. Choose a smaller
+range."** They had not chosen a range. The app derived the figure that broke its own limit and then
+blamed the participant for it.
+
+**And it appeared on BOTH screens.** Step 3 refused the commit, and step 2 refused it again on the way
+back, because `calculator-saving.js`'s own ceiling check reads the same `monthly-high`.
+
+### What is committed now
+
+All three keys take the solved figure:
+
+    'savings-rate': rate,  'monthly-low': rate,  'monthly-high': rate
+
+The participant chose one contribution, so one contribution is committed. It is written to all three
+because frame 12 plots `monthly-low` and `monthly-high` throughout and **a single-series state has
+never been designed** - see G128, which is deliberately not designed here.
+
+**`rangeFromCentral` is not deleted and is not at fault.** It still serves `monthsToTarget`'s band and
+the loan band in `model.js`, and it does exactly what D2 asks. What was wrong was using a construct
+built to express *uncertainty about one figure* as though it were *a comparison between two choices* -
+which is the distinction G121 asked whoever took this to settle first.
+
+### The scoped exception to frame 10's freeze
+
+Frame 10 is frozen pending the **G107** measurement on step 2's option labels. This change was checked
+against that freeze before it was made, and it does cross it - narrowly.
+
+**What was checked, and found unchanged:** the solved figure and how it is solved, the moved-date
+disclosure, the hint beneath the controls, the action bar, the floor and cap on the date lists, and
+everything the date variant renders on arrival. The date branch reads `previewAmount`; the band existed
+only inside the Continue handler and was never rendered.
+
+**What does change, measured rather than assumed** - the monthly-amount variant, on a return visit
+after a date commit:
+
+| | Slider | Banner |
+| --- | --- | --- |
+| Before | 574 / 701 (the band) | **"That's more than what's left over each month."** |
+| After | 633 / 633 (the committed figure) | none |
+
+**Why this is taken rather than deferred.** The change does not add anything to the frozen screen: it
+**removes a manufactured error that is on frame 10 today**. Leaving it protects the G107 measurement
+less than fixing it does - a participant who hits that banner on step 2 is being told an affordable
+answer is unaffordable, on the screen whose comprehension is being measured, which contaminates the
+measurement far more than a slider resting on a different figure. G107 measures the two option labels
+("Set a monthly amount", "Set a target date"); neither is touched, and neither is any string.
+
+**The slider no longer re-seeds on this path, and that is an improvement in its own right.** Returning
+to step 2 used to find the band in the store; before D135 a null bound would have re-seeded the slider
+from the account figures (200/310), discarding what the participant committed. Committing the solved
+figure to all three keys means the return path shows **what they actually chose**.
+
+Recorded as an exception rather than as a silent crossing, because the next person to read the freeze
+needs to see that it was considered and why it was set aside once.
+
+### Verified
+
+Driven through the real flow at 390x844, not seeded into it:
+
+| | |
+| --- | --- |
+| Committed state after Continue on the date branch | `monthly-low`, `monthly-high` and `savings-rate` all **632.65**, all provenance `entered` |
+| Step 2, date variant | **no banner** |
+| Step 3 | **no banner**, Continue not disabled |
+| Return to step 2, slider variant | **633 / 633**, no banner - the committed figure, not a re-seed |
+
+**The monthly-amount branch is untouched**, verified by driving it too: two handles set to 250 and 480
+commit as two `entered` values with `savings-rate` as their 365 midpoint. **Its range validation still
+bites** - a `monthly-high` of 900 against the 640 ceiling still raises `errorExceedsLeftOver` on both
+step 2 and step 3. Nothing in the check changed; what changed is that the app no longer generates the
+value that trips it.
+
+**A note on that check, worth having.** The slider's own handler clamps at `savingCeiling`, so the
+control cannot produce an over-ceiling value. Before this change, the derived band was effectively the
+only way a real session reached that error - the validation was largely catching a figure the app
+itself had manufactured.
+
+Suite: **423 tests, 422 passing, 1 skipped (G91's known intermittent), 0 failing.** **No test assumed
+two DISTINCT series**, which is why the coincident route needed none rewritten: `chart-detail`'s three
+two-series assertions - the high-series readout cell, `cols === 3`, and `labels.length === 2` at rest
+and at every point - all still pass, because two coincident series is still two.
+
+`CACHE_VERSION` and `BUILD_VERSION` v116 to v117, a paired hand-edit.
+
+### What this deliberately does NOT do
+
+**It does not design the single-series state**, and the reason is not scope discipline alone - it is
+that removing the band without designing it would have **broken frame 12 silently**. See G129:
+`unreachable` is `monthlyLow <= 0 && monthlyHigh <= 0`, and `null <= 0` is `true` in JavaScript, so
+committing one value and leaving the pair null renders the "Nothing being put aside yet" empty state
+to a participant who has just set a target date. No error, no blank screen, just the wrong screen -
+which `smoke.test.mjs` would pass. That is a live state-rule violation independent of this change and
+is fixed in its own pass.
+
+### To reverse
+
+Restore `const range = rangeFromCentral(rate.value)` and commit `range.low` / `range.high`. That
+reinstates a screen that tells a participant their affordable answer is unaffordable, so the reason
+would have to be a genuinely second contribution - G121 suggested the `left-over` ceiling as the
+natural pair - rather than a return to the band.
+
+---
+
+## D136. One value committed means one of everything, keyed on the commit rather than the branch
+
+**Date.** 1 September 2026. **Closes `GAPS.md` G128**, which D135 opened the day it created the state
+this entry designs. Opens **G130**.
+
+### The rule, stated once
+
+> **If the commit carries a single monthly value, every downstream surface renders one: one input on
+> step 3, one line, one goal row, one readout row, one table column, no legend. If it carries two
+> distinct values, everything renders the pair as it does today.**
+
+**Keyed on `monthly-low === monthly-high`, not on `solveFor`.** The date branch is what produces a
+single value today, but reading the branch would tie two screens to how the figure was derived. The
+two keys being equal is the fact that matters and it stays true however a future branch arrives at it -
+which is also why the rule fits in one sentence.
+
+The predicate is declared once per screen (`singleSeries` on frame 12, `singleValue` on frame 11) and
+every surface reads that one boolean.
+
+### What it fixes on step 3
+
+The date branch was rendering **"£633 to £633"** - two inputs and a "to" around one figure. That reads
+as a fault, and it read as one *before* the participant reached the results, which is where D135's own
+work would otherwise have been undone.
+
+**One field, no join.** `reviewRowHTML` already joins with `Array.join`, so a single-element `fields`
+array emits no separator - the component needed no change at all.
+
+### The three questions asked before building
+
+**1. The single field stays editable, and editing it cannot produce a second value.** It writes the
+typed figure to `monthly-low` and `monthly-high` alike, so one value stays one value. **There is no
+second input to type a second figure into**, so the "stays single until they enter a second value"
+case has no mechanism on this screen - the only route back to a pair is frame 10's slider. Reported
+rather than assumed, and recorded in **G130** because a one-way control is worth knowing about.
+
+**2. The label needed no change, and nothing else reads as plural.** "Monthly saving" is number-neutral,
+"Max: £1,150" bounds one figure as readily as two, and the row carries no caption. **The one string
+added is an aria-label**: `monthlySingleAriaLabel`, "Monthly saving, editable". That is the pair's own
+label with its disambiguator removed - "lower amount" and "upper amount" exist only to tell two fields
+apart, and reading "lower amount" over the only input on the row would name a bound that is not on
+screen. It is the same removal the visible "to" gets, applied to the string a screen reader hears.
+
+**3. The validation is unchanged and the Max note stays.** `monthlyError` still compares
+`monthly-high` against `savingCeiling`, and with one value that is the same comparison against the
+same maximum. The note is not removed: it is what makes the ceiling visible to someone editing upward,
+and with one field it is the only thing on the row that names a bound at all.
+
+**But the brief's expectation needed correcting, and the correction changed what was built.** *Typing*
+above the ceiling has never raised that error - `commitRange` **clamps** rather than erroring, a
+recorded decision whose cost is `GAPS.md` G74. Before D135 the derived band was effectively the only
+way a real session reached the error at all. So "editing the single field above £640 still errors"
+was not true of the pair and would not have been true of a single field that copied it.
+
+**The single field therefore errors rather than clamping**, and that is a deliberate divergence from
+the pair beside it. Clamping here would make the participant's typed figure vanish into a bound with
+nothing to explain it, on a row whose only bound-naming element is the Max note. Committing the typed
+value lets the error fire and Continue disable, so **the figure they typed stays on screen with the
+reason it is refused.** The pair's clamp is untouched. The divergence is **G130**.
+
+### What each surface does now
+
+| Surface | Single | Pair |
+| --- | --- | --- |
+| Step 3's monthly row | **1 input**, no "to", Max note kept | 2 inputs, "to", Max note |
+| Chart lines | **1** - the high polyline collapses to an empty points list | 2 |
+| Chart marks | **0 high, 5 low** | 7 high, 12 low |
+| Goal block rows | **1** | 2 |
+| In-plot readout rows | **1** | 2 |
+| Table columns | **2** (year + one series) | 3 |
+| Series legend | 0 - **already none**, D130 removed it | 0 |
+
+**Three of these needed no code at all.** The goal block and the readout are both `series.map`, so
+dropping the second entry is the whole change; and the chart's high polyline and high marks were
+already null-guarded, because D117 needed the higher series to stop at its own attainment. Setting
+`high: null` for every point is what draws one line, using machinery that was already there.
+
+**Two needed real changes.** `chartTableHTML` hard-coded three `<th>` and two `<td>` per row; its
+second column is now optional, dropped rather than filled with a repeat of the first, **because a
+table showing one figure twice reads as two figures that happen to match.** And frame 12's table
+header read `series[1].rate` unguarded - **the one place on that screen that assumed two by
+position**, which G128 said did not exist. That entry's claim was scoped to `ui.js`, where it was
+true; it was not true of the screen, and the correction is recorded in G128's closing note rather
+than quietly fixed.
+
+### G128's four decisions, as taken
+
+1. **The chart.** The lone line keeps the `low` shade and style - it is the same contribution, not a
+   new kind of thing, and inventing a third style for a single line would make the one-series and
+   two-series screens harder to compare, not easier. The window still runs to `attainLow`, which with
+   one series is simply *the* attainment, so D117's construction degrades to its own trivial case
+   rather than needing restating.
+2. **The readout.** One row. Measured rather than assumed - see below.
+3. **The goal block.** One card, spanning the row as the pair's cards do. No half-width rule was
+   added: the block is a plain flow of `.card` children and one card in it looks like one card, not
+   like a gap where a second should be.
+4. **The table.** One column plus the year, via the optional header.
+
+### Verified
+
+At 390x844, seeded through the store and shot through `shots.mjs`:
+
+**Step 3, single:** one input, role `edit-monthly-single`, aria-label "Monthly saving, editable",
+value 633, **no join element**, "Max: £640" present, no error.
+**Step 3, pair:** two inputs, roles `edit-monthly-low` and `edit-monthly-high`, their own aria-labels,
+join "to" present, Max note present. **Unchanged.**
+
+**Editing the single field to 900 against a 640 ceiling:** the error fires, the field still reads 900
+rather than snapping to 640, both keys hold 900 so the row stays single, and Continue is disabled
+through `anyError`.
+
+**Frame 12, single:** 1 goal row, 1 readout row, high polyline 0 points / low polyline drawn, 0 high
+marks / 5 low marks, table 2 columns and 2 cells per row, 0 legends.
+**Frame 12, pair:** 2 goal rows, 2 readout rows, both polylines drawn, 7 high / 12 low marks, table 3
+columns. **Unchanged.**
+
+`shots.mjs` gains a **`--monthly=pair|single`** axis, because `--solve` could not shoot this state:
+that flag picks which variant frame 10 *draws*, while the shared seed still commits two distinct
+bounds either way. The new axis writes one figure to all three keys, which is what frame 10b's
+Continue now does. Extending the harness rather than building one inline is `CLAUDE.md`'s rule and
+the reason it exists.
+
+Suite: **424 tests, 423 passing, 1 skipped (G91's known intermittent), 0 failing.**
+
+### The two tests that assumed two inputs unconditionally
+
+Both failed, both were right to, and neither was weakened to pass.
+
+**`stale-session.test.mjs`** - "a selected target year survives a reload and a back navigation, and
+drives step 3" - read `edit-monthly-low` after taking the **date** branch, which now renders one
+field. It now asserts that exactly one `edit-monthly-*` field exists and that it is the single role
+carrying the value. That is a **stronger** assertion than before: it is what would catch the band
+coming back, which reading whichever field happened to exist would not.
+
+**`inline-edit.test.mjs`** - "the monthly range clamps rather than erroring" - exercised both clamps in
+one pass over the same row. **Clamping the low end up to the high end makes the two equal, which now
+collapses the row to one field**, so the second half of the test was reading an element its own first
+half had removed. Split in two: the ceiling clamp keeps its test, and the low-end clamp gets its own,
+which now also asserts the collapse. It drives the edit directly rather than through the shared
+`typeInto` helper - **that helper waits for the field it typed into to settle, and this is the one
+edit that removes it.** The helper is not changed; it is correct everywhere else.
+
+`CACHE_VERSION` and `BUILD_VERSION` v117 to v118, a paired hand-edit.
+
+### To reverse
+
+Delete the two predicates and restore the unconditional two-element `series` array, the two-field
+`fields` array, the unconditional join, and `chartTableHTML`'s required second column. The single
+field's handler and `monthlySingleAriaLabel` go with them. Reversing puts "£633 to £633" back on
+step 3 and a line drawn over itself on frame 12, so the reason would have to be that the pair is
+right for a single value rather than that the rule is wrong.

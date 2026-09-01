@@ -87,6 +87,15 @@
  *              is the only way to shoot 10b - and 10b's year is now a typed
  *              field, so it is the variant a presentation check has to look at.
  *                                                       default date
+ *   --monthly  `pair` or `single` - what the session COMMITTED as the monthly
+ *              saving. `pair` is the shared seed's two distinct bounds;
+ *              `single` writes one figure to `monthly-low`, `monthly-high` and
+ *              `savings-rate` alike, which is what frame 10b's Continue commits
+ *              (D135). It is a different axis from `--solve`: that one picks
+ *              which variant frame 10 DRAWS, this one picks what reached the
+ *              store, and D136 keys step 3's single input and frame 12's single
+ *              series on the second rather than the first.
+ *                                                       default pair
  *   --error    Names an ERROR state the app can draw, seeded so a screenshot
  *              pass can look at it. Every one is a banner beside a disabled
  *              primary action, and every one is otherwise unreachable from a
@@ -282,6 +291,7 @@ const DEFAULTS = {
   draft: 'none',
   assign: '',
   solve: 'date',
+  monthly: 'pair',
   date: '',
   list: '',
   focus: '',
@@ -500,6 +510,12 @@ if (!DATE_LISTS.includes(args.list)) {
 
 if (args.focus !== '' && !/^[1-9][0-9]*$/.test(args.focus)) {
   console.error(`--focus takes a whole number of Tab presses, not "${args.focus}".`);
+  process.exit(1);
+}
+
+const MONTHLY_SHAPES = ['pair', 'single'];
+if (!MONTHLY_SHAPES.includes(args.monthly)) {
+  console.error(`Unknown --monthly "${args.monthly}". One of: ${MONTHLY_SHAPES.join(', ')}.`);
   process.exit(1);
 }
 
@@ -798,6 +814,7 @@ function shotName({ route, entry, state, theme, text, scroll }) {
   if (args.draft !== 'none') parts.splice(1, 0, args.draft);
   if (args.view !== 'chart') parts.splice(1, 0, `view-${args.view}`);
   if (args.solve !== 'date') parts.splice(1, 0, `solve-${args.solve}`);
+  if (args.monthly !== 'pair') parts.splice(1, 0, `monthly-${args.monthly}`);
   if (args.error !== 'none') parts.splice(1, 0, `error-${args.error}`);
   if (args.date !== '') parts.splice(1, 0, `date-${args.date.replace('+', 'plus')}`);
   if (args.list !== '') parts.splice(1, 0, `list-${args.list}`);
@@ -949,6 +966,18 @@ try {
                 seed.accountSelectionEdited = true;
               }
               seed.solveFor = args.solve;
+              // WHAT WAS COMMITTED, WHICH IS NOT WHAT `--solve` SELECTS (D136).
+              // `--solve` picks which variant frame 10 DRAWS; the shared seed
+              // still commits two distinct bounds either way, so step 3 and
+              // frame 12 render the pair on both. The single-value state is
+              // reached by committing one figure to both bounds, which is what
+              // frame 10b's Continue now does - so it needs its own axis.
+              if (args.monthly === 'single') {
+                const one = FULL['savings-rate'] ?? seed['monthly-low'];
+                seed['monthly-low'] = { ...one };
+                seed['monthly-high'] = { ...one };
+                seed['savings-rate'] = { ...one };
+              }
               if (args.view !== 'chart') seed.chartView = args.view;
               if (args.date !== '') Object.assign(seed, monthsFromToday(DATE_MONTHS));
               // LAST, so an error state's figure is not overwritten by

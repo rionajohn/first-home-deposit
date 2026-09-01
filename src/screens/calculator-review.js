@@ -114,6 +114,10 @@ export function render(container, ctx) {
     && (pctWhole === null || pctWhole < DEPOSIT_PCT_MIN_WHOLE || pctWhole > DEPOSIT_PCT_MAX_WHOLE)
     ? c.errorDepositPct
     : null;
+  // ONE VALUE COMMITTED MEANS ONE INPUT (D136), the same rule frame 12 reads
+  // for its series. Keyed on the two keys being equal, not on `solveFor`: what
+  // matters is what was committed, not which branch committed it.
+  const singleValue = monthlyLow.value !== null && monthlyLow.value === monthlyHigh.value;
   const monthlyError = !highCleared && monthlyHigh.value > savingCeiling
     ? cSaving.errorExceedsLeftOver
     : null;
@@ -183,7 +187,11 @@ export function render(container, ctx) {
           // NO CAPTION, for the property value's reason, and D47's two-caption
           // problem goes with it: there is no longer a line that can tell a
           // participant who moved no handle that they set the range.
-          join: c.monthlySavingJoin,
+          // NO JOIN WITH ONE FIELD (D136). "to" is the word between two
+          // figures; with one there is nothing for it to sit between, and
+          // "GBP 633 to GBP 633" reads as a fault before the participant
+          // reaches the results.
+          join: singleValue ? undefined : c.monthlySavingJoin,
           // THE CEILING, FROM THE SAME VARIABLE THE ERROR IS COMPARED AGAINST
           // (D90). `savingCeiling` is read once at the top of this render and
           // `monthlyError` above tests `monthlyHigh.value > savingCeiling`
@@ -200,20 +208,27 @@ export function render(container, ctx) {
           limit: Number.isFinite(savingCeiling) && savingCeiling > 0
             ? { id: 'monthly-saving-max', text: fill(c.monthlySavingMaxTemplate, { max: formatCurrency(savingCeiling) }) }
             : null,
-          fields: [
-            {
-              role: 'edit-monthly-low',
+          fields: singleValue
+            ? [{
+              role: 'edit-monthly-single',
               prefix: '£',
-              digits: digitsOr(lowCleared, monthlyLow.value),
-              ariaLabel: c.monthlyLowAriaLabel,
-            },
-            {
-              role: 'edit-monthly-high',
-              prefix: '£',
-              digits: digitsOr(highCleared, monthlyHigh.value),
-              ariaLabel: c.monthlyHighAriaLabel,
-            },
-          ],
+              digits: digitsOr(lowCleared || highCleared, monthlyLow.value),
+              ariaLabel: c.monthlySingleAriaLabel,
+            }]
+            : [
+              {
+                role: 'edit-monthly-low',
+                prefix: '£',
+                digits: digitsOr(lowCleared, monthlyLow.value),
+                ariaLabel: c.monthlyLowAriaLabel,
+              },
+              {
+                role: 'edit-monthly-high',
+                prefix: '£',
+                digits: digitsOr(highCleared, monthlyHigh.value),
+                ariaLabel: c.monthlyHighAriaLabel,
+              },
+            ],
         })}
         ${monthlyError ? warningBannerHTML(monthlyError, { id: 'error-monthly-range' }) : ''}
         ${reviewRowHTML({
@@ -357,6 +372,23 @@ export function render(container, ctx) {
   bindField('edit-monthly-low', (parsed) => (parsed === null
     ? { monthlyLowCleared: true }
     : { monthlyLowCleared: false, ...commitRange(clamp(parsed, 0, monthlyHigh.value), monthlyHigh.value) }));
+
+  // THE SINGLE FIELD WRITES BOTH KEYS, so one value stays one value: there is
+  // no second input to type a second figure into, and an edit that moved only
+  // one key would silently turn the row back into a range the participant
+  // never asked for (D136).
+  //
+  // AND IT ERRORS RATHER THAN CLAMPING, which is the one place this diverges
+  // from the pair below. The pair snaps a high above the ceiling down to it
+  // (G74's recorded cost); doing that here would make the participant's typed
+  // figure vanish into a bound with nothing to explain it, and the "Max" note
+  // beside the field is precisely what makes the ceiling visible to someone
+  // editing upward. Committing the typed value lets `monthlyError` fire and
+  // Continue disable, so the figure they typed stays on screen with the reason
+  // it is refused. The divergence is recorded as GAPS.md G130.
+  bindField('edit-monthly-single', (parsed) => (parsed === null
+    ? { monthlyLowCleared: true, monthlyHighCleared: true }
+    : { monthlyLowCleared: false, monthlyHighCleared: false, ...commitRange(Math.max(parsed, 0), Math.max(parsed, 0)) }));
 
   bindField('edit-monthly-high', (parsed) => (parsed === null
     ? { monthlyHighCleared: true }

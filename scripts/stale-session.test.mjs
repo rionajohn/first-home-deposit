@@ -359,7 +359,14 @@ test('a selected target year survives a reload and a back navigation, and drives
       `savings-rate ${stored['savings-rate'].value} should be the model's ${expected.value}`);
 
     // And step 3 renders it, so the figure reached the screen and not just the
-    // store. `monthly-low` is the range's lower bound, drawn by the review row.
+    // store.
+    //
+    // ONE FIELD, BECAUSE THE DATE BRANCH COMMITS ONE VALUE (D135, D136). This
+    // read `edit-monthly-low` while frame 10b derived a band around the solved
+    // figure; it now commits that figure to both bounds, so the review row
+    // renders a single input under the role below. Asserting the role as well
+    // as the value is deliberate - it is what would catch the band coming
+    // back, which reading whichever field happened to exist would not.
     //
     // READ OFF THE FIELD, NOT OFF `textContent`. Step 3's figures are inputs
     // (DECISIONS.md D62), and an input's value is not in `textContent` - the
@@ -370,7 +377,12 @@ test('a selected target year survives a reload and a back navigation, and drives
     const lowShown = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 })
       .format(Math.round(stored['monthly-low'].value));
     assert.equal(
-      await page.evaluate(() => document.querySelector('[data-role="edit-monthly-low"]').value),
+      await page.evaluate(() => document.querySelectorAll('[data-role^="edit-monthly"]').length),
+      1,
+      'the date branch shows one monthly field, not a range',
+    );
+    assert.equal(
+      await page.evaluate(() => document.querySelector('[data-role="edit-monthly-single"]').value),
       lowShown,
       `step 3 should show ${lowShown}`,
     );

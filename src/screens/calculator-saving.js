@@ -14,9 +14,10 @@
  * 11's own review row for it is captioned "The range you set" — so
  * monthly-low/monthly-high are ENTERED directly here (provenance 'entered'),
  * with savings-rate committed as their midpoint. On the 10b path the
- * relationship runs the other way, matching DECISIONS.md D2 exactly:
- * savings-rate is solved from the chosen date, and monthly-low/monthly-high
- * are DERIVED from it at 0.9x/1.1x (rangeFromCentral).
+ * relationship runs the other way: savings-rate is SOLVED from the chosen
+ * date, and monthly-low/monthly-high take that same figure (D135). They used
+ * to be derived from it at 0.9x/1.1x; that band manufactured an unaffordable
+ * upper bound out of an affordable answer - see the Continue handler.
  *
  * THE DATE IS TWO DROPDOWNS, FLOORED AT THE EARLIEST REACHABLE DATE
  * (DECISIONS.md D83, superseding D82's bounded steppers, which superseded
@@ -33,7 +34,10 @@
  * contribution at all. That figure did not stay on screen: Continue committed
  * it, `rangeFromCentral` inverted on it so `monthly-low` came out ABOVE
  * `monthly-high`, and both of `monthsToTarget`'s guards missed it. The list
- * stops there.
+ * stops there. (D135 has since removed the band from this path, so that
+ * particular inversion is no longer reachable from here - but the cap is what
+ * keeps the negative figure off the screen in the first place, and it stands
+ * on its own reasoning rather than on the band's.)
  *
  * ONE RULE, BOTH ENDS. The floor declines dates that do not work; the cap
  * declines dates where the question does not apply. Neither is derived from
@@ -109,7 +113,7 @@ import {
   rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
-import { monthlyAmountFromDate, rangeFromCentral, monthsToReachAmount, monthsToGoalUnaided, combinedGoal } from '../model/model.js';
+import { monthlyAmountFromDate, monthsToReachAmount, monthsToGoalUnaided, combinedGoal } from '../model/model.js';
 import { RATES } from '../model/rates.js';
 import { MOCK_POSITION } from '../model/accounts.js';
 import { chevronRight } from '../icons.js';
@@ -703,11 +707,25 @@ export function render(container, ctx) {
       });
     } else {
       const rate = previewAmount;
-      const range = rangeFromCentral(rate.value);
+      // NO BAND AROUND THE SOLVED FIGURE (D135, closing GAPS.md G121). This
+      // used to commit `rangeFromCentral(rate.value)` - 0.9x and 1.1x - so one
+      // solved answer became two figures, and the upper one was never anything
+      // the participant chose. Measured on the seeded persona at the floor
+      // date: it solves GBP 632.65 against a GBP 640 ceiling, which is
+      // affordable and which the date list guarantees. The derived high was
+      // GBP 695.92, which BREAKS that ceiling - so step 3 refused the
+      // participant's own workable answer, and step 2 refused it again on the
+      // way back. The error was manufactured entirely by the band.
+      //
+      // ALL THREE KEYS TAKE THE SOLVED FIGURE. The participant chose one
+      // contribution, so one is committed - written to all three because frame
+      // 12 plots `monthly-low` and `monthly-high` throughout and a single-series
+      // state has never been designed. Two coincident series is GAPS.md G128,
+      // and is deliberately not designed here.
       setState({
         'savings-rate': { value: rate.value, provenance: rate.provenance },
-        'monthly-low': { value: range.low, provenance: rate.provenance },
-        'monthly-high': { value: range.high, provenance: rate.provenance },
+        'monthly-low': { value: rate.value, provenance: rate.provenance },
+        'monthly-high': { value: rate.value, provenance: rate.provenance },
       });
     }
     window.location.hash = '#/calculator/review';

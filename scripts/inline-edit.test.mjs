@@ -324,15 +324,40 @@ test('a deposit % outside the chip set errors, and the bound IS the chip set', a
 });
 
 test('the monthly range clamps rather than erroring, exactly as frame 10 does', async () => {
-  // A lower end above the upper one snaps DOWN to the upper one.
-  await typeInto('edit-monthly-low', '900');
-  assert.equal(await page.locator('[data-role="edit-monthly-low"]').inputValue(), '600');
-  assert.equal(await page.locator('.warning-banner').count(), 0, 'clamping raises no error');
   // An upper end above what is left over each month snaps to that ceiling.
+  // SPLIT FROM THE LOW-END CASE BY D136: clamping the low end up to the high
+  // end makes the two equal, which now collapses the row to one field, so the
+  // two clamps can no longer be exercised in one pass over the same row.
   await typeInto('edit-monthly-high', '5000');
   const s = await stored();
   assert.equal(s['monthly-high'].value, FULL['left-over'].value, 'snapped to the left-over ceiling');
   assert.equal(await page.locator('.warning-banner').count(), 0);
+});
+
+test('a low end above the high end snaps down to it, and the row becomes one field (D136)', async () => {
+  // NOT `typeInto`, and that is the finding rather than a harness quirk: that
+  // helper waits for the field it typed into to settle, and this edit REMOVES
+  // that field - the two bounds become equal and the row re-renders as one
+  // input. Waiting for `edit-monthly-low` to settle would wait for an element
+  // that no longer exists. Driven directly, waiting on the field that replaces
+  // it.
+  const low = page.locator('[data-role="edit-monthly-low"]');
+  await low.fill('900');
+  await low.blur();
+  await page.waitForSelector('[data-role="edit-monthly-single"]');
+  const s = await stored();
+  assert.equal(s['monthly-low'].value, 600, 'snapped down to the upper end');
+  assert.equal(s['monthly-high'].value, 600, 'which leaves the two bounds equal');
+  assert.equal(await page.locator('.warning-banner').count(), 0, 'clamping raises no error');
+  // AND THAT IS NOW A SINGLE VALUE, so the row renders a single input. This is
+  // the rule keyed on what is committed rather than on which branch committed
+  // it: the clamp produced one value, so the row shows one. It is also the one
+  // way a participant reaches the single field from the monthly branch, and it
+  // is one-way - see GAPS.md G130.
+  assert.equal(await page.locator('[data-role="edit-monthly-low"]').count(), 0, 'the pair is gone');
+  assert.equal(await page.locator('[data-role="edit-monthly-high"]').count(), 0);
+  assert.equal(await page.locator('[data-role="edit-monthly-single"]').inputValue(), '600');
+  assert.equal(await page.locator('.review-row__join').count(), 0, 'and no "to" between one figure');
 });
 
 test("editing the range commits the midpoint, and puts the calculator in frame 10's amount mode", async () => {

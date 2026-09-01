@@ -1466,10 +1466,16 @@ export function chartTableHTML({ points, headers, caption, valueFormatter }) {
       <table class="growth-table">
         <caption class="growth-table__caption">${caption}</caption>
         <thead>
+          <!-- THE SECOND COLUMN IS OPTIONAL (D136). Omit the high header and
+               the table is the year plus one series - which is what frame 12
+               draws when the commit carried a single monthly value. The
+               column is dropped rather than filled with a repeat of the
+               first, because a table showing one figure twice reads as two
+               figures that happen to match. -->
           <tr>
             <th scope="col">${headers.month}</th>
             <th scope="col">${headers.low}</th>
-            <th scope="col">${headers.high}</th>
+            ${headers.high === undefined ? '' : `<th scope="col">${headers.high}</th>`}
           </tr>
         </thead>
         <tbody>
@@ -1477,7 +1483,7 @@ export function chartTableHTML({ points, headers, caption, valueFormatter }) {
             <tr>
               <th scope="row">${p.date}</th>
               <td>${p.low === null ? '' : valueFormatter(p.low)}</td>
-              <td>${p.high === null ? '' : valueFormatter(p.high)}</td>
+              ${headers.high === undefined ? '' : `<td>${p.high === null ? '' : valueFormatter(p.high)}</td>`}
             </tr>
           `).join('')}
         </tbody>
