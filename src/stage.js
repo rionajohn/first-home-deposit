@@ -13,7 +13,7 @@
  * ---------------------------------------------------------------------------
  * `/tracker` opens with a guard on the STORED `checkpoint-amount` and
  * `deposit-target`, and both are null until frame 09's Continue, frame 10's
- * Continue and frame 11's "Work it out" have all run. So tapping Insights on a
+ * Continue and frame 11's "Work it out" have all run. So tapping the Mortgage tab on a
  * fresh session redirects into the deposit calculator, and a facilitator could
  * not demonstrate the tracker, the skip-ahead control or the Mortgage in
  * Principle flow without spending session time on the calculator first. This
@@ -91,7 +91,7 @@ export const STAGES = ['setting-up', 'saving', 'ready-to-check'];
  * THE STAGE A NEW SESSION OPENS IN (DECISIONS.md D48).
  *
  * A session used to open at `'setting-up'` - `defaultState()`'s own value - so
- * tapping Insights on a fresh session redirected into the deposit calculator,
+ * tapping the Mortgage tab on a fresh session redirected into the deposit calculator,
  * and the tracker could not be met at all until a facilitator had set a stage
  * on frame 33 or a participant had run all three calculator steps. The tracker
  * is now a populated screen from the first tap, on the same reasoning
@@ -217,7 +217,7 @@ export const STAGE_DEPOSIT_PCT = 0.10;
  *     `window.history.length` on the same click (D30/D32) and cannot be
  *     reconstructed from a patch; `journeyStarted` is written with them, and
  *     splitting the trio is worse than leaving all three alone. A facilitator
- *     reaching `/tracker` from the Insights tab has a null entry point either
+ *     reaching `/tracker` from the Mortgage tab has a null entry point either
  *     way, and `tracker.js` writes the pair itself on the way into the Mortgage
  *     in Principle flow.
  *   - `targetMonth` / `targetYear`. Claims about the CLOCK. Frame 10 seeds them

@@ -5084,3 +5084,100 @@ defect that the same measurement exposed.
 
 Two approved strings, or an observation that a participant is not confused by the repetition - the
 pilot did not reach frame 12's links, so there is no evidence either way yet.
+
+---
+
+## G126. The "Insights" tab promised analytics and delivered one mortgage entry point. OPENED AND CLOSED 1 September 2026 - DECISIONS.md D134
+
+*Pilot finding **P5**, from the moderated session of 31 August 2026. **Opened and closed in the same
+pass, because it had never been recorded** - see the note at the end, which is the part worth reading
+before the next brief is written.*
+
+### The finding
+
+At **33:26** the participant said "I would say insights is not the best." At **33:34**:
+
+> "if insights purely only offers you the mortgage principle. It needs to be called a mortgage
+> principle. Because I pressed insights and I don't actually get anything... Otherwise, insights to me
+> infers, I get to see my bills, I get to see, you know, how much I save a month."
+
+This was the strongest single objection in the session. It is not a preference about a word: the
+participant states a specific expectation the label set ("my bills", "how much I save a month"), then
+states that the tab did not meet it ("I don't actually get anything").
+
+### What the tab actually contains
+
+| | |
+| --- | --- |
+| Destination | `/tracker` - the deposit tracker |
+| Onward | one action-bar primary into the Mortgage in Principle flow |
+| Spending breakdowns, monthly summaries, bills | **none, and none planned** |
+
+So the label named a category the app does not have. **Nothing behind the tab was wrong; the promise
+in front of it was.**
+
+### How it closed
+
+`shared.bottomNav.insights` is "Mortgage", and the glyph is a key rather than a diamond. The full
+reasoning, the rejection of "Affordability" on MCOB 11.6, the choice of a key over a magnifier and the
+accessible-name change that came with it are all in `DECISIONS.md` **D134**. The route did not change:
+it is `/tracker` and contains no "insights".
+
+### The part worth reading: this entry did not exist
+
+The brief asked that the entry "holding the tab-naming finding" be closed, and said to locate it by
+reading the file rather than assuming a number. **It was located by reading the file, and there was no
+such entry.** P5 appeared nowhere in `GAPS.md`; the only pilot finding recorded here was P2, in G106
+and G107. The finding had been carried in the session document alone.
+
+So this entry was written to hold it and closed in the same pass. **That is the honest shape and not a
+formality** - a closed gap with the evidence in it is what a later reader can audit, and "close G-something"
+against a file that never held the finding would have closed nothing.
+
+G106 already records this happening twice: *"the second brief in two sessions to number a pilot
+finding against this file and miss."* This is the third. The pattern is that pilot findings are
+P-numbered in the session document and gaps are G-numbered here, **and nothing maps one to the other**,
+so a brief that carries a P-number cannot also carry a G-number unless someone has already opened one.
+The reliable instruction is the one this brief gave - supply the P-number, say to locate the G-number
+by reading - and the reliable response is to open an entry when the read comes back empty.
+
+---
+
+## G127. The Mortgage tab's internal id is still `insights`. OPEN - DELIBERATE, REPORT ONLY
+
+*Opened 1 September 2026 with `DECISIONS.md` D134, which renamed the tab's LABEL and deliberately left
+its id alone. **Not a defect and not scheduled** - recorded so the mismatch is found with its reason
+attached.*
+
+### What is mismatched
+
+| | |
+| --- | --- |
+| Visible label | **"Mortgage"** |
+| Accessible name | **"Mortgage"** (D134 made these the same thing) |
+| Internal id | **`insights`** |
+| Route | `/tracker` - contains neither word |
+
+### Where the id appears
+
+`NAVIGABLE_TABS` and the `data-tab` attribute in `components/ui.js`; `TAB_ICONS` and
+`TAB_ICONS_ACTIVE` in `icons.js`; the `['/tracker', 'insights']` pair in `router.js`; and as a
+selector in `bottom-nav.test.mjs`, `shots.mjs` (`--entry=insights`) and `stage.test.mjs`.
+
+### Why it was not renamed
+
+**A participant cannot see it.** It is not in the URL, not in the DOM as text, not announced, and not
+in any stored session key - `/tracker` is the route and always was, so unlike a path change there is
+nothing here that could break a deep link or a session mid-study.
+
+Against that, renaming it touches three test files and a screenshot script whose `--entry=insights`
+flag is typed by hand during a session. **A pure-refactor rename across the test suite during a study
+is risk without benefit**, which is the same reasoning `CLAUDE.md` applies to route paths.
+
+### What would settle it
+
+A session between studies with nothing else in the tree, or the next time one of those files is being
+edited for another reason. Renaming is `insights` -> `mortgage` in the six places above and nowhere
+else; there is no derived figure, no stored key and no copy involved. **Do it in one commit or not at
+all** - a half-renamed id is worse than either, because `TAB_ICONS.mortgage` with `data-tab="insights"`
+fails the way D35's missing `diamondFill` did, silently until the tab is lit.

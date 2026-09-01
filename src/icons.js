@@ -421,8 +421,33 @@ export function target(o) {
   return icon('target', '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/>', o);
 }
 
-export function diamond(o) {
-  return icon('diamond', '<path d="M12 3.2L20.8 12L12 20.8L3.2 12Z"/>', o);
+/**
+ * The Mortgage tab (D134), replacing the `diamond` that tab carried while it
+ * was labelled Insights. A key, deliberately NOT a magnifier: a magnifying
+ * glass in a tab bar reads as search, and a participant could reasonably
+ * expect to browse properties rather than to find out what they could borrow.
+ *
+ * Drawn on the 3-to-21 vertical extent that `target` and `circle` get from
+ * their r=9, so it stands the same height as the two tabs either side of it.
+ * The first attempt used the diamond's own 3.2-to-20.8 box with a small bow,
+ * and it read visibly SMALLER than its neighbours in the bar: a key's ink is
+ * a bow and a thin shaft where a target's is a pair of full-width rings, so
+ * matching the box is not enough on its own and the bow has to be generous.
+ * At r=5.4 the bow is 10.8 wide against the rings' 18 - a key is narrower
+ * than a target and always will be - but it no longer reads as undersized.
+ *
+ * Stroke weight, which is what the eye reads as weight, comes from
+ * components.css and is identical across all five tabs; nothing here sets it.
+ *
+ * The bow is a `<circle>` and the shaft and its two teeth are one `<path>` of
+ * three subpaths, so the filled twin below can fill the bow alone.
+ */
+export function key(o) {
+  return icon(
+    'key',
+    '<circle cx="12" cy="8.4" r="5.4"/><path d="M12 13.8V21M12 17.2H16.4M12 19.6H15.6"/>',
+    o
+  );
 }
 
 /**
@@ -447,11 +472,14 @@ export function diamond(o) {
  * bullseye would become an unrecognisable disc. Filling only the inner circle
  * keeps the ring and reads as "on".
  *
- * Home, Goals and Insights are here — the three tabs that can be active.
- * Insights joined them when it was pointed at /tracker; without a filled
- * twin, `bottomNavHTML` looked up `TAB_ICONS_ACTIVE.insights`, found
- * `undefined` and called it, so the tab bar threw on the one route the tab
- * is lit. Payments and Profile are still disabled and can never be active,
+ * Home, Goals and Mortgage are here — the three tabs that can be active. The
+ * Mortgage tab (id `insights`, D134) joined them when it was pointed at
+ * /tracker; without a filled twin, `bottomNavHTML` looked up
+ * `TAB_ICONS_ACTIVE.insights`, found `undefined` and called it, so the tab
+ * bar threw on the one route the tab is lit. Any glyph swapped in for a live
+ * tab has to bring BOTH variants for that reason — `keyFill` exists because
+ * `key` replaced `diamond`, not as a decoration.
+ * Payments and Profile are still disabled and can never be active,
  * so a filled variant for either would be a drawing nothing renders
  * (DESIGN.md rule 6).
  */
@@ -467,18 +495,32 @@ export function targetFill(o) {
   );
 }
 
-// A single path, so the filled twin is the same geometry carrying
-// `icon__fill` — the `houseFill` case, not the `targetFill` one, which had to
-// fill only its inner circle to keep the ring.
-export function diamondFill(o) {
-  return icon('diamond-fill', '<path class="icon__fill" d="M12 3.2L20.8 12L12 20.8L3.2 12Z"/>', o);
+// The `targetFill` case rather than the `houseFill` one: the geometry is two
+// siblings, so the fill goes on the bow alone and the shaft and teeth stay
+// stroked. Filling both would need `fill-rule` to cross elements, which it
+// does not do — the same trap targetFill documents above.
+//
+// The bow becomes a solid disc, which loses the hole a key has in life. That
+// is the intended cue and not an oversight: a disc on a toothed shaft still
+// reads as a key, and it reads as ON at 24px, which the hollow bow does not.
+// Knocking the hole back out is not available here — `.icon__knockout` paints
+// in `--color-label-inverse`, which is correct for a glyph sitting on a
+// filled shape (the milestone star) and wrong for one sitting on the tab
+// bar's own background, where it would invert with the palette.
+export function keyFill(o) {
+  return icon(
+    'key-fill',
+    '<circle class="icon__fill" cx="12" cy="8.4" r="5.4"/>' +
+      '<path d="M12 13.8V21M12 17.2H16.4M12 19.6H15.6"/>',
+    o
+  );
 }
 
 export const TAB_ICONS = {
   home: house,
   payments: arrowLeftArrowRight,
   goals: target,
-  insights: diamond,
+  insights: key,
   profile: circle,
 };
 
@@ -486,5 +528,5 @@ export const TAB_ICONS = {
 export const TAB_ICONS_ACTIVE = {
   home: houseFill,
   goals: targetFill,
-  insights: diamondFill,
+  insights: keyFill,
 };

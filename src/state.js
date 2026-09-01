@@ -408,7 +408,7 @@ function load() {
     // `restoredFromStorage` deliberately stays false here, so `isNewSession()`
     // is true and `router.js`'s `openSession()` applies the opening stage to
     // the fresh store - the same path a genuine first load takes. That also
-    // closes G66's original half: the Insights tab stops redirecting.
+    // closes G66's original half: the Mortgage tab stops redirecting.
     //
     // An UNSTAMPED session takes this branch too (`undefined !== 'vNN'`),
     // which is what retires every session written before this change.

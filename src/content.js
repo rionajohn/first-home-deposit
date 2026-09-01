@@ -108,18 +108,22 @@ const content = {
 
     // Bank tab bar. Drawn on frame 01 only in the reference set; DECISIONS.md
     // D11 keeps it on every full-screen journey screen too, so the labels
-    // moved here from '/home' rather than being duplicated per screen. The
-    // ariaLabel/homeTabLabel pair is what a screen reader announces for the
-    // one tab that actually navigates.
+    // moved here from '/home' rather than being duplicated per screen.
+    //
+    // These labels are the ONLY name each tab has, visible or announced.
+    // D134 removed the three `*TabHint` strings that used to override the
+    // live tabs' accessible names, so what a screen reader reads is what is
+    // drawn under the icon. `ariaLabel` names the bar itself, not a tab.
+    //
+    // `insights` is the tab's internal id, not its label. The id is load
+    // bearing in router.js, shots.mjs and three test files; the label it
+    // carries changed to 'Mortgage' in D134 and the id deliberately did not.
     bottomNav: {
       ariaLabel: 'Primary',
-      homeTabHint: 'Back to Home',
-      goalsTabHint: 'Your goals',
-      insightsTabHint: 'Your deposit tracker',
       home: 'Home',
       payments: 'Payments',
       goals: 'Goals',
-      insights: 'Insights',
+      insights: 'Mortgage',
       profile: 'Profile',
     },
   },
@@ -433,7 +437,7 @@ const content = {
     // A house deposit is one long-term goal with two things you can do with
     // it: work out what it would take, and watch how it is going. Those are
     // siblings, so they are two instances of one card rather than a card and
-    // a banner. The tracker is also the Insights tab's destination - both
+    // a banner. The tracker is also the Mortgage tab's destination - both
     // routes land on `/tracker`, and neither is the "real" one.
     //
     // THEY ARE NOT ALWAYS BOTH DRAWN (DECISIONS.md D44). `/goals` offers a
@@ -477,7 +481,7 @@ const content = {
     // `primaryCta` ("Not now, just track my goal") is DELETED (DECISIONS.md
     // D53). It was the action bar's only button, and the bar is gone: the
     // deposit calculator is the only forward route from this screen now. The
-    // destination is not lost - `/tracker` is the Insights tab root, a `/goals`
+    // destination is not lost - `/tracker` is the Mortgage tab root, a `/goals`
     // bridge card, and where frame 12's own primary lands.
   },
 
@@ -1742,7 +1746,7 @@ const content = {
     // changes this") are DELETED (DECISIONS.md D52). Frame 21 ends the flow and
     // draws no action bar, so both keys lost their only reader. Neither string
     // is lost as a route: the tracker is reachable from the header X and the
-    // Insights tab, and the borrowing sheet from this screen's own
+    // Mortgage tab, and the borrowing sheet from this screen's own
     // "See how we worked this out" card nav row.
   },
 

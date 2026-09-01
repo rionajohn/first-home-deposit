@@ -19,7 +19,7 @@ symptom is silent.** The session state lives in `sessionStorage`, which is per t
 every reload, so the app treats that tab as a restored session (`GAPS.md` G66). Nothing on screen
 says why. It shows up in TWO ways, and the second is the one that gets mistaken for a bug:
 
-1. **Routing.** Insights keeps redirecting to `#/calculator/property` as though no goal had ever
+1. **Routing.** The Mortgage tab keeps redirecting to `#/calculator/property` as though no goal had ever
    been set, because the opening stage is never applied.
 2. **Stale figures.** `state.js`'s `load()` returns `{ ...defaultState(), ...JSON.parse(raw) }`, so
    a STORED figure overrides the freshly seeded one. A tab holding a session from before a seed
@@ -38,7 +38,7 @@ STATE.
 Do one of these, in this order of preference:
 
 1. **Open the participant link in a brand-new tab.** A new tab has no stored session, so the
-   opening stage applies and Insights lands on the tracker. This is the reliable one and needs no
+   opening stage applies and the Mortgage tab lands on the tracker. This is the reliable one and needs no
    checking.
 2. **Or reload the tab first, confirm the new build is running, then type `#/reset` once.** The
    order is the whole point: a `#/reset` typed before the new code is running executes the previous
@@ -67,7 +67,7 @@ the separate habit described above.
 Tap it on `#/settings`, then go where you want. Figures are the same every time - the stage replays
 what the calculator would have committed, it does not invent anything (`DECISIONS.md` D45).
 
-| Stage | Property / deposit | Target | Checkpoint | Saved | Tap Insights and you land on |
+| Stage | Property / deposit | Target | Checkpoint | Saved | Tap Mortgage and you land on |
 |---|---|---|---|---|---|
 | **Setting up** | - | - | - | £8,950 | **09** `#/calculator/property` - the empty state, unchanged |
 | **Saving** | £450,000 @ 10% | £52,500 | £39,375 | £8,950 | **15** `#/tracker`, below checkpoint, MIP milestone locked |
@@ -201,7 +201,7 @@ If you need the calculator from that state, type `#/calculator/property`. Below 
 still one tap on from the tracker.
 
 **If the card you expect is missing, the session is in a different state than you think** - check
-the goal with the tracker recipes below rather than assuming the screen is broken. The Insights tab
+the goal with the tracker recipes below rather than assuming the screen is broken. The Mortgage tab
 is unaffected in both states: it always resolves to `#/tracker` and redirects when there is no goal.
 
 ## Journey spine - 11 clicks, #/home to #/tracker

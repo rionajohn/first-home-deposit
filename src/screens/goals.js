@@ -146,12 +146,12 @@ export function render(container, ctx) {
   });
 
   // THE SECOND ROUTE TO `/tracker`, and deliberately not a different screen.
-  // The Insights tab already resolves there (NAVIGABLE_TABS in
+  // The Mortgage tab already resolves there (NAVIGABLE_TABS in
   // components/ui.js, DECISIONS.md D35); this is the goals area's own way in,
   // landing on the same route in the same state.
   //
   // STILL NO GUARD OF ITS OWN, and withholding the card is not one. `/tracker`
-  // keeps the only copy of the rule, and the Insights tab still has none - tap
+  // keeps the only copy of the rule, and the Mortgage tab still has none - tap
   // it with no goal and it redirects into the calculator exactly as it always
   // did. What changed is only whether this screen ADVERTISES the door, not how
   // the door behaves when it is used. The two routes are still the same door;
@@ -174,7 +174,7 @@ export function render(container, ctx) {
   // be offered - and it was removed for consistency at a known and accepted
   // cost: `tracker.js` draws its "Adjust my goal" secondary on the
   // below-checkpoint variant and no other, so a participant at or above the
-  // checkpoint now has NO NEARBY ROUTE TO THE CALCULATOR. The Insights tab
+  // checkpoint now has NO NEARBY ROUTE TO THE CALCULATOR. The Mortgage tab
   // still reaches the tracker from anywhere; the calculator is reachable only
   // by typing its URL or by falling back below the checkpoint. That trade was
   // made deliberately - see DECISIONS.md D44's fifth amendment, which keeps the
@@ -292,7 +292,7 @@ export function render(container, ctx) {
   // `/tracker` is `history.back()` (DECISIONS.md D29), so it returns to
   // whichever screen actually pushed the entry below it — this one when a
   // participant arrived from here, `/home` or wherever they were when they
-  // used the Insights tab. Naming a destination is what would break that, and
+  // used the Mortgage tab. Naming a destination is what would break that, and
   // is exactly what D29 removed from every other screen.
   //
   // `journeyEntryPoint` and `flowEntryHistoryLength` are NOT written here,

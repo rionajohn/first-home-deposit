@@ -202,7 +202,7 @@ function stampEntry() {
  *
  * NOT "is the current route a tab root". Those are different questions and
  * the difference is the whole reason this exists. `/tracker` is BOTH the
- * Insights root and a descent from the goals card; `/goals` is both the Goals
+ * Mortgage tab root and a descent from the goals card; `/goals` is both Goals
  * root and a descent from frame 06's "save for something else" branch. A
  * route list answers "which routes can be roots" and cannot tell the two
  * arrivals apart. Only the history entry can, because only the entry knows
@@ -379,10 +379,13 @@ const CALCULATOR_STEP_ROUTES = new Set([
  * were mid-way through a mortgage calculator, and left the bar with no way to
  * show the one case where they really were on Home.
  *
- * /tracker lights Insights because /tracker IS the Insights destination
+ * /tracker lights the Mortgage tab because /tracker IS that tab's destination
  * (NAVIGABLE_TABS in components/ui.js). The Mortgage in Principle screens
  * beyond it light nothing, the same as every other journey screen: they are
- * reached FROM Insights, they are not Insights.
+ * reached FROM the tab, they are not the tab.
+ *
+ * The id in the list below is `insights`, which is what that tab is keyed by
+ * everywhere; D134 changed its label to "Mortgage" and left the id alone.
  *
  * Any route not listed gets `null`, which `bottomNavHTML` renders as "no tab
  * active".
@@ -464,7 +467,7 @@ function mountBottomNav(container, path) {
       // were, not wherever they were before that.
       //
       // `isRootEntry()` and NOT a list of root routes. `/tracker` is the
-      // Insights root when the tab put them there and a descent when the goals
+      // Mortgage tab root when the tab put them there and a descent when goals
       // card did; a route list cannot tell those apart and turns the second one
       // into a duplicate history entry. See `isRootEntry`.
       const lateral = isRootEntry();
@@ -656,7 +659,7 @@ function renderCurrentRoute() {
 /**
  * OPENS A NEW SESSION IN ITS STAGE (DECISIONS.md D48).
  *
- * A session used to begin empty, so the Insights tab redirected into the
+ * A session used to begin empty, so the Mortgage tab redirected into the
  * deposit calculator until a facilitator had set a stage on frame 33. It now
  * begins in `OPENING_STAGE`, which means the deposit tracker is a populated
  * screen from the first tap.

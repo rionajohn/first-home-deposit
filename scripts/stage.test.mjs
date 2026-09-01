@@ -457,7 +457,7 @@ test('opening a session is identical to selecting that stage on frame 33', () =>
 
 test('a session opens with the two figures /tracker\'s guard tests', () => {
   // `tracker.js` redirects to /calculator/result unless both are non-null, so
-  // this is the assertion that the Insights tab lands rather than bounces.
+  // this is the assertion that the Mortgage tab lands rather than bounces.
   assert.equal(hasGoal(opened()), true);
 });
 

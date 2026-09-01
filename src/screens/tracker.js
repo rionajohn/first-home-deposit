@@ -242,7 +242,7 @@ export function render(container, ctx) {
   // its own flow. This screen has two natures and the chevron follows
   // whichever one the participant is in:
   //
-  //   via the Insights tab   a tab ROOT. Nothing behind it inside the flow,
+  //   via the Mortgage tab   a tab ROOT. Nothing behind it inside the flow,
   //                          so no chevron.
   //   via the goals card     a DESCENT. /goals is behind it, so the chevron
   //                          is drawn and pops back to it.
@@ -455,7 +455,7 @@ export function render(container, ctx) {
   // rule is correct only while it stays here.
   //
   // Both routes into the tracker get it, because they are the same screen -
-  // the Insights tab root (D40) and the goals-page card (D38) render this same
+  // the Mortgage tab root (D40) and the goals-page card (D38) render this same
   // module. The Mortgage in Principle flow and the deposit calculator do not
   // draw it at all: a participant part-way through a task must not be able to
   // change the position that task is measured against.
@@ -540,7 +540,7 @@ export function render(container, ctx) {
     // back by `history.length` minus the length recorded at entry — so the
     // pair has to be written on the same click, exactly as home.js and
     // goals.js write it when the journey itself is entered. Without it a
-    // participant who reached the tracker from the Insights tab would have
+    // participant who reached the tracker from the Mortgage tab would have
     // a null entry point and be dropped on /home by the fallback.
     setState({
       mipUnlocked: true,

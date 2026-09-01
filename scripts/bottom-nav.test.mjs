@@ -13,10 +13,12 @@
  *             icon, no indicator. It says it is tappable by answering a
  *             finger (`:active` / `:hover` in components.css), not by looking
  *             different at rest.
- *   disabled  Payments and Profile - the surrounding bank app. Insights was
- *             one of these until it was pointed at /tracker; it is now the
- *             third live tab, and the only route into the deposit tracker
- *             from the bar.
+ *   disabled  Payments and Profile - the surrounding bank app. The Mortgage
+ *             tab was one of these until it was pointed at /tracker; it is
+ *             now the third live tab, and the only route into the deposit
+ *             tracker from the bar. Its id is still `insights` (D134 renamed
+ *             the LABEL, not the id), which is why every `nav.insights`
+ *             below reads the tab now labelled Mortgage.
  *
  * The defect this was written for: nothing set `color` on `.bottom-nav__tab`,
  * so an ENABLED tab inherited the document's full-strength label colour while
@@ -195,11 +197,11 @@ test('/goals - enabled Home is drawn exactly like disabled Payments', async () =
 for (const [route, lit, litIcon, seed] of [
   ['/home', 'home', 'icon--house-fill', null],
   ['/goals', 'goals', 'icon--target-fill', null],
-  // Insights resolves to /tracker. It needs a seeded session, because
+  // The Mortgage tab resolves to /tracker. It needs a seeded session, because
   // /tracker guards on checkpoint-amount, deposit-target, combined-goal and
   // stamp-duty (the last two since DECISIONS.md D70) and replaces
   // itself with the calculator when either is null.
-  ['/tracker', 'insights', 'icon--diamond-fill', TRACKER_SEED],
+  ['/tracker', 'insights', 'icon--key-fill', TRACKER_SEED],
 ]) {
   test(`${route} - ${lit} carries all four active cues and no other tab does`, async () => {
     const nav = await navAt(route, seed);
@@ -255,12 +257,12 @@ test('/journey - no tab is lit, and the three live tabs rest like the disabled t
   assert.deepStrictEqual(AT_REST(nav.insights), AT_REST(nav.payments));
 });
 
-/* --- Insights is live, and the two that are not stay that way -------------
-   Requirement: enable Insights, do not enable the other disabled tabs. */
-test('Insights is tappable everywhere; Payments and Profile never are', async () => {
+/* --- Mortgage is live, and the two that are not stay that way -------------
+   Requirement: enable Mortgage, do not enable the other disabled tabs. */
+test('Mortgage is tappable everywhere; Payments and Profile never are', async () => {
   for (const [route, seed] of [['/home', null], ['/goals', null], ['/journey', null], ['/tracker', TRACKER_SEED]]) {
     const nav = await navAt(route, seed);
-    assert.strictEqual(nav.insights.disabled, false, `Insights is inert on ${route}`);
+    assert.strictEqual(nav.insights.disabled, false, `Mortgage is inert on ${route}`);
     assert.strictEqual(nav.payments.disabled, true, `Payments became tappable on ${route}`);
     assert.strictEqual(nav.profile.disabled, true, `Profile became tappable on ${route}`);
   }
@@ -278,7 +280,7 @@ test('Insights is tappable everywhere; Payments and Profile never are', async ()
    stack that swipe-back then walked one screen at a time.
 
    `/tracker` is why root-ness is stamped per history ENTRY rather than tested
-   against a list of root routes: it is the Insights root when the tab put the
+   against a list of root routes: it is the Mortgage tab root when the tab put the
    participant there and a descent when the goals card did. The
    `descended /tracker` cases below are the ones a route list gets wrong, and
    it gets them wrong by producing a duplicate entry, not by a near-miss. */

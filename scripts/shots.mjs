@@ -24,7 +24,7 @@
  *
  *   --routes   App routes, without the `#`.            default /tracker
  *   --entry    How the screen is REACHED. `direct` sets the hash; `goals`
- *              taps the tracker card on /goals; `insights` taps the Insights
+ *              taps the tracker card on /goals; `insights` taps the Mortgage
  *              tab. Those three differ in what the app bar draws (D41) and in
  *              whether the entry is a root or a descent (D40), so a screenshot
  *              that only ever loads the hash misses two of the three.

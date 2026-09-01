@@ -285,9 +285,9 @@ sheet that fits already ends where its content does.
 
 | State | Which tabs | Visual | ARIA | Focusable |
 |---|---|---|---|---|
-| **Active** | Home on `/home`, Goals on `/goals` - at most one, and only on those two routes | Indicator above the icon, **bold** label, **filled** icon variant, `--color-label` | `aria-current="page"` | yes |
-| **Enabled, not active** | Whichever of Home / Goals is not the current route | Identical to disabled at rest: `--color-label-tertiary`, weight 400, outline icon, no indicator. Darkens to `--color-label` under a press | none | yes |
-| **Disabled** | Payments, Insights, Profile | Same rest appearance as enabled-not-active | `disabled` + `aria-disabled="true"` | no |
+| **Active** | Home on `/home`, Goals on `/goals`, Mortgage on `/tracker` - at most one, and only on those three routes | Indicator above the icon, **bold** label, **filled** icon variant, `--color-label` | `aria-current="page"` | yes |
+| **Enabled, not active** | Whichever of Home / Goals / Mortgage is not the current route | Identical to disabled at rest: `--color-label-tertiary`, weight 400, outline icon, no indicator. Darkens to `--color-label` under a press | none | yes |
+| **Disabled** | Payments, Profile | Same rest appearance as enabled-not-active | `disabled` + `aria-disabled="true"` | no |
 
 **Enabled and disabled are deliberately identical standing still.** Being tappable is communicated
 by responding to touch, not by looking different at rest. A tab that looked "available" while
@@ -489,7 +489,7 @@ zero-length round-capped subpath, so a dot scales with weight), `.icon__dashed`.
 Exports: `chevronRight/Left/Up/Down`, `arrowLeft/Right/Up/UpRight`, `xmark`, `minus`, `checkmark`,
 `checkmarkCircle`, `circle`, `infoCircle`, `exclamationTriangle`, `lock`, `starCircle`,
 `starCircleFill`, `starCircleDashed`, `playCircle`, `chartBarCircle`, `flag`, `photo`, `bullet`,
-`house`, `arrowLeftArrowRight`, `target`, `diamond`, plus `TAB_ICONS`.
+`house`, `arrowLeftArrowRight`, `target`, `key`, plus `TAB_ICONS`.
 
 ---
 

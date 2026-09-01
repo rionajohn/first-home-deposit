@@ -11030,3 +11030,148 @@ stay: they are correct on their own terms and the sheet is better for them wheth
 points at it. `navRowHTML` can stay too - `flagRowHTML` calls it and behaves identically either way.
 Reversing would put the participant's figures back behind an expander, so the reason would have to be
 that frame 32 is the wrong destination rather than that the disclosure was the right control.
+
+---
+
+## D134. The Insights tab becomes Mortgage, its glyph becomes a key, and every tab's accessible name becomes its own label
+
+**Date.** 1 September 2026. Opens and closes `GAPS.md` G126; opens G127. Pilot finding **P5**. The tab
+bar on every screen that draws it, plus `icons.js` and three documentation files. **No route changed
+and no participant figure changed.**
+
+### The label
+
+`shared.bottomNav.insights` changes from "Insights" to **"Mortgage"**.
+
+This was the strongest single objection in the pilot session on 31 August 2026. At **33:26** the
+participant said "I would say insights is not the best." At **33:34**:
+
+> "if insights purely only offers you the mortgage principle. It needs to be called a mortgage
+> principle. Because I pressed insights and I don't actually get anything... Otherwise, insights to me
+> infers, I get to see my bills, I get to see, you know, how much I save a month."
+
+The objection is precise and it is about a promise the tab cannot keep. "Insights" names a category of
+analytics - spending breakdowns, monthly summaries, the bills-and-savings view the participant
+described - and the tab delivers a deposit tracker and one Mortgage in Principle entry point.
+**"Mortgage" describes the contents.** That is what the participant asked for, in the participant's
+own words, and it is the whole change.
+
+### Why NOT "Affordability", which is the obvious alternative
+
+**Affordability is an FCA term of art, and that is the reason rather than a preference.** MCOB 11.6
+places the affordability assessment on the LENDER. A tab called Affordability implies the app has
+carried one out, and this prototype has not, cannot and is not permitted to. The same objection does
+not attach to "Mortgage": it names the subject matter without claiming an assessment.
+
+This is recorded because it is the alternative a later reader will propose, and the reason to decline
+it is regulatory rather than editorial - it does not weaken if someone simply prefers the word.
+
+### The icon: a key, deliberately not a magnifier
+
+`diamond` / `diamondFill` are replaced by **`key` / `keyFill`**.
+
+**A magnifying glass was rejected on the same ground as the label.** A magnifier in a tab bar reads as
+search, and a participant who read it that way could reasonably expect to browse properties rather
+than to find out what they could borrow - which would replace one wrong promise with another.
+
+Three constraints, all met and all measured rather than judged by eye:
+
+1. **Outline, not filled.** The bar is a bar of outline icons and gains no filled one. The filled
+   `keyFill` is the ACTIVE-state twin only, which is the same treatment `house`/`houseFill` and
+   `target`/`targetFill` already have. It is not optional: `icons.js` records that making this tab
+   live without a filled twin made `TAB_ICONS_ACTIVE[id]` `undefined`, called it, and took the whole
+   tab bar down on the one route the tab is lit.
+2. **Same weight.** Nothing in the glyph sets `stroke-width`; it comes from `components.css` like
+   every other icon. All five measure **1.85px** at rest.
+3. **Same optical size.** The first attempt reused the diamond's 3.2-to-20.8 box with a small bow and
+   **read visibly smaller than its neighbours** - a key's ink is a bow and a thin shaft where a
+   target's is two full-width rings, so matching the box is not enough on its own. The bow was
+   enlarged to r=5.4 on a 3-to-21 extent, which is exactly what `target` and `circle` get from r=9.
+
+**Rendered, at `size: 'body'` in the bar:**
+
+| Tab | Glyph | CSS box | Stroke | Ink w x h | Vertical extent |
+| --- | --- | --- | --- | --- | --- |
+| Home | `house` | 20 x 20 | 1.85px | 16.8 x 16.8 | 3.6 -> 20.4 |
+| Payments | `arrowLeftArrowRight` | 20 x 20 | 1.85px | 16.8 x 14.4 | 4.8 -> 19.2 |
+| Goals | `target` | 20 x 20 | 1.85px | 18 x 18 | 3 -> 21 |
+| **Mortgage** | **`key`** | **20 x 20** | **1.85px** | **10.8 x 18** | **3 -> 21** |
+| Profile | `circle` | 20 x 20 | 1.85px | 18 x 18 | 3 -> 21 |
+
+The box and the stroke are identical across all five, and the key's height now matches the two tabs
+either side of it exactly. **It remains narrower - 10.8 against 18 - and that is inherent to a key
+rather than a defect to correct.** Widening it further would mean drawing a key that is not
+key-shaped.
+
+`keyFill` fills the bow alone and leaves the shaft and teeth stroked. That is the `targetFill` case
+rather than the `houseFill` one, for the reason `targetFill` already documents: `fill-rule` applies
+within a path and not across siblings. The filled bow loses the hole a key has in life, which is the
+intended ON cue and not an oversight - a disc on a toothed shaft still reads as a key at 20px, where a
+hollow bow does not read as filled at all. Knocking the hole back out is not available:
+`.icon__knockout` paints in `--color-label-inverse`, correct for a glyph on a filled shape (the
+milestone star) and wrong for one on the tab bar's own background, where it would invert with the
+palette.
+
+### Every tab's accessible name is now its visible label - a supersession of D35
+
+**Before this entry, no live tab's accessible name matched its label**, and the rename would have made
+that visible: the tab would have read "Mortgage" and announced "Your deposit tracker".
+
+D35 gave each live tab an `aria-label` holding a HINT - `homeTabHint` "Back to Home", `goalsTabHint`
+"Your goals", `insightsTabHint` "Your deposit tracker". `aria-label` does not annotate a control, it
+NAMES it, and it overrides the visible text outright. So a participant reading "Goals" was heard by a
+screen reader as "Your goals", and the mismatch was three tabs wide rather than one.
+
+**All three hint strings are deleted and no tab carries an `aria-label`.** The icon is `aria-hidden`
+(`icons.js` sets that by default for every icon and always did), so the only text inside the button is
+`.bottom-nav__label`, and that text IS the accessible name. Nothing can drift, because there is no
+second string left to drift from.
+
+This was Riona's explicit choice between three options: reword the one hint, match label to name on
+this tab only, or match on all three. **All three was chosen so the bar is consistent** rather than
+correct on the renamed tab and wrong on its neighbours - fixing one and leaving two would have left
+the bar in a state no rule describes.
+
+If a hint is ever wanted back, it is `aria-describedby` pointing at real text, never `aria-label`.
+
+### The route did NOT change, and neither did the tab's id
+
+**`/tracker` contains no "insights" and never did**, so the brief's concern about a path change - a
+stored session key, a deep link, a mid-study URL - does not arise here. There was nothing to weigh.
+
+What is still called `insights` is the tab's internal **id**: the key in `NAVIGABLE_TABS`, the
+`data-tab` attribute, `TAB_ICONS` / `TAB_ICONS_ACTIVE`, `router.js`'s `ACTIVE_TAB` pair, and the
+selectors in `bottom-nav.test.mjs`, `shots.mjs` and `stage.test.mjs`. **It is deliberately unchanged.**
+Renaming it is a pure-refactor rename across three test files and a screenshot script, it is invisible
+to a participant, and it buys nothing during a study. It is recorded as `GAPS.md` **G127** so the next
+reader finds the reason rather than the mismatch.
+
+### Three stale lines corrected in passing
+
+`DESIGN.md`'s tab-state table, `components.css`'s state-3 comment and `ui.js`'s own ARIA block all
+still listed this tab among the DISABLED ones - true before D35 pointed it at `/tracker`, false ever
+since. `DESIGN.md`'s Active and Enabled rows named only Home and Goals for the same reason. Corrected
+together, because `CLAUDE.md`'s rule is that a correction applies everywhere the pattern appears.
+
+### Verified
+
+- The tab reads **"Mortgage"** with an outline key; on `/tracker` it draws the filled bow and the
+  indicator. Screenshots at 390x844, light, `/home` and `/tracker`.
+- **Accessible name matches the visible label on all five tabs**, computed from the button rather than
+  read off an attribute: Home, Payments, Goals, Mortgage, Profile. Every icon `aria-hidden="true"`.
+- **Tab order and keyboard navigation unchanged.** DOM order home, payments, goals, insights, profile;
+  focus order Home, Goals, Mortgage, with Payments and Profile skipped as `disabled`. Enter on the tab
+  navigates `/home` -> `/tracker` and sets `aria-current="page"`.
+- Suite: **423 tests, 422 passing, 1 skipped (G91's known intermittent), 0 failing.** One test
+  asserted the old glyph - `bottom-nav.test.mjs` matched `icon--diamond-fill` as the active cue on
+  `/tracker` and now matches `icon--key-fill`. No test asserted the string "Insights", and none
+  asserted an `aria-label` on a tab, so removing the hints broke nothing.
+- `CACHE_VERSION` and `BUILD_VERSION` v114 to v115, a paired hand-edit. Confirmed reading
+  **"Build v115"** on frame 33 in a fresh context with no stored session.
+
+### To reverse
+
+Restore `insights: 'Insights'`, the three `*TabHint` strings and their `aria-label`, and swap `key` /
+`keyFill` back for `diamond` / `diamondFill`. Reversing would put back a label the pilot participant
+named as the session's strongest objection, so the reason would have to be new evidence about the
+word rather than a preference for the old glyph.

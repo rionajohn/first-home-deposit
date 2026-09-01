@@ -91,16 +91,21 @@ export function appBarHTML({ title, left = null, appBarLabels }) {
  * exempt from the screenshot-comparison pass.
  *
  * THREE TABS RESOLVE: Home, Goals, and — since the deposit tracker is the
- * bank's own view of how this goal is going — Insights, which lands on
- * /tracker. Payments and Profile stay exactly as inert here as they already
+ * bank's own view of how this goal is going — the tab whose id is `insights`,
+ * which lands on /tracker. IT IS LABELLED "Mortgage" (D134): the id is a key
+ * in this map, in router.js's ACTIVE_TAB list and in three test files, and it
+ * did not change when the label did. Do not read the id as the tab's name.
+ *
+ * Payments and Profile stay exactly as inert here as they already
  * are on frame 01: they are the surrounding bank app, out of prototype
  * scope, so they are rendered `disabled` and hidden from assistive
  * technology rather than left as tappable dead ends. Tapping the tab you are
  * already on is a no-op re-navigation to the route already showing, which is
  * the standard tab-bar behaviour for the active tab.
  *
- * INSIGHTS IS THE ONLY WAY INTO THE TRACKER FROM THE BAR, and the tracker is
- * the only way into the Mortgage in Principle flow (tracker.js's action bar).
+ * THE MORTGAGE TAB IS THE ONLY WAY INTO THE TRACKER FROM THE BAR, and the
+ * tracker is the only way into the Mortgage in Principle flow (tracker.js's
+ * action bar).
  * The bar itself carries no route to /mip and must not gain one: one entry
  * into that flow is the whole point of keeping it on the tracker.
  *
@@ -140,8 +145,11 @@ export const NAVIGABLE_TABS = { home: '/home', goals: '/goals', insights: '/trac
  *              disabled tab at rest — same colour, same weight, outline icon,
  *              no indicator. It says it is tappable by responding to touch
  *              (components.css), not by looking different standing still.
- *   disabled   Payments, Insights, Profile. Reduced contrast, not focusable,
- *              not tappable.
+ *   disabled   Payments and Profile. Reduced contrast, not focusable,
+ *              not tappable. (This list used to name Insights as well, from
+ *              before D35 pointed that tab at /tracker. It has been live
+ *              since; DESIGN.md and components.css carried the same stale
+ *              line and were corrected with it in D134.)
  *
  * The bar previously had two treatments and the difference between them was
  * an accident: nothing set `color` on a tab, so an enabled tab inherited the
@@ -159,28 +167,38 @@ export const NAVIGABLE_TABS = { home: '/home', goals: '/goals', insights: '/trac
  * ARIA CARRIES THE SAME THREE STATES, because the visual treatment
  * deliberately does not distinguish enabled from disabled:
  *   - `aria-current="page"` on the active tab only.
- *   - `aria-disabled="true"` on the three disabled ones, alongside the real
+ *   - `aria-disabled="true"` on the two disabled ones, alongside the real
  *     `disabled` attribute. `disabled` is what makes them unfocusable and
  *     untappable; `aria-disabled` is what states it, since these three were
  *     previously `aria-hidden="true"` and so absent from the accessibility
  *     tree entirely — a screen-reader participant could not tell there were
  *     five tabs, let alone which were which. `tabindex="-1"` went with it:
  *     redundant beside `disabled`, and misleading to leave in.
+ *
+ * EVERY TAB'S ACCESSIBLE NAME IS THE LABEL UNDER ITS ICON, and it is computed
+ * from the label rather than declared beside it. There is no `aria-label` on
+ * any tab: the icon is `aria-hidden` (icons.js sets that by default), so the
+ * only text the button contains is `.bottom-nav__label`, and that text IS the
+ * name. Nothing can drift, because there is no second string to drift from.
+ *
+ * D35 had given each live tab an `aria-label` holding a HINT — "Back to
+ * Home", "Your goals", "Your deposit tracker" — which overrode the visible
+ * label outright. A participant reading the bar saw "Goals" and a screen
+ * reader announced "Your goals", and the tab renamed in D134 would have been
+ * read "Your deposit tracker" while showing "Mortgage". D134 removed all
+ * three hints rather than reword one, so the bar is consistent across its
+ * live tabs. If a hint is ever wanted back, it is `aria-describedby` pointing
+ * at real text, never `aria-label` — that names, it does not annotate.
  */
 export function bottomNavHTML(labels, { active = null } = {}) {
   const tab = (id, label) => {
     const isLive = Object.prototype.hasOwnProperty.call(NAVIGABLE_TABS, id);
     const isActive = isLive && id === active;
-    // One hint per live tab, looked up by id rather than chosen by a ternary.
-    // The ternary this replaces returned the Goals hint for every tab that
-    // was not Home, which was correct only while Goals was the sole other
-    // live tab — Insights would have announced itself as "Your goals".
-    const hint = labels[`${id}TabHint`];
     // Fall back to the outline drawing rather than throwing if a live tab
-    // has no filled twin. Making Insights live without adding `diamondFill`
-    // made this `undefined(...)`, which took the whole tab bar down on the
-    // one route the tab is lit. The fallback loses a cue; it does not lose
-    // the bar.
+    // has no filled twin. Making this tab live without adding a filled
+    // variant made this `undefined(...)`, which took the whole tab bar down
+    // on the one route the tab is lit. The fallback loses a cue; it does not
+    // lose the bar.
     const glyph = (isActive ? TAB_ICONS_ACTIVE[id] : null) || TAB_ICONS[id];
     return `
       <button
@@ -188,7 +206,7 @@ export function bottomNavHTML(labels, { active = null } = {}) {
         class="bottom-nav__tab${isActive ? ' bottom-nav__tab--active' : ''}"
         data-tab="${id}"
         ${isLive
-          ? `data-action="nav-tab" aria-label="${hint}"${isActive ? ' aria-current="page"' : ''}`
+          ? `data-action="nav-tab"${isActive ? ' aria-current="page"' : ''}`
           : 'disabled aria-disabled="true"'}
       >
         ${isActive ? '<div class="bottom-nav__active-rule"></div>' : ''}

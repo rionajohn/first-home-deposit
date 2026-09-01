@@ -1149,8 +1149,10 @@
 }
 
 /* --- State 3: disabled ---
-   Payments, Insights and Profile: the surrounding bank app, out of prototype
-   scope and inert on frame 01 already. `disabled` in the markup is what makes
+   Payments and Profile: the surrounding bank app, out of prototype
+   scope and inert on frame 01 already. (This note named Insights as a third
+   until D134; that tab has been live since D35 pointed it at /tracker, and is
+   now labelled Mortgage.) `disabled` in the markup is what makes
    them unfocusable and untappable; `aria-disabled` is what announces it. They
    inherit the same rest colour as state 2 by design — see the note there —
    so the only thing this rule adds is the pointer.
