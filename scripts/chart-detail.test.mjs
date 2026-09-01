@@ -651,3 +651,42 @@ test('14. the two marker-bearing cards stay visually separate', async () => {
     }
   }
 });
+
+// --- 15. The two views start at the same distance below the toggle -----------
+
+test('15. the gap under the Chart/Table toggle is identical in both views', async () => {
+  // D128. Both views are flex children of `.screen-content`, so both get its
+  // `--space-lg` gap - but the chart's topmost axis label sits ABOVE its own
+  // line, which is the plot's top edge, so it overflowed into that gap and the
+  // chart read tighter than the table. The measurement is toggle bottom to the
+  // first INK, not to the first box, because that is what the difference was.
+  for (const large of [false, true]) {
+    const gaps = {};
+    for (const view of ['chart', 'table']) {
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+      await context.addInitScript((v) => {
+        try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch { /* private mode */ }
+      }, { ...seed, chartView: view, textSize: large ? 'large' : 'default' });
+      const page = await context.newPage();
+      try {
+        await page.goto(`${base}/#/calculator/result`, { waitUntil: 'networkidle' });
+        await page.waitForTimeout(300);
+        gaps[view] = await page.evaluate((v) => {
+          const toggle = document.querySelector('[data-action="select-chart-view"]').closest('div');
+          // The TOPMOST tick label by position - the ticks array runs £0 first,
+          // so `querySelector` would return the one at the bottom of the plot.
+          const tops = v === 'chart'
+            ? [...document.querySelectorAll('.growth-chart__tick-label')].map((e) => e.getBoundingClientRect().top)
+            : [document.querySelector('.growth-table__caption').getBoundingClientRect().top];
+          return Math.min(...tops) - toggle.getBoundingClientRect().bottom;
+        }, view);
+      } finally {
+        await context.close();
+      }
+    }
+    const label = large ? 'large ' : 'default';
+    console.log(`  toggle gap ${label}: chart ${gaps.chart.toFixed(1)}px, table ${gaps.table.toFixed(1)}px`);
+    assert.ok(Math.abs(gaps.chart - gaps.table) < 2,
+      `${label}: chart ${gaps.chart.toFixed(1)}px vs table ${gaps.table.toFixed(1)}px below the toggle`);
+  }
+});

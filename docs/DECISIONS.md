@@ -10438,3 +10438,87 @@ the screen.
 **NOT A REVIVAL OF D72.** That intent is recorded as dropped (D121) and reading order does not carry
 it - a default is a state you must act to leave, a reading order is not. This is consistency, which is
 a different argument that happens to produce the same sequence.
+
+---
+
+## D128. Unlabelled gridlines at fractions of the goal, and one spacing token for both views
+
+**Date.** 1 September 2026.
+
+### The gridlines are quarters, and the fraction is the reason
+
+Three unlabelled rules at **25%, 50% and 75% of the goal**, between the goal line and £0. The two
+labels are unchanged: the goal at the top, £0 at the bottom.
+
+**Fractions of the goal rather than round pounds.** Since D122 made the goal the axis top, vertical
+position reads as proportion of the target - so an unlabelled line at 50% reads as **"about halfway to
+my deposit"**, which is a fact worth having without a label. A line at £16,000 would need its label to
+mean anything, and an unlabelled one at an unnameable value is decoration. This screen has spent
+several passes having decoration removed from it.
+
+**Quarters rather than thirds or fifths.** Halves alone give one line and too little structure;
+fifths give four lines and start to hatch a 224px plot. Quarters are also the fractions a reader
+already thinks in, so the middle line needs no arithmetic at all.
+
+**TOLD APART FROM THE GOAL BY MORE THAN COLOUR (WCAG 1.4.1).** The goal line is **dashed** and these
+are **solid**, as well as lighter. The goal is the only horizontal rule on the plot that carries
+meaning on its own, and the distinction survives greyscale and the dark palette.
+
+### One spacing token, and the defect it exposed
+
+**The gap below the Chart/Table toggle is `--space-lg`, and it always was** - both views are flex
+children of `.screen-content`, which sets `gap: var(--space-lg)`. Nothing new was chosen; the token is
+the one the table view was already getting, which is what stops the two drifting apart later. It is
+`.screen-content`'s gap and is read by **every screen in the app**, so it could not have been changed
+for this one anyway.
+
+**The chart read tighter because its topmost label overflowed its own box.** Since D122 the top tick
+label sits above the goal line, and that line is now the plot's top edge - so the label extended
+*above* the component and ate into the gap. Measured: **14px of visible clearance in the chart against
+16px in the table.** `.growth-chart` now reserves the label's own height plus the 2px it sits above
+its rule, both scaled with the text size, and the two views measure **16px at both text sizes**.
+
+### The savings card's last divider
+
+The divider between "Total to save" and the card's footnote is gone - `.figure-row`'s
+`border-bottom`, which returned when D124's footnote stopped the last row being `:last-child`. A rule
+between a total and the note that qualifies it separates two things that belong together.
+
+**The replacement spacing is the row's own 12px bottom padding and nothing more**, and the ceiling is
+not aesthetic: `.screen-content` leaves **16px** between this card and what follows, so a footnote
+further than 12px from the row would sit closer to the next block than to the card whose marker points
+at it. Verified at both text sizes.
+
+---
+
+## D129. The disclosure takes the flag row's treatment and keeps its own chevron
+
+**Date.** 1 September 2026.
+
+**Decision.** "How we worked this out" renders in `.flag-row`'s treatment - flat, full width, a top
+rule, no card fill, the same label type - and sits directly above "Something doesn't look right".
+**Its behaviour is unchanged: it still expands in place, and it keeps its DOWN chevron.**
+
+**The two are separable, and separating them is the point.** The brief noted that adopting the row
+style implies adopting the rightward chevron, and therefore navigation. The treatment and the chevron
+are different things: the treatment says *these two controls are the same kind of furniture*, the
+chevron says *this is what will happen when you press it*. Matching the first while keeping the second
+is what lets the pair read as a family **while still telling the participant which one leaves the
+screen**. Making them identical in both respects would have made two different behaviours
+indistinguishable.
+
+**Why navigation was not adopted** - the investigation, recorded because it is the reason the
+behaviour did not change:
+
+| | |
+| --- | --- |
+| **What it does now** | Expands in place. `data-action="toggle-disclosure"`, `aria-expanded`, `aria-controls`, and `resultHowWeWorkedOpen` in `COLLAPSIBLE_DEFAULTS` - so D12 closes it on every entry |
+| **What it reveals** | Three rows carrying the participant's OWN figures - what we read, what we worked out (their essential spending and left over), what we assumed - plus a nav button to `/assumptions/saving`. The same card renders verbatim on `/position/summary` |
+| **Does that content exist as a route?** | **Partly, and not the part that matters.** `/assumptions/saving` covers the assumptions in more depth and adds exclusions, but it does not state the participant's own figures. Navigating would lose those from this screen |
+| **Would it duplicate a route?** | **Yes.** `projectionAssumptionsLinkLabel`, directly beneath the goal block, already goes to `/assumptions/saving`, and so does the nav button inside the disclosure. Making the row navigate would give one screen two controls to one sheet |
+| **Does it close the copy check's 3A finding?** | **No, because that is already closed.** D103's re-derived placement put an assumptions link directly beneath the projection when the goal block moved. This row is not needed for it, and `GAPS.md` G119 - the separate rule 2 point about `estimateDisclosure` - is untouched by any of this |
+
+**So the row is placement and treatment only.** If navigation is wanted later, the thing to weigh is
+the participant's own figures disappearing from this screen against one fewer expandable, and the
+duplicate route would have to be resolved in the same pass.
+

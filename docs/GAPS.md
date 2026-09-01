@@ -4855,3 +4855,18 @@ deserves its own answer rather than being spent to buy 64px.
 point of asserting the figure was to catch a change that breaks co-visibility, and the first thing it
 caught was that the layout already had.
 
+### It grew again, 1 September 2026 (DECISIONS.md D128)
+
+| | Was | Now |
+| --- | --- | --- |
+| Default text | 716.0px | **736.0px** - now over by 4.0px |
+| Large text | 798.4px | **821.1px** - over by 89.1px |
+
+D128 added 20px to the chart view: the gridlines cost nothing, but reserving the topmost axis label's
+own height inside `.growth-chart` - which is what made the gap below the toggle match the table view -
+moved everything below it down.
+
+**Default text has now crossed the line too**, which it had not when this entry was opened. Both text
+sizes fail. The legend candidate at the foot of this entry is unchanged and still unspent; at ~64px it
+would clear default comfortably and still leave Large ~25px short.
+

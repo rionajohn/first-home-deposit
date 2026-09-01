@@ -1200,11 +1200,20 @@
    in an SVG plus positioned points, a horizontal guide, and an x-axis that is
    a SCALE rather than a flex row (pilot finding P10 - four labels distributed
    independently of eleven bars, so no label sat under the mark it named). */
+/* THE TOPMOST AXIS LABEL SITS ABOVE ITS OWN LINE, and that line is now the
+   plot's top edge (D122) - so the label overflowed the component's box and ate
+   into the gap `.screen-content` leaves between flex children. The table view
+   has no such overflow, so the same 16px gap read as clear space there and as
+   nothing here. Reserving the label's own line-height inside the component
+   makes the two views start at the same distance below the toggle. */
 .growth-chart {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
   width: 100%;
+  /* The label's line-height PLUS the 2px it sits above its own rule - see
+     `.growth-chart__tick-label`'s margin. Both scale with the text size. */
+  padding-top: calc(var(--text-footnote-line) + 2px);
 }
 
 .growth-chart__plot {
@@ -1275,6 +1284,22 @@
    line rather than needing a second set of positioned elements. Smaller than
    the selected series' points, which is the same size-and-shape rule the active
    point follows. */
+/* QUARTER, HALF AND THREE-QUARTERS OF THE GOAL (D128), unlabelled. Fractions
+   rather than round pounds: an unlabelled line at 50% reads as "about halfway
+   to my target", which is a fact worth having; one at £16,000 is decoration,
+   and this screen has been having decoration removed from it.
+
+   QUIETER THAN THE GOAL LINE, which is the only horizontal rule that carries
+   meaning on its own - and told apart by MORE THAN COLOUR (WCAG 1.4.1): the
+   goal is dashed and these are solid, so the distinction survives greyscale. */
+.growth-chart__fraction-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
 /* THE GOAL, DRAWN AND NOT LABELLED (D119). Dashed so it reads as a threshold
    rather than as a third series, and lighter than either line. */
 .growth-chart__goal-line {
@@ -1878,6 +1903,23 @@
   width: 100%;
 }
 
+/* NO DIVIDER ABOVE THE CARD'S FOOTNOTE (D124's amendment). The last figure row
+   drew one because the footnote made it stop being `:last-child`; a rule
+   between a total and the note that qualifies it separates two things that
+   belong together.
+
+   THE SPACING IS THE ROW'S OWN 12px BOTTOM PADDING and nothing more,
+   deliberately: `.screen-content` leaves 16px between this card and whatever
+   follows, so a footnote further than 12px from the row would sit closer to the
+   next block than to the card whose marker points at it. */
+.assumptions-list > .figure-row:has(+ .assumptions-list__footnote) {
+  border-bottom: none;
+}
+
+.assumptions-list__footnote {
+  margin: 0;
+}
+
 /* Frame 32's "Comprehension / Data source row": a bold primary-coloured
    label (heavier than figure-row's own regular-weight label, since this
    row's label is itself the headline, not a caption), a plain value line,
@@ -2323,3 +2365,29 @@
 }
 
 .goal-block__year { font-weight: 600; }
+
+/* The disclosure in `.flag-row`'s treatment (D129), so it can sit directly
+   above that row and read as its pair: flat, full width, a top rule, no card
+   fill. It keeps its DOWN chevron - see `howThisWorksCardHTML` for why. */
+.how-this-works-row {
+  width: 100%;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.how-this-works-row .how-this-works-card__header {
+  min-height: var(--touch-target-min);
+  padding: var(--space-md) 0;
+}
+
+/* The same type as `.flag-row__label`, so the two rows read as one family
+   rather than as a heading beside a row. The card variant keeps its own
+   heading-weight title, which is right where it IS a card. */
+.how-this-works-row .how-this-works-card__title {
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+  font-weight: 500;
+}
+
+.how-this-works-row .how-this-works-card__content {
+  padding: 0 0 var(--space-md) 0;
+}

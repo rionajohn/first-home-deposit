@@ -269,7 +269,7 @@ export function render(container, ctx) {
         })}
         ${figureRowHTML({ label: c.goalStampDutyLabel, trailing: formatCurrency(stampDutyValue), caption: c.goalStampDutyCaption })}
         ${figureRowHTML({ label: c.goalTotalLabel, trailing: formatCurrency(combinedGoalValue) })}
-        <p class="legal-text" id="deposit-estimate-note">${c.depositFootnoteMarker} ${reg.estimateDisclosure}</p>
+        <p class="legal-text assumptions-list__footnote" id="deposit-estimate-note">${c.depositFootnoteMarker} ${reg.estimateDisclosure}</p>
       </div>
 
       ${unreachable ? emptyStateCardHTML({ title: c.unreachableHeadline, body: c.unreachableBody, ctaLabel: c.unreachableCta, ctaAction: 'set-amount' }) : ''}
@@ -339,6 +339,8 @@ export function render(container, ctx) {
         }) : growthChartHTML({
           points,
           yTicks: ticks,
+          // Quarter, half and three-quarters of the goal - see D128.
+          fractionLines: [25, 50, 75],
           yearLabels,
           nowLabel: c.xAxisNow,
           legend: series.map((s) => ({ label: fill(c.legendTemplate, { amount: formatCurrency(s.rate) }), shade: s.shade })),
@@ -393,6 +395,9 @@ export function render(container, ctx) {
         ],
         navLabel: c.seeHowWeWorkedLabel,
         navAction: 'open-assumptions-saving',
+        // D129: the row treatment, directly above the flag row. BEHAVIOUR IS
+        // UNCHANGED - it still expands in place and keeps its down chevron.
+        asRow: true,
       })}
 
       ${flagRowHTML(c.flagLabel)}

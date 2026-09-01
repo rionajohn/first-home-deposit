@@ -1307,7 +1307,7 @@ export function rangeFigureHTML({ lowText, highText, caption, markerPct, trackLa
 export function growthChartHTML({
   points,
   yTicks,
-  goalPct,
+  fractionLines,
   yearLabels,
   nowLabel,
   legend,
@@ -1354,7 +1354,8 @@ export function growthChartHTML({
                once, in the goal block's heading above the chart; a label here
                would be the second place and would sit in the same band as the
                tick labels it is not one of. -->
-          ${goalPct === null ? '' : `<div class="growth-chart__goal-line" style="bottom:${goalPct}%" aria-hidden="true"></div>`}
+          ${fractionLines.map((f) => `<div class="growth-chart__fraction-line" style="bottom:${f}%" aria-hidden="true"></div>`).join('')}
+          <div class="growth-chart__goal-line" style="bottom:100%" aria-hidden="true"></div>
 
           <!-- A FULL-HEIGHT LINE AT THE SELECTED YEAR (D118), replacing the
                horizontal guide to the y-axis. That guide could serve one value;
@@ -1932,10 +1933,20 @@ export function rateBandRowHTML({ label, sublabel, value, highlighted, described
  * link directly under a heading that says the same thing, which is the
  * duplication this card was just untangled from.
  */
-export function howThisWorksCardHTML({ id, open = false, title, intro, rows, navLabel, navAction, footnote }) {
+export function howThisWorksCardHTML({ id, open = false, title, intro, rows, navLabel, navAction, footnote, asRow = false }) {
   const contentId = `how-this-works-content-${id}`;
+  // `asRow` DRAWS THE TRIGGER IN `.flag-row`'s TREATMENT (D129) - flat, full
+  // width, a top rule, no card - so it can sit directly above that row and read
+  // as its pair.
+  //
+  // IT KEEPS THE DOWN CHEVRON, AND THAT IS THE POINT. `.flag-row` carries a
+  // RIGHT chevron because it navigates; this expands in place. Matching the
+  // treatment and keeping the chevron is what lets the two rows look like one
+  // family while still telling the participant which one leaves the screen.
+  // Adopting the right chevron would mean adopting navigation, which is a
+  // behaviour change and is not taken here.
   return `
-    <div class="card how-this-works-card${open ? '' : ' how-this-works-card--closed'}">
+    <div class="${asRow ? 'how-this-works-row' : 'card'} how-this-works-card${open ? '' : ' how-this-works-card--closed'}">
       <h3 class="how-this-works-card__heading">
         <button type="button" class="how-this-works-card__header" data-action="toggle-disclosure" data-disclosure-id="${id}" aria-expanded="${open}" aria-controls="${contentId}">
           <span class="how-this-works-card__title">${title}</span>
