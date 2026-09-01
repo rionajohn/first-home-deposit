@@ -44,6 +44,7 @@ have seen.
 | [UNKNOWN] | 2026-08-28 | `394565a` | [UNKNOWN] |
 | v3 | 2026-08-30 | `4a627bc` | Going through usability testing protocol to see what fixes were needed |
 | v4 | 2026-08-31 | `3b11d8f` | Allowing the deposit goal to take in extra costs such as stamp duty, and allowing the deposit result page to be clearer rather than showing a range based on the deposit percentage saved towards |
+| v5 | 2026-09-01 | `2fb6667` | Pilot feedback changes: Scaling in different screens when on desktop, copy on the screen where a participant will decide how to save for their deposit, and the results for the deposit page - improving the chart to show a better comparison over the years |
 
 **Commit** is the commit `main` points at after the merge. A commit cannot contain its own SHA, so
 from v5 on the cell names the last content commit of the version and the log row sits one commit
