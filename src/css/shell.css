@@ -110,7 +110,7 @@ h1, h2, h3, h4, h5, h6 {
    window is wide enough for, so a horizontal scrollbar would only ever be a
    sub-pixel artefact.
 
-   Frameless (<768px) `.screen` is already exactly 100vh with its own
+   Frameless (<768px) `.screen` is already exactly 100svh with its own
    `overflow: hidden`, so this changes nothing there — it just makes "the
    page does not scroll" a stated rule rather than a side effect of the
    height happening to match.
@@ -167,7 +167,7 @@ body::-webkit-scrollbar,
 
 /* `#app` deliberately has no height rule of its own. It *is* the `.screen`
    element (index.html: `<div id="app" class="screen">`), and `.screen`
-   already sets an exact height in both views — 100vh frameless,
+   already sets an exact height in both views — 100svh frameless,
    --frame-height framed. An earlier `#app { min-height: 100vh }` here
    out-specified (id beats class) the framed `height: var(--frame-height)`
    on any viewport taller than 852px, stretching the screen past the bezel it
@@ -181,7 +181,31 @@ body::-webkit-scrollbar,
    scrolls its whole self including the tab bar. */
 .screen {
   width: 100%;
+  /* --- 100svh, NOT 100vh, and deliberately NOT 100dvh (DECISIONS.md D137) ---
+     On iOS Safari `100vh` is the LARGE viewport height, which is only ever
+     visible while Safari's own bottom toolbar is hidden. The shell therefore
+     laid out taller than the space the participant could see, and since
+     `html, body` are `overflow: hidden` above, the bottom of the column was
+     clipped rather than scrollable - the tab bar sat behind Safari's toolbar
+     and could not be reached at all.
+
+     `svh` is the SMALL viewport height: the toolbar's space is reserved
+     permanently, whether it is showing or not. The layout never detects the
+     toolbar, never responds to it, and never reclaims the band when it
+     collapses on scroll. `dvh` would do the last of those, which would move
+     the tab bar mid-session - a confound in an observed think-aloud session,
+     where the place the app's furniture sits has to be the same at minute
+     twenty as at minute one. In the installed PWA there is no Safari
+     toolbar, so `svh` resolves to the full height and this one rule holds on
+     both surfaces.
+
+     The `100vh` line below it is the fallback for an engine that does not
+     know `svh` (pre-15.4 Safari, pre-108 Chrome): it ignores the second
+     declaration and keeps exactly today's behaviour. Framed (>=768px) both
+     are overridden by `height: var(--frame-height)` in the media query at the
+     end of this file, so neither applies there. */
   height: 100vh;
+  height: 100svh;
   display: flex;
   flex-direction: column;
   background: var(--color-bg);

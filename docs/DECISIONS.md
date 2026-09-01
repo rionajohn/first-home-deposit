@@ -11454,3 +11454,99 @@ Delete the two predicates and restore the unconditional two-element `series` arr
 field's handler and `monthlySingleAriaLabel` go with them. Reversing puts "£633 to £633" back on
 step 3 and a line drawn over itself on frame 12, so the reason would have to be that the pair is
 right for a single value rather than that the rule is wrong.
+
+---
+
+## D137. The layout permanently reserves the browser toolbar's space, using `svh` and never `dvh`
+
+**Date.** 1 September 2026.
+
+### The rule, stated once
+
+> **The app shell's height is the SMALL viewport height. The space Safari's bottom toolbar occupies
+> is reserved permanently, whether the toolbar is showing or not. The layout never detects the
+> toolbar, never responds to it, and never reclaims the band when it collapses.**
+
+`src/css/shell.css`, the `.screen` rule, frameless (<768px) only:
+
+```css
+height: 100vh;
+height: 100svh;
+```
+
+### What was wrong
+
+On iOS Safari the bottom toolbar sits at the bottom of the screen, over the app. `100vh` resolves to
+the **large** viewport height - the height available only while that toolbar is hidden - so the shell
+laid out taller than the space the participant could actually see. `.screen` is a fixed-height flex
+column with the tab bar pinned to its bottom edge (`margin-top: auto`, components.css), so the tab bar
+landed underneath Safari's own toolbar.
+
+It could not be scrolled to, either. `html, body` are `overflow: hidden` in both views, so the band
+below the fold was **clipped rather than scrollable**: the app's primary navigation was not merely
+awkward to reach, it was unreachable. On a participant's own phone that is the whole tab bar gone.
+
+This is the same shape as the standing rule in `CLAUDE.md` about a value measured against a reference
+the screen does not show. `vh` is measured against a viewport that only exists in a state the
+participant is not in, and nothing on screen reveals which of the two viewports it took.
+
+### Why `svh` and not `dvh`
+
+`dvh` tracks the **dynamic** viewport: it grows as the toolbar collapses on scroll and shrinks as it
+returns. The layout would then be correct at every instant and the tab bar would still **move during
+scrolling**.
+
+That is rejected on research grounds rather than technical ones. This prototype is an instrument in a
+moderated think-aloud session, and where the app's furniture sits has to be the same at minute twenty
+as at minute one. Chrome that shifts under the participant's thumb as they scroll gives them something
+to react to that is an artefact of the browser rather than a property of the design - a confound in
+what the session is there to observe, and one that would be recorded as a finding about the app.
+`svh` gives up a band of screen height to buy a tab bar that never moves. That is the right trade for
+this instrument; it would not necessarily be the right trade for a shipping product.
+
+### One rule, both surfaces
+
+In the installed PWA there is no Safari toolbar, so the small and large viewports are the same and
+`svh` resolves to the full height. The single declaration is therefore correct on both surfaces, with
+no branch, no `display-mode` query and no detection of which surface is running.
+
+### Why two declarations rather than one
+
+The `100vh` above it is a fallback for an engine that does not know `svh` (Safari before 15.4, Chrome
+before 108). Such an engine discards the second declaration as invalid and keeps exactly the previous
+behaviour; a newer one takes the second. It costs one line and cannot make anything worse.
+
+Framed (>=768px) both are overridden by `height: var(--frame-height)` in the media query at the end of
+that file, so neither applies in the desktop mock - confirmed by the 1280px renders being **byte
+identical** before and after.
+
+### What this change did NOT need
+
+Three things the obvious version of this fix would add were checked and found already present or
+actively wrong here:
+
+- **`viewport-fit=cover`** was already on the viewport meta tag (`index.html`).
+- **`padding-bottom: env(safe-area-inset-bottom)` inside the tab bar** was already there, as
+  `var(--safe-bottom)`, with the bar's height grown to match - D11, D14 and `GAPS.md` G39.
+- **Bottom padding on the scroller equal to the bar's height** would have been wrong. `.bottom-nav` is
+  **not** fixed or sticky; it is the last child of the `.screen` flex column, and `.screen-content` is
+  a sibling that already ends where the bar begins. Adding that padding would open a permanent dead
+  band inside every scroller and fight the negative-margin arrangement `.screen > .screen-content`
+  uses for the action bar (G41).
+
+No JavaScript was added: no `vh` polyfill, no resize listener, no `visualViewport` handler, no
+viewport-height custom property. The fix is one CSS declaration.
+
+### Verified
+
+At 390x664 (the small viewport of a 390x844 iPhone), on `/home`, `/tracker` and `/goals`: `.screen`
+measures exactly 664px, the page itself has zero scroll, the whole tab bar sits at 608-664 inside the
+viewport with no scrolling, the bar's box is **identical at scroll top and scroll end**, and the last
+element on each screen ends above the bar's top edge. No horizontal overflow at any of 320, 375, 390,
+414, 600, 767, 768, 900, 1024 or 1280px. `frame-scale`, `action-bar`, `bottom-nav`, `overlap` and
+`smoke` all pass (173 + 30 tests, 0 failures).
+
+### To reverse
+
+Delete the `height: 100svh` line. The `100vh` above it is the previous behaviour exactly, so reversing
+is a one-line deletion - and puts the tab bar back behind Safari's toolbar on every iPhone.
