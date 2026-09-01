@@ -33,14 +33,28 @@ do not introduce a state management library.
 - A row is either editable or explanatory, never both.
 - Any correction applies everywhere the same pattern appears, not just the
   screen named in the prompt.
-- **Anything measuring inside the frame with `getBoundingClientRect()` must work
-  in ratios, or divide by the frame scale.** D92 draws the frame at a CSS scale,
-  so `getBoundingClientRect()` returns VISUAL pixels while layout is in LOGICAL
-  ones. A handler or an assertion written against a raw pixel offset passes at
-  one window size and silently mis-aims at the other. Two defects have now
-  arrived this way. Prefer a fraction of the measured box
-  (`(clientX - rect.left) / rect.width`), which is scale-invariant and needs no
-  knowledge that the scale exists.
+- **Any value measured against a reference the screen does not show must state
+  its reference, or derive from a stamped one.** This has now caused the same
+  defect three times, and each time it read as correct until something else
+  moved:
+    - **`GAPS.md` G111** - `/tracker` dated its projection from `RATES.asAt`,
+      the pinned rate's date, so every date on a live screen was a calendar
+      month early. The reference was a rate, not a today.
+    - **`getBoundingClientRect()` inside the frame** - D92 draws the frame at a
+      CSS scale, so the box is in VISUAL pixels while layout is in LOGICAL
+      ones. Anything written as a raw pixel offset passes at one window size and
+      silently mis-aims at the other. Work in ratios of the measured box
+      (`(clientX - rect.left) / rect.width`), which needs no knowledge that the
+      scale exists.
+    - **`GAPS.md` G120** - `sessionAnchor` was stamped with
+      `toISOString().slice(0, 10)`, which is UTC, so for an hour either side of
+      local midnight it named the previous day and `load()` compared the wrong
+      month. Use `todayStamp()` and `localDate()` in `format.js`.
+
+  The shape is always the same: a number is measured against something the
+  participant cannot see - a rate date, a visual pixel, a UTC clock - and
+  nothing on screen reveals that it is the wrong something. **Name the reference
+  in the code, or take the value from a stamped one.**
 
 ## State rules
 - **Screen-local draft state never writes to a section 6 figure.** A field being

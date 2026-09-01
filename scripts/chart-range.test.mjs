@@ -241,17 +241,15 @@ test('the readout reports the active point, and matches the model', async () => 
     `the caption should name the active point's date: "${c.readoutCaption}" vs "${last.date}"`);
 });
 
-test('no label renders below the active point', async () => {
-  // 6.6.2c: below is under the thumb on every interaction. Asserted at BOTH
-  // text sizes and against the plot's upper bound, because the at-rest active
-  // point is the highest one - so the default state is the one that collides
-  // if D100's 1.20 headroom is ever taken back to D73's 1.05.
+test('the guide value is drawn and stays inside the plot', async () => {
+  // WAS "no label renders below the active point". D111 removed the in-plot
+  // year label, which is the label that test was about; the guide value is the
+  // only in-plot text left, and what still matters is that it is drawn and
+  // clears the plot's bounds at both text sizes.
   for (const large of [false, true]) {
     const c = await chartAt(20000, 'null', { large });
-    assert.ok(c.dateLabel.bottom <= c.activePoint.top + 1,
-      `${large ? 'large' : 'default'}: the date label is not above the point`);
-    assert.ok(c.dateLabel.top >= c.plot.top - 1,
-      `${large ? 'large' : 'default'}: the date label overflows the plot by ${(c.plot.top - c.dateLabel.top).toFixed(1)}px`);
+    assert.match(c.guideValue, /^£[\d,]+$/, `${large ? 'large' : 'default'}: the guide terminates in a value`);
+    assert.ok(c.dateLabel === null, 'the in-plot year label is gone');
   }
 });
 

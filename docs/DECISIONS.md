@@ -9818,6 +9818,18 @@ control labelled "how far ahead" sitting under a table it does not visibly affec
 notices the rows changed - and it would put the chip row between the toggle and the table, which is
 where the table's own caption belongs.
 
+**IT IS AN ACCESSIBILITY ASYMMETRY, NOT A TIDY-UP, and that is the right way to hold it.** The table is
+the chart's TEXT ALTERNATIVE (the plan's 6.7) - it is what a participant reaches when the chart is not
+readable to them, and under D102 it is the only place on the screen with any date resolution at all
+below a year. **Hiding the chips gives its users strictly less control than chart users have over the
+same data.** A participant reading the chart can change the window in one press; a participant reading
+the table cannot change it without leaving the view that works for them.
+
+That is a worse thing than an untidy control row, and it is recorded as such so it is weighed as one.
+It is not a WCAG failure - the table is still complete, still reachable, and the setting is still
+changeable - but "equivalent alternative" is the standard the table is held to, and equivalent is
+exactly what this is not.
+
 **What would settle it.** Whether a participant tries to change the window from the table at all. If
 one does and cannot, this is the entry to reverse; the fix is to draw the chips above the table as
 well, which costs the layout and nothing else.
@@ -9893,3 +9905,85 @@ the plot's own box. Where the box still lands on a y-axis tick label after both 
 than either label it replaced, so it collides with things they did not - **the tick gives way**. That
 is the precedence the guide value already follows: a tick is context, and the box is the answer to the
 question being asked.
+
+### AMENDED 1 September 2026: the callout is REMOVED, because D111 removed its cause
+
+**It was built, it worked, and it is gone.** The box arbitrated between THREE things converging near
+the origin: the in-plot year label, the guide value and the `£0` axis label. D111 removed the year
+label. That leaves ONE pair - the guide value against a tick - and `bindGrowthChart`'s tick sweep
+already resolved that, so the box had a single fact to carry and a rule that no longer had two things
+to choose between.
+
+**Recorded rather than quietly deleted, because the reasoning is the reusable part.** Measure the
+rendered boxes rather than predicting from position; let the context give way to the answer; make the
+box the collision case rather than the default state. If a second in-plot label ever returns, this is
+the entry that says what to build and what it cost.
+
+---
+
+## D111. The in-plot year label goes; the guide's value stays
+
+**Date.** 1 September 2026. Takes half of the plan's 6.2 tie-breaker, deliberately.
+
+**Decision.** The active point's YEAR is no longer drawn in the plot. Its VALUE still is, at the
+y-axis edge where the guide terminates.
+
+**Why they are not the same case.** 6.2 offers a tie-breaker - "if in layout they read as two answers
+rather than one fact in two places, the in-plot label is the one to drop, not the readout" - and this
+takes it for one of the two labels and not the other, because the two are not equally recoverable:
+
+| | Readable without the in-plot label? |
+| --- | --- |
+| **The year** | **Yes.** It is readable from the point's own position on the x-axis, which carries years, and it is stated in the readout caption directly below the plot |
+| **The value** | **No.** There is nothing on the y-axis that names it, and reading it off three gridlines by eye is precisely the 21:42 complaint - "I don't have a y-axis to know what the value is" - that the guide was built to answer |
+
+Dropping both would have re-opened the finding this whole pass exists to close. Dropping neither left
+the year stated three times on one screen.
+
+**What this leaves.** The year appears once in the plot region - in the readout caption - and once
+more on the endpoint line, where it is a different claim about a different month. The value appears at
+the axis edge and in the readout, which 6.2 sanctions as one fact in two places rather than two
+answers, and which the interaction test asserts can never disagree.
+
+**Two things it removed as a side effect.** D110's collision callout, which existed to arbitrate
+between the year label, the value and the axis labels - see that entry's amendment. And the reason
+D100 gave for the 1.20 headroom: it was bought to hold the year label above the point, and now holds
+nothing but the curve. **The headroom is kept anyway**, because D108 needs a round axis top above the
+data and a curve that runs into the top edge reads as clipped - but the justification has changed
+hands, and this records that so a later pass does not reclaim it on D100's now-spent reasoning.
+
+---
+
+## D112. The co-visibility requirement is the plot, the endpoint and the caveat - not the heading
+
+**Date.** 1 September 2026. Replaces the block the plan's 10.8 derived.
+
+**Decision.** The block that must fit one viewport at 390x844 is **the plot through the assumptions
+line**, not the chart heading through the assumptions line.
+
+**The reasoning, which is about what the requirement is FOR.** `projectionAssumptions` qualifies the
+endpoint CLAIM. A claim and its caveat have to be seen together or the caveat does not do its work -
+that is the whole reason D103 put it beneath the endpoint and refused to hide it behind a disclosure.
+**The chart heading and the two toggles above the plot are navigation.** A participant who has
+scrolled past them has lost nothing they need in order to read the figure or to weigh it.
+
+10.8 measured heading-to-assumptions because that is the block it happened to enumerate, not because
+anything argued for the heading being in it. Adopting the narrower block is a correction to what was
+being required, not a relaxation of a standard that had been met.
+
+| | Measured |
+| --- | --- |
+| Default text | **628.0px** of a 732px viewport - clears by **104.0px** |
+| Large text | **684.7px** - clears by **47.3px** |
+
+**THE LARGE-TEXT MARGIN IS THIN AND IS NAMED HERE ON PURPOSE.** `--safe-bottom` is 0 in a desktop
+browser and about **34px** on an iPhone-shaped device with a home indicator, which would leave roughly
+**13px**. `chart-detail.test.mjs` asserts the margin exceeds 34px rather than merely exceeding zero,
+so the device case fails the test rather than failing on a phone. **Anything that grows above the plot
+must be re-measured here** rather than assumed to fit - and the legend simplification stays in reserve,
+unspent, as the first place to look for ~48px if it ever does.
+
+**What was NOT done.** The heading-to-assumptions block is still 814px at default and 904.5px at
+Large, and still does not fit a viewport. That is no longer a requirement, and it is recorded so the
+figure is not mistaken later for an unfixed defect.
+

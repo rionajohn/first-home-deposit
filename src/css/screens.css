@@ -1349,61 +1349,12 @@
   border: 3px solid var(--color-label);
 }
 
-/* ABOVE THE POINT, NEVER BELOW IT: below is under the thumb on every
-   interaction. The room is bought in the caller's maxScale headroom, which
-   D100 moved from 1.05 to 1.20 for exactly this - measured, the label
-   collided with the plot's upper bound by 17.3px at default text and 20px at
-   Large, in the screen's own default state. */
-.growth-chart__point-date {
-  position: absolute;
-  margin: 0 0 10px 0;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  font-size: var(--text-footnote-size);
-  line-height: var(--text-footnote-line);
-  font-weight: 600;
-  color: var(--color-label);
-  pointer-events: none;
-}
-
-/* CLAMPED AT THE ENDS. The at-rest active point is the LAST one, so a centred
-   label hangs half outside the plot in the screen's own default state - which
-   is what the first shot of this chart showed, "August 2028" clipped by the
-   right edge. */
-.growth-chart__point-date--end { transform: translateX(-100%); }
-.growth-chart__point-date--start { transform: none; }
-
-/* ONE BOX FOR THE COLLISION CASE, and it is not the default state. Near the
-   origin the date, the value and the £0 axis label all converge; nudging one
-   moves the problem to the next pair, so the two labels are replaced by a
-   single bordered box carrying both facts on separate lines. */
-.growth-chart__callout {
-  position: absolute;
-  z-index: 2;
-  margin: 0 0 6px 8px;
-  padding: var(--space-xs) var(--space-sm);
-  border: 1px solid var(--color-label);
-  border-radius: var(--radius-sm, 6px);
-  background: var(--color-surface);
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-.growth-chart__callout p {
-  margin: 0;
-  font-size: var(--text-footnote-size);
-  line-height: var(--text-footnote-line);
-  color: var(--color-label);
-}
-
-.growth-chart__callout-value { font-weight: 600; }
-
-/* The fallbacks, applied by measurement rather than by a percentage
-   threshold: flip to the other side of the point on whichever axis would
-   otherwise leave the plot. */
-.growth-chart__callout--flip-x { transform: translateX(-100%); margin-left: -8px; }
-.growth-chart__callout--flip-y { transform: translateY(100%); margin-bottom: -6px; }
-.growth-chart__callout--flip-x.growth-chart__callout--flip-y { transform: translate(-100%, 100%); }
+/* The in-plot year label and its collision callout are gone (D111, D110's
+   amendment). The year is readable from the point's x position and from the
+   readout caption; only the VALUE needed drawing in the plot, and it sits at
+   the axis edge where the guide terminates. One pair of labels can now
+   collide - the guide value and a y-tick - and bindGrowthChart's tick sweep
+   resolves it without a box. */
 
 /* A SCALE, NOT A FLEX ROW. Each label is positioned at its own moment's
    percentage of the plot width, in the same coordinate space the line is drawn
