@@ -270,7 +270,7 @@ and tax rate rows are not editable and never were.
 | Row | Field | Bound it enforces | Where that bound comes from |
 |---|---|---|---|
 | Property value | £ + digits | must be a positive number | the model's own rejection, as frame 09 |
-| Deposit %age | digits + % | whole number 5 to 25 | the ends of frame 09's chip set |
+| Deposit % | digits + % | whole number 5 to 25 | the ends of frame 09's chip set |
 | Saved so far | £ + digits | none | none exists to reuse - `GAPS.md` G76 |
 | Monthly saving | two £ fields | upper ≤ left over; low ≤ high | frame 10's ceiling; **clamps, does not error** |
 
@@ -289,8 +289,8 @@ not any account was changed - `GAPS.md` G75. And every figure being a field mean
 leave one empty: the screen does not complain, but "See what this means" stays disabled until a
 number goes back in.
 
-**To produce frame 11's deposit-% error:** type any whole number outside 5 to 25 into the Deposit
-%age field - `40` will do - and tap elsewhere to commit it. The banner appears under the row and "See
+**To produce frame 11's deposit-% error:** type any whole number outside 5 to 25 into the Deposit %
+field - `40` will do - and tap elsewhere to commit it. The banner appears under the row and "See
 what this means" is disabled. **To produce a draft:** clear any of the five fields entirely. No
 banner, but the button is disabled until a number goes back in - the same treatment an empty property
 value gets on 09.

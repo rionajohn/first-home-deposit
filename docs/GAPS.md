@@ -2186,7 +2186,7 @@ without qualification:
 > a caption, never as a Source badge), or carrying the wrong provenance value in `src/state.js` ...
 
 Applied literally, that reports four FIX-class breaches on frame 11: the property value, the deposit
-%age, and both ends of the monthly saving range. Applied to D5 as refined, it reports none. The two
+%, and both ends of the monthly saving range. Applied to D5 as refined, it reports none. The two
 documents cannot both be followed.
 
 **The evidence that the refinement describes existing practice rather than creating an exemption.**
@@ -2599,7 +2599,7 @@ Frame 12's comparison shows three percentages windowed on the participant's sele
 `neighbourPcts()` in `rates.js`, which finds the selection in `DEPOSIT_PCT_OPTIONS` and takes its
 neighbours, and the selected row is marked by **exact match**.
 
-**Frame 11's deposit-%age field accepts any whole number from 5 to 25**, not only the five chip
+**Frame 11's deposit-percentage field accepts any whole number from 5 to 25**, not only the five chip
 values (`ROUTES.md`'s field table, D62). So a participant can commit **12%**, and then:
 
 - `neighbourPcts(0.12)` windows around the nearest option and returns 5/10/15

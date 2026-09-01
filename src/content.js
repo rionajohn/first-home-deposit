@@ -543,7 +543,7 @@ const content = {
     comparisonSelectedLabel: 'Selected. This is the figure the rest of this screen uses.',
     comparisonTechnicalTemplate: '{ltv} Loan-to-Value',
     ltvInfoLinkLabel: 'What is Loan-to-Value?',
-    emptyStateCaption: "Enter a property value and we'll show you what each deposit %age would come to.",
+    emptyStateCaption: "Enter a property value and we'll show you what each deposit percentage would come to.",
     // MOVED HERE FROM `/calculator/result` (DECISIONS.md D131), intact: the
     // heading, all three reason blocks, their supporting lines and the layout.
     // It sits with the choice it informs rather than after it.
@@ -811,7 +811,7 @@ const content = {
     headline: 'Check these before we work it out',
     propertyValueLabel: 'Property value',
     enteredCaption: 'You entered this',
-    depositPctLabel: 'Deposit %age',
+    depositPctLabel: 'Deposit %',
     savedSoFarLabel: 'Saved so far',
     savedSoFarCaption: 'The total sitting in the accounts you picked for your deposit',
     // THE CEILING, SHOWN BESIDE THE RANGE IT BOUNDS (DECISIONS.md D90). It was

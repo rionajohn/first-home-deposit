@@ -4742,7 +4742,7 @@ As of 19 August 2026 (second pass): All five originally listed here have been cl
 
 **Date.** 29 August 2026.
 
-**Decision.** Frame 11's four editable rows - property value, deposit %age, saved so far and the
+**Decision.** Frame 11's four editable rows - property value, deposit %, saved so far and the
 monthly saving range - no longer navigate, and no longer carry a control of any kind. The five
 figures a participant may change are rendered as fields, permanently, using frame 05's inline-edit
 pattern. The savings interest rate and tax rate rows are unchanged and carry no field, because a row
@@ -4808,7 +4808,7 @@ refinement recorded under D5.
 
 - **Property value** reuses `depositTarget()`'s own rejection and frame 09's `errorNonNumeric`, read
   from that screen's content block rather than copied into this one.
-- **Deposit %age** is typed as a whole percent between 5 and 25. **These are the chip set's own ends,
+- **Deposit %** is typed as a whole percent between 5 and 25. **These are the chip set's own ends,
   made explicit, not a new rule.** Frame 09 offers `DEPOSIT_PCT_OPTIONS` and nothing else, so its
   first and last members are what a typed percentage may hold; the screen reads them off the array
   (`Math.min(...)` / `Math.max(...)`) rather than writing 5 and 25 as literals, so the two controls

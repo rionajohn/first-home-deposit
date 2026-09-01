@@ -97,7 +97,7 @@ const rowByLabel = (label) => page.locator('.review-row', { has: page.locator(`.
 
 const FIELDS = [
   ['Property value', 'edit-property-value', 'Property value, editable', '£'],
-  ['Deposit %age', 'edit-deposit-pct', 'Deposit percentage, editable', '%'],
+  ['Deposit %', 'edit-deposit-pct', 'Deposit percentage, editable', '%'],
   ['Saved so far', 'edit-saved-so-far', 'Saved so far, editable', '£'],
   ['Monthly saving', 'edit-monthly-low', 'Monthly saving, lower amount, editable', '£'],
   ['Monthly saving', 'edit-monthly-high', 'Monthly saving, upper amount, editable', '£'],
@@ -235,7 +235,7 @@ test('the two tautological captions are gone, and only those two', async () => {
 });
 
 test('only Saved so far carries a caption among the editable rows', async () => {
-  for (const label of ['Property value', 'Deposit %age', 'Monthly saving']) {
+  for (const label of ['Property value', 'Deposit %', 'Monthly saving']) {
     assert.equal(await rowByLabel(label).locator('.review-row__caption').count(), 0, `${label} has no caption`);
   }
   assert.equal(await rowByLabel('Saved so far').locator('.review-row__caption').count(), 1);

@@ -80,8 +80,8 @@ export const DEPOSIT_PCT_OPTIONS = [0.05, 0.10, 0.15, 0.20, 0.25];
  * DECISIONS.md D72 for why that beats dropping to two.
  *
  * A VALUE OUTSIDE THE SET WINDOWS AROUND ITS NEAREST NEIGHBOUR. Frame 11's
- * deposit-%age field accepts any whole number from 5 to 25, so a committed 12%
- * is reachable and `indexOf` would return -1. Callers mark the selected row by
+ * deposit-percentage field accepts any whole number from 5 to 25, so a
+ * committed 12% is reachable and `indexOf` would return -1. Callers mark the selected row by
  * exact match, so at 12% this returns 5/10/15 and none of the three is marked -
  * which is what the screen did before it windowed at all. GAPS.md records the
  * wider question of whether the comparison should represent a typed value.
