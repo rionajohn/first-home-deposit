@@ -130,13 +130,6 @@ const content = {
 
   '/home': {
     appBarTitle: 'Home',
-    // THE NAME IS NOT IN THIS STRING. `{name}` is filled by the screen from
-    // src/persona.js, the same way `amountTemplate` below is filled from
-    // MOCK_POSITION - the greeting is copy and belongs here, the participant
-    // is scenario data and belongs there. Typing the name into this string
-    // would put the two in one place and make a scenario change a copy edit.
-    // DECISIONS.md D137.
-    greetingTemplate: 'Hi {name}',
     balanceLabel: 'Current account',
     transactionGroups: [
       {

@@ -19,7 +19,6 @@
  */
 import { chevronRight } from '../icons.js';
 import { MOCK_ACCOUNTS, MOCK_POSITION } from '../model/accounts.js';
-import persona from '../persona.js';
 import { formatAccountBalance, formatTransactionAmount } from '../format.js';
 
 /**
@@ -78,17 +77,6 @@ export function render(container, { content, setState }) {
       <div class="app-bar__cell"></div>
     </header>
     <main class="screen-content" role="main">
-      <!-- A paragraph, NOT A HEADING (DECISIONS.md D137). This screen's only
-           heading is the app bar h1 above; the balance label, the section
-           headers and the entry card title are all paragraphs too, so the
-           greeting introduces no level and the outline is unchanged. The name
-           is read from the seeded persona, never typed here.
-           NO BACKTICKS IN THIS COMMENT: it sits inside the render template
-           literal, so a backtick here closes the literal and whatever follows
-           is evaluated as JavaScript. Marking up <p> that way blanked the
-           whole screen with "p is not defined". -->
-      <p class="home-greeting">${c.greetingTemplate.replace('{name}', persona.name)}</p>
-
       <div class="card balance-card">
         <p class="balance-card__label">${c.balanceLabel}</p>
         <p class="balance-card__amount">${formatAccountBalance(CURRENT_ACCOUNT_BALANCE)}</p>

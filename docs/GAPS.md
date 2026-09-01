@@ -5465,3 +5465,64 @@ whether the scroll is actually costing anything.
 One moderated session watched specifically at frame 01: whether the participant scrolls before being
 prompted, and whether they name the entry card unaided. That is a single observation and it decides
 between "leave it" and a layout entry of its own.
+
+---
+
+## G132. The frame 01 greeting is reverted until a render throw is survivable. OPEN - BLOCKED ON TWO NAMED CHANGES
+
+*Raised 1 September 2026. Reverts `DECISIONS.md` D137 in full. The greeting is wanted; it is out
+because of what happens around it when one file is stale, not because of anything it says.*
+
+### What was reverted, and what was not
+
+`git revert` of the greeting commit: `src/persona.js`, `content['/home'].greetingTemplate`, the
+paragraph and import in `home.js`, `.home-greeting`, and the `SHELL_ASSETS` entry. D137 goes with it,
+since it describes a change that no longer exists.
+
+**G131 was deliberately kept.** It records that frame 01's call to action sits below the fold at
+390x844, which predates the greeting, survives the revert, and was only in that commit because it was
+measured during it. Removing it would have been collateral.
+
+### Why it came out
+
+`home.js` read `c.greetingTemplate.replace('{name}', persona.name)`. If `greetingTemplate` is absent -
+a fresh `home.js` served against a stale `content.js`, which the browser HTTP cache and a CDN can each
+produce, since there is no bundler and no filename fingerprinting to tie the two files together - the
+screen throws.
+
+`router.js` has no `try`/`catch`, so the throw unwinds mid-render and leaves the PREVIOUS screen
+mounted with the hash already changed. Measured: `location.hash` reads `#/home` while `#app` still
+holds `/goals`, and because `mountBottomNav` returns early when a bar is already in the DOM, the bar is
+never re-keyed - Goals keeps `aria-current="page"` and Home never lights. To a participant, and to a
+screen reader, the tab is simply dead.
+
+**The greeting is not what makes that dangerous.** Any content key a screen reads can do it, on any
+screen, mid-session. The greeting is only the first screen to depend on a key younger than the files
+around it.
+
+### What has to land before it returns
+
+1. **The render-throw catch.** `router.js` catches a throw from the screen's `render`, replaces `#app`
+   rather than leaving the previous screen, logs the route with the error, and lets the tab bar mount
+   so a participant can leave. Its copy cannot come from `content.js` - the likeliest trigger is a
+   missing content key, so an error screen that reads content can throw inside the catch. Needs its own
+   renderer rather than reusing `renderNotBuilt`, whose "Not built yet" would be false about a screen
+   that exists and would invite a participant to report the feature as unfinished.
+2. **The greeting degrades rather than throws.** A missing `greetingTemplate` renders no greeting at
+   all rather than a literal fallback, since `content.js` is the only source of participant-facing
+   copy. A missing or undefined `persona.name` renders "Hi" rather than "Hi undefined".
+
+Both, not either. The second alone leaves every other screen exposed; the first alone leaves the
+greeting failing loudly where it could degrade quietly.
+
+### What this revert does NOT establish
+
+**It hides the symptom rather than proving the cause.** A build whose `home.js` never asks for the key
+renders correctly against a stale `content.js` and a fresh one alike. The `CACHE_VERSION` bump landing
+with it independently clears any stale shell, so two changes that each would end the symptom arrive
+together and neither can be credited. If the mixed-file state was real it is still real, and it is
+`GAPS.md`'s open question about the build stamp - see the reporting on `BUILD_VERSION` proving only
+`cache-version.js`'s own version and nothing about the set - that would have caught it.
+
+`CACHE_VERSION` and `BUILD_VERSION` v118 to **v120**. Not back to v119: that number means "greeting
+present" in any shell already cached from it, and reusing it would collide with one.
