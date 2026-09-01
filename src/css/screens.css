@@ -2339,28 +2339,3 @@
 
 .goal-block__year { font-weight: 600; }
 
-/* The disclosure in `.flag-row`'s treatment (D129), so it can sit directly
-   above that row and read as its pair: flat, full width, a top rule, no card
-   fill. It keeps its DOWN chevron - see `howThisWorksCardHTML` for why. */
-.how-this-works-row {
-  width: 100%;
-  border-top: 1px solid var(--color-border-subtle);
-}
-
-.how-this-works-row .how-this-works-card__header {
-  min-height: var(--touch-target-min);
-  padding: var(--space-md) 0;
-}
-
-/* The same type as `.flag-row__label`, so the two rows read as one family
-   rather than as a heading beside a row. The card variant keeps its own
-   heading-weight title, which is right where it IS a card. */
-.how-this-works-row .how-this-works-card__title {
-  font-size: var(--text-subheadline-size);
-  line-height: var(--text-subheadline-line);
-  font-weight: 500;
-}
-
-.how-this-works-row .how-this-works-card__content {
-  padding: 0 0 var(--space-md) 0;
-}

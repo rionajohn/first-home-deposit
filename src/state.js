@@ -103,7 +103,6 @@ const COLLAPSIBLE_DEFAULTS = {
   // so its toggle handler routes on `data-disclosure-id` rather than binding
   // the first match.
   summaryHowWeWorkedOpen: false,
-  resultHowWeWorkedOpen: false,
   ltvHowWeWorkedOpen: false,
   mipLikelyHowWeWorkedOpen: false,
   mipNotYetHowWeWorkedOpen: false,

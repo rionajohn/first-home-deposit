@@ -62,10 +62,11 @@ import {
   segmentedControlHTML,
   figureRowHTML,
   infoLinkHTML,
-  howThisWorksCardHTML,
+  navRowHTML,
   emptyStateCardHTML,
   rerenderInPlace,
 } from '../components/ui.js';
+import { infoCircle } from '../icons.js';
 import { formatCurrency, formatPercent, formatYear } from '../format.js';
 import { balanceAtMonth, monthsToReachAmount, checkpointAmount, goalMonths, goalAttained, stampDuty, combinedGoal } from '../model/model.js';
 import { RATES, CHART_WINDOW_MONTHS, CHART_MIN_RANGE_MONTHS } from '../model/rates.js';
@@ -107,7 +108,6 @@ function yearLabelsFor(anchorDate, rangeMonths) {
 export function render(container, ctx) {
   const { state, setState, content } = ctx;
   const c = content['/calculator/result'];
-  const summaryContent = content['/position/summary'];
   const reg = content.shared.regulatory;
 
   // `combined-goal` AND `stamp-duty` JOIN THE GUARD because this screen now
@@ -129,8 +129,6 @@ export function render(container, ctx) {
   const monthlyLow = state['monthly-low'].value;
   const monthlyHigh = state['monthly-high'].value;
   const depositTargetValue = state['deposit-target'].value;
-  const essentialSpending = state['essential-spending'].value;
-  const leftOverValue = state['left-over'].value;
 
   const depositPctValue = state['deposit-pct'].value;
   const stampDutyValue = state['stamp-duty'].value;
@@ -371,29 +369,33 @@ export function render(container, ctx) {
         <p class="legal-text">${fill(c.chartCaptionTemplate, { aer: formatPercent(RATES.bankRate) })}</p>
       ` : ''}
 
-      <button type="button" class="button button--primary" data-action="save-goal">${c.primaryCta}</button>
-
       ${infoBannerHTML(c.assumptionsBannerText)}
 
-      ${howThisWorksCardHTML({
-        id: 'result-how-we-worked',
-        open: state.resultHowWeWorkedOpen,
-        title: c.howWeWorkedTitle,
-        intro: c.howWeWorkedIntro,
-        rows: [
-          summaryContent.whatWeRead,
-          { ...summaryContent.whatWeWorkedOut, value: fill(summaryContent.whatWeWorkedOut.value, { essential: formatCurrency(essentialSpending), leftOver: formatCurrency(leftOverValue) }) },
-          summaryContent.whatWeAssumed,
-        ],
-        navLabel: c.seeHowWeWorkedLabel,
-        navAction: 'open-assumptions-saving',
-        // D129: the row treatment, directly above the flag row. BEHAVIOUR IS
-        // UNCHANGED - it still expands in place and keeps its down chevron.
-        asRow: true,
-      })}
+      <!-- IT NAVIGATES NOW (D133), so it is the same component as the row
+           beneath it and carries the same right chevron. D129 made the two
+           match in padding and rule while deliberately keeping the DOWN
+           chevron, because this expanded in place; the destination now states
+           the participant's own figures, so the behaviour and the chevron move
+           together. Frame 32 gained the left-over and what-we-assumed rows in
+           the same pass - see D133 for why frame 29, which states none of
+           them, was not the destination taken. -->
+      ${navRowHTML({ label: c.howWeWorkedTitle, icon: infoCircle, action: 'open-assumptions-sources' })}
 
       ${flagRowHTML(c.flagLabel)}
       <p class="legal-text">${reg.guidanceNotAdvice}</p>
+
+      <!-- THE NEXT STEP IS NOT OFFERED BEFORE THE RESULTS HAVE BEEN SEEN
+           (D132). Last element of the flow, after the two rows and the
+           guidance note, so a participant reaches the forward route only by
+           passing the figures it follows from.
+           NOT REVEALED ON SCROLL, deliberately. Position does this with no
+           JavaScript, no hidden state and nothing to go wrong; a scroll
+           reveal would put a button in the DOM that focus can reach and the
+           eye cannot, and would show a participant who does not scroll no
+           route onward at all. See D132 for the full reasoning - "make it
+           appear on scroll" is the obvious reading of the requirement and
+           this is the record of why it was not taken. -->
+      <button type="button" class="button button--primary" data-action="save-goal">${c.primaryCta}</button>
     </main>
   `;
 
@@ -436,8 +438,9 @@ export function render(container, ctx) {
     btn.addEventListener('click', () => redraw({ chartView: btn.dataset.value }));
   });
 
-  container.querySelectorAll('[data-action="toggle-disclosure"]').forEach((btn) => {
-    btn.addEventListener('click', () => redraw({ resultHowWeWorkedOpen: !state.resultHowWeWorkedOpen }));
+  container.querySelector('[data-action="open-assumptions-sources"]').addEventListener('click', () => {
+    setState({ returnFrame: '/calculator/result' });
+    window.location.hash = '#/assumptions/sources';
   });
 
   container.querySelector('[data-action="open-assumptions-deposit"]').addEventListener('click', () => {
@@ -445,11 +448,13 @@ export function render(container, ctx) {
     window.location.hash = '#/assumptions/deposit';
   });
 
-  container.querySelectorAll('[data-action="open-assumptions-saving"], [data-action="open-assumptions-saving-endpoint"]').forEach((el) => {
-    el.addEventListener('click', () => {
-      setState({ returnFrame: '/calculator/result' });
-      window.location.hash = '#/assumptions/saving';
-    });
+  // ONE CONTROL, ONE SELECTOR (D133). This selected `open-assumptions-saving`
+  // too, which was the nav button inside the disclosure; that button is gone
+  // with the disclosure, so selecting for it would be dead markup describing a
+  // control the screen no longer draws.
+  container.querySelector('[data-action="open-assumptions-saving-endpoint"]').addEventListener('click', () => {
+    setState({ returnFrame: '/calculator/result' });
+    window.location.hash = '#/assumptions/saving';
   });
 
   const setAmountBtn = container.querySelector('[data-action="set-amount"]');

@@ -71,6 +71,12 @@ export function render(container, ctx) {
 
   const moneyInValue = state['money-in'].value;
   const essentialSpendingValue = state['essential-spending'].value;
+  // D133. `left-over` is a section 6 figure, derived by the model from the two
+  // figures directly above it, and it is the one row frame 12's disclosure
+  // showed that this sheet did not. Null-guarded to an em dash like every
+  // other figure here - the same callers that can reach this screen with
+  // money-in unset can reach it with this unset.
+  const leftOverValue = state['left-over'].value;
   const savedTowardDepositValue = state['saved-toward-deposit'].value;
 
   const depositAccounts = effectiveAccounts(state.accountAssignments, state.accountIncluded)
@@ -89,6 +95,11 @@ export function render(container, ctx) {
       label: c.essentialSpendingLabel,
       value: essentialSpendingValue === null ? '—' : formatCurrency(essentialSpendingValue),
       caption: content.shared.essentialSpendingCaption,
+    }),
+    dataSourceRowHTML({
+      label: summaryContent.leftOverEachMonthLabel,
+      value: leftOverValue === null ? '—' : formatCurrency(leftOverValue),
+      caption: content.shared.leftOverCaption,
     }),
     dataSourceRowHTML({
       label: summaryContent.savedTowardDepositLabel,
@@ -113,6 +124,17 @@ export function render(container, ctx) {
           <h3 class="section-heading">${c.readHeading}</h3>
           <div class="assumptions-list">
             ${dataSourceRows.join('')}
+          </div>
+
+          <!-- WHAT WE ASSUMED (D133), the third of the three rows frame 12's
+               disclosure carried. It qualifies the block above it and is read
+               before the block below, so the sheet runs: what we read, what we
+               assumed about it, what we cannot see. It carries NO heading of
+               its own because its label is one - the same way the row read
+               inside the disclosure, where the three rows had no sub-headings
+               either. The strings are summaryContent's own, unchanged. -->
+          <div class="assumptions-list">
+            ${dataSourceRowHTML(summaryContent.whatWeAssumed)}
           </div>
 
           <h3 class="section-heading">${c.cantSeeHeading}</h3>

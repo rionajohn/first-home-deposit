@@ -440,19 +440,38 @@ export function infoBannerHTML(text, { id = null, live = false } = {}) {
 }
 
 /**
- * DUAA 2025 automated-decision pushback control (SPEC.md's regulatory
- * anchor map). Opens the Feedback / Report sheet — out of scope to build in
- * full this session (no destination screen yet), so it's wired as a no-op
- * data-action a later stage can pick up rather than a dead link.
+ * A flat, full-width, top-ruled row that LEAVES THE SCREEN: an icon, a label
+ * and a right chevron. Extracted from `flagRowHTML` by D133 so frame 12's
+ * "How we worked this out" and "Something doesn't look right" are the same
+ * function rather than two that match — see the note inside.
  */
-export function flagRowHTML(label) {
+export function navRowHTML({ label, icon, action }) {
+  // THE SHARED ROW BEHIND "Something doesn't look right" AND, SINCE D133,
+  // frame 12's "How we worked this out". Both are flat, full-width, top-ruled
+  // rows that LEAVE THE SCREEN, so both carry a right chevron. Extracted rather
+  // than copied: the two were meant to be indistinguishable in padding, rule
+  // and chevron, and the only way to guarantee that is for them to be one
+  // function. Restyling a second row to match would have been a claim to
+  // re-verify every time either moved.
   return `
-    <button type="button" class="flag-row" data-action="report-issue">
-      ${flagIcon({ size: 'body', className: 'flag-row__icon' })}
+    <button type="button" class="flag-row" data-action="${action}">
+      ${icon({ size: 'body', className: 'flag-row__icon' })}
       <span class="flag-row__label">${label}</span>
       ${chevronRight({ size: 'body', className: 'flag-row__chevron' })}
     </button>
   `;
+}
+
+/**
+ * DUAA 2025 automated-decision pushback control (SPEC.md's regulatory
+ * anchor map). Opens the Feedback / Report sheet — out of scope to build in
+ * full this session (no destination screen yet), so it's wired as a no-op
+ * data-action a later stage can pick up rather than a dead link.
+ *
+ * A caller of `navRowHTML` since D133; its markup is unchanged.
+ */
+export function flagRowHTML(label) {
+  return navRowHTML({ label, icon: flagIcon, action: 'report-issue' });
 }
 
 /** DECISIONS.md D5: every figure's provenance caption, in its own row under the figure. */
@@ -1931,20 +1950,16 @@ export function rateBandRowHTML({ label, sublabel, value, highlighted, described
  * link directly under a heading that says the same thing, which is the
  * duplication this card was just untangled from.
  */
-export function howThisWorksCardHTML({ id, open = false, title, intro, rows, navLabel, navAction, footnote, asRow = false }) {
+export function howThisWorksCardHTML({ id, open = false, title, intro, rows, navLabel, navAction, footnote }) {
   const contentId = `how-this-works-content-${id}`;
-  // `asRow` DRAWS THE TRIGGER IN `.flag-row`'s TREATMENT (D129) - flat, full
-  // width, a top rule, no card - so it can sit directly above that row and read
-  // as its pair.
-  //
-  // IT KEEPS THE DOWN CHEVRON, AND THAT IS THE POINT. `.flag-row` carries a
-  // RIGHT chevron because it navigates; this expands in place. Matching the
-  // treatment and keeping the chevron is what lets the two rows look like one
-  // family while still telling the participant which one leaves the screen.
-  // Adopting the right chevron would mean adopting navigation, which is a
-  // behaviour change and is not taken here.
+  // `asRow` IS GONE (D133). D129 added it so frame 12's trigger could borrow
+  // `.flag-row`'s treatment while still expanding in place, and kept the DOWN
+  // chevron to say so. Frame 12 now navigates and uses `navRowHTML` itself, and
+  // it was this parameter's only caller - so the branch went with it rather
+  // than being left as an option nothing selects. The four remaining callers
+  // all draw the card, which is what they always drew.
   return `
-    <div class="${asRow ? 'how-this-works-row' : 'card'} how-this-works-card${open ? '' : ' how-this-works-card--closed'}">
+    <div class="card how-this-works-card${open ? '' : ' how-this-works-card--closed'}">
       <h3 class="how-this-works-card__heading">
         <button type="button" class="how-this-works-card__header" data-action="toggle-disclosure" data-disclosure-id="${id}" aria-expanded="${open}" aria-controls="${contentId}">
           <span class="how-this-works-card__title">${title}</span>

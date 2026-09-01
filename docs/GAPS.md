@@ -4941,3 +4941,146 @@ not a build.
 
 The next moderated session, watching whether a participant on a chip other than 10% reads the row as
 being about their own selection. That is observable directly and does not need to be asked.
+
+---
+
+## G124. Frame 12's "How we worked this out" row cannot navigate until a destination carries the participant's own figures. CLOSED 1 September 2026 - DECISIONS.md D133
+
+*Raised 1 September 2026 alongside `DECISIONS.md` D132, from a brief asking that the row match
+"Something doesn't look right" exactly - right chevron, overlay rather than in-place expansion. **The
+treatment already matches (D129); the behaviour deliberately does not.** The brief's own instruction
+was "do not turn the chevron until the destination carries the figures", and this entry is the record
+that it does not.*
+
+### What the row reveals, and what would be lost
+
+Three rows carrying the participant's OWN figures, plus a nav button:
+
+| Row | What it states |
+| --- | --- |
+| What we read | "Your salary and your regular payments", last 12 months |
+| What we worked out | **`{essential}` essential spending, `{leftOver}` left over** - both the participant's |
+| What we assumed | "That last year is typical of this year" |
+
+### The two candidate destinations, and why neither is one yet
+
+| | Carries the participant's figures? | |
+| --- | --- | --- |
+| **`/assumptions/saving`** (frame 29) - already the row's own nav target | **No.** Prose throughout: what was assumed, what is left out. Its only participant figure is the deposit target inside the inflation exclusion line | Navigating here loses exactly the specific half |
+| **`/assumptions/sources`** (frame 32) - "Where these figures come from" | **Partly, and it is the closest thing that exists.** Already a `role="dialog"` sheet, already states monthly income after tax, essential monthly outgoings, saved-toward-deposit and a per-account balance breakdown | Missing **left-over**, and missing the assumptions row entirely. It is framed as provenance - where a figure came from - not as "how we worked this out" |
+
+**So the answer to "does an overlay carrying the participant's figures already exist" is: one exists
+and is two-thirds right.** `/assumptions/sources` is the frame to weigh, not `/assumptions/saving`,
+which is the destination the row currently points at and the weakest of the three options.
+
+### The fourth problem, which D129 found and the brief does not mention
+
+**Making the row navigate would give frame 12 two controls to the same sheet.**
+`projectionAssumptionsLinkLabel`, directly beneath the goal block, already opens
+`/assumptions/saving`, and so does the nav button inside this disclosure. Measured in the focus order
+at 390x844, the two "How we worked out these figures" links are already focus stops 1 and 2 on the
+screen. A third route to the same place, as the row itself, is a duplication that has to be resolved
+in the same pass rather than after it.
+
+### What it would take to build a new overlay
+
+This is a **new screen**, not a chevron change:
+
+- A Figma frame, which is the system of record - `CLAUDE.md` is explicit that a screen is never
+  invented in a build session, and `build-spec.md` would need a row for it
+- A route in `router.js` plus its `DIALOG_ROUTES` membership, a screen file, and a `content.js` block
+- Content: the three rows restated as a sheet, with left-over added
+- Test coverage it would pick up automatically (`smoke`, `overlap`, `action-bar` all enumerate routes)
+
+**It does not belong in this pass**, and the reason is a rule rather than an estimate.
+
+### The three options, unranked
+
+1. **Add the participant's figures to `/assumptions/saving`.** Lowest structural cost - already the
+   row's target, already a sheet with a Close, already carries one participant figure. But it changes
+   what frame 29 *is*: currently an example-not-a-promise assumptions sheet, all prose. Needs the
+   Figma frame updated, and does not resolve the duplicate-route problem - it makes it worse, by
+   giving three controls one destination.
+2. **Send the row to `/assumptions/sources` instead**, and add left-over to it. Closest to what the
+   disclosure actually reveals, and it resolves the duplicate route, because frame 32 is not what
+   `projectionAssumptionsLinkLabel` opens. Needs the assumptions row rehoused or dropped.
+3. **Build the new overlay.** Cleanest fit to the row's own content, highest cost, needs a frame first.
+
+**Do not implement any of these against this entry.** Until one is chosen and drawn, the row keeps
+D129's treatment: `.flag-row`'s padding and rule, with the **down** chevron, because it expands in
+place. A right chevron leading somewhere that drops the participant's own numbers is worse than the
+current expanding card - which is the brief's own judgement and is adopted here.
+
+### What would settle it
+
+A decision on which of the three, taken with the Figma frame in hand rather than in a build session.
+The duplicate-route question has to be answered in the same pass, not deferred again.
+
+### CLOSED 1 September 2026 - DECISIONS.md D133, by option 2
+
+**The condition was met before the chevron turned**, which is what this entry existed to enforce.
+Frame 32 gained the left-over row and the what-we-assumed row, so it now carries everything the
+disclosure showed and more - two separate figures with their own provenance where the disclosure
+combined them into one line. Verified by reading the rendered rows, not the source.
+
+**Extending, not inventing**, and the question was asked before a file was opened: no frame, no route,
+no sheet was created; `left-over` is an existing section 6 figure already on nine screens; and all
+three strings already existed - two in `content['/position/summary']`, which this sheet already reads
+for `savedTowardDepositLabel`, and one in `content.shared` beside the caption the row above it uses.
+
+**The duplicate route went from 2 to 1** in the same pass, as this entry required rather than
+deferred. A different adjacency was found while measuring it and is **G125** - two links sharing one
+label and pointing at different sheets, which is a copy defect and not this one.
+
+---
+
+## G125. Frame 12 has two adjacent links reading "How we worked out these figures" that go to different sheets. OPEN - COPY
+
+*Raised 1 September 2026 with `DECISIONS.md` D133, while closing G124. **Pre-existing; not created by
+that pass and not the duplicate D129 found.** D129's finding was two controls opening the SAME sheet,
+and D133 closed it - this is two controls with the SAME NAME opening DIFFERENT sheets, which is the
+opposite defect and survives it.*
+
+### The finding
+
+Focus stops 1 and 2 on frame 12, measured at 390x844:
+
+| Focus stop | Label | Destination |
+| --- | --- | --- |
+| 1 | "How we worked out these figures" (`assumptionsLinkLabel`) | `/assumptions/deposit` - frame 30 |
+| 2 | "How we worked out these figures" (`projectionAssumptionsLinkLabel`) | `/assumptions/saving` - frame 29 |
+
+**The strings are identical**, `content.js` lines 890 and 1032. They are the first two focus stops on
+the screen, so a screen reader user tabbing in hears the same accessible name twice in a row and has
+nothing to tell the two apart. Sighted readers have position: one sits under the deposit figure, the
+other under the goal block, and each is plausibly "these figures" for the block above it. **A reader
+navigating by control list has neither.**
+
+### Why it is not fixed here
+
+Renaming either is **copy**, and copy is not written in a build session - D93's rule, which is the
+reason frame 10's heading was left as a visible placeholder rather than filled in by a build.
+Both strings would also need the `fca-copy-check` pass every other string on this screen has had.
+
+### What it is not
+
+**Not D129's duplicate route, which is closed.** That was `projectionAssumptionsLinkLabel` and the
+disclosure's internal nav button both opening `/assumptions/saving` - two controls, one destination.
+D133 removed the disclosure and its selector, taking that count from 2 to 1. This entry is a separate
+defect that the same measurement exposed.
+
+### The options, unranked
+
+1. **Name each destination in its own label** - "How we worked out your deposit" and "How we worked
+   out your saving", or similar. Most direct; needs two approved strings.
+2. **Name only the second**, leaving the first as the screen's general one. Fewer strings, but leaves
+   an asymmetry a reader has to infer.
+3. **Merge the destinations.** Frames 29 and 30 are separate sheets by `build-spec.md`; this would be
+   a structural change, not a copy one, and is listed only so the option is on the record.
+
+**Do not implement any of these against this entry.** It needs approved copy, not a build decision.
+
+### What would settle it
+
+Two approved strings, or an observation that a participant is not confused by the repetition - the
+pilot did not reach frame 12's links, so there is no evidence either way yet.

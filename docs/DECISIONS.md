@@ -10760,3 +10760,273 @@ Frame 09's `optionComparisonCardHTML` call needs nothing done to it: it passes `
 
 Reversing would put the explanation back after the decision it informs, so the reason would have to be
 that frame 09 is the wrong home rather than that frame 12 was the right one.
+
+---
+
+## D132. The borrowing CTA is the last element of frame 12, and the gate is position rather than scroll
+
+**Date.** 1 September 2026. Opens `GAPS.md` G124. Frame 12 only. **One element moved; nothing else on
+the screen changed, and no copy changed.**
+
+### The change
+
+"See what this means for borrowing" moved from mid-screen - above the assumptions note, the
+how-we-worked row and the flag row - to the **end of the content flow**, after the guidance note. It
+is now the eighteenth of eighteen flow children and the last focus stop on the screen.
+
+### Why position rather than reveal-on-scroll
+
+The requirement is that the next step is not offered before the participant has seen the results.
+**Placing the button last achieves that with no JavaScript, no hidden state and nothing to go wrong.**
+
+"Make it appear on scroll" is the obvious reading of that requirement, and this entry exists so the
+next person to propose it finds the argument rather than re-deriving it. It was rejected for three
+reasons, and the first two are correctness rather than taste:
+
+1. **A keyboard user tabbing through may never fire a scroll event.** Tab moves focus, not the
+   scroller, until focus reaches something below the fold - so a reveal keyed to scroll can leave a
+   keyboard-only participant with no forward route at all.
+2. **A button that exists in the DOM but is invisible is worse than one that is absent**, because
+   focus can reach something the participant cannot see. Fixing that means managing `inert` or
+   `tabindex="-1"` and restoring it on reveal - state that has to stay correct across the screen's
+   re-renders, and this screen re-renders on every chart-range and table-toggle press.
+3. **A participant who does not scroll sees no route onward**, which reads as a dead end rather than
+   as a deliberate gate. Position has the opposite failure mode: the button is always there, just
+   after the thing it follows from.
+
+**Under `prefers-reduced-motion` a scroll reveal would also need a non-animated path**, which is a
+fourth branch of the same state. Position needs none: there is nothing to animate.
+
+The gate is real either way. A participant reaching the button has passed the figures, the chart, the
+assumptions note, the how-we-worked row and the guidance line, because those are above it.
+
+### If reveal-on-scroll is wanted after all
+
+It is **not implemented here**, and the three questions above are what it would have to answer:
+focus-order management while hidden, the keyboard-only participant who never scrolls, and the
+reduced-motion path. That is a decision with its own trade-offs and it needs recording before it is
+built, not during.
+
+### The chevron row was investigated and NOT changed
+
+The same brief asked that "How we worked this out" match "Something doesn't look right" exactly -
+right chevron, overlay rather than in-place expansion. **The treatment already matches**, from D129:
+`asRow: true` draws the trigger in `.flag-row`'s own padding and rule. What does not match is the
+chevron, and that is deliberate - the row expands in place, and D129's rule is that the chevron says
+what the control will do, so the two rows read as a family while still telling the participant which
+one leaves the screen.
+
+**Turning the chevron requires a destination that states the participant's own figures, and none
+exists.** `/assumptions/saving` - the row's current nav target - is prose throughout. The closest
+thing is `/assumptions/sources` (frame 32), already a sheet, already carrying income, essential
+outgoings and saved-toward-deposit, but missing the left-over figure and framed as provenance rather
+than as method. Building a third overlay would be inventing a screen, which `CLAUDE.md` forbids in a
+build session.
+
+**And D129 found a fourth problem the brief does not mention:** frame 12 already has two controls
+opening `/assumptions/saving` - `projectionAssumptionsLinkLabel` beneath the goal block, and the nav
+button inside the disclosure. They are focus stops 1 and 2 on the screen. Making the row navigate
+there would be a third.
+
+So the row is untouched and the question is recorded as **G124**, with three unranked options and an
+instruction not to implement any of them. The brief's own condition - "do not turn the chevron until
+the destination carries the figures" - is what this follows.
+
+### `/position/summary` is deliberately untouched
+
+The same card renders there, and **the two already diverge**: frame 12 passes `asRow: true` and
+`navAction: 'open-assumptions-saving'`; `/position/summary` passes neither `asRow` nor that action,
+drawing the full card treatment and navigating via `open-assumptions-card`. D129 scoped the row
+treatment to frame 12 alone. Nothing in this pass changes that, and the CTA move does not apply
+there - `/position/summary`'s primary sits in a pinned action bar, not in the content flow, so there
+is no equivalent element to move.
+
+### Verified
+
+At 390x844, on a fresh tab, on the app's own default session:
+
+| | Before | After |
+| --- | --- | --- |
+| `.screen-content` scroll height | 1580px | **1580px** |
+| CTA position in the flow | 14th of 18 | **18th of 18** |
+| CTA position in the focus order | 6th of 8 | **8th of 8** |
+
+**The scroll height is unchanged and that is the correct result**, not a measurement that failed to
+take: the element moved within one flow that already had a uniform 16px gap between children, so the
+column is the same height with its parts in a different order. A change here would have meant
+something else moved.
+
+**Reading order matches visual order.** The CTA is the last child in the DOM and the last thing drawn,
+and it is reachable by keyboard as the final stop - confirmed by walking the focus order rather than
+inferred from source order.
+
+**D112's block and the goal-block-through-chart figure did not move, and could not have.** Both span
+elements above and at the chart; the CTA sits below it.
+
+| | Default | Large |
+| --- | --- | --- |
+| D112 re-derived block | 212.0px, headroom 520.0px | 252.5px, headroom 479.5px |
+| Goal block -> chart bottom | 688.0px | 767.7px |
+
+Identical to the figures D131 recorded. The 34px `--safe-bottom` assertion passes on 479.5px of Large
+headroom, unchanged. Confirmed by re-running rather than assumed, which is what the brief asked for.
+
+Suite: **423 tests, 422 passing, 1 skipped (G91's known intermittent), 0 failing.**
+
+`CACHE_VERSION` and `BUILD_VERSION` v112 to v113, a paired hand-edit. `./src/screens/calculator-result.js`
+is reached through the cache-first shell, so a browser holding v112 would keep drawing the CTA
+mid-screen. Confirmed reading "Build v113" on frame 33 in a fresh tab.
+
+### To reverse
+
+Move the `save-goal` button back above `infoBannerHTML(c.assumptionsBannerText)`. Reversing would
+offer the forward route before the results it follows from, so the reason would have to be a different
+gate rather than no gate.
+
+---
+
+## D133. Frame 12's "How we worked this out" navigates to frame 32, which gains the two rows it was short
+
+**Date.** 1 September 2026. **Closes `GAPS.md` G124** by taking its option 2. Opens `GAPS.md` G125.
+Turns the chevron D129 deliberately left down, and does it in the order D129 and G124 both required:
+**the destination carried the figures first.**
+
+### Extending, not inventing - the question asked before any file was opened
+
+`CLAUDE.md` forbids inventing **a figure, a rule or a screen**. Adding two rows to frame 32 is none of
+the three, and each was checked rather than assumed:
+
+| | |
+| --- | --- |
+| **Not a screen** | Frame 32 exists, is drawn, has a reference PNG, a `build-spec.md` row and a route. No frame was created, no route registered, no sheet added |
+| **Not a figure** | `left-over` is a section 6 figure in `state.js`, derived by the model, and already rendered on **nine** screens. It is derived from the two figures immediately above it on this sheet |
+| **Not a rule** | No policy changed. The copy is not new either: `leftOverEachMonthLabel` and `whatWeAssumed` already exist in `content['/position/summary']`, and `leftOverCaption` in `content.shared` - beside `essentialSpendingCaption`, which this sheet was already using for the row above |
+
+**The decisive precedent is in the file itself.** `assumptions-sources.js` already reads
+`content['/position/summary']` for `savedTowardDepositLabel`, and already renders label/value/caption
+through its own `dataSourceRowHTML`. The left-over row is the existing pattern with an existing
+figure, an existing label and an existing shared caption. **Nothing was written here.**
+
+**The one honest caveat.** `build-spec.md` scopes frame 32 as "Provenance, what cannot be seen, how to
+correct". Left-over is provenance - it is derived from two figures already on the sheet. **The
+what-we-assumed row is the one that sits closest to frame 29's territory**, and it is placed here on
+the strength of its caption, "If your income or outgoings have changed, tell us and we'll redo it",
+which is "how to correct" - the third of frame 32's three stated jobs, and the one its own
+`wrongHeading` section already serves. Recorded rather than glossed: this is the row a later reader
+might reasonably move.
+
+### Why frame 32 and not frame 29
+
+The row's old nav target was `/assumptions/saving` (frame 29), and it states **none** of the
+participant's figures - it is prose throughout, its only figure being the deposit target inside the
+inflation exclusion line. Sending a right chevron there would have lost exactly the specific half,
+which is what D129 refused to do and what G124 recorded.
+
+Frame 32 was already two-thirds of the destination: income, essential outgoings, saved-toward-deposit
+and the account breakdown, all the participant's own. It needed left-over and the assumption.
+
+### What the sheet now carries, against what the disclosure showed
+
+| The disclosure's row | Where it now lives on frame 32 |
+| --- | --- |
+| What we read - "Your salary and your regular payments", last 12 months | The "Read directly from your accounts" block, at more detail than the disclosure gave: four figures, each with its own source caption |
+| What we worked out - `{essential}` essential spending, `{leftOver}` left over | Two separate rows, **each with its own figure and its own provenance**, rather than one row combining both |
+| What we assumed - "That last year is typical of this year" | Its own single-row list, between what was read and what cannot be seen |
+
+**It carries more than the disclosure did, not less**, which was G124's condition for turning the
+chevron at all. Verified by reading the rendered rows rather than by inspecting the source.
+
+**The assumption row carries no heading of its own.** Its label is one - the same way it read inside
+the disclosure, where the three rows had no sub-headings either. Adding a heading would have meant
+writing copy in a build session.
+
+### The row is now the same component as the one beneath it
+
+`flagRowHTML`'s markup is extracted into **`navRowHTML({ label, icon, action })`**, and `flagRowHTML`
+becomes a three-line caller of it passing the flag icon and `report-issue`. **Every existing flag row
+is byte-for-byte unchanged.**
+
+This is what the brief asked for - reuse rather than restyle - and the reason is not tidiness. The two
+rows were meant to be indistinguishable in padding, rule and chevron. Matching them by writing a
+second set of CSS is a claim that has to be re-verified every time either moves; **making them one
+function is a guarantee.** The measured heights below are a consequence of that, not a coincidence.
+
+Frame 12's row passes `infoCircle`, which is the icon the disclosure's own nav button already used, so
+no icon was chosen here either.
+
+### `asRow` is removed, and D129's reasoning with it
+
+D129 added `asRow` so the trigger could borrow `.flag-row`'s treatment while still expanding in place,
+and **kept the down chevron deliberately** - the chevron says what the control does, and matching the
+treatment while keeping the chevron let the pair read as a family while still telling the participant
+which one leaves the screen. That reasoning was right for a row that expanded. **This row now
+navigates, so the chevron follows the behaviour**, which is the same rule applied to a changed fact.
+
+Frame 12 was `asRow`'s only caller, so the parameter, its branch and its `.how-this-works-row` CSS
+block are all removed rather than left as an option nothing selects. `resultHowWeWorkedOpen` goes from
+`COLLAPSIBLE_DEFAULTS` for the same reason. The four remaining `howThisWorksCardHTML` callers -
+`/position/summary`, `/learn/ltv` and the two MiP results - draw the card, which is what they always
+drew, and none passed `asRow`. Checked before deleting, which is D113's discipline.
+
+### The duplicate route is resolved, and a different adjacency is not
+
+**Two controls to one sheet becomes one.** Before, frame 12 opened `/assumptions/saving` from
+`projectionAssumptionsLinkLabel` beneath the goal block **and** from the nav button inside the
+disclosure. The disclosure is gone, so `open-assumptions-saving` is gone with it - and its now-dead
+half of the handler's selector went too, rather than being left describing a control the screen no
+longer draws.
+
+**What is NOT resolved, and is not this pass's to fix:** focus stops 1 and 2 are still two links
+reading **"How we worked out these figures"** verbatim - `assumptionsLinkLabel` to
+`/assumptions/deposit`, `projectionAssumptionsLinkLabel` to `/assumptions/saving`. Same accessible
+name, different destinations, adjacent in the focus order. That is a copy defect, it predates this
+pass, and it is **not** the duplicate D129 found - that one was two controls to the *same* sheet, and
+it is closed. Raised as **G125** rather than reworded here, because renaming either is copy.
+
+### Verified
+
+At 390x844, on a fresh tab, on the app's own default session. **The two rows, measured rather than
+compared by eye:**
+
+| | Default | Large |
+| --- | --- | --- |
+| `open-assumptions-sources` ("How we worked this out") | **48.0px** | **50.3px** |
+| `report-issue` ("Something doesn't look right") | **48.0px** | **50.3px** |
+
+Identical at both sizes, with `padding: 12px 0`, `min-height: 48px` and a `1px solid` top rule on
+both - they are the same element type reading the same rule, which is the point of the extraction.
+Both carry the right chevron.
+
+| | Before | After |
+| --- | --- | --- |
+| Rendered controls opening `/assumptions/saving` | 2 | **1** |
+| Frame 12 scroll height | 1580px | **1539px** |
+| Focus order | 8 stops, row expanded in place | 8 stops, row navigates |
+
+The screen loses 41px: the disclosure's collapsed header becomes a row of the same height, and the
+saving is the card's own padding.
+
+**Frame 32's rendered rows**, read from the DOM: monthly income after tax, essential monthly outgoings,
+**left over each month**, saved toward a deposit, savings interest rate, and **what we assumed**. The
+left-over row sits third, between the two figures it is derived from and the deposit total, so the
+sheet reads down the derivation rather than around it.
+
+Suite: **423 tests, 422 passing, 1 skipped (G91's known intermittent), 0 failing.**
+
+**One defect was introduced and caught during this pass**, recorded because it is the second time in
+three passes: an HTML comment inside a template literal contained backticked route names, which closed
+the template and left `assumptions` evaluating as a bare identifier. Frame 12 rendered **blank**.
+`smoke.test.mjs` named it in one run - `"/calculator/result raised: assumptions is not defined"` -
+which is exactly the failure mode that test exists for. **Backticks cannot appear in an HTML comment
+inside a template literal**, and the same mistake in the same shape was made in D131's pass.
+
+`CACHE_VERSION` and `BUILD_VERSION` v113 to v114, a paired hand-edit.
+
+### To reverse
+
+Restore `howThisWorksCardHTML`'s `asRow` parameter and branch, its CSS block, `resultHowWeWorkedOpen`
+in `COLLAPSIBLE_DEFAULTS`, and frame 12's disclosure call with `asRow: true`. Frame 32's two rows can
+stay: they are correct on their own terms and the sheet is better for them whether or not frame 12
+points at it. `navRowHTML` can stay too - `flagRowHTML` calls it and behaves identically either way.
+Reversing would put the participant's figures back behind an expander, so the reason would have to be
+that frame 32 is the wrong destination rather than that the disclosure was the right control.
