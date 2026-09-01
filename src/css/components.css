@@ -195,6 +195,25 @@
   border-color: var(--color-border-strong);
 }
 
+/* --- Home greeting (frame 01, DECISIONS.md D137) ---
+   NOT A HEADING, and styled so it does not read as one. Frame 01's only
+   heading is the app bar's `<h1>`; its balance label, its "Today"/"Yesterday"
+   section headers and its entry card title are all `<p>`. Every other screen
+   uses `<h2 class="screen-title">` for its headline, so an `<h2>` here would
+   put the greeting in the slot that holds "Your savings goals" elsewhere and
+   rank a salutation above the entry card in the outline.
+
+   Title3 rather than title2 for the same reason: it is a greeting above the
+   balance, not the screen's title. Weight 600 over the token's 400 so it
+   reads as addressed rather than as a stray line of body copy. */
+.home-greeting {
+  font-size: var(--text-title3-size);
+  line-height: var(--text-title3-line);
+  font-weight: 600;
+  color: var(--color-label);
+  margin: 0;
+}
+
 /* --- Balance card --- */
 .balance-card {
   padding: var(--space-xl);

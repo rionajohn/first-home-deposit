@@ -5422,3 +5422,46 @@ another, and 4 needs approved copy.
 A session in which a participant on the monthly branch types a low end above their high end. That is
 the unintended path, it is observable directly, and it is the only one of the two halves a participant
 can stumble into. The date-branch path is intentional and needs no observation to justify.
+
+---
+
+## G131. Frame 01's call to action is below the fold at 390x844, and always has been. OPEN - REPORT ONLY
+
+*Raised 1 September 2026 while implementing `DECISIONS.md` D137, which did not cause it and does not
+depend on it. **Independent of that change and older than it.** Measured, not inferred.*
+
+### The measurement
+
+At 390x844, the study's own viewport, with the tab bar's top edge at y=788:
+
+| | Before D137 | After D137 |
+| --- | --- | --- |
+| Entry card title | 712 to 762 | 753 to 803 |
+| Entry card CTA (`entryCardCta`) top | **852** | **893** |
+
+`entryCardCta` is the control that starts the journey. **It has never been visible on this viewport
+without scrolling**, in either column of that table. D137's greeting moves it 41px further down and
+clips the second line of the entry card title, but it did not put the button below the fold and
+removing the greeting would not bring it back.
+
+### Why it is worth raising rather than fixing
+
+Every participant so far has reached `/journey`, so the card is evidently being found. What is not
+known is **whether they scrolled to it or arrived at it some other way**, and that is a question about
+the first screen of the study - the one moment where "did they see the entry point" is the observation.
+A control that requires a scroll it gives no sign of requiring is the kind of thing a think-aloud
+session is for.
+
+### Why nothing is changed here
+
+Reclaiming the height would mean tightening frame 01's card spacing, which the reference PNG fixes, or
+moving the entry card above the transactions card, which changes what the screen says about itself. A
+bank home screen that leads with a marketing card is a different screen. Neither is a decision to take
+inside a copy change, and neither is a decision to take without a session's worth of evidence about
+whether the scroll is actually costing anything.
+
+### What would settle it
+
+One moderated session watched specifically at frame 01: whether the participant scrolls before being
+prompted, and whether they name the entry card unaided. That is a single observation and it decides
+between "leave it" and a layout entry of its own.
