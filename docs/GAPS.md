@@ -4515,10 +4515,10 @@ G107 session.
 
 ---
 
-## G115. A three-way same-year collision would break `compareSameYearNote`'s two slots. UNREACHABLE, NOT FIXED
+## G115. A three-way same-year collision would break `compareSameYearNote`'s two slots. CLOSED MOOT 1 September 2026 - DECISIONS.md D113
 
-*Recorded 31 August 2026 with D101, in the G92-to-G95 form: **unreachable is not fixed**, and this
-should not be closed on the strength of the measurement below.*
+*Recorded 31 August 2026 with D101, in the G92-to-G95 form. **CLOSED MOOT, 1 September 2026**, and
+moot is not the same as fixed either - see the closing note at the foot.*
 
 The card's collision note takes `{a}` and `{b}`. If all THREE visible rows resolved to one year it
 would have no slot for the third.
@@ -4534,6 +4534,19 @@ would have no slot for the third.
 are reachable only if that constant changes or a facilitator seeds a higher `left-over`. A third slot
 was deliberately not bought for a state no session can reach; the detection is one line and this
 entry records where it would go.
+
+### CLOSED MOOT, 1 September 2026 - DECISIONS.md D113
+
+**The card is one row now.** D113 removed the two neighbouring deposits, so there is nothing for a
+year to collide WITH - not a three-way collision, not a two-way one. `compareSameYearNoteTemplate`,
+its `{a}` and `{b}` slots and the collision predicate that fed them are all retired.
+
+**Moot, not fixed, and the distinction is the same one this entry was opened on.** Nothing was done
+about three-way collisions; the arithmetic that produces them is untouched in `monthsToReachAmount`
+and `neighbourPcts` still returns three percentages for frame 09. **If a three-row comparison ever
+returns to any screen, this entry's measurement is still the measurement** - 0 in 28,400 at every
+rate the app can commit, 382 above `MOCK_POSITION`'s ceiling - and the two-slot string it warns about
+would need the same third slot it always did.
 
 ---
 
@@ -4732,4 +4745,28 @@ resolves to 31 August and reintroduces the same shift on the way out.
 is correct, but those are dated constants rather than a live stamp and were never exposed to the
 midnight window. No test asserts the stamp near midnight; doing so needs a clock the harness can set,
 which Playwright can do and this pass did not add.
+
+---
+
+## P8 is answered by REMOVAL, not by reframing. Recorded 1 September 2026
+
+*Not a gap entry of its own - a note against the pilot finding, filed here because this is where the
+cross-references to P-numbers live (G105's convention: pilot findings are P-numbered in the session
+document, gaps are G-numbered here, and the two are cross-referenced rather than conflated).*
+
+**P8 is the participant's objection to the comparison card** - "I'm not sure why I'm comparing this to
+the other options that I didn't pick" (24:48) and "I didn't really ask for the other ones" (25:27).
+
+**It was first answered by REFRAMING** (the plan's 7.2, DECISIONS.md D101): the neighbours stayed and
+were presented as an interval around the participant's own choice rather than as rejected options,
+because D46 was believed to require the discarded values to stay visible.
+
+**It is now answered by REMOVAL** (D113). D46 never applied - the neighbours were system-generated,
+not entered and discarded - so the constraint that ruled removal out was not there.
+
+**Why this matters beyond the one finding.** A reframing and a removal are different answers to a
+participant objection, and only one of them was ever available on the evidence. The record should show
+that the first answer was chosen under a misread constraint rather than as a judgement about what the
+participant wanted, because the next objection of this shape should be tested against the constraint
+before the workaround is designed.
 

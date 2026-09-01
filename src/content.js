@@ -874,54 +874,41 @@ const content = {
     // --- The comparison that replaced the range (D72) -----------------------
     // Every chip frame 09 offers gets a row, so a participant who chose 20% or
     // 25% sees their own choice rather than a band that stops at 15%.
-    // NAMES A NEIGHBOURHOOD, NOT A MENU (DECISIONS.md D101). It read "How this
-    // compares", which is a comparison of alternatives - and at 24:48 the
-    // participant objected to being shown options they had not chosen. The
-    // comparison is not removed (D46 keeps the discarded values visible); the
-    // framing is. It avoids "compare" and "options", both of which invite the
-    // reading that these are offers.
-    compareHeading: 'Deposits either side of yours',
+    // [AWAITING COPY] (D113). It read "Deposits either side of yours", which
+    // describes a card that no longer exists - there is one row now, the
+    // participant's own. A visible placeholder rather than a guess, which is
+    // D93's rule: copy is supplied and approved, not written in a build
+    // session.
+    compareHeading: '[AWAITING COPY]',
     compareRowSublabelTemplate: '{pct} deposit',
-    // THE SELECTED ROW SAYS SO IN WORDS. `rate-band-row--highlighted` marks it
-    // visually, but colour and weight must not be the only carriers (WCAG
-    // 1.4.1), and this is the one row on the screen whose meaning depends on
-    // being told apart from the others.
-    compareRowSelectedSublabelTemplate: '{pct} deposit - your choice',
+    // `compareRowSelectedSublabelTemplate` IS RETIRED (D113). It read
+    // "{pct} deposit - your choice", which was the row's non-colour carrier
+    // (WCAG 1.4.1) while three rows had to be told apart. With one row there is
+    // nothing to distinguish it FROM, and "your choice" on a card offering no
+    // choice reads as a leftover.
     // `compareWithinTemplate` ("within {months}") IS RETIRED (DECISIONS.md
     // D101). The value slot it filled is now the attainment YEAR in the row's
     // leading position - the row leads with the date reached rather than with
     // the deposit amount, which is the 24:48 reframing.
     compareAlreadyLabel: 'already saved',
-    // THE MARKER THE PARTICIPANT ASKED FOR AT 24:27. A literal character, not
-    // an icon and not an emoji: it renders after each row's year and opens the
-    // caption below, so the caption is bound to the figures it describes
-    // rather than floating free of them. `aria-describedby` carries the same
-    // binding for assistive technology, which does not depend on the glyph
-    // being announced.
-    compareFootnoteMarker: '*',
+    // `compareFootnoteMarker` IS RETIRED (D113). The asterisk existed to bind a
+    // caption to three rows of dates it could not otherwise be tied to - the
+    // 24:27 request. With ONE row the caption sits directly beneath the figure
+    // it describes and the marker binds nothing that adjacency does not.
+    // `aria-describedby` still carries the relationship programmatically, for
+    // anyone not reading by position.
     // NAMES WHICH RATE, which it did not (the plan's 7.6). It read "at what you
     // are putting away now" and silently meant `monthly-low`; the card now
     // follows the series selection, so the caption has to say that the figures
     // move with the control above them.
-    compareProvenanceCaption: "* Time to save each one, at the amount you've picked.",
-    // WHEN TWO ROWS LAND IN THE SAME YEAR (the plan's 7.5). Year-only is a
-    // claim about what the model can honestly assert, so the collision is NAMED
-    // rather than formatted around - the card-wide fallback to month and year
-    // was withdrawn because a granularity that varies with the arithmetic is
-    // worse than one that holds.
-    //
-    // TWO SLOTS, AND BOTH NUMBERS STAY, as a deliberate exception to the
-    // one-number-per-sentence rule: two numbers are the entire content of the
-    // string. The slots exist because "two of these" made the participant hunt
-    // for the colliding rows, so splitting the sentence to satisfy the rule
-    // would undo a fix made for a measured reason. `{a}` is the lower
-    // percentage, row order.
-    //
-    // TWO SLOTS AND NOT THREE. A three-way collision would need a third, and it
-    // is unreachable at every rate the app can commit - 0 in 28,400 measured
-    // configurations. See GAPS.md; unreachable is not fixed.
-    compareSameYearNoteTemplate:
-      "The {a} and {b} deposits are close enough that you'd reach them in the same year.",
+    // [AWAITING COPY] (D113). It read "* Time to save each one, at the amount
+    // you've picked." - "each one" described a set of three. The asterisk goes
+    // with the marker above.
+    compareProvenanceCaption: '[AWAITING COPY]',
+    // `compareSameYearNoteTemplate` IS RETIRED WITH ITS {a} AND {b} SLOTS
+    // (D113). ONE ROW CANNOT COLLIDE. The collision predicate that fed it is
+    // gone from the screen, and GAPS.md G114 - the three-way collision the two
+    // slots could not have named - closes as moot rather than as fixed.
     chartHeading: 'How your savings would build up',
     // --- THE RANGE CONTROL (D73) --------------------------------------------
     //
@@ -975,13 +962,13 @@ const content = {
       { months: null, label: 'Max', ariaLabel: 'Max, the whole time to reach your goal' },
     ],
     chartRangeLegend: 'How far ahead',
-    // WHAT THE CONTROL DOES NOT DO, said once. Switching to six months shows a
-    // much smaller figure, and without this a participant could read that as
-    // the projection having changed rather than the window on it.
-    chartRangeNoteText: 'Changing the range changes what the chart shows, not what you are on track to save.',
-    // The live region's whole contents. A chart cannot be announced usefully -
-    // twelve bar groups and an axis - so the region carries a summary and the
-    // chart itself stays out of it. One number per sentence.
+    // `chartRangeNoteText` IS RETIRED (D114). D73 added it so that switching to
+    // a shorter window and seeing a smaller figure could not read as the
+    // projection having changed rather than the window on it. The ENDPOINT LINE
+    // now does that job better: it states the goal and the year and does not
+    // move when a chip is pressed, so a participant sees the projection hold
+    // still rather than reading a sentence saying it does. See D114 for what
+    // that handover gives up.
     chartRangeAnnouncementTemplate: 'Showing to {range}. Savings reach {amount}.',
     chartCaptionTemplate: 'With interest at {aer} a year. Illustrative.',
     xAxisNow: 'Now',
@@ -1111,7 +1098,8 @@ const content = {
     // the chip the participant had just pressed, and it was one of the five
     // places GAPS.md G80 counts the 60-month window asserted in prose. What it
     // was doing - saying the chart is a window rather than the whole story -
-    // `chartRangeNoteText` now does once, for every range.
+    // `chartRangeNoteText` took over, and D114 has since retired that too: the
+    // endpoint line does it by not moving when a chip is pressed.
     //
     // The first clause keeps "5 years" correctly: that is the MODEL's window,
     // `monthsToTarget`'s own beyond-window boundary, and has nothing to do with

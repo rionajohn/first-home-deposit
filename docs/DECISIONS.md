@@ -9987,3 +9987,123 @@ unspent, as the first place to look for ~48px if it ever does.
 Large, and still does not fit a viewport. That is no longer a requirement, and it is recorded so the
 figure is not mistaken later for an unfixed defect.
 
+---
+
+## D113. The neighbour deposits are removed, and D46 never applied to them
+
+**Date.** 1 September 2026. **Reverses the plan's 7.2 and supersedes D101's card.** Answers pilot
+finding P8 by removal rather than by reframing.
+
+**Decision.** The comparison card shows **one row: the participant's own deposit**, as a standalone
+box with no selection highlight. The two neighbouring percentages are gone.
+
+### The evidence, which was there all along
+
+> "I'm not sure why I'm comparing this to the other options that I didn't pick" - 24:48
+> "I didn't really ask for the other ones" - 25:27
+
+**The row survives because of what they DID want.** Knowing immediately how long their own deposit
+would take is useful; being offered two they did not choose is not. That is why this is a removal of
+two rows rather than of the card.
+
+### THE CORRECTION, AND IT IS THE PART WORTH READING
+
+The plan's 7.2 recorded that the comparison **could not be removed** because D46 requires a discarded
+participant value to stay visible, and reframed the neighbours as "an interval around the selection"
+to satisfy that constraint. **The constraint did not apply.**
+
+D46 is about a value the participant **entered and then abandoned** - its payload is frame 09's
+cleared property field and, downstream, frame 10b's moved-date disclosure. **The neighbour percentages
+were never entered by anyone.** They are system-generated alternatives produced by `neighbourPcts`
+from the one percentage the participant did choose. Nothing on this card engaged D46 at any point.
+
+So 7.2's reframing - the interval framing, the year-leading rows, the footnote marker binding a
+caption to three dates - was **designed around a constraint that did not exist**. It was good work
+against a false premise, and the participant's own objection at 24:48 was the thing it was trying to
+answer indirectly when it could have been answered directly.
+
+**This is recorded rather than left as a bare reversal** because a reader finding D101 and then this
+entry would otherwise see a card reframed and then deleted within days, with no account of why the
+first pass did not simply do the second thing. The answer is that it believed it was forbidden to.
+
+### What was retired, and what was deliberately kept
+
+| Retired | |
+| --- | --- |
+| `compareSameYearNoteTemplate` and its `{a}`/`{b}` slots | **One row cannot collide** |
+| The collision predicate in the screen | Same |
+| `compareFootnoteMarker` | The asterisk bound a caption to three dates; with one row the caption sits directly beneath the figure it describes |
+| `compareRowSelectedSublabelTemplate` | "- your choice" was the row's non-colour carrier while three rows had to be told apart. With one row there is nothing to distinguish it from |
+| `GAPS.md` G114 | Closed as **moot** - the three-way collision the two slots could not have named |
+
+| Kept, and why | |
+| --- | --- |
+| **`neighbourPcts` in `rates.js`** | **It is frame 09's own windowing rule.** It was moved into `rates.js` so frames 09 and 12 could not disagree about what "one step" means; frame 12 has stopped asking, and frame 09 still does. Deleting it would have broken a screen this pass never touched - D111's discipline, and the one place it caught something here |
+| `compareAlreadyLabel` | `/learn/ltv`'s "Saved by" row reads it for its own already-covered case (D98) |
+| **The single-derivation hoist** | The row's year and the caption beneath it still read ONE derivation. The reason for the hoist was never the collision predicate: it was that a consumer recomputing its own inputs will eventually disagree with what it describes, which holds with one row exactly as with three |
+| `aria-describedby` on the row | The visible marker is gone; the programmatic relationship is not, for anyone not reading by position |
+
+**The chart's tick sweep was checked and does not depend on any of this.** `bindGrowthChart`'s
+`overlaps()` helper and `hideTicksUnderGuideValue` are in `ui.js` and were never wired to the card's
+predicate - the two collisions share a name and nothing else.
+
+### Copy left open
+
+`compareHeading` ("Deposits either side of yours") and `compareProvenanceCaption` ("Time to save each
+one...") both describe a card that no longer exists. Both are **`[AWAITING COPY]` and render as a
+visible placeholder**, which is D93's rule: copy is supplied and approved, not written in a build
+session.
+
+---
+
+## D114. The range caption is retired, and the endpoint line takes over its job
+
+**Date.** 1 September 2026. **Retires D73's `chartRangeNoteText`.**
+
+**What it said and what it was for.** "Changing the range changes what the chart shows, not what you
+are on track to save." D73 added it for a stated reason: *"Without it, switching to six months and
+seeing a much smaller figure could read as the projection having changed rather than the window on
+it."*
+
+**That risk is real and it is now covered by something better.** The **endpoint line** states the goal
+and the year it is reached, and **it does not move when a chip is pressed** - it is range-independent
+by construction, because it is the projection's own end rather than the window's. A participant who
+presses 5 yr and sees the readout grow can see the endpoint hold still. **A figure that visibly does
+not change is stronger evidence than a sentence saying it will not**, and it costs no line on a screen
+whose caveat density was already flagged.
+
+**What the handover gives up, stated rather than assumed away.** The caption said it EXPLICITLY; the
+endpoint line requires the participant to NOTICE that something did not change. A participant who
+never presses a second chip never gets the demonstration at all - though they also never meet the
+misreading, which only arises from comparing two windows.
+
+**Nothing else on the screen covers it**, and that was checked rather than hoped: the chips are
+labelled as spans ("3 yr", "5 yr", "Max") and D98 records that a span is a view setting rather than a
+claim, but nothing states it; `projectionAssumptions` is about what is held constant, not about what
+the control does. **So the endpoint line is the whole of the replacement.** If a participant reads a
+longer range as saving for longer, this is the entry to reverse, and the string is in D73's record.
+
+**It also returned block height**, which the card removal did not - see D112's amendment.
+
+---
+
+### D112 AMENDED, 1 September 2026: the margin is no longer thin
+
+D112 recorded the co-visibility block at **628.0px default / 684.7px Large**, and warned that Large
+cleared by only 47.3px - which a ~34px `--safe-bottom` on a real device would nearly exhaust.
+
+**D114's removal of `chartRangeNoteText` sat INSIDE that block** and returned it:
+
+| | Was | Now | Headroom |
+| --- | --- | --- | --- |
+| Default | 628.0px | **576.0px** | **+156.0px** |
+| Large | 684.7px | **627.3px** | **+104.7px** |
+
+Large now clears a 34px home indicator by roughly 70px rather than by 13px. **The 34px assertion in
+`chart-detail.test.mjs` stays** - the margin is comfortable rather than guaranteed, and the next thing
+added above the plot spends it.
+
+**D113's card removal returned NONE of this**, and the distinction matters: the card renders **above
+the chart heading**, outside the block entirely. Removing two rows shortened the SCROLL, which is a
+different thing from shortening the block, and reading the improvement as coming from the card would
+credit the wrong change.

@@ -70,7 +70,7 @@ import {
 } from '../components/ui.js';
 import { formatCurrency, formatPercent, formatYear, axisScale } from '../format.js';
 import { balanceAtMonth, monthsToReachAmount, checkpointAmount, goalMonths, goalAttained, stampDuty, combinedGoal } from '../model/model.js';
-import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS, CHART_MIN_RANGE_MONTHS, neighbourPcts } from '../model/rates.js';
+import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS, CHART_MIN_RANGE_MONTHS } from '../model/rates.js';
 
 export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
 
@@ -229,39 +229,29 @@ export function render(container, ctx) {
   const activePoint = points[activeIndex];
   const activeAmount = series === 'high' ? activePoint.high : activePoint.low;
 
-  // ONE DERIVED ARRAY, HOISTED ABOVE THE TEMPLATE (the plan's 10.3). The rows
-  // used to compute `monthsToReachAmount` inside the `.map()` callback and
-  // discard it, so the collision predicate and the note below the card — which
-  // render outside that closure — had nothing to read. Deriving it once means
-  // the rows, the predicate and the note read ONE array rather than three
-  // derivations that could disagree, and `monthsToReachAmount` is called once
-  // per row rather than twice.
-  const compareRows = neighbourPcts(depositPctValue).map((pct) => {
-    const amount = propertyValue * pct;
-    const goalAtPct = amount + stampDutyValue;
-    const alreadySaved = savedTowardDeposit >= goalAtPct;
-    const months = alreadySaved
-      ? 0
-      : monthsToReachAmount({ startingBalance: savedTowardDeposit, targetAmount: goalAtPct, monthlyAmount: selectedRate });
-    return {
-      pct,
-      pctLabel: formatPercent(pct, 0),
-      amount,
-      alreadySaved,
-      months,
-      year: alreadySaved || !Number.isFinite(months) ? null : formatYear(Math.ceil(months), anchor),
-      selected: pct === depositPctValue,
-    };
-  });
+  // ONE ROW, THE PARTICIPANT'S OWN (D113). The card showed their deposit and
+  // the two either side of it; the pilot objected to both of the others - "I'm
+  // not sure why I'm comparing this to the other options that I didn't pick"
+  // (24:48) and "I didn't really ask for the other ones" (25:27). The YEAR is
+  // what they wanted and is why the row survives at all.
+  //
+  // STILL DERIVED ONCE, ABOVE THE TEMPLATE, and that is not left over from the
+  // three-row version. The reason for the hoist was that a consumer which
+  // recomputes its own inputs will eventually disagree with what it describes,
+  // and that holds with one row exactly as it did with three - the row's year
+  // and the caption beneath it read one derivation.
+  const ownGoal = depositTargetValue + stampDutyValue;
+  const ownAlreadySaved = savedTowardDeposit >= ownGoal;
+  const ownMonths = ownAlreadySaved
+    ? 0
+    : monthsToReachAmount({ startingBalance: savedTowardDeposit, targetAmount: ownGoal, monthlyAmount: selectedRate });
+  const ownRow = {
+    pctLabel: formatPercent(depositPctValue, 0),
+    amount: depositTargetValue,
+    alreadySaved: ownAlreadySaved,
+    year: ownAlreadySaved || !Number.isFinite(ownMonths) ? null : formatYear(Math.ceil(ownMonths), anchor),
+  };
 
-  // THE COLLISION, READ OFF THE SAME ARRAY. Rows carrying `compareAlreadyLabel`
-  // have no year and are excluded — 7.5's "live rows". Two slots and not three:
-  // a three-way collision is unreachable at every rate the app can commit.
-  const liveYears = compareRows.filter((r) => r.year !== null).map((r) => r.year);
-  const collidingYear = liveYears.find((y, i) => liveYears.indexOf(y) !== i) ?? null;
-  const colliding = collidingYear === null ? [] : compareRows.filter((r) => r.year === collidingYear);
-
-  const marker = c.compareFootnoteMarker;
   const chartVisible = !unreachable && !attained;
   const showTable = state.chartView === 'table';
 
@@ -286,26 +276,27 @@ export function render(container, ctx) {
         ${figureRowHTML({ label: c.goalTotalLabel, trailing: formatCurrency(combinedGoalValue) })}
       </div>
 
-      <!-- THE COMPARISON CARD IS DRAWN IN EVERY STATE INCLUDING THE ATTAINED
-           ONE (D46, D101): a discarded participant value stays visible. What
-           changed is the framing, not the presence — the participant objected
-           at 24:48 to being shown options they had not chosen, and each row now
-           LEADS WITH THE YEAR REACHED rather than with the deposit amount, so
-           the set reads as a neighbourhood around their own choice. -->
+      <!-- ONE STANDALONE BOX, NO SELECTION HIGHLIGHT (D113). There is nothing
+           left to be selected AGAINST, so highlighted would mark a row as
+           chosen from a set of one. The card is drawn in every state including
+           the attained one, where the row reads compareAlreadyLabel instead
+           of a year.
+
+           aria-describedby KEEPS ITS BINDING even though the visible asterisk
+           is gone: with one row the caption sits directly beneath the figure it
+           describes and needs no marker to say which figure that is, but the
+           relationship still has to be programmatic for anyone not reading by
+           position. -->
       <h3 class="section-heading">${c.compareHeading}</h3>
       <div class="card comparison-card">
-        ${compareRows.map((row, i) => `
-          ${rateBandRowHTML({
-            label: row.alreadySaved ? c.compareAlreadyLabel : row.year === null ? '—' : `${row.year}${marker}`,
-            sublabel: fill(row.selected ? c.compareRowSelectedSublabelTemplate : c.compareRowSublabelTemplate, { pct: row.pctLabel }),
-            value: formatCurrency(row.amount),
-            highlighted: row.selected,
-            describedBy: 'compare-provenance',
-          })}
-          ${i < compareRows.length - 1 ? '<hr class="divider" />' : ''}
-        `).join('')}
+        ${rateBandRowHTML({
+          label: ownRow.alreadySaved ? c.compareAlreadyLabel : ownRow.year === null ? '—' : ownRow.year,
+          sublabel: fill(c.compareRowSublabelTemplate, { pct: ownRow.pctLabel }),
+          value: formatCurrency(ownRow.amount),
+          highlighted: false,
+          describedBy: 'compare-provenance',
+        })}
       </div>
-      ${colliding.length >= 2 ? `<p class="provenance-caption">${fill(c.compareSameYearNoteTemplate, { a: colliding[0].pctLabel, b: colliding[1].pctLabel })}</p>` : ''}
       <p class="provenance-caption" id="compare-provenance">${c.compareProvenanceCaption}</p>
 
       ${unreachable ? emptyStateCardHTML({ title: c.unreachableHeadline, body: c.unreachableBody, ctaLabel: c.unreachableCta, ctaAction: 'set-amount' }) : ''}
@@ -402,7 +393,7 @@ export function render(container, ctx) {
             action: 'select-chart-range',
           })}
         </div>
-        <p class="provenance-caption">${c.chartRangeNoteText}</p>`}
+        `}
 
         <!-- REQUIREMENT 3. Drawn at every window and in every non-attained
              state, and it carries requirement 5 at the default window: the
