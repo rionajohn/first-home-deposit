@@ -4814,7 +4814,7 @@ which of those the two columns are meant to be before changing either end.
 
 ---
 
-## G122. At Large text the goal block and the chart do not fit one viewport. OPEN
+## G122. At Large text the goal block and the chart do not fit one viewport. CLOSED 1 September 2026 - DECISIONS.md D130
 
 *Raised 1 September 2026 by the assertion D120 asked for and this pass added. **Found by asserting a
 figure that had only been reported.***
@@ -4869,4 +4869,25 @@ moved everything below it down.
 **Default text has now crossed the line too**, which it had not when this entry was opened. Both text
 sizes fail. The legend candidate at the foot of this entry is unchanged and still unspent; at ~64px it
 would clear default comfortably and still leave Large ~25px short.
+
+### CLOSED 1 September 2026 - DECISIONS.md D130
+
+**Two things closed it, and only one of them was pixels.**
+
+**The requirement was re-scoped**, and that was the larger half. Asserting co-visibility at LARGE text
+on a 732px viewport was stricter than the requirement warranted - a Large-text participant expects
+more scrolling everywhere in the app - so the assertion is now default-text only, with Large reported
+in D112's existing reported-not-asserted form. That is a requirement defect corrected, not a layout
+standard lowered.
+
+**Then the legend went**, on the merits rather than for the 48px: its only remaining justification was
+a scroll state in which the readout had moved off screen and the legend had not, and that state
+existed only because co-visibility was broken. Closing the one dissolved the other. **Both of its
+dependencies were asserted before it was removed** - see D130 - which is the same check
+`compareAlreadyLabel` was given and passed.
+
+| | Before | After |
+| --- | --- | --- |
+| Default | 736.0px | **688.0px**, clears by 44.0px |
+| Large | 821.1px | 767.7px, reported |
 

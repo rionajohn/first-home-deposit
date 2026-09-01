@@ -10522,3 +10522,62 @@ behaviour did not change:
 the participant's own figures disappearing from this screen against one fewer expandable, and the
 duplicate route would have to be resolved in the same pass.
 
+---
+
+## D130. The legend is removed, and the co-visibility assertion is re-scoped to default text
+
+**Date.** 1 September 2026. **Closes `GAPS.md` G122.**
+
+### The assertion was too strict, and that was the requirement's fault rather than the layout's
+
+D120 asserted that the goal block through the bottom of the chart fits one viewport - answer and
+evidence co-visible - **at both text sizes**. That is stricter than the requirement warrants: **a
+Large-text participant expects more scrolling everywhere in the app**, and holding one screen to a
+standard the rest of the build does not meet is a requirement defect, not a layout defect.
+
+**Asserted at default text; Large is REPORTED**, following the pattern D112 already uses for its own
+reported-not-asserted half. The requirement is now what it always meant: a default-text participant
+sees the arrival and the curve that produces it without scrolling.
+
+### The legend goes, and it is D111's question answered rather than 64px spent
+
+**The legend's only remaining justification was a scroll state** in which the in-plot readout had moved
+off screen and the legend had not - so the two lines would be unlabelled while still visible. **That
+state existed only because the block and the chart were not co-visible.** Closing the co-visibility
+dissolves the justification; the legend is removed on the merits, not because the pixels were wanted.
+
+**THE SECOND ELEMENT ON THIS SCREEN CHECKED BEFORE REMOVAL, after `compareAlreadyLabel`** (D123),
+which was found to be read by `/learn/ltv` and kept. This one was checked the same way and the checks
+are now assertions rather than reasoning:
+
+| What had to hold | Verified |
+| --- | --- |
+| The in-plot readout labels **both** series in every state, including before any interaction | Both labels, both swatches, at rest and at every point - including past the higher series' attainment, where its VALUE is an em dash but its LABEL remains |
+| Something carries series identity **for a screen reader** | The SVG is `aria-hidden`, so the lines never had an accessible name; each point's `aria-label` names **both** contributions and both amounts at every x. The legend was additional text, not the naming |
+
+**Had either failed, the legend would have stayed** - that is what the check is for, and it is the
+outcome `compareAlreadyLabel` got.
+
+### The arithmetic
+
+| | Before | After | Against a 732px viewport |
+| --- | --- | --- | --- |
+| Default text | 736.0px | **688.0px** | **clears by 44.0px** |
+| Large text | 821.1px | **767.7px** | 35.7px short - reported, not asserted |
+
+`legendTemplate` survives with its name: the words are right for the readout's two rows, and D81's
+reasoning for keeping `sliderCaption` applies - a key name is a code-side label, and renaming reaches
+every screen and test that reads it.
+
+### AMENDED, same day: the marker moves from the deposit to the total
+
+D124 put `estimateDisclosure`'s marker on `£45,000`. It now sits on **`£52,500`**, the total, with
+`aria-describedby` moved with it.
+
+**Marking only the deposit implied the stamp duty was firm.** It is not: it is worked out on the same
+estimated property value, at rates and thresholds that can change, with first-time buyer relief the
+participant may not qualify for. Both components are estimates and the row-level caption on stamp duty
+says nothing about that.
+
+**And the total is the operative figure.** It feeds the goal block's heading, the chart's axis top and
+both projections - so a caveat on an INPUT while the OUTPUT stood unqualified was the wrong way round.

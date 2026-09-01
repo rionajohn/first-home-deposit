@@ -902,6 +902,11 @@ const content = {
     // `chartRangeNoteText` all go with it.
     chartCaptionTemplate: 'With interest at {aer} a year. Illustrative.',
     xAxisNow: 'Now',
+    // THE KEY NAME STILL SAYS "legend" AND THERE IS NO LEGEND (D130). Kept
+    // rather than renamed, for the reason D81 kept `sliderCaption` shared: the
+    // WORDS are right for what now uses it - the in-plot readout's two rows -
+    // the key name is a code-side label, and renaming reaches every screen and
+    // test that reads it.
     legendTemplate: 'At {amount} a month',
     yAxisFloor: '£0',
 

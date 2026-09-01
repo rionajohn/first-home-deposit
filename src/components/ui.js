@@ -1310,7 +1310,6 @@ export function growthChartHTML({
   fractionLines,
   yearLabels,
   nowLabel,
-  legend,
   activeIndex,
   plotLabel,
   pointLabelTemplate,
@@ -1406,14 +1405,13 @@ export function growthChartHTML({
         ${yearLabels.map((l) => `<p class="growth-chart__x-label" style="left:${l.pct}%" data-year-label>${l.label}</p>`).join('')}
       </div>
 
-      <div class="growth-chart__legend">
-        ${legend.map((l) => `
-          <div class="growth-chart__legend-row">
-            <span class="growth-chart__swatch growth-chart__swatch--${l.shade}" aria-hidden="true"></span>
-            <p>${l.label}</p>
-          </div>
-        `).join('')}
-      </div>
+      <!-- THE LEGEND IS GONE (D130). It listed the two contributions with their
+           swatches beneath the plot; the in-plot readout carries the same two
+           labels, the same two swatches AND the figures, at rest and at every
+           point. Its only remaining justification was a scroll state in which
+           the readout had moved off screen and the legend had not - and that
+           state existed only because the block and the chart were not
+           co-visible. Closing that closed this. -->
     </div>
   `;
 }

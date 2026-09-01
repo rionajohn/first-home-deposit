@@ -1484,36 +1484,9 @@
 
 .growth-chart__x-label--now { transform: none; }
 
-.growth-chart__legend {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  padding-top: var(--space-xs);
-}
-
-.growth-chart__legend-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.growth-chart__legend-row p {
-  margin: 0;
-  font-size: var(--text-footnote-size);
-  line-height: var(--text-footnote-line);
-  color: var(--color-label-secondary);
-}
-
-/* MATCHING MODIFIERS, WHICH THIS DID NOT HAVE (GAPS.md G90). Each row now
-   takes the stroke of the series it names. */
-.growth-chart__swatch {
-  width: 12px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--color-label);
-}
-
-.growth-chart__swatch--high { background: var(--color-border-control); }
+/* `.growth-chart__legend`, `__legend-row` and `__swatch` are gone with the
+   legend itself (D130). The readout's own `__readout-swatch` carries the two
+   fills now, beside the labels AND the figures. */
 
 /* NOTHING IN THE INTERACTION DEPENDS ON MOTION. The snap is a state change
    rather than an animation, so this drops any transition and leaves the

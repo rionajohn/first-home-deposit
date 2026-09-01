@@ -249,11 +249,18 @@ export function render(container, ctx) {
       <p class="provenance-caption">${fill(c.depositBasisCaptionTemplate, { pct: formatPercent(depositPctValue, 0), property: formatCurrency(propertyValue) })}</p>
       ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions-deposit' })}
 
-      <!-- THE DEPOSIT FIGURE CARRIES A MARKER BOUND TO estimateDisclosure,
-           which is now this card's own footnote rather than a line floating
-           beneath the section (D124). It is a projected figure and the rule
-           that a caveat sits with the claim it qualifies is D103's, applied
-           here for the first time.
+      <!-- THE TOTAL CARRIES THE MARKER, NOT THE DEPOSIT (D124's amendment).
+           estimateDisclosure is this card's footnote, bound to the figure it
+           qualifies - D103's rule that a caveat sits with its claim.
+
+           IT MOVED OFF £45,000 FOR TWO REASONS. Marking only the deposit
+           implied the stamp duty was FIRM, when it is worked out on the same
+           estimated property value, at rates and thresholds that can change,
+           with first-time buyer relief the participant may not qualify for -
+           both components are estimates. And the total is the OPERATIVE figure:
+           it feeds the goal block, the axis top and both projections, so a
+           caveat on an input while the output stood unqualified was the wrong
+           way round.
 
            THE SAME MARKER APPEARS ON THE GOAL BLOCK'S YEARS and both notes open
            "This is an estimate". Accepted: the two cards are visually separate
@@ -262,13 +269,13 @@ export function render(container, ctx) {
            rather than shipping. -->
       <h3 class="section-heading">${c.goalHeading}</h3>
       <div class="assumptions-list" data-deposit-card>
+        ${figureRowHTML({ label: c.goalDepositLabel, trailing: formatCurrency(depositTargetValue) })}
+        ${figureRowHTML({ label: c.goalStampDutyLabel, trailing: formatCurrency(stampDutyValue), caption: c.goalStampDutyCaption })}
         ${figureRowHTML({
-          label: c.goalDepositLabel,
-          trailing: `${formatCurrency(depositTargetValue)}${c.depositFootnoteMarker}`,
+          label: c.goalTotalLabel,
+          trailing: `${formatCurrency(combinedGoalValue)}${c.depositFootnoteMarker}`,
           describedBy: 'deposit-estimate-note',
         })}
-        ${figureRowHTML({ label: c.goalStampDutyLabel, trailing: formatCurrency(stampDutyValue), caption: c.goalStampDutyCaption })}
-        ${figureRowHTML({ label: c.goalTotalLabel, trailing: formatCurrency(combinedGoalValue) })}
         <p class="legal-text assumptions-list__footnote" id="deposit-estimate-note">${c.depositFootnoteMarker} ${reg.estimateDisclosure}</p>
       </div>
 
@@ -343,7 +350,6 @@ export function render(container, ctx) {
           fractionLines: [25, 50, 75],
           yearLabels,
           nowLabel: c.xAxisNow,
-          legend: series.map((s) => ({ label: fill(c.legendTemplate, { amount: formatCurrency(s.rate) }), shade: s.shade })),
           activeIndex,
           plotLabel: c.chartPlotAriaLabel,
           // BOTH AMOUNTS in the accessible name, because there is no selected
