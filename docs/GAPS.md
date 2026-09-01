@@ -4812,3 +4812,46 @@ exactly what D2 asks of it; what changed is that a range built to express *uncer
 figure* is now being rendered as a *comparison between two options*. Whoever takes this should decide
 which of those the two columns are meant to be before changing either end.
 
+---
+
+## G122. At Large text the goal block and the chart do not fit one viewport. OPEN
+
+*Raised 1 September 2026 by the assertion D120 asked for and this pass added. **Found by asserting a
+figure that had only been reported.***
+
+### The measurement
+
+`chart-detail.test.mjs` test 9 now asserts that the goal block through the bottom of the chart fits
+the 732px scroll viewport at 390x844 - "answer and evidence co-visible", the property that makes this
+layout work: the block states WHEN and the chart shows HOW.
+
+| | Block through chart | Verdict |
+| --- | --- | --- |
+| Default text | **716.0px** | fits, by **16.0px** |
+| **Large text** | **798.4px** | **over by 66.4px** |
+
+D120 measured the same span at 622.0px / 670.6px and reported it without asserting. It has grown since
+- D124's card footnote, D126's mini cards and D122's extra plotted point all add height above or
+inside the chart - which is exactly why reporting a figure is weaker than asserting one.
+
+### It is a real condition, not a test artefact
+
+A participant at Large text scrolls the goal block off the top before the chart's baseline is on
+screen. They can read when they arrive, or watch it build, but not both at once - and the block was
+placed above the toggle (D117) precisely so the two would read as one thing.
+
+### The obvious candidate, measured but NOT taken
+
+**The chart's legend beneath the plot is now redundant.** The in-plot readout (D116) carries the same
+two swatches and the same two labels, plus the figures. The legend repeats the pair with no figures,
+about 48px plus a 16px gap - roughly **64px**, which is most of the 66.4px shortfall.
+
+**Not removed in this pass**, for two reasons. It is outside what was asked, and more importantly the
+legend is the only labelling of the two series that survives when the readout is scrolled past - so
+removing it is a judgement about which of the two is load-bearing, which is D111's question and
+deserves its own answer rather than being spent to buy 64px.
+
+**The test is left FAILING at Large rather than adjusted**, so this cannot be forgotten: the whole
+point of asserting the figure was to catch a change that breaks co-visibility, and the first thing it
+caught was that the layout already had.
+

@@ -10297,3 +10297,144 @@ conservative default and no conservative emphasis. **Anyone later wondering why 
 entry**, and should know that the alternative was examined rather than overlooked: what replaced the
 protection is that both figures are always visible, which is a different kind of answer to the same
 worry - the participant is not shown one number and left to discover the other.
+
+---
+
+## D122. The goal becomes the top of the y-axis, and D111's headroom is spent
+
+**Date.** 1 September 2026. **Changes what vertical position means.**
+
+**Decision.** The y-axis carries exactly two labels: **the goal at the top, and £0 at the bottom.**
+`axisScale`'s rounded maximum and its gridline are gone, and `maxScale` is `combined-goal` exactly.
+
+**Why this is better rather than merely tidier.** The old top was a rounded ceiling ABOVE the data -
+£63,000 against a £52,500 goal - and it is not a number the participant has any use for. Two things
+change:
+
+- **Vertical position now reads as proportion of the GOAL** rather than proportion of an arbitrary
+  maximum. Half way up the plot means half way to the deposit, which is a fact worth reading off a
+  chart; half way to £63,000 was not.
+- **Both series terminate exactly on the labelled line**, which makes D117's "each line ends where it
+  reaches the goal" **visible rather than inferred**. Before, both lines stopped in mid-air at
+  different heights below a ceiling and the reader had to be told what that meant.
+
+**D111'S HEADROOM IS SPENT, AND NOT RE-HOMED.** Tracking its justification through three owners,
+because this is the third time it has changed hands and the last:
+
+| | Held for | Ended by |
+| --- | --- | --- |
+| D100 | The in-plot year label, which sat above the active point | D111, which removed that label |
+| D111 | "A curve running into the top edge reads as clipped" | **This entry** |
+| - | **Nothing. `CHART_HEADROOM` is deleted.** | - |
+
+D111's reasoning does not survive because **the curve no longer runs into the edge - it stops at a
+labelled line, which is what that edge now means.** A line ending on "£52,500" reads as arriving, not
+as clipping. Recorded rather than quietly dropped because D111 exists precisely to stop a constant
+outliving its reason unnoticed, and it would be poor form for that entry's own constant to go without
+the same accounting.
+
+**One consequence that had to be fixed with it.** The higher series previously ended at the last whole
+year BEFORE its attainment, leaving its line stopping short. Invisible while the top was a ceiling;
+obvious once the goal is the top. Its exact crossing is now an extra plotted point, which costs one x
+position that is not a whole year - and therefore one year label shared with a neighbour, which
+D105's yearly grid exists to avoid. The trade is taken because the readout names the year AND both
+amounts, so two points in one year are told apart by their figures.
+
+**And that exposed a second defect.** Point x positions were computed from the point's INDEX, which is
+correct only while every point is a whole year apart. The mid-year crossing drew at an even position
+and tore the line in two. X now comes from the point's own month - the same mapping the x-axis labels
+already used, which is P10's lesson applied to the other axis.
+
+---
+
+## D123. The comparison card is removed
+
+**Date.** 1 September 2026. **Completes D113.**
+
+D113 reduced the card to one row, the participant's own deposit, kept because the YEAR was what they
+wanted. **D117's goal block now states that year above the chart**, more prominently, for both
+contributions, with the caveat attached by marker. The previous pass already recorded that the card's
+row and the block stated the same year at the same rate.
+
+**Retired with it:** `compareHeading` and `compareProvenanceCaption`, both of which had been left as
+`[AWAITING COPY]` describing a card that was already half gone, and `compareRowSublabelTemplate`.
+
+**D111's discipline, applied before removing anything.** Two things survive the card and would have
+broken with it:
+
+| Survives | Read by |
+| --- | --- |
+| **`compareAlreadyLabel`** | `/learn/ltv`'s own already-covered row (D98). The second time this string has been checked before a removal and the second time it has been the reason not to |
+| **`rateBandRowHTML`** | `/tracker` |
+
+---
+
+## D124. The deposit figure takes a footnote marker, and the same marker appears twice on one screen
+
+**Date.** 1 September 2026.
+
+**Decision.** `£45,000` in the "What you would save toward" card carries a marker, and
+`shared.regulatory.estimateDisclosure` becomes **that card's own footnote** rather than a line
+floating beneath the section. `aria-describedby` binds the figure to the note.
+
+**This is D103's rule applied where it had not been.** A caveat sits with the claim it qualifies; the
+deposit is a projected figure and its estimate note was a loose line in the flow.
+
+**THE SAME MARKER NOW APPEARS TWICE ON THIS SCREEN**, once here and once on the goal block's two
+years, and **both footnotes open "This is an estimate"**. Accepted rather than overlooked:
+
+- The two cards are **visually separate**, and each marker resolves inside its own card.
+- A reader following a marker looks to the nearest note, and in both cases the nearest note is the
+  right one.
+
+**THE CONDITION IT DEPENDS ON, AND IT IS ASSERTED.** If the two cards ever sit flush, or the
+separation narrows, the markers become ambiguous and need distinguishing (a dagger for the second, or
+numbered notes). `chart-detail.test.mjs` asserts the gap, so a spacing change **fails a test rather
+than silently creating the ambiguity**. That assertion is the whole reason this is a decision rather
+than a risk.
+
+---
+
+## D125. The table headings shorten to "/m"
+
+**Date.** 1 September 2026.
+
+`chartTableSeriesHeaderTemplate` becomes `{amount}/m`. Two columns of "£200 a month" beside a Year
+column crowd a 390px screen, and the table's own caption already says what the figures are. This is
+the second shortening of these headings - the first replaced "At £400 a month (your choice)" when it
+clipped the third column - and the abbreviation is the smallest form that keeps the unit.
+
+---
+
+## D126. The goal block's rows are mini cards
+
+**Date.** 1 September 2026.
+
+Each row is a small bordered card with the contribution left and the year right, matching the card
+treatment the rest of the screen uses. **The hyphen separator is gone**: a hyphen between an amount
+and a year reads as a range, and the two are now bound by POSITION - left and right of one row -
+which is the same structural answer D117 gave to the copy check's four-numbers flag. `{year}` leaves
+`goalBlockRowTemplate` with it; the year is its own cell.
+
+---
+
+## D127. One series order, ascending by contribution, read by every consumer
+
+**Date.** 1 September 2026.
+
+**Decision.** A single `series` array on the screen, **ascending by contribution**, from which the
+goal block's rows, the chart's legend, the in-plot readout and the table's columns are all derived.
+
+**The legend was the odd one out and flipping it would have been the wrong fix.** It listed the higher
+contribution first because D73's stacked bands were read top down - a reason **D100 spent** when it
+replaced the bands with two lines. Patching the display would have left **two orderings in the code**,
+and the next component added would have picked whichever it happened to reach.
+
+**Why order matters more here than it usually would.** The two series are told apart by **line style**
+(D116), so a participant checking which is which has no colour cue to fall back on. An order that
+changes between the block, the legend, the readout and the table makes them re-check at every point on
+the screen.
+
+**NOT A REVIVAL OF D72.** That intent is recorded as dropped (D121) and reading order does not carry
+it - a default is a state you must act to leave, a reading order is not. This is consistency, which is
+a different argument that happens to produce the same sequence.

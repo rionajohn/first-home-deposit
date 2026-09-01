@@ -59,14 +59,13 @@ import {
   chartTableHTML,
   bindGrowthChart,
   segmentedControlHTML,
-  rateBandRowHTML,
   figureRowHTML,
   infoLinkHTML,
   howThisWorksCardHTML,
   emptyStateCardHTML,
   rerenderInPlace,
 } from '../components/ui.js';
-import { formatCurrency, formatPercent, formatYear, axisScale } from '../format.js';
+import { formatCurrency, formatPercent, formatYear } from '../format.js';
 import { balanceAtMonth, monthsToReachAmount, checkpointAmount, goalMonths, goalAttained, stampDuty, combinedGoal } from '../model/model.js';
 import { RATES, CHART_DEPOSIT_PCTS, CHART_WINDOW_MONTHS, CHART_MIN_RANGE_MONTHS } from '../model/rates.js';
 
@@ -79,11 +78,12 @@ export const anchors = ['guidanceNotAdvice', 'estimateDisclosure'];
  *  on this screen is a year again and the exception is gone. */
 const MONTHS_PER_POINT = 12;
 
-/** D100's headroom, moved from D73's 1.05. The date label sits ABOVE the
- *  active point and the active point at rest is the highest one, so at 1.05 the
- *  screen's DEFAULT state was the colliding state — measured, by 17.3px at
- *  default text and 20px at Large. This is the space that label occupies. */
-const CHART_HEADROOM = 1.20;
+/* THE HEADROOM CONSTANT IS GONE (D122). D100 bought `maxScale x 1.20` to hold
+   the in-plot year label above the active point; D111 kept it when that label
+   went, on the reasoning that a curve running into the top edge reads as
+   clipped. Neither applies now: the axis top IS the goal, so the curve does not
+   run into the edge - it stops at a labelled line, which is what that edge
+   means. The justification is not re-homed anywhere; it is spent. */
 
 function fill(template, values) {
   return Object.entries(values).reduce((s, [k, v]) => s.replace(`{${k}}`, v), template);
@@ -163,8 +163,19 @@ export function render(container, ctx) {
   const monthsList = [];
   for (let m = rangeMonths; m >= MONTHS_PER_POINT; m -= MONTHS_PER_POINT) monthsList.push(m);
   if (monthsList.length === 0) monthsList.push(rangeMonths);
+  // THE HIGHER SERIES' OWN CROSSING, ADDED AS AN EXTRA POINT so its line ENDS
+  // ON the goal line rather than stopping in mid-air at the last whole year
+  // before it. That was invisible while the axis top was a rounded ceiling
+  // above the data; with the goal AT the top (D122) a line stopping short reads
+  // as the projection failing rather than as the grid being annual.
+  //
+  // It costs one x position that is not a whole year, and therefore one year
+  // label shared with its neighbour - which D105's yearly grid exists to avoid.
+  // The trade is worth taking here because the readout names the year AND both
+  // amounts, so two points in one year are told apart by their figures.
+  if (attainHigh !== null && !monthsList.includes(attainHigh)) monthsList.push(attainHigh);
   monthsList.push(0);
-  monthsList.reverse();
+  monthsList.sort((a, b) => a - b);
 
   const points = monthsList.map((months) => ({
     months,
@@ -179,42 +190,52 @@ export function render(container, ctx) {
   }));
   const pointCount = points.length;
 
-  const { top: maxScale, ticks } = axisScale(
-    Math.max(...points.map((p) => Math.max(p.low, p.high ?? 0))),
-    CHART_HEADROOM,
-  );
+  // THE GOAL IS THE TOP OF THE AXIS (D122). It was a rounded ceiling ABOVE the
+  // data - a number the participant has no use for - and vertical position
+  // therefore read as a proportion of an arbitrary maximum. With the goal at the
+  // top, height reads as PROPORTION OF THE GOAL, and both series terminate
+  // exactly on the labelled line, which makes "each line ends where it reaches
+  // the goal" visible rather than inferred.
+  //
+  // D111'S HEADROOM IS SPENT AND NOT RECLAIMED ELSEWHERE. It was bought for the
+  // in-plot year label (D100), kept when that went on the reasoning that a curve
+  // running into the top edge reads as clipped (D111), and is now unnecessary
+  // for that too: the curve does not run into the edge, it STOPS at a labelled
+  // line which is what the edge means. See D122.
+  const maxScale = combinedGoalValue;
+  const ticks = [{ value: 0, pct: 0 }, { value: maxScale, pct: 100 }];
   for (const p of points) {
+    // The point's position ALONG the axis, from its month rather than from its
+    // place in the array - see `xOf` in ui.js.
+    p.xPct = rangeMonths === 0 ? 0 : (p.months / rangeMonths) * 100;
     p.lowPct = (p.low / maxScale) * 100;
     p.highPct = p.high === null ? null : (p.high / maxScale) * 100;
   }
 
-  const activeIndex = Math.max(0, Math.min(pointCount - 1, state.chartActiveIndex ?? pointCount - 1));
-
-  // ONE ROW, THE PARTICIPANT'S OWN (D113). The card showed their deposit and
-  // the two either side of it; the pilot objected to both of the others - "I'm
-  // not sure why I'm comparing this to the other options that I didn't pick"
-  // (24:48) and "I didn't really ask for the other ones" (25:27). The YEAR is
-  // what they wanted and is why the row survives at all.
+  // ONE SERIES ORDER, ASCENDING BY CONTRIBUTION (D127), and every consumer on
+  // this screen reads it: the goal block's rows, the chart's legend, the
+  // in-plot readout and the table's columns.
   //
-  // STILL DERIVED ONCE, ABOVE THE TEMPLATE, and that is not left over from the
-  // three-row version. The reason for the hoist was that a consumer which
-  // recomputes its own inputs will eventually disagree with what it describes,
-  // and that holds with one row exactly as it did with three - the row's year
-  // and the caption beneath it read one derivation.
-  const ownGoal = depositTargetValue + stampDutyValue;
-  const ownAlreadySaved = savedTowardDeposit >= ownGoal;
-  const ownMonths = ownAlreadySaved
-    ? 0
-    // `monthly-low` with no selection left to read. It is the conservative end
-    // and it matches the goal block's FIRST row, so the card and the block
-    // cannot state different years for the same goal.
-    : monthsToReachAmount({ startingBalance: savedTowardDeposit, targetAmount: ownGoal, monthlyAmount: monthlyLow });
-  const ownRow = {
-    pctLabel: formatPercent(depositPctValue, 0),
-    amount: depositTargetValue,
-    alreadySaved: ownAlreadySaved,
-    year: ownAlreadySaved || !Number.isFinite(ownMonths) ? null : formatYear(Math.ceil(ownMonths), anchor),
-  };
+  // THE LEGEND WAS THE ODD ONE OUT and the fix is not to flip it. It listed the
+  // higher contribution first because D73's stacked bands were read top down -
+  // a reason D100 spent when it replaced the bands with two lines. Patching the
+  // display would have left two orderings in the code for the next component to
+  // pick between.
+  //
+  // WHY ORDER MATTERS HERE IN PARTICULAR: the two series are told apart by LINE
+  // STYLE, so a participant re-checking which is which has no colour cue to
+  // fall back on. An order that changes between the block, the legend and the
+  // table makes them do that at every point on the screen.
+  //
+  // NOT A REVIVAL OF D72. That intent is recorded as dropped (D121) and reading
+  // order does not carry it; this is consistency, which is a different
+  // argument for the same sequence.
+  const series = [
+    { shade: 'low', rate: monthlyLow, attain: attainLow, valueOf: (pt) => pt.low },
+    { shade: 'high', rate: monthlyHigh, attain: attainHigh, valueOf: (pt) => pt.high },
+  ];
+
+  const activeIndex = Math.max(0, Math.min(pointCount - 1, state.chartActiveIndex ?? pointCount - 1));
 
   const chartVisible = !unreachable && !attained;
   const showTable = state.chartView === 'table';
@@ -228,39 +249,30 @@ export function render(container, ctx) {
       <p class="provenance-caption">${fill(c.depositBasisCaptionTemplate, { pct: formatPercent(depositPctValue, 0), property: formatCurrency(propertyValue) })}</p>
       ${infoLinkHTML({ label: c.assumptionsLinkLabel, action: 'open-assumptions-deposit' })}
 
+      <!-- THE DEPOSIT FIGURE CARRIES A MARKER BOUND TO estimateDisclosure,
+           which is now this card's own footnote rather than a line floating
+           beneath the section (D124). It is a projected figure and the rule
+           that a caveat sits with the claim it qualifies is D103's, applied
+           here for the first time.
+
+           THE SAME MARKER APPEARS ON THE GOAL BLOCK'S YEARS and both notes open
+           "This is an estimate". Accepted: the two cards are visually separate
+           and each marker resolves inside its own card. The separation is
+           asserted, so a spacing change that makes them ambiguous fails a test
+           rather than shipping. -->
       <h3 class="section-heading">${c.goalHeading}</h3>
-      <div class="assumptions-list">
-        ${figureRowHTML({ label: c.goalDepositLabel, trailing: formatCurrency(depositTargetValue) })}
+      <div class="assumptions-list" data-deposit-card>
+        ${figureRowHTML({
+          label: c.goalDepositLabel,
+          trailing: `${formatCurrency(depositTargetValue)}${c.depositFootnoteMarker}`,
+          describedBy: 'deposit-estimate-note',
+        })}
         ${figureRowHTML({ label: c.goalStampDutyLabel, trailing: formatCurrency(stampDutyValue), caption: c.goalStampDutyCaption })}
         ${figureRowHTML({ label: c.goalTotalLabel, trailing: formatCurrency(combinedGoalValue) })}
+        <p class="legal-text" id="deposit-estimate-note">${c.depositFootnoteMarker} ${reg.estimateDisclosure}</p>
       </div>
-
-      <!-- ONE STANDALONE BOX, NO SELECTION HIGHLIGHT (D113). There is nothing
-           left to be selected AGAINST, so highlighted would mark a row as
-           chosen from a set of one. The card is drawn in every state including
-           the attained one, where the row reads compareAlreadyLabel instead
-           of a year.
-
-           aria-describedby KEEPS ITS BINDING even though the visible asterisk
-           is gone: with one row the caption sits directly beneath the figure it
-           describes and needs no marker to say which figure that is, but the
-           relationship still has to be programmatic for anyone not reading by
-           position. -->
-      <h3 class="section-heading">${c.compareHeading}</h3>
-      <div class="card comparison-card">
-        ${rateBandRowHTML({
-          label: ownRow.alreadySaved ? c.compareAlreadyLabel : ownRow.year === null ? '—' : ownRow.year,
-          sublabel: fill(c.compareRowSublabelTemplate, { pct: ownRow.pctLabel }),
-          value: formatCurrency(ownRow.amount),
-          highlighted: false,
-          describedBy: 'compare-provenance',
-        })}
-      </div>
-      <p class="provenance-caption" id="compare-provenance">${c.compareProvenanceCaption}</p>
 
       ${unreachable ? emptyStateCardHTML({ title: c.unreachableHeadline, body: c.unreachableBody, ctaLabel: c.unreachableCta, ctaAction: 'set-amount' }) : ''}
-
-      <p class="legal-text">${reg.estimateDisclosure}</p>
 
       ${attained ? `
         ${infoBannerHTML(`${c.goalAttainedHeadline} ${fill(c.goalAttainedBody, { saved: formatCurrency(savedTowardDeposit) })}`, { live: true })}
@@ -278,13 +290,11 @@ export function render(container, ctx) {
              26:20 and did not get: how long until I have that amount. -->
         <div class="goal-block">
           <h4 class="goal-block__heading">${fill(c.goalBlockHeadingTemplate, { amount: formatCurrency(combinedGoalValue) })}</h4>
-          ${[[monthlyLow, attainLow], [monthlyHigh, attainHigh]].map(([rate, months]) => `
-            <p class="goal-block__row">
-              <span class="goal-block__rate" aria-describedby="projection-assumptions">${fill(c.goalBlockRowTemplate, {
-                amount: formatCurrency(rate),
-                year: months === null ? '—' : `${formatYear(Math.ceil(months), anchor)}${c.goalBlockMarker}`,
-              })}</span>
-            </p>
+          ${series.map(({ rate, attain: months }) => `
+            <div class="card goal-block__row" aria-describedby="projection-assumptions">
+              <p class="goal-block__rate">${fill(c.goalBlockRowTemplate, { amount: formatCurrency(rate) })}</p>
+              <p class="goal-block__year">${months === null ? '—' : `${formatYear(Math.ceil(months), anchor)}${c.goalBlockMarker}`}</p>
+            </div>
           `).join('')}
         </div>
 
@@ -321,21 +331,17 @@ export function render(container, ctx) {
           points,
           headers: {
             month: c.chartTableYearHeader,
-            low: fill(c.chartTableSeriesHeaderTemplate, { amount: formatCurrency(monthlyLow) }),
-            high: fill(c.chartTableSeriesHeaderTemplate, { amount: formatCurrency(monthlyHigh) }),
+            low: fill(c.chartTableSeriesHeaderTemplate, { amount: formatCurrency(series[0].rate) }),
+            high: fill(c.chartTableSeriesHeaderTemplate, { amount: formatCurrency(series[1].rate) }),
           },
           caption: c.chartTableCaption,
           valueFormatter: formatCurrency,
         }) : growthChartHTML({
           points,
           yTicks: ticks,
-          goalPct: (combinedGoalValue / maxScale) * 100,
           yearLabels,
           nowLabel: c.xAxisNow,
-          legend: [
-            { label: fill(c.legendTemplate, { amount: formatCurrency(monthlyHigh) }), shade: 'high' },
-            { label: fill(c.legendTemplate, { amount: formatCurrency(monthlyLow) }), shade: 'low' },
-          ],
+          legend: series.map((s) => ({ label: fill(c.legendTemplate, { amount: formatCurrency(s.rate) }), shade: s.shade })),
           activeIndex,
           plotLabel: c.chartPlotAriaLabel,
           // BOTH AMOUNTS in the accessible name, because there is no selected
@@ -348,10 +354,11 @@ export function render(container, ctx) {
             high: formatCurrency(monthlyHigh),
             amountHigh: p.high === null ? '—' : formatCurrency(p.high),
           }),
-          readout: [
-            { shade: 'low', label: fill(c.legendTemplate, { amount: formatCurrency(monthlyLow) }), value: (pt) => formatCurrency(pt.low) },
-            { shade: 'high', label: fill(c.legendTemplate, { amount: formatCurrency(monthlyHigh) }), value: (pt) => (pt.high === null ? '—' : formatCurrency(pt.high)) },
-          ],
+          readout: series.map((s) => ({
+            shade: s.shade,
+            label: fill(c.legendTemplate, { amount: formatCurrency(s.rate) }),
+            value: (pt) => (s.valueOf(pt) === null ? '—' : formatCurrency(s.valueOf(pt))),
+          })),
           valueFormatter: formatCurrency,
         })}
 

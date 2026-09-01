@@ -390,7 +390,8 @@ test('9. the goal block and its caveat are co-visible', async () => {
         const assumptions = texts.find((p) => /It assumes nothing changes/.test(p.textContent));
         const plot = document.querySelector('.growth-chart');
         const goalBlock = document.querySelector('.goal-block');
-        const estimate = texts.find((p) => /^This is an estimate based on/.test(p.textContent.trim()));
+        // It carries a footnote marker now (D124), so the match cannot be anchored.
+        const estimate = texts.find((p) => /This is an estimate based on/.test(p.textContent));
         const box = (el) => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; };
 
         // THE BREAKDOWN, BY FLOW CHILD. 10.8 derived this block from a list of
@@ -458,7 +459,7 @@ test('9. the goal block and its caveat are co-visible', async () => {
       assert.ok(m.hasAssumptions, 'the assumptions line is rendered');
       assert.equal(m.insideDisclosure, false, 'the assumptions line is not behind a disclosure');
       assert.ok(m.assumptionsBottom > m.endpointTop, 'the assumptions line sits below the endpoint line');
-      measured.push({ large, block: m.relaxed, viewport: m.viewport, headroom, derived });
+      measured.push({ large, block: m.relaxed, viewport: m.viewport, headroom, derived, throughChart: m.blockThroughChart });
     } finally {
       await context.close();
     }
@@ -466,6 +467,14 @@ test('9. the goal block and its caveat are co-visible', async () => {
   // BOTH SIZES ARE MEASURED BEFORE EITHER IS ASSERTED, so a failure at default
   // text does not hide the figure at Large - which is the one 10.8 predicted
   // would fail first.
+  // ITEM 10: the goal block through the chart's bottom is ASSERTED now, not
+  // just reported. Answer and evidence being co-visible is what makes this
+  // layout work - the block states when, the chart shows how - and nothing
+  // else catches a change that separates them.
+  for (const r of measured) {
+    assert.ok(r.throughChart < r.viewport,
+      `${r.large ? 'large' : 'default'} text: goal block through the chart is ${r.throughChart.toFixed(1)}px against a ${r.viewport}px viewport`);
+  }
   for (const r of measured) {
     assert.ok(r.headroom > 0,
       `${r.large ? 'large' : 'default'} text: the relaxed block is ${r.block.toFixed(1)}px against a ${r.viewport}px viewport, headroom ${r.headroom.toFixed(1)}px`);
@@ -604,7 +613,39 @@ test('13. the readout block clears the y-axis labels and the lines', async () =>
       // MASKED there - measured, and accepted rather than avoided: a block that
       // moved to dodge the curve would move as the participant scrubs. Reported
       // rather than asserted at zero, so the figure stays visible in the log.
-      assert.ok(m.pointHits <= 6, `${label}: the readout masks ${m.pointHits} points, more than expected`);
+      // The bound rises with D122: the goal is the axis top now, so the curve
+      // fills the plot and more of it passes behind the block. Still a bound
+      // rather than zero - a change that doubles the occlusion fails.
+      assert.ok(m.pointHits <= 8, `${label}: the readout masks ${m.pointHits} points, more than expected`);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+// --- 14. The two footnote markers, and the separation they depend on ---------
+
+test('14. the two marker-bearing cards stay visually separate', async () => {
+  // D124 puts the SAME marker on two figures in two different cards, and both
+  // footnotes open "This is an estimate". That is accepted because each marker
+  // resolves inside its own card - which holds only while the two cards are
+  // visibly apart. Asserted so a spacing change fails here rather than silently
+  // making the markers ambiguous.
+  for (const large of [false, true]) {
+    const { context, page } = await openChart({ large });
+    try {
+      const m = await page.evaluate(() => {
+        const box = (el) => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; };
+        const deposit = document.querySelector('[data-deposit-card]');
+        const goal = document.querySelector('.goal-block');
+        const markers = [...document.querySelectorAll('body *')]
+          .filter((el) => el.children.length === 0 && /\*/.test(el.textContent)).length;
+        return { gap: box(goal).top - box(deposit).bottom, markers };
+      });
+      const label = large ? 'large ' : 'default';
+      console.log(`  marker cards ${label}: ${m.gap.toFixed(1)}px apart, ${m.markers} marked elements`);
+      assert.ok(m.gap >= 16, `${label}: the two marker-bearing cards are only ${m.gap.toFixed(1)}px apart`);
+      assert.ok(m.markers >= 3, 'both years and the deposit figure carry markers');
     } finally {
       await context.close();
     }

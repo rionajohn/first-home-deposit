@@ -1796,9 +1796,9 @@
    This card was written without one, so it inherited no padding and its rows
    ran flush into the card's own border on both sides. Same value as
    `.rates-card` below, because the two draw the same component. */
-.comparison-card {
-  padding: var(--space-lg);
-}
+/* `.comparison-card` is gone with the card itself (D123). `rateBandRowHTML`
+   survives - `/tracker` renders it - but nothing wraps it in this class any
+   more. */
 
 .rates-card {
   padding: var(--space-lg);
@@ -2301,9 +2301,25 @@
   color: var(--color-label);
 }
 
+/* MINI CARDS (D126), matching the card treatment the rest of the screen uses.
+   The contribution sits left, the year right at the end of the row - a labelled
+   pair rather than a sentence, which is what removed the hyphen: a hyphen
+   between an amount and a year reads as a range. */
 .goal-block__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin: 0;
+  padding: var(--space-md) var(--space-lg);
+}
+
+.goal-block__rate,
+.goal-block__year {
   margin: 0;
   font-size: var(--text-body-size);
   line-height: var(--text-body-line);
   color: var(--color-label);
 }
+
+.goal-block__year { font-weight: 600; }

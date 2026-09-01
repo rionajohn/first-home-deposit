@@ -874,22 +874,14 @@ const content = {
     // --- The comparison that replaced the range (D72) -----------------------
     // Every chip frame 09 offers gets a row, so a participant who chose 20% or
     // 25% sees their own choice rather than a band that stops at 15%.
-    // [AWAITING COPY] (D113). It read "Deposits either side of yours", which
-    // describes a card that no longer exists - there is one row now, the
-    // participant's own. A visible placeholder rather than a guess, which is
-    // D93's rule: copy is supplied and approved, not written in a build
-    // session.
-    compareHeading: '[AWAITING COPY]',
-    compareRowSublabelTemplate: '{pct} deposit',
-    // `compareRowSelectedSublabelTemplate` IS RETIRED (D113). It read
-    // "{pct} deposit - your choice", which was the row's non-colour carrier
-    // (WCAG 1.4.1) while three rows had to be told apart. With one row there is
-    // nothing to distinguish it FROM, and "your choice" on a card offering no
-    // choice reads as a leftover.
-    // `compareWithinTemplate` ("within {months}") IS RETIRED (DECISIONS.md
-    // D101). The value slot it filled is now the attainment YEAR in the row's
-    // leading position - the row leads with the date reached rather than with
-    // the deposit amount, which is the 24:48 reframing.
+    // THE COMPARISON CARD IS GONE (D123), and `compareHeading`,
+    // `compareProvenanceCaption` and `compareRowSublabelTemplate` with it. Its
+    // last remaining job was stating the year the goal is reached, and D117's
+    // goal block states that year above the chart, more prominently and with
+    // the caveat attached. Both stated the same year at the same rate.
+    //
+    // `compareAlreadyLabel` BELOW SURVIVES, and it is not an oversight:
+    // `/learn/ltv` reads it for its own already-covered row (D98).
     compareAlreadyLabel: 'already saved',
     // `compareFootnoteMarker` IS RETIRED (D113). The asterisk existed to bind a
     // caption to three rows of dates it could not otherwise be tied to - the
@@ -901,14 +893,6 @@ const content = {
     // are putting away now" and silently meant `monthly-low`; the card now
     // follows the series selection, so the caption has to say that the figures
     // move with the control above them.
-    // [AWAITING COPY] (D113). It read "* Time to save each one, at the amount
-    // you've picked." - "each one" described a set of three. The asterisk goes
-    // with the marker above.
-    compareProvenanceCaption: '[AWAITING COPY]',
-    // `compareSameYearNoteTemplate` IS RETIRED WITH ITS {a} AND {b} SLOTS
-    // (D113). ONE ROW CANNOT COLLIDE. The collision predicate that fed it is
-    // gone from the screen, and GAPS.md G114 - the three-way collision the two
-    // slots could not have named - closes as moot rather than as fixed.
     chartHeading: 'How your savings would build up',
     // THE RANGE CHIPS ARE RETIRED (D115), and this is the SECOND reversal of
     // that set - D100 replaced "3 yr" with "2 yr" and made it the default, D106
@@ -962,7 +946,11 @@ const content = {
     // instead of by rewording, which is why it is a layout change carrying a
     // copy decision rather than the other way round.
     goalBlockHeadingTemplate: "When you'd reach your {amount} goal",
-    goalBlockRowTemplate: '{amount} a month - {year}',
+    // NO SEPARATOR AND NO YEAR SLOT (D126). The row is a mini card now: the
+    // contribution sits left and the year right, bound by POSITION rather than
+    // by punctuation. The hyphen went with the change - a hyphen between an
+    // amount and a year reads as a range.
+    goalBlockRowTemplate: '{amount} a month',
     // Binds both year figures to `projectionAssumptions` beneath them.
     // A MARKER RETURNS HERE HAVING BEEN RETIRED FROM THE COMPARISON CARD, and
     // the two cases are different: that card has ONE row sitting directly
@@ -970,6 +958,13 @@ const content = {
     // share ONE caveat, which is what a marker is for - and what the pilot
     // participant asked for at 24:27.
     goalBlockMarker: '*',
+    // THE SAME MARKER APPEARS TWICE ON THIS SCREEN (D124), once here and once
+    // on the deposit figure in the goal breakdown, and both footnotes open
+    // "This is an estimate". Accepted rather than overlooked: the two cards are
+    // visually separate and each marker resolves inside its own card. The
+    // condition is asserted in `chart-detail.test.mjs` - if the two cards ever
+    // sit flush the markers become ambiguous and need distinguishing.
+    depositFootnoteMarker: '*',
     // ALWAYS VISIBLE, DIRECTLY BENEATH THE ENDPOINT LINE, NOT BEHIND A
     // DISCLOSURE (DECISIONS.md D103). A participant who does not open a
     // disclosure gets nothing from it, and the endpoint is the strongest claim
@@ -1017,7 +1012,10 @@ const content = {
     chartTableSelectedSuffix: 'yours',
     // The column headers name the amount alone rather than repeating "At {x} a
     // month" from the control above them - three columns of that do not fit.
-    chartTableSeriesHeaderTemplate: '{amount} a month',
+    // "/m", NOT "a month" (D125). Two columns of "£200 a month" plus a Year
+    // column crowd a 390px screen; the caption above the table already says
+    // what the figures are.
+    chartTableSeriesHeaderTemplate: '{amount}/m',
 
     // --- THE ATTAINED STATE (D99) -------------------------------------------
     // The goal is already covered by what the participant holds. NOT an error

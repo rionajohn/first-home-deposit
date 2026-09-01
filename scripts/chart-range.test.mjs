@@ -248,12 +248,10 @@ test('the attained state draws no chart, no chips and no negative figure', async
   assert.equal(c.chips.length, 0, 'no range chips are drawn');
   assert.equal(c.seriesControl, 0, 'no series control is drawn');
   assert.equal(c.hasReadout, false, 'no readout is drawn');
-  // THE CARD STAYS, AND IT IS ONE ROW (D113). The three-row version was
-  // reframed around D46, which on inspection never applied - the neighbours
-  // were system-generated alternatives, not values the participant entered and
-  // discarded. What survives is the participant's own deposit and its year.
-  assert.equal(c.compareRows.length, 1, 'exactly one comparison row');
-  assert.ok(c.compareRows.some((r) => /already saved/i.test(r)), 'a covered row says so');
+  // THE CARD IS GONE (D123). Its last job was stating the year the goal is
+  // reached, which D117's block states above the chart with the caveat
+  // attached. Asserted at zero so it cannot come back unnoticed.
+  assert.equal(c.compareRows.length, 0, 'the comparison card is gone');
   const currentYear = new Date().getFullYear();
   for (const row of c.compareRows) {
     const year = Number((row.match(/\b(20\d\d)\b/) ?? [])[1]);

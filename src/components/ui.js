@@ -514,7 +514,11 @@ export function proportionRowsHTML(parts) {
  * shape instead ("Held in" / "Emergency fund pot") when a value sits beside
  * the label rather than stacked under it.
  */
-export function figureRowHTML({ label, value, caption, trailing }) {
+export function figureRowHTML({ label, value, caption, trailing, describedBy = null }) {
+  // `describedBy` BINDS A FIGURE TO ITS FOOTNOTE (D124). The visible marker is a
+  // literal character in `content.js`; this is the same binding for a reader who
+  // has no glyph to follow.
+  const desc = describedBy ? ` aria-describedby="${describedBy}"` : '';
   if (trailing !== undefined) {
     // The caption is optional here on purpose: a row whose trailing side is
     // not a figure (frame 19's "Credit check / A soft search only") has no
@@ -524,7 +528,7 @@ export function figureRowHTML({ label, value, caption, trailing }) {
     // markup, and its appearance, exactly as it was.
     if (!caption) {
       return `
-        <div class="figure-row figure-row--inline">
+        <div class="figure-row figure-row--inline"${desc}>
           <p class="figure-row__label">${label}</p>
           <p class="figure-row__trailing">${trailing}</p>
         </div>
@@ -1313,7 +1317,14 @@ export function growthChartHTML({
   readout,
   valueFormatter,
 }) {
-  const xOf = (i) => (points.length <= 1 ? 0 : (i / (points.length - 1)) * 100);
+  // X COMES FROM THE POINT'S OWN MONTH, NOT FROM ITS INDEX. Index spacing was
+  // correct only while every point was a whole year apart; D122 added the
+  // higher series' exact crossing, which is not, and an index-based x drew that
+  // point at an even position and tore the line in two. The x-axis labels were
+  // already positioned by month ratio, so this is the same mapping for both -
+  // which is what stops the marks and the labels disagreeing (P10's lesson,
+  // applied to the other axis).
+  const xOf = (i) => points[i]?.xPct ?? 0;
 
   // NULLS ARE GAPS, NOT ZEROES. Past its own attainment a series has no value -
   // it stopped - and a polyline segment drawn to 0 would say it fell to nothing.
