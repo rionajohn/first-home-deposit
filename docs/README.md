@@ -37,14 +37,15 @@ asks rather than inventing a description. Merges touching only documentation or 
 take no version number, because a version denotes a state of the prototype a participant could
 have seen.
 
-| Version | Date | Commit | Deployment reason |
+| Version | Date | Commit | Deployment reason | Vercel Link |
 |---|---|---|---|
 | v1 | 2026-08-21 | `7f0f4cc` | Based on what was in the Figma screens (linked to a specific stated flow) |
 | v2 | 2026-08-28 | `ce2b482` | Adding insight pages to add Mortgage in Principle flow |
-| [UNKNOWN] | 2026-08-28 | `394565a` | [UNKNOWN] |
-| v3 | 2026-08-30 | `4a627bc` | Going through usability testing protocol to see what fixes were needed |
-| v4 | 2026-08-31 | `3b11d8f` | Allowing the deposit goal to take in extra costs such as stamp duty, and allowing the deposit result page to be clearer rather than showing a range based on the deposit percentage saved towards |
-| v5 | 2026-09-01 | `2fb6667` | Pilot feedback changes: Scaling in different screens when on desktop, copy on the screen where a participant will decide how to save for their deposit, and the results for the deposit page - improving the chart to show a better comparison over the years |
+| v3 | 2026-08-28 | `394565a` | Seed the opening session at £650,000 so it meets the Lifetime ISA cap |
+| v4 | 2026-08-30 | `4a627bc` | Going through usability testing protocol to see what fixes were needed |
+| v5 | 2026-08-31 | `3b11d8f` | Allowing the deposit goal to take in extra costs such as stamp duty, and allowing the deposit result page to be clearer rather than showing a range based on the deposit percentage saved towards | first-home-deposit-ux-prototype-di1meg30f-riona-john.vercel.app |
+| v6 | 2026-09-01 | `2fb6667` | Pilot feedback changes: Scaling in different screens when on desktop, copy on the screen where a participant will decide how to save for their deposit, and the results for the deposit page - improving the chart to show a better comparison over the years |
+| v7 | 2026-09-01 | `2fb6667` | To check and make it as easy as possible to use on the phone for the usability testing. |
 
 **Commit** is the commit `main` points at after the merge. A commit cannot contain its own SHA, so
 from v5 on the cell names the last content commit of the version and the log row sits one commit
