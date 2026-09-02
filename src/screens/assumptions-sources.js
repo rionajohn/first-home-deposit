@@ -29,7 +29,7 @@
 import { sheetHeaderHTML, figureRowHTML, actionBarDockHTML } from '../components/ui.js';
 import { formatCurrency, formatPercent } from '../format.js';
 import { RATES } from '../model/rates.js';
-import { effectiveAccounts } from '../model/accounts.js';
+import { effectiveAccounts, countedTowardDeposit } from '../model/accounts.js';
 import { arrowRight } from '../icons.js';
 import { goBack } from '../router.js';
 
@@ -79,8 +79,16 @@ export function render(container, ctx) {
   const leftOverValue = state['left-over'].value;
   const savedTowardDepositValue = state['saved-toward-deposit'].value;
 
-  const depositAccounts = effectiveAccounts(state.accountAssignments, state.accountIncluded)
-    .filter((a) => a.group === 'deposit' && a.included);
+  // A DIFFERENT MISS FROM FRAME 06'S, NOT A SECOND COPY OF IT.
+  // This caption already honoured the checkbox; what it never tested was
+  // `countsTowardDeposit`, the flag that says an account is the KIND that can
+  // count at all. So a holiday pot filed under "Toward my deposit" on 03b was
+  // named in the breakdown of a total that had never included it - the figure
+  // directly above the caption disagreeing with the caption's own list.
+  // `countedTowardDeposit` applies all three terms the total applies.
+  const depositAccounts = countedTowardDeposit(
+    effectiveAccounts(state.accountAssignments, state.accountIncluded),
+  );
   const savedTowardDepositCaption = depositAccounts.length > 0
     ? fill(c.accountBreakdownTemplate, { breakdown: depositAccounts.map((a) => `${a.name} ${formatCurrency(a.balance)}`).join(', ') })
     : c.noAccountsAssignedCaption;

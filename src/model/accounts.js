@@ -298,6 +298,49 @@ export function isSelectedForDeposit(account) {
 }
 
 /**
+ * The accounts that make up `saved-toward-deposit`, in MOCK_ACCOUNTS order.
+ *
+ * THE LIST FORM OF THE SUM ABOVE, so any screen that shows a breakdown of the
+ * deposit total shows exactly the set `groupTotals` added up. Both terms are
+ * `groupTotals`' own: it skips `excludeFromTotal` for every group before it
+ * reaches the deposit branch, then applies `isSelectedForDeposit` there. A
+ * breakdown that re-writes either term by hand is a second copy of the rule,
+ * and the two drift the moment one of them is edited - which is how frame 06
+ * came to list every account filed under "Toward your deposit" whether it was
+ * counted or not, and frame 32 to list a holiday pot the total ignored.
+ *
+ * Callers pass the `effectiveAccounts()` list, so a 03b move and a checkbox
+ * are both already resolved by the time this filter runs.
+ */
+export function countedTowardDeposit(accounts) {
+  return accounts.filter((account) => !account.excludeFromTotal && isSelectedForDeposit(account));
+}
+
+/**
+ * Does a rendered account list contain any of the accounts a caption is about?
+ *
+ * THE GENERAL RULE A CAPTION UNDER A BREAKDOWN OBEYS (DECISIONS.md D141): a
+ * caption, note or footnote that describes specific accounts renders only
+ * while at least one of them is in the list it sits under. One id in `ids` is
+ * the single-account case; several is a caption about a set, which survives
+ * while any one of the set is listed.
+ *
+ * WHY A HELPER AND NOT AN INLINE `.some()` AT EACH SITE. The rule is the same
+ * rule in every case, and the sites are far apart. Written out by hand it
+ * reads as a special case about one account, which is what the Lifetime ISA
+ * caption on frame 06 had been for as long as the caption existed - it
+ * explained an account that unticking a box had just removed from the list
+ * above it. Named here, the next caption of this kind is one call rather than
+ * a decision.
+ *
+ * Pass the SAME list the screen rendered, not `effectiveAccounts()`: the
+ * question is what the participant can see, not what exists.
+ */
+export function listContainsAny(accounts, ids) {
+  return accounts.some((account) => ids.includes(account.id));
+}
+
+/**
  * Frame 03's "N of M selected" and the state of its three-state checkbox.
  *
  * M (`total`) is every account the flag says can count — it does not shrink

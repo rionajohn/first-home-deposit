@@ -5536,3 +5536,46 @@ together and neither can be credited. If the mixed-file state was real it is sti
 
 `CACHE_VERSION` and `BUILD_VERSION` v118 to **v120**. Not back to v119: that number means "greeting
 present" in any shell already cached from it, and reusing it would collide with one.
+
+---
+
+## G133. At "Further along", frame 06's deposit headline and its breakdown disagree. OPEN - PRE-EXISTING, OUT OF SCOPE
+
+*Raised 2 September 2026, while fixing the breakdown's selection filter (`DECISIONS.md` D141).
+Not caused by that change and not fixed by it. Reported so the one state where the invariant D141
+establishes does not hold is written down rather than found later.*
+
+### The disagreement
+
+D141's invariant is that the accounts listed under frame 06's deposit headline sum to that
+headline. It holds at the "Now" skip-ahead position. It does not hold at "Further along".
+
+At "Further along", `saved-toward-deposit` deliberately holds a checkpoint position rather than a
+sum of account balances. `accountFiguresPatch()` (`src/skip-ahead.js`) re-points the recomputed
+account total into `skipAheadStash` and leaves the checkpoint figure in the live key, so the screen
+reads the checkpoint. The breakdown beneath it is built from the accounts, which still hold their
+seeded balances. Headline and rows therefore describe two different positions, and every row still
+carries "Read from this account".
+
+### Why it is deliberate as far as it goes
+
+The re-point is load-bearing and correct. Without it, frame 06's own recompute would overwrite the
+skipped position with the account total on every render, silently returning the session to "Now"
+while the control still read "Further along" and discarding the participant's account edit on the
+way back. That is documented at `skip-ahead.js` and was not disturbed.
+
+What was never decided is what a breakdown of a checkpoint figure should show. The control predates
+the breakdown being selection-aware, and the question did not arise while the list was wrong in
+both positions.
+
+### Scope
+
+Reaching it needs the moderator's own skip-ahead control on `/goals`, which is a session-setup
+affordance rather than anything on a participant's path, and the two figures are only comparable if
+a participant adds the rows up. Left open rather than fixed because the fix is a decision about what
+the rows should say, not a filter - and inventing one inside a change briefed as "make the list
+match the total" would have put copy or a suppression rule on screen that nobody asked for.
+
+**Options when it is taken up.** Suppress the breakdown at "Further along"; or stash and restore the
+account list alongside the figure so the rows describe the checkpoint too. The first is smaller. The
+second is the only one that keeps a breakdown on screen at all. Both need copy decisions.

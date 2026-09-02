@@ -11786,3 +11786,110 @@ vacuously; it was run green against a temporarily-stamped v121 before this was r
 **To reverse.** Delete `pillChipsHTML`, the card in `settings.js`, the `.pill-chips` and
 `.version-detail` blocks, the five content keys, the test and the `--build` option. `src/deployments.js`
 is untouched by this decision and is D139's.
+
+---
+
+## D141. A deposit breakdown is the sum's own set, not the group it sits in
+
+**Date.** 2 September 2026. `src/model/accounts.js` (`countedTowardDeposit` and
+`listContainsAny`, both new), `src/screens/position-summary.js`,
+`src/screens/assumptions-sources.js`. No copy changed, no figure changed, no state key added.
+
+**Decision, in two parts.**
+
+1. Any screen listing the accounts behind `saved-toward-deposit` filters that list through
+   `countedTowardDeposit()`, which is the list form of exactly what `groupTotals()` adds up. No
+   screen re-writes the predicate itself.
+2. **A caption, note or footnote that describes specific accounts renders only while at least one
+   of them is present in the list it sits under.** One account is the single case; a caption about
+   a set survives while any one of the set is listed. `listContainsAny()` is that rule, and a
+   caption of this kind is a call to it rather than a hand-written condition.
+
+### The defect, on frame 06
+
+Frame 06's results card summed only the selected accounts and then listed every account filed
+under "Toward your deposit", selected or not, each captioned "Read from this account". Unticking
+the Lifetime ISA dropped £2,750 from the headline and left the Lifetime ISA in the list beneath
+it. The participant was shown an account inside a breakdown of a total it was not part of, with a
+caption asserting the figure had been read.
+
+`groupTotals()` applies three terms to the deposit branch: not `excludeFromTotal`, and
+`isSelectedForDeposit`, which is itself `countsTowardDeposit && group === 'deposit' && included`.
+The breakdown applied one of them - the group. It was not a wrong sum, it was a second, shorter
+copy of the rule the sum uses, and the two disagreed the moment a checkbox moved.
+
+### Frame 32 failed the same invariant for a different reason, and this matters
+
+`/assumptions/sources` builds the `saved-toward-deposit` provenance caption from its own account
+list. That one DID test `included`. What it never tested was `countsTowardDeposit` - the flag that
+says an account is the kind that can count at all.
+
+So the two are not one defect in two places. Frame 06 ignored the participant's selection; frame
+32 honoured the selection and ignored the account's own eligibility. Frame 32's case needs a 03b
+move to surface: file the holiday pot under "Toward my deposit" and it is named in the caption
+under a total that has never included it, because `countsTowardDeposit` is false for a short-term
+goal pot. Nobody unticking a box would ever have found it.
+
+They are recorded together because they share a fix, not because they share a cause. Writing the
+predicate once is what makes a partial copy impossible to introduce a third time.
+
+### Why the helper carries `excludeFromTotal` too
+
+With the current mock data that term is inert: the only account carrying `excludeFromTotal` is the
+current account, which is `countsTowardDeposit: false` and unmovable, so `isSelectedForDeposit`
+already rejects it. It is in the helper anyway because the invariant being asserted is "this list
+sums to that headline", and that must hold from the predicate's shape rather than from a
+coincidence in one seeded fixture. Flip the current account's flag, or add an account with both,
+and the helper still holds.
+
+### The caption rule, and the audit behind it
+
+`lisaCaption` ("Usable for a home costing £450,000 or less, once the account has been open 12
+months") sits directly under frame 06's breakdown. Unticking the Lifetime ISA removed its row and
+left the caption explaining an account no longer on screen. That is the same defect as the list
+itself, one step out, and gating it as a one-off would have left the next one to be found the same
+way - so the rule above was written instead, and every caption of its kind was audited against it.
+
+**No wording changed anywhere.** These are regulatory and provenance strings and must read
+identically wherever they appear; the rule governs only whether a caption renders.
+
+Every screen that renders a list of account rows, and what was found:
+
+| Screen | Caption | Verdict |
+|---|---|---|
+| 06 `/position/summary` | `lisaCaption` - names the Lifetime ISA | **the one violation.** Now `listContainsAny(depositAccounts, LISA_CAPTION_ACCOUNTS)` |
+| 06 | `heldInLabel` / `heldInCaption` - the emergency accounts, a set | already gated on `emergencyAccounts.length`. This was the rule's only existing instance, and is what it was generalised from |
+| 06 | `accountBalanceCaption`, `onlyYouKnowCaption` | one per row, emitted inside the row. Cannot render without their account |
+| 06 | `savedTowardDepositCaption` - the assigned accounts, a set | inside the `saved-toward-deposit > 0` branch, which cannot be true with the set empty. Satisfied by construction |
+| 03 `/consent` | `stocksIsaCaption`, `lifetimeIsaCaption`, `emergencyFundCaption`, `currentAccountCaption` | emitted inside `accountRow()` for the account they describe. Structurally tied already. `stocksIsaCaption` carries a second, narrower gate of its own (`captionWhileUnsorted`) |
+| 03 | `fscsNote`, `accountsCardIntro` | describe the card and the bank, not an account |
+| 32 `/assumptions/sources` | `accountBreakdownTemplate` - names the accounts, and IS the list | gated on the list being non-empty, with `noAccountsAssignedCaption` as the alternative |
+| `/goals` | `shortTermCaption`, `longTermCaption` | describe the section's horizon, not any account. Their sections render an empty body rather than disappearing, by D22 |
+
+**Three captions deliberately NOT gated, and this is a judgement worth stating.**
+`lisaCapBannerText` (09b) and `lisaCapNoteTemplate` (20 and 21) name the Lifetime ISA and could be
+read as in scope. They are not, for two reasons. They sit on screens that render no account
+breakdown at all, so there is no list for the account to be present in - the rule has nothing to
+test. And they are triggered by `property-value` crossing `LISA_CAP_PROPERTY_VALUE`: they warn
+what a Lifetime ISA can be used for, which is a fact about the product a participant may be about
+to rely on, not a description of a balance being added up. Gating them on account selection would
+suppress a cap warning for a participant who unticked an account, which is the opposite of the
+defect being fixed here. Left as they are, and recorded so the next audit does not have to
+re-reason it.
+
+**Not changed.** The totals. `groupTotals()` was already correct and is the reference this change
+conforms the lists to, not the other way round. `/goals` lists pots by `goalHorizon` and shows each
+pot's own balance rather than any deposit total; its docblock says selection is deliberately not
+consulted there, and that remains true.
+
+**Empty state.** Unticking every account was already handled and nothing was invented for it:
+`saved-toward-deposit <= 0` replaces the whole card with the shared empty state - "Nothing set
+aside yet" and a "Choose accounts" action back to `/consent`. Frame 32 has its own,
+`noAccountsAssignedCaption`. Both verified rather than assumed.
+
+**Known disagreement, out of scope.** At the "Further along" skip-ahead position the headline holds
+a checkpoint value rather than a sum of the assigned accounts, so headline and breakdown do not
+agree there. Pre-existing and deliberate - see `GAPS.md` G133.
+
+**To reverse.** Delete `countedTowardDeposit` and `listContainsAny`, restore the two filters, and
+render the caption unconditionally.

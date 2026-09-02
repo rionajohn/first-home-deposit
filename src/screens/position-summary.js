@@ -30,12 +30,19 @@ import {
   rerenderInPlace,
 } from '../components/ui.js';
 import { formatCurrency } from '../format.js';
-import { effectiveAccounts, groupTotals } from '../model/accounts.js';
+import { effectiveAccounts, groupTotals, countedTowardDeposit, listContainsAny } from '../model/accounts.js';
 import { LISA_CAP_PROPERTY_VALUE } from '../model/rates.js';
 import { arrowUpRight, checkmarkCircle, chevronRight, infoCircle } from '../icons.js';
 import { accountFiguresPatch, startingSavedTowardDeposit } from '../skip-ahead.js';
 
 export const anchors = ['guidanceNotAdvice'];
+
+// THE ACCOUNTS `lisaCaption` IS ABOUT, so the general rule can be applied to
+// it rather than the account being named inside the template string. It reads
+// as a list because the rule takes a set: if a second Lifetime ISA is ever
+// added to the mock data, the caption should survive while either is listed,
+// and that is an edit here rather than a rewrite of the condition below.
+const LISA_CAPTION_ACCOUNTS = ['lifetime-isa'];
 
 function fill(template, values) {
   return Object.entries(values).reduce((s, [k, v]) => s.replace(`{${k}}`, v), template);
@@ -95,7 +102,14 @@ export function render(container, ctx) {
 
   const emergencyCovered = emergencyFund >= 3 * essentialSpending;
   const emergencyAccounts = accounts.filter((a) => a.group === 'emergency');
-  const depositAccounts = accounts.filter((a) => a.group === 'deposit');
+  // THE BREAKDOWN IS THE SUM'S OWN SET, NOT THE GROUP.
+  // This read `a.group === 'deposit'`, which is one of the three terms the
+  // deposit total applies - so an account the participant had unticked was
+  // dropped from the headline and still listed beneath it under "Read from
+  // this account", inside a list of accounts feeding a total it was not part
+  // of. `countedTowardDeposit` is the list form of what `groupTotals` adds up,
+  // so the rows cannot sum to anything but the figure above them.
+  const depositAccounts = countedTowardDeposit(accounts);
   const unassignedAccounts = accounts.filter((a) => a.group === 'unassigned');
 
   const essentialsPct = moneyIn ? Math.round((essentialSpending / moneyIn) * 100) : 0;
@@ -135,7 +149,9 @@ export function render(container, ctx) {
         <div class="status-card__account-list">
           ${depositAccounts.map((a) => figureRowHTML({ label: a.name, trailing: formatCurrency(a.balance), caption: c.accountBalanceCaption })).join('')}
         </div>
-        <p class="account-row__caption">${fill(c.lisaCaption, { cap: formatCurrency(LISA_CAP_PROPERTY_VALUE) })}</p>
+        ${listContainsAny(depositAccounts, LISA_CAPTION_ACCOUNTS)
+          ? `<p class="account-row__caption">${fill(c.lisaCaption, { cap: formatCurrency(LISA_CAP_PROPERTY_VALUE) })}</p>`
+          : ''}
         ${sortCount > 0 ? `
           <div class="status-card__still-to-sort">
             <h3 class="section-heading">${sortHeading}</h3>
