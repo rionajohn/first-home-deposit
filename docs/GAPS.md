@@ -3914,7 +3914,7 @@ both text sizes and palettes.*
 
 ---
 
-## G104. Five production deployments, four supplied reasons: `394565a` is unassigned
+## G104. Five production deployments, four supplied reasons: `394565a` is unassigned. CLOSED 2 September 2026 - DECISIONS.md D138
 
 *Raised 31 August 2026 while building `DECISIONS.md` D91's backfill. Needs Riona to close it; it
 cannot be closed from the history.*
@@ -3946,11 +3946,21 @@ The history cannot distinguish these, and D91's own rule is that a deployment re
 is never inferred from the diff. So the row sits in the log with `[UNKNOWN]` in the Version and
 Deployment reason cells rather than being guessed into either shape.
 
-### To close
+### How it closed
 
-Confirm which reading is right. If any participant session was run on the evening of 28 August
-2026, check its start time against 20:41 first, because that is the only case where the answer
-changes what a session should be reported against.
+Riona confirmed the second reading on 2 September 2026: `394565a` is a deployment in its own right.
+It takes **v3**, and every row below it moves up by one, so `4a627bc` is v4, `3b11d8f` is v5,
+`2fb6667` is v6 and `c92e064` is v7. The reason recorded against it is Riona's own: "Seed the
+opening session at £650,000 so it meets the Lifetime ISA cap".
+
+The count in this entry's title is what was true when it was raised and is left as written. Six
+code-bearing deployments now carry six supplied reasons.
+
+*Status: **closed** (D138) - the row is filled, the renumbering is applied in `docs/README.md`, and
+the three passages of D91 this supersedes are corrected in D138 rather than rewritten in place. If a
+participant session was run on the evening of 28 August 2026, its start time still needs checking
+against 20:41 to decide whether it is reported against v2 or v3; that is a reporting step against
+the session records, not an open question about this log.*
 
 ---
 

@@ -38,35 +38,29 @@ take no version number, because a version denotes a state of the prototype a par
 have seen.
 
 | Version | Date | Commit | Deployment reason | Vercel Link |
-|---|---|---|---|
-| v1 | 2026-08-21 | `7f0f4cc` | Based on what was in the Figma screens (linked to a specific stated flow) |
-| v2 | 2026-08-28 | `ce2b482` | Adding insight pages to add Mortgage in Principle flow |
-| v3 | 2026-08-28 | `394565a` | Seed the opening session at £650,000 so it meets the Lifetime ISA cap |
-| v4 | 2026-08-30 | `4a627bc` | Going through usability testing protocol to see what fixes were needed |
+|---|---|---|---|---|
+| v1 | 2026-08-21 | `7f0f4cc` | Based on what was in the Figma screens (linked to a specific stated flow) |  |
+| v2 | 2026-08-28 | `ce2b482` | Adding insight pages to add Mortgage in Principle flow |  |
+| v3 | 2026-08-28 | `394565a` | Seed the opening session at £650,000 so it meets the Lifetime ISA cap |  |
+| v4 | 2026-08-30 | `4a627bc` | Going through usability testing protocol to see what fixes were needed |  |
 | v5 | 2026-08-31 | `3b11d8f` | Allowing the deposit goal to take in extra costs such as stamp duty, and allowing the deposit result page to be clearer rather than showing a range based on the deposit percentage saved towards | first-home-deposit-ux-prototype-di1meg30f-riona-john.vercel.app |
-| v6 | 2026-09-01 | `2fb6667` | Pilot feedback changes: Scaling in different screens when on desktop, copy on the screen where a participant will decide how to save for their deposit, and the results for the deposit page - improving the chart to show a better comparison over the years |
-| v7 | 2026-09-01 | `2fb6667` | To check and make it as easy as possible to use on the phone for the usability testing. |
+| v6 | 2026-09-01 | `2fb6667` | Pilot feedback changes: Scaling in different screens when on desktop, copy on the screen where a participant will decide how to save for their deposit, and the results for the deposit page - improving the chart to show a better comparison over the years |  |
+| v7 | 2026-09-01 | `c92e064` | Reserve the browser toolbar's space so the tab bar stays reachable on iPhone Safari during phone-based usability sessions |  |
 
 **Commit** is the commit `main` points at after the merge. A commit cannot contain its own SHA, so
-from v5 on the cell names the last content commit of the version and the log row sits one commit
-above it. The two coincide for v1 to v4, which were merged before this log existed. See
-`DECISIONS.md` D91.
-
-### The `394565a` row is open and needs closing by hand
-
-`main` moved five times carrying a change to prototype code, and four deployment reasons were
-supplied. `394565a` is the one left over: a single commit, "Seed the opening session at £650,000 so
-it meets the Lifetime ISA cap", merged 31 minutes after v2 on the same evening. Either it is a
-hotfix inside v2, in which case this row is deleted and v2's commit becomes `394565a`, or it is a
-deployment in its own right, in which case it takes v3 and every row below it moves up by one.
-It is not guessed either way. See `GAPS.md` G104.
+from v6 on the cell names the last content commit of the version and the log row sits one commit
+above it. The two coincide for v1 to v5, which were merged before this log existed. See
+`DECISIONS.md` D91 for the convention and D138 for the renumbering that moved this boundary from
+v5 to v6 when `394565a` took v3.
 
 ### Where these dates and commits come from
 
 `main` has a linear history and every merge so far was a fast-forward, so none of them exists as a
-merge commit and the graph alone cannot date a deployment. The five moves were read from
+merge commit and the graph alone cannot date a deployment. The seven moves were read from
 `git reflog show main`, which covers the branch from its initial commit on 19 August 2026 and is
-therefore complete rather than truncated. v1 is independently corroborated by the `v1.0` tag,
+therefore complete rather than truncated. Six of the seven carried a change to prototype code and
+all six now have a deployment reason. The seventh, `7825bd9` on 31 August 2026, changed only this
+file and so takes no version number. v1 is independently corroborated by the `v1.0` tag,
 "Build for pilot session", which points at `7f0f4cc`. Dates are the dates `main` moved, which is
 when Vercel deployed, not the dates the commits were authored.
 

@@ -11550,3 +11550,52 @@ element on each screen ends above the bar's top edge. No horizontal overflow at 
 
 Delete the `height: 100svh` line. The `100vh` above it is the previous behaviour exactly, so reversing
 is a one-line deletion - and puts the tab bar back behind Safari's toolbar on every iPhone.
+
+
+---
+
+## D138. `394565a` is v3, and every version number below it moves up by one
+
+**Date.** 2 September 2026. The deployment version log in `docs/README.md`, `GAPS.md` G104 closed.
+No prototype code changes. This entry amends D91; D91 is left standing as the original dated record
+and is not rewritten.
+
+**Decision.** `394565a` is a deployment in its own right and takes **v3**. Every row below it moves
+up by one: `4a627bc` is v4, `3b11d8f` is v5, `2fb6667` is v6, and `c92e064` is v7. This is the
+second of the two readings D91 set out and G104 held open, chosen by Riona rather than inferred
+from the history.
+
+**Why.** Production served `ce2b482` for 31 minutes and `394565a` thereafter. A session run inside
+that window saw a different build from one run after it, so the two are not the same instrument and
+cannot be reported against one number. That is the whole purpose of the column.
+
+### What this supersedes in D91
+
+D91 was written while the question was open, and three of its passages are now wrong. They stay in
+place there as the record of what was known on 31 August 2026, and are corrected here:
+
+| D91 says | Now |
+| --- | --- |
+| "Four reasons were supplied against five code-bearing deployments" | Six code-bearing deployments, six reasons. `main` moved seven times; the seventh, `7825bd9`, was documentation-only and takes no number |
+| "`394565a` is the leftover and is **not** assigned a number here" | It is v3 |
+| The table carries `[UNKNOWN]` in the Version and Deployment reason cells | Both cells are filled |
+
+### The commit-offset boundary moves from v5 to v6
+
+D91's "Why the Commit column shifts by one from v5" names the first deployment whose log row was
+committed on `build` before the merge. That deployment was v5 when D91 was written and is **v6**
+now. The convention itself is unchanged - the cell names the last content commit, and the row sits
+one commit above it - and it is anchored to that deployment, not to the number it was given. The
+commit cell and the tip coincide for v1 to v5; the offset applies from v6 on.
+
+### The `v5.0` tag now names v6, and was left alone
+
+The annotated tag `v5.0` points at `90e3b60`, the tip of the deployment this renumbering makes v6.
+It was cut before the renumbering and is not renamed: a tag that has been pushed is a fixed
+reference, and moving it would break any citation already made against it for the cost of a
+cosmetic match. `v1.0` is unaffected, because v1 did not move. This log, not the tag list, is the
+record of which build a participant saw - the tag set has never been complete, with only two of
+seven deployments tagged before this one.
+
+**To reverse.** Restore `[UNKNOWN]` to the `394565a` row, move v4 to v7 back down by one, and
+reopen G104. Nothing outside `docs/README.md` and `docs/GAPS.md` depends on the numbering.
