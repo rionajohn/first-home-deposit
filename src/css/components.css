@@ -3095,69 +3095,84 @@ button.milestone-row {
   font-weight: 600;
 }
 
-/* --- Prototype controls / version list (frame 33, DECISIONS.md D139) -------
-   EXPLICITLY NOT `.pill-segments`. The four controls above this block are
-   in-place toggles - set a key, re-render, session intact. These leave the
-   origin, which discards the session and cannot come back. Same affordance for
-   a different consequence is the defect being avoided, so the rows are typed as
-   links (`--color-label-secondary` + underline, the treatment `.info-link__label`
-   and `.media-placeholder__accessibility-link` already use) and carry no border,
-   fill or radius that could read as a pill.
+/* --- Prototype controls / build list (frame 33, DECISIONS.md D140) --------
+   THE CHIPS ARE `.pill-segments__option`, reused rather than restyled, so the
+   build chips and the Theme / Text size / Journey stage pills above them are
+   the same control to look at and the same control to operate. D139 typed these
+   as links because a press left the origin; a press now selects in place, and
+   only the detail area's action navigates, so the affordance matches the
+   consequence again.
 
-   The row is 48px because DESIGN.md rule 2 requires it of every control and
-   forbids shrinking one to fit a design; the text inside stays caption-sized,
-   the same relationship `.info-icon-button` documents. Rows are laid out
-   `space-between` so the version and its date sit at opposite edges and the
-   dates form a column, which is what makes the list scannable by date rather
-   than by position. No new token is introduced. --- */
-.version-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+   `.pill-chips` differs from `.pill-segments` in the two ways seven version
+   chips need: it WRAPS, and each chip sizes to its label instead of sharing the
+   row equally. Seven equal pills in a 350px column would be 44px, under the
+   48px floor DESIGN.md rule 2 sets, and the "(current)" label is three times
+   the width of the rest. `min-width` still holds the floor. --- */
+.pill-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.pill-chips__chip {
+  flex: 0 0 auto;
+  /* A PILL, NOT A CIRCLE. `.pill-segments__option`'s own 12px horizontal
+     padding is sized for words ("Ready to check"); these labels are two
+     characters, so at that padding a 48px min-width and a 48px min-height meet
+     and `--radius-full` draws a circle. A circle is a different control - it
+     reads as an icon button - and this block's whole point is that it operates
+     like the pills above it. --space-2xl puts "v6" at 64x48 and keeps the
+     shape as the label grows, rather than pinning a width that "(current)"
+     would break out of. */
+  min-width: var(--touch-target-min);
+  padding: var(--space-sm) var(--space-2xl);
+}
+
+/* The build you are already on. Not selectable, and not styled as though it
+   were: it keeps the unselected fill so it never reads as the current
+   SELECTION, and the word "(current)" in its label - not this colour - is what
+   names it. `aria-disabled` rather than `disabled` keeps it focusable, so the
+   one chip naming the running build stays reachable from the keyboard. */
+.pill-chips__chip--current {
+  color: var(--color-label-secondary);
+  border-style: dashed;
+  cursor: default;
+}
+
+/* --- The detail area, empty at rest. No border, no fill and no min-height: it
+   is a slot that is either holding something or is not there, and a permanently
+   reserved empty box below a chip row reads as a control that failed to load.
+   It is `:empty`-safe because the gap collapses with no children. --- */
+.version-detail {
   display: flex;
   flex-direction: column;
+  gap: var(--space-sm);
   width: 100%;
 }
 
-.version-row {
-  display: flex;
+.version-detail__date {
+  margin: 0;
+  font-size: var(--text-caption1-size);
+  line-height: var(--text-caption1-line);
+  font-weight: 400;
+  color: var(--color-label-secondary);
+}
+
+/* The one thing in this block that navigates, typed as a link because it does.
+   Same treatment as `.info-link__label` and `.media-placeholder__accessibility-link`,
+   and 48px because DESIGN.md rule 2 requires it of every control. */
+.version-detail__action {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-md);
+  align-self: flex-start;
   min-height: var(--touch-target-min);
-  width: 100%;
-}
-
-.version-row__link {
   font-size: var(--text-footnote-size);
   line-height: var(--text-footnote-line);
   font-weight: 500;
   letter-spacing: 0.2px;
   color: var(--color-label-secondary);
   text-decoration: underline;
-}
-
-/* The version you are already on. A `<span>`, not a disabled link: there is
-   nowhere for it to go, and a disabled control invites a press that does
-   nothing. Weight and full-strength label colour carry the distinction where
-   the underline is absent, so it does not rely on colour alone. */
-.version-row__current {
-  font-size: var(--text-footnote-size);
-  line-height: var(--text-footnote-line);
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  color: var(--color-label);
-  text-decoration: none;
-}
-
-.version-row__date {
-  flex: 0 1 auto;
-  min-width: 0;
-  font-size: var(--text-caption1-size);
-  line-height: var(--text-caption1-line);
-  font-weight: 400;
-  color: var(--color-label-tertiary);
-  text-align: right;
 }
 
 /* --- Prototype controls / footer build caption (frame 33) --- */

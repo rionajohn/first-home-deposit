@@ -2023,22 +2023,28 @@ const content = {
       { value: 'not-yet', label: 'Not yet' },
     ],
     dataSourceHeader: 'Your data',
-    // AWAITING COPY. Frame 33's version-control block: a list of every deployed
-    // version, so a moderator can open an earlier one mid-session. Both strings
-    // are moderator-facing, not participant-facing, but they render on a live
-    // screen and are not written here rather than guessed.
+    // Frame 33's version-control block: a chip per deployed build, and a detail
+    // area that opens the selected one in a new tab. Moderator-facing, not
+    // participant-facing, but it renders on a live screen. Supplied by Riona;
+    // see DECISIONS.md D140.
     //
-    // The supporting line has TWO things to carry that the control cannot show
-    // by itself: that opening one leaves this session behind and does not come
-    // back, and that an earlier version cannot return here because it was
-    // deployed before this block existed. Copy that implies a way back would be
-    // wrong on both counts.
-    //
-    // NO THIRD KEY marks which row is current. That row is the one rendered as
-    // plain text among links, and carries `aria-current`; a word for it would be
-    // a string this decision was not asked to write. See DECISIONS.md D139.
-    versionsHeader: '[AWAITING COPY]',
-    versionsBody: '[AWAITING COPY]',
+    // THE SUPPORTING LINE CARRIES WHAT THE CONTROL CANNOT SHOW: that each build
+    // is a separate deployment, so opening one starts a fresh session rather
+    // than moving this one, and that the tab you are in is unaffected. The new
+    // tab IS the way back - an earlier build was deployed before this block
+    // existed and cannot carry a return control - so nothing here implies one.
+    versionsHeader: 'Prototype builds',
+    versionsBody: 'Each build is a separate deployment. Opening one starts a fresh session in a new tab, and this tab stays as it is.',
+    // {version} is the selected build. The link's accessible name is computed
+    // from this string with the substitution made, so it already announces the
+    // new tab and needs no separate warning beside it.
+    versionOpenTemplate: 'Open {version} in a new tab',
+    // {date} is that build's deployment date, in the same long form the anchor
+    // caption above uses ("28 August 2026"), through `formatFullDate`.
+    versionDeployedTemplate: 'Deployed {date}',
+    // {version} is the running build. The word, not a colour or a fill, is what
+    // marks the chip you are already on.
+    versionCurrentTemplate: '{version} (current)',
     resetHeader: 'Reset',
     resetRowLabel: 'Clear all progress and start again',
     buildCaptionTemplate: 'Build {version}. Figures are illustrative throughout.',

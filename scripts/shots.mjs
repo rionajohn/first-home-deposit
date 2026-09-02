@@ -163,6 +163,12 @@
  *              all, which is a thing this harness can now do and could not
  *              before. Only meaningful with `--solve=amount`.
  *                                                       default none
+ *   --build    A version chip on frame 33 to press before the shot, e.g.
+ *              `--build=v5`. Shows the selected chip and the detail area under
+ *              it. Which chip is lit is screen-local state that is never
+ *              written to the session (D140), so it can only be reached by
+ *              pressing the control.
+ *                                                       default none
  *   --focus    A whole number of Tab presses to make before the shot, so the
  *              keyboard focus ring is in the picture. Real key presses, since
  *              the ring is on `:focus-visible` and a scripted `.focus()` does
@@ -299,6 +305,7 @@ const DEFAULTS = {
   scroll: 'top',
   stage: '',
   open: '',
+  build: '',
 };
 
 /**
@@ -787,6 +794,27 @@ async function openDateList(page) {
 }
 
 /**
+ * `--build`: presses one of frame 33's build chips, so the selected state and
+ * the detail area under it can be looked at.
+ *
+ * PRESSES THE CHIP, like `--open` and `--list` above, rather than seeding
+ * anything. It cannot be seeded even in principle: which chip is lit is
+ * screen-local draft state held in a closure and deliberately never written to
+ * `sessionStorage` (D140), so pressing the control is the only way the state
+ * exists at all.
+ */
+async function selectBuild(page) {
+  if (args.build === '') return;
+  const chip = await page.$(`[data-action="select-version"][data-value="${args.build}"]`);
+  if (!chip) {
+    console.warn(`  note: --build=${args.build} found no such chip on this screen; shot taken at rest.`);
+    return;
+  }
+  await chip.click();
+  await page.waitForTimeout(250);
+}
+
+/**
  * `--focus`: presses Tab n times so the shot carries a visible focus ring.
  *
  * REAL TAB PRESSES, NOT `.focus()`. shell.css draws the ring on
@@ -1042,6 +1070,7 @@ try {
               // screen does not report a missing disclosure as well.
               await openDisclosure(page);
               await openDateList(page);
+              await selectBuild(page);
               await tabTo(page);
 
               if (state === 'ahead' && entry !== 'mip') {

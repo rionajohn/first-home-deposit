@@ -53,7 +53,7 @@
  * applies either — this screen sets test scenario state, it does not read
  * or derive a deposit-journey figure.
  */
-import { appBarHTML, bindAppBarLeading, pillSegmentsHTML, rerenderInPlace } from '../components/ui.js';
+import { appBarHTML, bindAppBarLeading, pillChipsHTML, pillSegmentsHTML, rerenderInPlace } from '../components/ui.js';
 import { BUILD_VERSION, SHELL_CACHE_PREFIX } from '../cache-version.js';
 import { DEPLOYMENTS, currentDeployment } from '../deployments.js';
 import { formatFullDate } from '../format.js';
@@ -98,41 +98,50 @@ async function readCachedVersions() {
 }
 
 /**
- * The version-control block's rows, newest first.
+ * The build list's chips, newest first, and the detail area below them.
  *
- * DELIBERATELY NOT `pillSegmentsHTML`. The four controls above it are in-place
- * toggles: they set a key, re-render, and the session survives. These navigate
- * to another ORIGIN, which discards the session and cannot come back. Giving the
- * two the same pill affordance would promise the same consequence, and the
- * moderator would find out which it was by losing a session mid-interview. They
- * are links, and they look like the app's other links. See DECISIONS.md D139.
+ * THE CHIPS ARE PILLS AGAIN, and that is now correct where D139 said it was
+ * not. D139 typed these as links because a press left the origin and discarded
+ * the session, which is not what the pills above them do. A press now SELECTS,
+ * in place, exactly like every other pill on this screen - and the navigation
+ * has moved to one explicit, separately-labelled action in the detail area. The
+ * affordance and the consequence match again, which is what that decision was
+ * protecting. See DECISIONS.md D140.
  *
- * The current version is a `<span>`, not a disabled link: there is nowhere for
- * it to go, and a disabled control invites a press that does nothing. It carries
- * `aria-current="page"` so it is announced as the one you are on rather than
- * being distinguished only by not being underlined.
+ * THE DETAIL AREA IS EMPTY AT REST and is the only thing that navigates. Its
+ * action opens in a NEW TAB, which is the whole design: an earlier build was
+ * deployed before this block existed and cannot carry a return control, so the
+ * original tab, left as it is, is the way back.
  */
-function versionListHTML(current) {
-  const rows = [...DEPLOYMENTS].reverse().map((entry) => {
-    const date = formatFullDate(entry.date);
-    // A ROW WITH NO URL IS NEVER A LINK. The row for a version is written as
-    // part of its own merge, before the push, but the deployment URL does not
-    // exist until after it - so the newest row carries `url: null` until someone
-    // fills it in. That row is also the current one, which needs no URL because
-    // it renders as a label. `href="null"` is the failure this prevents: a link
-    // that looks live and navigates to a 404 mid-session.
-    const isCurrent = Boolean(current) && entry.version === current.version;
-    const cell = isCurrent || !entry.url
-      ? `<span class="version-row__current"${isCurrent ? ' aria-current="page"' : ''}>${entry.version}</span>`
-      : `<a class="version-row__link" href="${entry.url}">${entry.version}</a>`;
-    return `
-      <li class="version-row">
-        ${cell}
-        <span class="version-row__date">${date}</span>
-      </li>
-    `;
-  });
-  return `<ul class="version-list">${rows.join('')}</ul>`;
+function versionChipOptions(current, c) {
+  return [...DEPLOYMENTS].reverse().map((entry) => ({
+    value: entry.version,
+    label: current && entry.version === current.version
+      ? fill(c.versionCurrentTemplate, { version: entry.version })
+      : entry.version,
+    current: Boolean(current) && entry.version === current.version,
+  }));
+}
+
+/**
+ * The detail area's contents for one selected version, or nothing at rest.
+ *
+ * A version with no URL renders its date and NO action. The row for a build is
+ * written as part of its own merge, before the push, but the deployment URL
+ * does not exist until after it - so the newest row carries `url: null` until
+ * someone fills it in. `href="null"` is the failure this prevents: an action
+ * that looks live and 404s mid-session.
+ */
+function versionDetailHTML(selected, c) {
+  if (!selected) return '';
+  const date = fill(c.versionDeployedTemplate, { date: formatFullDate(selected.date) });
+  const action = selected.url
+    ? `<a class="version-detail__action" href="${selected.url}" target="_blank" rel="noopener">${fill(c.versionOpenTemplate, { version: selected.version })}</a>`
+    : '';
+  return `
+    <p class="version-detail__date">${date}</p>
+    ${action}
+  `;
 }
 
 function controlHTML({ label, options, selected, action }) {
@@ -203,7 +212,8 @@ export function render(container, ctx) {
       <div class="card card--muted settings-card">
         <p class="settings-card__header">${c.versionsHeader}</p>
         <p class="settings-control__label">${c.versionsBody}</p>
-        ${versionListHTML(current)}
+        ${pillChipsHTML({ options: versionChipOptions(current, c), selected: null, action: 'select-version' })}
+        <div class="version-detail" data-role="version-detail"></div>
       </div>
 
       <div class="settings-footer" data-role="settings-footer">
@@ -248,6 +258,42 @@ export function render(container, ctx) {
   bindGroup('set-text-size', 'textSize');
   bindGroup('set-stage', 'stage', stagePatch);
   bindGroup('set-outcome', 'resultOutcome');
+
+  // WHICH CHIP IS LIT IS SCREEN-LOCAL DRAFT STATE AND NEVER REACHES THE STORE.
+  // CLAUDE.md's state rule: a figure is written when a participant commits it,
+  // and this commits nothing - it is a moderator looking at a list. Putting it
+  // in `state` would leave a key no screen expects, surviving a navigation and
+  // a reload, describing a selection whose screen is long gone. It also must
+  // not go through `rerenderInPlace`, which would rebuild the whole screen to
+  // move one class.
+  //
+  // So the handler swaps classes and rewrites the detail area in place. A theme
+  // or text-size toggle DOES re-render, which clears the selection - correct,
+  // because the detail area's action is only meaningful beside the chip that is
+  // still lit.
+  let selectedVersion = null;
+  const detail = container.querySelector('[data-role="version-detail"]');
+  const chips = [...container.querySelectorAll('[data-action="select-version"]')];
+
+  function paintVersionSelection() {
+    chips.forEach((chip) => {
+      const isOn = chip.dataset.value === selectedVersion;
+      chip.classList.toggle('pill-segments__option--selected', isOn);
+      chip.setAttribute('aria-pressed', String(isOn));
+    });
+    const entry = DEPLOYMENTS.find((d) => d.version === selectedVersion) ?? null;
+    detail.innerHTML = versionDetailHTML(entry, c);
+  }
+
+  chips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      // Tapping the lit chip again clears it, which is what makes this a
+      // selection rather than a one-way commit: there is no other way to empty
+      // the detail area once something is in it.
+      selectedVersion = chip.dataset.value === selectedVersion ? null : chip.dataset.value;
+      paintVersionSelection();
+    });
+  });
 
   // router.js's own '#/reset' route calls resetState() and navigates to
   // /home — the same reset() DECISIONS.md/state.js describes as "wired to

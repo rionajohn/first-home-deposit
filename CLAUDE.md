@@ -125,6 +125,14 @@ do not introduce a state management library.
   screen reader reads. D85 adds the cap at the month the balance reaches the goal unaided - no offered
   pair solves negative, and the goal-already-met state draws no control at all. ~47s. D85; closes
   GAPS.md G64, G65, G96's frame 10b case and the reachable half of G98.)
+- Test frame 33's build list: `node --test scripts/version-chips.test.mjs` (drives Chromium; D140's
+  chip group and detail area. Asserts the CONTRACT a render test cannot see - single-select, that
+  re-tapping the lit chip empties the detail area, that the open action's accessible name is the full
+  string with the version substituted rather than the template, that it carries `target="_blank"` and
+  `rel="noopener"`, that the current build's chip is `aria-disabled` and NOT `disabled` so it stays
+  focusable, and that selecting a chip leaves `sessionStorage` byte-identical. Reads its expected
+  versions from `src/deployments.js` at run time, so it follows the list rather than breaking on it.
+  The current-chip case skips itself when no row carries the running `BUILD_VERSION`. ~13s.)
 - Test the skip-ahead control: `node --test scripts/skip-ahead.test.mjs` (pure Node, no browser; asserts three round trips leave state identical and that the threshold stays a ratio of CHECKPOINT_FRACTION rather than an amount)
 - Test the draft invariant: `node --test scripts/g62.test.mjs` (pure Node, no browser; asserts that abandoning a draft changes no committed key, and that `gapToCheckpoint()` reads the stored checkpoint rather than re-deriving it)
 - Test stale-session discard: `node --test scripts/stale-session.test.mjs` (drives Chromium; asserts a

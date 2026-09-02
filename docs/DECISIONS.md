@@ -11694,3 +11694,95 @@ and that it does not come back.
 **To reverse.** Delete `src/deployments.js`, its import and the card in `settings.js`, the
 `.version-list` block in `components.css`, the two content keys and the `SHELL_ASSETS` entry. Nothing
 else reads any of them.
+
+
+---
+
+## D140. The build list becomes a chip group with one explicit open action
+
+**Date.** 2 September 2026. `src/components/ui.js` (`pillChipsHTML`), `src/screens/settings.js`,
+`src/css/components.css`, five strings in `src/content.js`, `scripts/version-chips.test.mjs` (new),
+a `--build` option in `scripts/shots.mjs`. Amends D139, which stands as its own dated record.
+
+**Decision.** Frame 33's build list is a wrapping row of chips, one per deployment, that select in
+place. Below it sits a detail area, empty at rest, which for the selected build names its deployment
+date and carries a single action opening it in a new tab. The running build's chip is present,
+labelled "(current)", and inert.
+
+### Why this reverses D139's central argument rather than contradicting it
+
+D139 typed these as links, and gave a reason: a press left the origin and discarded the session,
+which is not what the pills above them do, and an identical affordance for a different consequence
+is a defect. That reasoning was right and is preserved by this change rather than overturned.
+
+What moved is the consequence, not the judgement. A chip press now SELECTS - in place, session
+intact, exactly what every other pill on this screen does - and the navigation has moved to one
+explicit action that says what it will do in its own label. The affordance and the consequence match
+again, so the pill styling is now the correct choice by D139's own test.
+
+### The new tab is the return path, and is the reason this shape works at all
+
+Every build below the current one was deployed before this block existed and cannot carry a control
+back. D139 handled that by saying nothing implied a way back. This handles it better: `target="_blank"`
+with `rel="noopener"` leaves the current build open in the original tab, so the moderator returns by
+switching tabs. The absence a participant cannot fix is answered by the browser rather than by copy.
+
+Losing `_blank` would silently remove the only way back, which is why the test asserts the attribute
+rather than the behaviour it produces.
+
+### The chip group is screen-local draft state and never reaches the store
+
+Which chip is lit is written to a closure variable and painted onto the DOM directly. It is not
+`setState`, and it does not go through `rerenderInPlace`.
+
+This is `CLAUDE.md`'s state rule applied to a control that commits nothing: a moderator looking at a
+list has not entered a figure. A key in `state` would outlive the screen, survive a reload, and
+describe a selection whose screen is long gone - which is the shape of the defect D46 and `GAPS.md`
+G62 both record. A theme or text-size toggle re-renders and clears the selection, which is correct:
+the detail area's action is only meaningful beside the chip still lit.
+
+### The semantic is the one this screen already uses
+
+`aria-pressed` toggle buttons in a plain container, matching `pillSegmentsHTML` exactly, rather than
+a `radiogroup`. The brief allowed "radio group or equivalent" and asked that the existing pattern be
+followed rather than a second one invented; a radio group would have introduced roving `tabindex`
+and arrow-key navigation on one control of five, so the four pill groups above it would behave
+differently from the one below.
+
+The selected state is exposed through `aria-pressed`, not colour alone, and the current build is
+named in words - "(current)" - rather than by its dashed border.
+
+### `pillChipsHTML` is a sibling of `pillSegmentsHTML`, not a flag on it
+
+`pillSegmentsHTML`'s documented contract is equal-width pills that fill the row and never wrap.
+Seven of those in a 350px column are 44px each, under the 48px floor `DESIGN.md` rule 2 sets, and one
+label carries "(current)" and is three times the width of the others - so equal widths are the wrong
+shape here, not a smaller version of the right one. The new builder emits the same button, the same
+classes and the same semantic in a row that wraps and sizes to content.
+
+It is not `chipRowHTML`, the other wrapping row, because that uppercases its labels in CSS and these
+are version identifiers that read as "v7" everywhere else in the repo, including the log they are
+transcribed from.
+
+**A pill, not a circle.** `.pill-segments__option`'s 12px horizontal padding is sized for words. At
+that padding a two-character label meets both the 48px min-width and the 48px min-height, and
+`--radius-full` draws a circle - which reads as an icon button, a different control. `--space-2xl`
+puts "v6" at 64x48 and holds the shape as the label grows. Caught by looking at the screenshot; no
+assertion would have found it, because a circle is a perfectly valid chip to every test that
+measures one.
+
+### The current chip is `aria-disabled`, not `disabled`
+
+`disabled` takes it out of the tab order, hiding the one chip that names the build the moderator is
+actually on. `aria-disabled` keeps it reachable and announced as unavailable, and no handler is bound
+to it, so it is a genuine no-op rather than a press that silently does nothing. The test asserts the
+absence of the `disabled` attribute so a later tidy-up does not "fix" this into the tab order's blind
+spot.
+
+**On this build no chip is current.** `BUILD_VERSION` is v123 and the row that will carry it is v8,
+written when this merges. The current-chip test skips itself with that reason rather than passing
+vacuously; it was run green against a temporarily-stamped v121 before this was recorded.
+
+**To reverse.** Delete `pillChipsHTML`, the card in `settings.js`, the `.pill-chips` and
+`.version-detail` blocks, the five content keys, the test and the `--build` option. `src/deployments.js`
+is untouched by this decision and is D139's.

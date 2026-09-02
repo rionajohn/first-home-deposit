@@ -2198,6 +2198,43 @@ export function pillSegmentsHTML({ options, selected, action }) {
 }
 
 /**
+ * Prototype controls / Pill chips (frame 33's build list): the SAME button,
+ * the same visual and the same `aria-pressed` semantic as `pillSegmentsHTML`,
+ * in a row that WRAPS and sizes each chip to its label.
+ *
+ * A separate builder rather than a flag on `pillSegmentsHTML`, whose whole
+ * documented contract is equal-width pills that fill the row and never wrap.
+ * Seven of those in a 350px column would be 44px each, under the 48px floor
+ * DESIGN.md rule 2 sets, and one of these labels carries "(current)" and is
+ * three times the width of the rest - so equal widths are the wrong shape here,
+ * not a smaller version of the right one.
+ *
+ * NOT `chipRowHTML`, which is the other wrapping row: it uppercases its labels
+ * in CSS, and these are version identifiers that read as "v7" everywhere else
+ * in the repo, including the log this list is transcribed from.
+ *
+ * `options` is `[{ value, label, current }]`. A `current` option is rendered
+ * with `aria-disabled` and no `data-action`, so it is reachable and announced
+ * as unavailable but no handler acts on it - a genuine no-op rather than a
+ * press that silently does nothing. It is deliberately NOT the `disabled`
+ * attribute, which would take it out of the tab order and hide the one chip
+ * naming the build the moderator is on.
+ */
+export function pillChipsHTML({ options, selected, action }) {
+  return `
+    <div class="pill-chips">
+      ${options.map((opt) => {
+        const classes = `pill-segments__option pill-chips__chip${opt.value === selected ? ' pill-segments__option--selected' : ''}${opt.current ? ' pill-chips__chip--current' : ''}`;
+        if (opt.current) {
+          return `<span class="${classes}" aria-disabled="true" aria-current="page">${opt.label}</span>`;
+        }
+        return `<button type="button" class="${classes}" data-action="${action}" data-value="${opt.value}" aria-pressed="${opt.value === selected}">${opt.label}</button>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+/**
  * Content / Processing state (frame 19b): a spinner, a title, a body line
  * and a tertiary caption, centred inside a bordered card. The spinner is a
  * pure-CSS rotating ring (no animated asset) — see components.css's
