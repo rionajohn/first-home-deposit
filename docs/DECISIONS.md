@@ -11893,3 +11893,110 @@ agree there. Pre-existing and deliberate - see `GAPS.md` G133.
 
 **To reverse.** Delete `countedTowardDeposit` and `listContainsAny`, restore the two filters, and
 render the caption unconditionally.
+
+---
+
+## D142. Frame 03 rebuilds only the group sections whose membership moved, and a caption stops when its own claim does
+
+**Date.** 3 September 2026. `src/screens/consent.js`, one flag in `src/model/accounts.js`. Extends
+D16 rather than replacing it. **No copy changed, no figure changed, no route changed.**
+
+**Decision, in two parts.**
+
+1. An update to the accounts card replaces only the group sections whose own membership changed.
+   Each section is its own element carrying its own signature; the others keep their nodes.
+2. A caption whose wording states a condition renders only while that condition holds, declared as
+   a flag on the account and read by one predicate. `captionWhileCounted` joins
+   `captionWhileUnsorted`; the Lifetime ISA caption carries it.
+
+### Part 1: the section is now the unit of replacement
+
+Before this, `signature` was one string for the whole card and the only update available was
+`groups.innerHTML = groupsHTML(...)` - all four sections at once. Filing the last unsorted account
+therefore replaced the deposit, emergency and not-counted sections too, none of which had changed,
+and some of which sit above the viewport.
+
+`groupsHTML` now wraps each section in `[data-role="account-group"]` with its own signature, and
+`syncGroupSections` walks `GROUP_ORDER` doing exactly one of four things per group: touch nothing
+when membership is unchanged, remove a section that emptied, insert one that became non-empty in
+its ordered position, or replace the innerHTML of one whose membership moved.
+
+The wrapper is layout-neutral: `.accounts-card` is a flex column with no `gap`, the sections sit in
+ordinary block flow, and every gap in the card is an explicit spacer div. Verified by the overlap
+suite, 74/74, rather than by inspection.
+
+Focus restore is now conditional on `active.isConnected` - was the focused node actually removed.
+Previously the rebuild destroyed it every time, so the restore always had work to do; now a section
+that was left alone still holds the element the participant is touching, and calling `focus()` on
+it would be a no-op at best.
+
+### What was deliberately NOT done
+
+**The height change stays.** When filing the last unsorted account empties "Not sorted yet", that
+section is removed and everything below moves up 179px. That is the screen telling the truth about
+a section the participant has just emptied. Only the unnecessary replacement was in scope.
+
+**No scroll bookkeeping.** `scrollTop` is not read or written anywhere in this file. It never
+moved - measured, before and after - and writing it back would encode a cause that was not the
+cause. `overflow-anchor` is not used either.
+
+### A measured consequence that needs a decision, and is not resolved here
+
+Removing the unnecessary replacement lets Chrome's **default** scroll anchoring engage, because
+surviving nodes give it an anchor to hold. It did not engage before: the subtree it would have
+anchored to was destroyed on every update. Measured at `scrollTop` 400, ticking the unsorted
+account, tracking one row's on-screen position:
+
+| | scrollTop | that row on screen |
+|---|---|---|
+| before, anchoring as shipped | 400 -> 400 | -179px |
+| before, anchoring disabled | 400 -> 400 | -179px |
+| **after, anchoring as shipped** | **400 -> 120** | **+101px** |
+| after, anchoring disabled | 400 -> 400 | -179px |
+
+The last row is the important one: **this change on its own moves nothing.** With anchoring
+disabled the behaviour is identical to before. What changed is that the browser now compensates,
+and overcompensates - it adjusts by 280px where the content above shrank by 179.
+
+So the shift is smaller than it was (101px against 179px) but now in the opposite direction, and it
+is the browser's arithmetic rather than ours. Reordering the mutations was tried and made no
+difference, so it is not an artefact of when the caption is hidden. Suppressing it would need
+`overflow-anchor: none`, which was explicitly ruled out for this change, and correcting it by hand
+would be the `scrollTop` write that was also ruled out. **Left as measured, flagged for a decision
+rather than settled unilaterally**, because both available fixes are things this brief excluded.
+
+### Part 2: the Lifetime ISA caption
+
+`lifetimeIsaCaption` opens "Mainly for buying a first home, so we've counted it", and rendered
+whenever the account was on screen - including while the participant had just unticked it, on the
+screen where unticking is the whole task. The caption contradicted the checkbox beside it and the
+total above it.
+
+**Suppressed, not given a variant.** A second string would be new copy, and this one sits close
+enough to the FCA guidance-versus-advice boundary ("Move it if you're saving it for retirement
+instead") that a replacement would need `fca-copy-check` run over it and a decision that is about
+copy, not about rendering. Nothing here reworded anything.
+
+`captionApplies()` is now a named predicate reading two flags, each a property of the ACCOUNT so a
+caption added later declares its condition in the data rather than growing a special case here:
+
+- `captionWhileUnsorted` - the caption ASKS something ("Tap to tell us"), so it goes once answered.
+- `captionWhileCounted` - the caption STATES that the account is counted, so it goes when it is
+  not. Read through `isSelectedForDeposit`, the same predicate the total uses, so the caption and
+  the figure cannot disagree.
+
+### Why the caption is a property and not a rebuild trigger
+
+Whether the caption applies depends on `included`, which unticking changes WITHOUT moving the
+account between groups - so the section signature does not move, and must not, because rebuilding a
+section whose membership is unchanged is exactly what part 1 removes. The two requirements are only
+compatible if the caption is synced the way the checkbox beside it already is: the element is always
+in the DOM and its `hidden` is set in the property pass.
+
+`.account-row__caption` sets no `display`, so the UA rule for `[hidden]` applies. That was checked
+rather than assumed - `components.css` carries a note about an author `display` silently beating
+`[hidden]`, which had produced a closed card that looked open.
+
+**To reverse.** Restore the single card-level signature and the whole-subtree `innerHTML`, drop the
+wrappers, `syncGroupSections`, `nextSectionAfter`, `captionApplies` and the `captionWhileCounted`
+flag, and render the caption unconditionally.

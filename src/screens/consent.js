@@ -77,6 +77,33 @@ function checkboxRow({ checked, title, body, action, trailing = '', trailingRole
 }
 
 /**
+ * Does this account's caption hold right now?
+ *
+ * TWO FLAGS, ONE PREDICATE. Each names a state the caption's own wording
+ * depends on, and each is a property of the ACCOUNT rather than a rule about
+ * its name, so a caption added later declares its condition in the account
+ * data instead of this screen growing a special case:
+ *
+ *   - `captionWhileUnsorted` - the caption ASKS the participant to file the
+ *     account ("Tap to tell us"), so it goes once they have. "Answered" means
+ *     either answer: counted toward the deposit, kept for emergencies or left
+ *     out, all three settle the question. Read from `account.group` rather
+ *     than from a flag set when the participant acts, so it is a function of
+ *     where the account IS and not of how it got there.
+ *   - `captionWhileCounted` - the caption STATES that the account is being
+ *     counted ("so we've counted it"), so it goes when it is not. Read
+ *     through `isSelectedForDeposit`, the same predicate the total uses, so
+ *     the caption and the figure it describes cannot disagree.
+ *
+ * A caption with neither flag is unconditional while its account is on screen.
+ */
+function captionApplies(account) {
+  return Boolean(account.captionKey)
+    && (!account.captionWhileUnsorted || account.group === 'unassigned')
+    && (!account.captionWhileCounted || isSelectedForDeposit(account));
+}
+
+/**
  * One linked account: a selection checkbox, then the rest of the row as a
  * separate button that opens 03b (DECISIONS.md D16).
  *
@@ -100,26 +127,13 @@ function checkboxRow({ checked, title, body, action, trailing = '', trailingRole
  * checkboxes all called nothing.
  */
 function accountRow(account, content) {
-  // A PROMPT GOES ONCE ITS QUESTION IS ANSWERED. `captionWhileUnsorted` marks a
-  // caption that asks the participant to file the account, so it renders only
-  // while the account is still unfiled - and "answered" means EITHER answer:
-  // counted toward the deposit, kept for emergencies or left out, all three
-  // settle the question the caption asks.
-  //
-  // Read from `account.group` rather than from a flag set when the participant
-  // acts, so this is a function of where the account IS and not of how it got
-  // there. If a route back to `unassigned` is ever added, the caption returns
-  // on its own; none exists today (frame 03b offers only the three filed
-  // groups, and unticking a checkbox clears the included flag while leaving
-  // the filing alone - see `toggleAccountPatch`).
-  //
-  // This puts the caption under the same condition as the two other things
-  // that belong to an unsorted account: the "Not sorted yet" group header and
-  // its "Sort this out" button, both of which `groupSection` already drops
-  // when the group empties. All three now appear and disappear together.
-  const captionApplies = account.captionKey
-    && (!account.captionWhileUnsorted || account.group === 'unassigned');
-  const caption = captionApplies ? content.accountCaptions[account.captionKey] : null;
+  // THE ELEMENT IS ALWAYS DRAWN, ITS VISIBILITY IS A PROPERTY (D142).
+  // `captionApplies` decides whether it shows, here and again in the property
+  // pass of `syncAccounts` - the same predicate in both places, so a caption
+  // cannot be drawn under one rule and updated under another. Rendering it
+  // conditionally instead would make its appearance a structural change, and
+  // `captionWhileCounted` turns over without any account moving group.
+  const caption = account.captionKey ? content.accountCaptions[account.captionKey] : null;
   const disabled = !account.movable;
   const selectLabel = content.accountSelectLabelTemplate.replace('{account}', account.name);
 
@@ -155,7 +169,7 @@ function accountRow(account, content) {
           </span>
         </button>
       </div>
-      ${caption ? `<p class="account-row__caption">${caption}</p>` : ''}
+      ${caption ? `<p class="account-row__caption" data-role="account-caption" data-account-id="${account.id}"${captionApplies(account) ? '' : ' hidden'}>${caption}</p>` : ''}
     </div>
   `;
 }
@@ -197,16 +211,16 @@ function groupSection(group, accounts, totals, content) {
  */
 function accountsView(state) {
   const accounts = effectiveAccounts(state.accountAssignments, state.accountIncluded);
-  const grouped = GROUP_ORDER.map((group) => ({
-    group,
-    accounts: accounts.filter((a) => a.group === group),
-  }));
+  const grouped = GROUP_ORDER.map((group) => {
+    const rows = accounts.filter((a) => a.group === group);
+    return { group, accounts: rows, signature: `${group}:${rows.map((a) => a.id).join(',')}` };
+  });
   return {
     accounts,
     grouped,
     totals: groupTotals(accounts),
     selection: depositSelection(accounts),
-    signature: grouped.map(({ group, accounts: rows }) => `${group}:${rows.map((a) => a.id).join(',')}`).join('|'),
+    signature: grouped.map((g) => g.signature).join('|'),
   };
 }
 
@@ -214,10 +228,84 @@ function countLabel(selection, c) {
   return `${selection.selected} ${c.selectedCountOf} ${selection.total} ${c.selectedCountSuffix}`;
 }
 
+/**
+ * One section per group, each in its own element carrying its own signature.
+ *
+ * THE WRAPPER IS WHAT MAKES A SECTION DIFFABLE. Before D142 the four sections
+ * were concatenated straight into the container, so there was no node that
+ * meant "the deposit group" - the only thing an update could replace was all
+ * four at once. The wrapper is layout-neutral: `.accounts-card` is a flex
+ * column with no `gap`, the sections inside sit in ordinary block flow, and
+ * every gap in this card is an explicit spacer div.
+ *
+ * An empty group emits NOTHING, not an empty wrapper, so a section the
+ * participant has emptied leaves the DOM completely.
+ */
 function groupsHTML(view, c) {
-  return view.grouped
-    .map(({ group, accounts: groupAccounts }) => groupSection(group, groupAccounts, view.totals, c))
-    .join('');
+  return view.grouped.map((g) => groupHTML(g, view.totals, c)).join('');
+}
+
+function groupHTML({ group, accounts: groupAccounts, signature }, totals, c) {
+  const inner = groupSection(group, groupAccounts, totals, c);
+  if (!inner) return '';
+  return `<div data-role="account-group" data-group="${group}" data-signature="${signature}">${inner}</div>`;
+}
+
+/**
+ * Brings the four group sections into line with `view`, replacing only the
+ * ones whose own membership moved.
+ *
+ * Walks GROUP_ORDER, which is the order the sections are drawn in, and for
+ * each group does exactly one of four things:
+ *   - membership unchanged: TOUCH NOTHING. This is the case that matters -
+ *     the sections above the one the participant acted on keep their nodes,
+ *     so nothing above the viewport is replaced.
+ *   - group emptied: remove the section.
+ *   - group newly non-empty: insert its section in GROUP_ORDER position.
+ *   - membership changed: replace that section's innerHTML alone.
+ *
+ * `nextSectionAfter` finds the first section that should follow the group
+ * being inserted, so a new section lands in GROUP_ORDER position without the
+ * container having to be rebuilt to reorder it.
+ */
+function syncGroupSections(groups, view, c) {
+  const byGroup = new Map(view.grouped.map((g) => [g.group, g]));
+
+  for (const group of GROUP_ORDER) {
+    const next = byGroup.get(group);
+    const node = groups.querySelector(`[data-role="account-group"][data-group="${group}"]`);
+    const inner = next ? groupSection(group, next.accounts, view.totals, c) : '';
+
+    if (!inner) {
+      if (node) node.remove();
+      continue;
+    }
+
+    if (!node) {
+      const section = document.createElement('div');
+      section.dataset.role = 'account-group';
+      section.dataset.group = group;
+      section.dataset.signature = next.signature;
+      section.innerHTML = inner;
+      groups.insertBefore(section, nextSectionAfter(groups, group));
+      continue;
+    }
+
+    if (node.dataset.signature !== next.signature) {
+      node.innerHTML = inner;
+      node.dataset.signature = next.signature;
+    }
+  }
+}
+
+/** The first section drawn after `group`, or null if it belongs at the end. */
+function nextSectionAfter(groups, group) {
+  const later = GROUP_ORDER.slice(GROUP_ORDER.indexOf(group) + 1);
+  for (const g of later) {
+    const node = groups.querySelector(`[data-role="account-group"][data-group="${g}"]`);
+    if (node) return node;
+  }
+  return null;
 }
 
 /**
@@ -231,11 +319,21 @@ function groupsHTML(view, c) {
  * nodes, so they are set directly; the element the participant is touching is
  * never replaced, so focus stays on it without anything having to restore it.
  *
- * Structural case: the tick moved an account between groups. Only the
- * `[data-role="account-groups"]` subtree is rebuilt — still not the scroller.
- * Focus is restored afterwards if it was inside that subtree, because the
- * element the participant tapped no longer exists. Handlers survive either
- * way: they are delegated from the card, not bound per row.
+ * Structural case: the tick moved an account between groups. ONLY THE
+ * SECTIONS WHOSE OWN MEMBERSHIP CHANGED are rebuilt (D142) — the others keep
+ * their nodes, so nothing above the viewport is replaced by an update that
+ * did not change it. Focus is restored only if the element holding it was in
+ * a section that was rebuilt or removed. Handlers survive either way: they
+ * are delegated from the card, not bound per row.
+ *
+ * WHAT THIS DOES NOT DO, DELIBERATELY. When filing the last unsorted account
+ * empties "Not sorted yet", that section is removed and everything below it
+ * moves up. That height change is the screen telling the truth about a
+ * section the participant has just emptied, and it is not suppressed. What
+ * D142 removes is the REPLACEMENT of sections that did not change, which was
+ * never anything the participant asked for. `scrollTop` is not read or
+ * written anywhere here: it never moved, and writing it back would encode a
+ * cause that was not the cause.
  */
 function syncAccounts(container, state, c) {
   const view = accountsView(state);
@@ -247,10 +345,15 @@ function syncAccounts(container, state, c) {
       ? { action: active.dataset.action, accountId: active.dataset.accountId }
       : null;
 
-    groups.innerHTML = groupsHTML(view, c);
+    syncGroupSections(groups, view, c);
     groups.dataset.signature = view.signature;
 
-    if (restore && restore.action) {
+    // ONLY IF THE FOCUSED ELEMENT ACTUALLY WENT. A section that was left
+    // alone still holds the element the participant is touching, and calling
+    // focus() on a live element that already has it would be a no-op at best
+    // and a scroll at worst. `isConnected` is the exact question - was this
+    // node removed from the document by the rebuild above.
+    if (restore && restore.action && active && !active.isConnected) {
       const selector = restore.accountId
         ? `[data-action="${restore.action}"][data-account-id="${restore.accountId}"]`
         : `[data-action="${restore.action}"]`;
@@ -268,9 +371,21 @@ function syncAccounts(container, state, c) {
   const count = container.querySelector('[data-role="selected-count"]');
   if (count) count.textContent = countLabel(view.selection, c);
 
+  // THE CAPTION IS A PROPERTY HERE, NOT A REBUILD TRIGGER (D142).
+  // `lifetimeIsaCaption` depends on whether the account is counted, which
+  // unticking changes without moving the account between groups - so the
+  // section signature does NOT move, and must not: rebuilding a section whose
+  // membership is unchanged is the thing D142 removes. The caption element is
+  // always in the DOM and its `hidden` is set here, exactly like the checkbox
+  // beside it. `.account-row__caption` sets no `display`, so the UA rule for
+  // `[hidden]` applies - see the note in components.css about author `display`
+  // beating it, which is why this was checked rather than assumed.
   for (const account of view.accounts) {
     const box = container.querySelector(`[data-action="toggle-account"][data-account-id="${account.id}"]`);
     if (box) box.checked = isSelectedForDeposit(account);
+
+    const caption = container.querySelector(`[data-role="account-caption"][data-account-id="${account.id}"]`);
+    if (caption) caption.hidden = !captionApplies(account);
   }
 
   for (const [group, total] of Object.entries({

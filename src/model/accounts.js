@@ -129,6 +129,16 @@ export const MOCK_ACCOUNTS = [
     balance: 2750,
     group: 'deposit',
     captionKey: 'lifetimeIsaCaption',
+    // A CAPTION THAT STATES A CONSEQUENCE ONLY HOLDS WHILE THE CONSEQUENCE
+    // DOES. This one opens "Mainly for buying a first home, so we've counted
+    // it", which contradicts the participant's own checkbox the moment they
+    // untick the account - on the screen where unticking is the whole task.
+    // So it renders only while the account is actually being counted, the
+    // same shape as `captionWhileUnsorted` above: a flag on the account,
+    // read by the one predicate in `consent.js` that decides whether a
+    // caption applies. No second string, and the string itself is unchanged
+    // (DECISIONS.md D142).
+    captionWhileCounted: true,
     movable: true,
   },
   {
