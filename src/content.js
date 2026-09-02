@@ -2023,6 +2023,22 @@ const content = {
       { value: 'not-yet', label: 'Not yet' },
     ],
     dataSourceHeader: 'Your data',
+    // AWAITING COPY. Frame 33's version-control block: a list of every deployed
+    // version, so a moderator can open an earlier one mid-session. Both strings
+    // are moderator-facing, not participant-facing, but they render on a live
+    // screen and are not written here rather than guessed.
+    //
+    // The supporting line has TWO things to carry that the control cannot show
+    // by itself: that opening one leaves this session behind and does not come
+    // back, and that an earlier version cannot return here because it was
+    // deployed before this block existed. Copy that implies a way back would be
+    // wrong on both counts.
+    //
+    // NO THIRD KEY marks which row is current. That row is the one rendered as
+    // plain text among links, and carries `aria-current`; a word for it would be
+    // a string this decision was not asked to write. See DECISIONS.md D139.
+    versionsHeader: '[AWAITING COPY]',
+    versionsBody: '[AWAITING COPY]',
     resetHeader: 'Reset',
     resetRowLabel: 'Clear all progress and start again',
     buildCaptionTemplate: 'Build {version}. Figures are illustrative throughout.',

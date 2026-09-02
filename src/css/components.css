@@ -3095,6 +3095,71 @@ button.milestone-row {
   font-weight: 600;
 }
 
+/* --- Prototype controls / version list (frame 33, DECISIONS.md D139) -------
+   EXPLICITLY NOT `.pill-segments`. The four controls above this block are
+   in-place toggles - set a key, re-render, session intact. These leave the
+   origin, which discards the session and cannot come back. Same affordance for
+   a different consequence is the defect being avoided, so the rows are typed as
+   links (`--color-label-secondary` + underline, the treatment `.info-link__label`
+   and `.media-placeholder__accessibility-link` already use) and carry no border,
+   fill or radius that could read as a pill.
+
+   The row is 48px because DESIGN.md rule 2 requires it of every control and
+   forbids shrinking one to fit a design; the text inside stays caption-sized,
+   the same relationship `.info-icon-button` documents. Rows are laid out
+   `space-between` so the version and its date sit at opposite edges and the
+   dates form a column, which is what makes the list scannable by date rather
+   than by position. No new token is introduced. --- */
+.version-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.version-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: var(--touch-target-min);
+  width: 100%;
+}
+
+.version-row__link {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  color: var(--color-label-secondary);
+  text-decoration: underline;
+}
+
+/* The version you are already on. A `<span>`, not a disabled link: there is
+   nowhere for it to go, and a disabled control invites a press that does
+   nothing. Weight and full-strength label colour carry the distinction where
+   the underline is absent, so it does not rely on colour alone. */
+.version-row__current {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--color-label);
+  text-decoration: none;
+}
+
+.version-row__date {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: var(--text-caption1-size);
+  line-height: var(--text-caption1-line);
+  font-weight: 400;
+  color: var(--color-label-tertiary);
+  text-align: right;
+}
+
 /* --- Prototype controls / footer build caption (frame 33) --- */
 .settings-footer {
   display: flex;

@@ -11599,3 +11599,98 @@ seven deployments tagged before this one.
 
 **To reverse.** Restore `[UNKNOWN]` to the `394565a` row, move v4 to v7 back down by one, and
 reopen G104. Nothing outside `docs/README.md` and `docs/GAPS.md` depends on the numbering.
+
+
+---
+
+## D139. Frame 33 lists every deployed version, as links rather than pills
+
+**Date.** 2 September 2026. `src/deployments.js` (new), `src/screens/settings.js`,
+`src/css/components.css`, two `[AWAITING COPY]` keys in `src/content.js`, `sw.js`. Copy outstanding.
+
+**Decision.** Frame 33 carries a version-control block: every deployment from `docs/README.md`'s
+deployment version log, newest first, each earlier one a link to its production Vercel URL and the
+running one a plain label. It is a research-instrument control, like Journey stage and Mortgage in
+Principle outcome, not part of the design under test.
+
+**Why.** A moderator who needs to show a participant how a screen looked two deployments ago has no
+route to it: a Vercel deployment URL contains a generated slug and is not discoverable from inside
+the running app. The log in `docs/README.md` already holds them, but a document on a laptop is not
+reachable mid-session on a phone.
+
+### Links, not pills, because the consequence is different
+
+The four controls above this block are in-place toggles - set a key, re-render, session intact.
+These leave the ORIGIN. `sessionStorage` does not cross origins, so opening an earlier version
+starts a fresh session and the current one is gone.
+
+Giving both the same pill affordance would promise the same consequence, and the moderator would
+learn which it was by losing a session in front of a participant. So the rows are typed as links,
+in the underline-and-secondary-label treatment `.info-link__label` and
+`.media-placeholder__accessibility-link` already use, with no border, fill or radius that could read
+as a pill. No new token was added.
+
+### There is no way back, and nothing pretends otherwise
+
+Every version below the current one was deployed before this block existed, so none of them can
+offer a return control. No copy implies one. The session is not transferred either: it cannot be,
+across origins, and the moderator knows it - a warning would be telling the operator of the
+instrument something they already understand.
+
+### The current row is a label, and carries no word saying so
+
+It is a `<span>`, not a disabled link: there is nowhere for it to go, and a disabled control invites
+a press that does nothing. It is distinguished by weight and full-strength label colour where the
+others are underlined and secondary, so the distinction does not rest on colour alone, and it
+carries `aria-current="page"` so a screen reader announces it rather than leaving the difference
+purely visual. **No third copy key names it.** This decision was asked for a heading and one
+supporting line, and a "current" marker would be a third string written on the way past.
+
+### How "current" is derived, and why it is not a constant
+
+`version` (v1, v2) and the build stamp (v15, v121) are two different sequences: the second moves
+several times between deployments. The running code therefore cannot name its own deployment version
+unaided, and the obvious fix - a `CURRENT_VERSION` constant - is a second thing to update per merge
+and so a second thing to forget, which is the failure mode `GAPS.md` G111 and D91 both record in
+other forms.
+
+Instead each row records the build stamp that deployment shipped, read from `src/cache-version.js`
+at the commit `main` pointed at, and `currentDeployment()` matches it against the running
+`BUILD_VERSION` - a value an existing rule already bumps on every deploy. One update per merge, and
+the match falls out of something that had to change anyway. **This is the standing rule about naming
+a reference:** the row does not measure itself against an invisible "latest", it states the stamp it
+shipped with and compares against the stamp compiled into the running module.
+
+`null` is a real result, not a defensive branch. A build served from `python -m http.server`, or one
+whose row has not been written yet, matches nothing and renders every version as a link - which is
+correct, because none of them is the one you are on. **This build is in that state:** v122 is the
+stamp, and the row that will carry it is v8, written when this merges.
+
+### Two data facts recorded as they are rather than corrected
+
+**v2 and v3 both ship `v45`.** v3's commit bumped `sw.js` to v46 without bumping
+`src/cache-version.js` beside it - the paired-edit rule in `docs/README.md`, missed on 28 August
+2026. It is recorded as it shipped, because this list says what ran and not what should have.
+`find()` would resolve a v45 build to v2, but no build stamped v45 contains this module - the
+feature did not exist for another 76 builds - so the ambiguity is unreachable.
+
+**v1 has no `BUILD_VERSION` at all**, because `src/cache-version.js` did not exist yet. Its `sw.js`
+stamp (v15) is recorded so the row is not silently blank, and it can never match for the same
+reason.
+
+### A row with no URL is never a link
+
+A version's row is written as part of its own merge, before the push, but the deployment URL does
+not exist until after it. So the newest row carries `url: null` until someone fills it in, and that
+row is also the current one, which needs no URL because it renders as a label. The template treats a
+missing URL as non-interactive regardless of the match, so the failure it cannot have -
+`href="null"`, a link that looks live and 404s mid-session - is not reachable.
+
+**Copy outstanding.** `content['/settings'].versionsHeader` and `.versionsBody`, both
+`[AWAITING COPY]` and rendering literally on a live screen. The supporting line has two things to
+carry that the control cannot show by itself: that opening a version leaves this session behind,
+and that it does not come back.
+
+**To reverse.** Delete `src/deployments.js`, its import and the card in `settings.js`, the
+`.version-list` block in `components.css`, the two content keys and the `SHELL_ASSETS` entry. Nothing
+else reads any of them.

@@ -55,6 +55,7 @@
  */
 import { appBarHTML, bindAppBarLeading, pillSegmentsHTML, rerenderInPlace } from '../components/ui.js';
 import { BUILD_VERSION, SHELL_CACHE_PREFIX } from '../cache-version.js';
+import { DEPLOYMENTS, currentDeployment } from '../deployments.js';
 import { formatFullDate } from '../format.js';
 import { applyScenarioClasses } from '../router.js';
 import { stagePatch } from '../stage.js';
@@ -96,6 +97,44 @@ async function readCachedVersions() {
   }
 }
 
+/**
+ * The version-control block's rows, newest first.
+ *
+ * DELIBERATELY NOT `pillSegmentsHTML`. The four controls above it are in-place
+ * toggles: they set a key, re-render, and the session survives. These navigate
+ * to another ORIGIN, which discards the session and cannot come back. Giving the
+ * two the same pill affordance would promise the same consequence, and the
+ * moderator would find out which it was by losing a session mid-interview. They
+ * are links, and they look like the app's other links. See DECISIONS.md D139.
+ *
+ * The current version is a `<span>`, not a disabled link: there is nowhere for
+ * it to go, and a disabled control invites a press that does nothing. It carries
+ * `aria-current="page"` so it is announced as the one you are on rather than
+ * being distinguished only by not being underlined.
+ */
+function versionListHTML(current) {
+  const rows = [...DEPLOYMENTS].reverse().map((entry) => {
+    const date = formatFullDate(entry.date);
+    // A ROW WITH NO URL IS NEVER A LINK. The row for a version is written as
+    // part of its own merge, before the push, but the deployment URL does not
+    // exist until after it - so the newest row carries `url: null` until someone
+    // fills it in. That row is also the current one, which needs no URL because
+    // it renders as a label. `href="null"` is the failure this prevents: a link
+    // that looks live and navigates to a 404 mid-session.
+    const isCurrent = Boolean(current) && entry.version === current.version;
+    const cell = isCurrent || !entry.url
+      ? `<span class="version-row__current"${isCurrent ? ' aria-current="page"' : ''}>${entry.version}</span>`
+      : `<a class="version-row__link" href="${entry.url}">${entry.version}</a>`;
+    return `
+      <li class="version-row">
+        ${cell}
+        <span class="version-row__date">${date}</span>
+      </li>
+    `;
+  });
+  return `<ul class="version-list">${rows.join('')}</ul>`;
+}
+
 function controlHTML({ label, options, selected, action }) {
   return `
     <div class="settings-control">
@@ -121,6 +160,14 @@ export function render(container, ctx) {
   // has to reapply it itself for the change to show immediately rather
   // than on the next navigation.
   applyScenarioClasses(container, state);
+
+  // WHICH DEPLOYMENT IS RUNNING, derived rather than declared. `BUILD_VERSION`
+  // is already bumped on every deploy by an existing rule, so matching it
+  // against each row's shipped stamp leaves ONE thing to update per merge - the
+  // new row - instead of a second constant that can silently fall behind it.
+  // `null` when nothing matches (a local server, or a row not yet written),
+  // which renders every version as a link. See src/deployments.js.
+  const current = currentDeployment(BUILD_VERSION);
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
@@ -151,6 +198,12 @@ export function render(container, ctx) {
           <span class="list-row__label">${c.resetRowLabel}</span>
           ${chevronRight({ size: 'body', className: 'list-row__chevron' })}
         </button>
+      </div>
+
+      <div class="card card--muted settings-card">
+        <p class="settings-card__header">${c.versionsHeader}</p>
+        <p class="settings-control__label">${c.versionsBody}</p>
+        ${versionListHTML(current)}
       </div>
 
       <div class="settings-footer" data-role="settings-footer">
