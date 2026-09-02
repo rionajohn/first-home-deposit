@@ -39,13 +39,13 @@ have seen.
 
 | Version | Date | Commit | Deployment reason | Vercel Link |
 |---|---|---|---|---|
-| v1 | 2026-08-21 | `7f0f4cc` | Based on what was in the Figma screens (linked to a specific stated flow) |  |
-| v2 | 2026-08-28 | `ce2b482` | Adding insight pages to add Mortgage in Principle flow |  |
-| v3 | 2026-08-28 | `394565a` | Seed the opening session at £650,000 so it meets the Lifetime ISA cap |  |
-| v4 | 2026-08-30 | `4a627bc` | Going through usability testing protocol to see what fixes were needed |  |
+| v1 | 2026-08-21 | `7f0f4cc` | Based on what was in the Figma screens (linked to a specific stated flow) | first-home-deposit-ux-prototype-fmti3zzae-riona-john.vercel.app |
+| v2 | 2026-08-28 | `ce2b482` | Adding insight pages to add Mortgage in Principle flow | first-home-deposit-ux-prototype-bawbmx7qg-riona-john.vercel.app |
+| v3 | 2026-08-28 | `394565a` | Seed the opening session at £650,000 so it meets the Lifetime ISA cap | first-home-deposit-ux-prototype-qzbfiocgy-riona-john.vercel.app |
+| v4 | 2026-08-30 | `4a627bc` | Going through usability testing protocol to see what fixes were needed | first-home-deposit-ux-prototype-7uto5ow4e-riona-john.vercel.app |
 | v5 | 2026-08-31 | `3b11d8f` | Allowing the deposit goal to take in extra costs such as stamp duty, and allowing the deposit result page to be clearer rather than showing a range based on the deposit percentage saved towards | first-home-deposit-ux-prototype-di1meg30f-riona-john.vercel.app |
-| v6 | 2026-09-01 | `2fb6667` | Pilot feedback changes: Scaling in different screens when on desktop, copy on the screen where a participant will decide how to save for their deposit, and the results for the deposit page - improving the chart to show a better comparison over the years |  |
-| v7 | 2026-09-01 | `c92e064` | Reserve the browser toolbar's space so the tab bar stays reachable on iPhone Safari during phone-based usability sessions |  |
+| v6 | 2026-09-01 | `2fb6667` | Pilot feedback changes: Scaling in different screens when on desktop, copy on the screen where a participant will decide how to save for their deposit, and the results for the deposit page - improving the chart to show a better comparison over the years | first-home-deposit-ux-prototype-qz5gnoxco-riona-john.vercel.app |
+| v7 | 2026-09-01 | `c92e064` | Reserve the browser toolbar's space so the tab bar stays reachable on iPhone Safari during phone-based usability sessions | first-home-deposit-ux-prototype-99qnniq61-riona-john.vercel.app |
 
 **Commit** is the commit `main` points at after the merge. A commit cannot contain its own SHA, so
 from v6 on the cell names the last content commit of the version and the log row sits one commit
