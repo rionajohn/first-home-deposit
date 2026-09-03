@@ -46,7 +46,7 @@ have seen.
 | v5 | 2026-08-31 | `3b11d8f` | Allowing the deposit goal to take in extra costs such as stamp duty, and allowing the deposit result page to be clearer rather than showing a range based on the deposit percentage saved towards | first-home-deposit-ux-prototype-di1meg30f-riona-john.vercel.app |
 | v6 | 2026-09-01 | `2fb6667` | Pilot feedback changes: Scaling in different screens when on desktop, copy on the screen where a participant will decide how to save for their deposit, and the results for the deposit page - improving the chart to show a better comparison over the years | first-home-deposit-ux-prototype-qz5gnoxco-riona-john.vercel.app |
 | v7 | 2026-09-01 | `c92e064` | Reserve the browser toolbar's space so the tab bar stays reachable on iPhone Safari during phone-based usability sessions | first-home-deposit-ux-prototype-99qnniq61-riona-john.vercel.app |
-| v8 | 2026-09-03 | `6ae4259` | The deposit breakdown now lists only the accounts its total counts, on both the results card and the sources sheet, and the accounts screen no longer contradicts the participant's own selection | pending |
+| v8 | 2026-09-03 | `6ae4259` | The deposit breakdown now lists only the accounts its total counts, on both the results card and the sources sheet, and the accounts screen no longer contradicts the participant's own selection | first-home-deposit-ux-prototype-gwr476cgw-riona-john.vercel.app |
 
 **Commit** is the commit `main` points at after the merge. A commit cannot contain its own SHA, so
 from v6 on the cell names the last content commit of the version and the log row sits one commit
