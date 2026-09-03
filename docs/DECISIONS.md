@@ -12059,3 +12059,80 @@ the tracked row -179px, `scrollHeight` 1727 -> 1548. That is D142's anchoring-di
 
 **To reverse.** Delete the CSS block and the modifier class from `consent.js`. Chrome returns to
 compensating, Safari does not, and the two diverge again.
+
+---
+
+## D144. The deployed commit is read at merge time, not counted back from the log, and the deployment URL is captured with it
+
+**Date.** 3 September 2026. A further dated amendment to **D91**, as already amended by **D138**.
+Neither is rewritten: both stand as their own dated record of what was decided when. Changes the
+merge procedure and the table note in `docs/README.md`, and adds one standing rule to `CLAUDE.md`.
+**Documentation and governance only - no prototype code, no `CACHE_VERSION` bump.**
+
+**Decision, in two parts.**
+
+1. The deployed commit is read with `git rev-parse --short main` immediately after the merge and
+   written into the Commit cell. It is never derived afterwards by counting commits from that cell.
+2. The deployment URL is looked up from that commit's full SHA once Vercel has finished, and filled
+   in as a second, documentation-only commit **in the same session as the merge**.
+
+### The offset is not fixed, and the note under the table said it was
+
+D91 established that the Commit cell names the last content commit of the version, because a commit
+cannot contain its own SHA. D138 restated it. The note under the table then went further and said
+the log row "sits one commit above it" - which was true of the merges that existed when it was
+written, and is not a property of anything.
+
+Measured across every version:
+
+| Version | Commit cell | Commit `main` pointed at | Offset |
+|---|---|---|---|
+| v1 - v5 | the deployed commit itself | same | **0** |
+| v6 | `2fb6667` | `90e3b60` | **1** |
+| v7 | `c92e064` | `518ac22` | **2** |
+| v8 | `6ae4259` | `2ad1f2a` | **1** |
+
+v7's merge carried two commits above the content commit, not one: `a4ad281` ("readme") and then the
+log row itself. Nothing prevents a merge carrying five. The offset is a function of what happened to
+be on `build` that day, so any procedure that reconstructs the deployed commit by counting back from
+the Commit cell is reading a number that was never a rule.
+
+**This was not hypothetical.** The v7 lookup had to be done by hand against the reflog, and a
+retrospective fill is exactly the operation D91 exists to prevent elsewhere: a log kept up after the
+fact is as useless as no log during the window it is behind. The same argument applies to the
+deployment URL, which had been filled in a later, separate pass (`f0300fb`).
+
+### The value is knowable at merge time, so it is captured then
+
+After `git merge build`, `main` points at the deployed commit by definition. `git rev-parse` reads
+it directly. There is no inference, no offset and nothing to reconstruct later.
+
+The URL cannot go in the same commit - the deployment does not exist until after the push - so it is
+a second commit. **That is a sequencing constraint, not licence to defer it.** Both commits belong
+to the same deployment and both are written before the session ends. A row with an empty Vercel Link
+cell is an incomplete merge, which is why the rule is stated in `CLAUDE.md` rather than only in the
+procedure.
+
+### The lookup, and two ways it lies
+
+    vercel ls -m githubCommitSha=$(git rev-parse main)
+
+**The full 40-character SHA is required**, hence `git rev-parse` rather than `--short`. The metadata
+filter matches the stored value exactly and a 7-character prefix matches nothing.
+
+**An all-zero SHA is coerced to empty and returns every deployment rather than none.** So a query
+that comes back with the full list has had its filter dropped - it is not a result, and taking the
+top row from it would record a URL belonging to some other deployment. A query returning nothing
+means the build has not finished or has failed: wait and retry rather than substituting a nearby
+deployment. More than one production deployment for the same SHA means something has been deployed
+twice and should be reported rather than guessed at.
+
+**A known precondition.** This lookup returns nothing at all while the project has no connected Git
+repository, because CLI deployments carry no `githubCommitSha` - every deployment to date has empty
+`meta` and null `source`. Connecting the repository is a separate decision that has not been taken;
+until it is, the URL is read from the `vercel deploy` output at deploy time and the procedure's
+step 9 is the form to use once it is.
+
+**Not reversed.** D91's substance is untouched: the row is still written with the merge, the reason
+is still Riona's and never inferred, and documentation-only merges still take no version number.
+What changes is how two of the row's cells get their values.

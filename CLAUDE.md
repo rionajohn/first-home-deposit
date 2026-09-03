@@ -93,6 +93,13 @@ do not introduce a state management library.
 - The deployment reason is written by Riona and supplied with the merge request. If no reason has
   been supplied, stop and ask for one. Do not merge with an invented or inferred description, and
   do not summarise the commit log into one.
+- **Every version log row is complete before the session ends** - version, date, reason, commit and
+  deployment URL. A row with an empty Vercel Link cell is an incomplete merge, not a deferred task.
+  The URL is a second commit only because the deployment does not exist until after the push; that
+  is a sequencing constraint, not permission to leave it for next time.
+- The deployed commit is read with `git rev-parse --short main` immediately after the merge. Never
+  count it back from the Commit cell - the offset between the two is not fixed and has already been
+  0, 1 and 2. See docs/DECISIONS.md D144 and the deploy procedure in docs/README.md.
 - A merge touching only documentation or governance files, with no change to prototype code or
   copy, does not take a version number. Version numbers denote states of the prototype that a
   participant could have seen.

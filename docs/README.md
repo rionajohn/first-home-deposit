@@ -48,11 +48,19 @@ have seen.
 | v7 | 2026-09-01 | `c92e064` | Reserve the browser toolbar's space so the tab bar stays reachable on iPhone Safari during phone-based usability sessions | first-home-deposit-ux-prototype-99qnniq61-riona-john.vercel.app |
 | v8 | 2026-09-03 | `6ae4259` | The deposit breakdown now lists only the accounts its total counts, on both the results card and the sources sheet, and the accounts screen no longer contradicts the participant's own selection | first-home-deposit-ux-prototype-gwr476cgw-riona-john.vercel.app |
 
-**Commit** is the commit `main` points at after the merge. A commit cannot contain its own SHA, so
-from v6 on the cell names the last content commit of the version and the log row sits one commit
-above it. The two coincide for v1 to v5, which were merged before this log existed. See
-`DECISIONS.md` D91 for the convention and D138 for the renumbering that moved this boundary from
-v5 to v6 when `394565a` took v3.
+**Commit** names the last content commit of the version. A commit cannot contain its own SHA, so
+from v6 on it is not the commit `main` ended up pointing at; for v1 to v5, merged before this log
+existed, the two coincide.
+
+**The gap between the two is not fixed, and must never be counted.** It has been 0 (v1-v5), 1 (v6,
+v8) and 2 (v7), because it depends on what else was on `build` at the time. The deployed commit is
+read with `git rev-parse --short main` at merge time and written straight into the cell - see the
+deploy procedure below. An earlier version of this note said the log row "sits one commit above"
+the cell, which was true of the merges that existed when it was written and was never a rule.
+
+See `DECISIONS.md` D91 for the convention, D138 for the renumbering that moved the v1-v5 boundary
+when `394565a` took v3, and **D144** for the correction to the offset and for capturing the
+deployment URL with the merge.
 
 ### Where these dates and commits come from
 
@@ -219,16 +227,51 @@ Anything committed to `main` by accident should be moved to `build` rather than 
 
 1. Get the deployment reason from Riona. Without one, stop here and ask. Do not infer it from
    the commits.
-2. Add the row to the deployment version log above, on `build`, and commit it. Commit and push
-   everything on `build`, and confirm `git status` is clean.
-3. `git checkout main`, then `git merge build`.
-4. Fill the row's Commit cell from `git rev-parse --short main`, on `build`, and merge it
-   forward. This happens before the push, not after it.
-5. Tag before pushing. Every build a participant sees gets a tag, so the session can be traced to
-   a commit.
-6. `git push origin main --tags`.
-7. `git checkout build` to carry on working. **Do not leave the working copy on `main`** - the next
-   session will otherwise commit to it without noticing.
+2. Add the row to the deployment version log above, on `build`: version, date and reason. **Leave
+   the Commit and Vercel Link cells empty** - neither value exists yet. Commit.
+3. Confirm `git status` is clean, then push `build`.
+4. `git checkout main`, then `git merge build`.
+5. Record the deployed commit:
+
+   ```bash
+   git rev-parse --short main
+   ```
+
+   This is the commit `main` points at after the merge, read directly. **Never count it back from
+   the Commit cell.** The offset between the two is not fixed - it has been 0, 1 and 2 across the
+   versions logged so far, because it depends on what happened to be on `build` that day. See
+   `DECISIONS.md` D144.
+6. Fill the row's Commit cell with that value, on `build`, and merge it forward.
+7. Tag. Every build a participant sees gets a tag, so the session can be traced to a commit.
+8. `git push origin main --tags`.
+9. Wait for Vercel to finish, then look up the deployment URL:
+
+   ```bash
+   vercel ls -m githubCommitSha=$(git rev-parse main)
+   ```
+
+   Take the **production** deployment.
+
+   - The filter needs the **full 40-character SHA**, which is why this is `git rev-parse` and not
+     `--short`. A 7-character prefix matches nothing.
+   - An all-zero SHA is **coerced to empty and returns every deployment** rather than none. So a
+     query that comes back with the full list has had its filter dropped - that is not a result,
+     and taking a row from it would record someone else's deployment.
+   - Nothing returned means the build has not finished, or has failed. **Wait and retry rather
+     than substituting a nearby deployment.**
+   - More than one production deployment for the same SHA: stop and report.
+
+   This query returns nothing while the Vercel project has no connected Git repository, because
+   CLI deployments carry no `githubCommitSha`. Until that is connected, read the URL from the
+   `vercel deploy` output instead.
+10. Fill the row's Vercel Link cell, on `build`, and commit. **Documentation only - no
+    `CACHE_VERSION` bump**, since nothing a participant sees has changed.
+11. `git checkout build` to carry on working. **Do not leave the working copy on `main`** - the next
+    session will otherwise commit to it without noticing.
+
+Steps 2 and 10 are two commits because the deployment does not exist until after the push. **They
+belong to the same deployment and both are written in the same session.** A row left with an empty
+Vercel Link cell is an incomplete merge, not a task for next time.
 
 Vercel deploys `main` automatically. The production URL is `first-home-feature.vercel.app` and a
 static build takes under a minute.
