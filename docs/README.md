@@ -48,6 +48,10 @@ have seen.
 | v7 | 2026-09-01 | `c92e064` | Reserve the browser toolbar's space so the tab bar stays reachable on iPhone Safari during phone-based usability sessions | first-home-deposit-ux-prototype-99qnniq61-riona-john.vercel.app |
 | v8 | 2026-09-03 | `6ae4259` | The deposit breakdown now lists only the accounts its total counts, on both the results card and the sources sheet, and the accounts screen no longer contradicts the participant's own selection | first-home-deposit-ux-prototype-gwr476cgw-riona-john.vercel.app |
 
+A production deployment that changes only documentation or governance files carries no
+version number, so Vercel's deployment history holds more deployments than this table holds
+rows. The most recent numbered version remains the current state of the prototype.
+
 **Commit** names the last content commit of the version. A commit cannot contain its own SHA, so
 from v6 on it is not the commit `main` ended up pointing at; for v1 to v5, merged before this log
 existed, the two coincide.
