@@ -59,6 +59,7 @@ export const DEPLOYMENTS = [
   { version: 'v5', date: '2026-08-31', build: 'v99', url: 'https://first-home-deposit-ux-prototype-di1meg30f-riona-john.vercel.app' },
   { version: 'v6', date: '2026-09-01', build: 'v120', url: 'https://first-home-deposit-ux-prototype-qz5gnoxco-riona-john.vercel.app' },
   { version: 'v7', date: '2026-09-01', build: 'v121', url: 'https://first-home-deposit-ux-prototype-99qnniq61-riona-john.vercel.app' },
+  { version: 'v8', date: '2026-09-03', build: 'v124', url: null },
 ];
 
 /**
