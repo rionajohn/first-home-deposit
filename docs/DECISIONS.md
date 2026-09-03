@@ -12136,3 +12136,137 @@ step 9 is the form to use once it is.
 **Not reversed.** D91's substance is untouched: the row is still written with the merge, the reason
 is still Riona's and never inferred, and documentation-only merges still take no version number.
 What changes is how two of the row's cells get their values.
+
+---
+
+## D145. The hidden checkbox input is positioned against its own row, so the phone screen stops scrolling itself
+
+**Date.** 3 September 2026. One CSS rule in `src/css/components.css`. **No copy, no figure, no
+route, no JavaScript, and no change to what any screen draws.** Closes the desktop report against
+v8 that frame 03 "moves the screen on deselect".
+
+**Decision.** `label:has(> .checkbox-row__input) { position: relative; }`, so the row that holds
+the hidden input is the input's containing block.
+
+### The cause, in words
+
+`.checkbox-row__input` is the real `<input type="checkbox">`, visually hidden but kept in the
+accessibility tree and kept focusable (see the note above it). It is `position: absolute` with no
+insets, so it is drawn at its static position - the place it would have occupied in flow - but
+resolved INSIDE ITS CONTAINING BLOCK. Nothing between it and `#app.screen` was positioned: the two
+labels that hold it, `.checkbox-row` and `.account-row__select`, were both `position: static`, and
+`.screen` is `position: relative` so `.sheet-overlay` can resolve `inset: 0` against it. So the
+containing block was the phone screen itself.
+
+**An absolutely positioned box whose containing block sits outside the scroller does not move when
+the scroller scrolls.** Measured on production over a real 540px wheel, every visible label moved
+-540 and every input moved 0.0. The participant saw the Lifetime ISA row at the middle of the
+screen; the thing a click would actually focus was still at the position that row held before any
+scrolling, 563px lower.
+
+Two of those stranded inputs sat past the bottom of `.screen`'s 852px box - the bottom-most ended
+at 993 - and that is what gave `.screen` a `scrollHeight` of 993 against a `clientHeight` of 852.
+**An `overflow: hidden` element with 141px of scroll range.** Clicking a label focused a target
+outside the box, Blink scrolled it into view through every scroll container including that one, and
+the entire phone - app bar, content, action bar, tab bar together - slid up 141px inside the bezel.
+At the frame's 1.5 scale that is 211px on screen. Because the element is `overflow: hidden` with
+hidden scrollbars, no gesture put it back: measured, wheeling `.screen-content` to the end and back
+to 0 left `.screen` at 140.8 for the rest of the visit.
+
+It fired once per visit rather than once per tick, which is why the report described the first
+deselect moving the screen and the ones after it doing nothing: the first focus took `.screen` to
+its maximum, and nothing after it needed to scroll. It was never about which account was unticked -
+it fired on the Cash ISA too, which has no caption and changes no DOM at all.
+
+### It was Blink-only, and that is the second time the same split has appeared
+
+Reproduced identically in Chromium 151 and in installed Edge 152, at 1512x945, at 393x852, and at
+1280x720 - where it was worse, `body` scrolling 160px as well for a 300px jump that took the top of
+the phone off the window. **WebKit does not reproduce it**, with the same stranded inputs and the
+same 143px of range, because WebKit does not scroll `overflow: hidden` containers to reveal focus
+and does not focus a checkbox on a mouse click at all.
+
+So every participant on Chrome or Edge was getting a phone that jumped and stayed jumped, and every
+participant on an iPhone was not - a difference in what a tap does to the screen, invisible in the
+transcript, in a study whose measure is what participants notice. That is exactly the confound
+**D143** was written to remove, arriving by a different route.
+
+### Why the containing block and not the scroller
+
+The defect is that a focus target was in the wrong place. `.screen` scrolling to reveal something
+outside its box is correct behaviour on the browser's part; the participant needing that scroll is
+the fault. **The target is that `#app.screen` has no scroll range at all, not that its scrolling is
+suppressed.** Measured after the change: `scrollHeight` equals `clientHeight`, 852/852, on every
+one of the 31 registered routes.
+
+Three alternatives were available and every one of them treats the symptom:
+
+- `overflow-anchor: none` on `#app.screen`. It is not anchoring. The instrumented ordering puts the
+  scroll between `mousedown` and `focusin`, before any DOM mutation, so anchoring is not involved
+  and turning it off would change nothing.
+- Clamping or resetting `#app.screen.scrollTop`. That writes a number to cancel a number, leaves
+  the input in the wrong place for anything else that reads a position, and encodes a cause that is
+  not the cause - the same objection D142 records against writing `scrollTop` in `syncAccounts`.
+- `overflow: clip` on `.screen`, which removes the scroll range by removing the scroll box. It
+  would work, and it would leave a focusable control still sitting hundreds of pixels from the row
+  it belongs to, waiting for the next thing that reads a position.
+
+### Why `:has()` rather than the two class names
+
+There are exactly two rows holding this input today, `.checkbox-row` and `.account-row__select`,
+and both were identified in the DOM rather than assumed from the class name. Naming them both in a
+selector would work now and would silently omit the third one somebody adds later - which is the
+failure this defect already is. `:has(> .checkbox-row__input)` states the actual rule: whatever
+element holds this input is what it is positioned against. `label` is the contract already stated
+above `checkboxRow()` in `consent.js` - a real checkbox inside a real label, so the whole row is
+the target - so the selector is scoped to labels rather than left universal.
+
+`position: relative` with `z-index: auto` establishes a containing block **without** a stacking
+context. The static position is unchanged, which is why nothing moves: the input was always drawn
+where the box is, and what changed is only which element that position is measured from.
+
+### Verified
+
+Headed Chromium, WebKit and Edge against a local preview of `build`, driven as a participant does -
+a real wheel over the phone and real clicks at each row's own coordinates, no
+`scrollIntoViewIfNeeded` and no writes to `scrollTop`. 64 assertions per run at 1512x945, 393x852
+and 1280x720:
+
+- `#app.screen` is 852/852 on `/consent` and `/consent/move-account`, and stays 852/852 after the
+  wheel.
+- From `.screen-content` 540, unticking the Lifetime ISA, House pot, Instant saver and Cash ISA in
+  turn: `#app.screen` stays at 0, `.screen-content` stays at 540, the page scroller stays at 0 and
+  `#app-frame` does not move.
+- **D142's shift is unchanged**, which is the point of measuring layout position separately from
+  screen position: unticking the Lifetime ISA still moves everything below that row -40px and
+  nothing above it, and re-ticking brings the caption and the 40px back.
+- The checkbox still takes focus on a label click, Tab still reaches it, `:focus-visible` still
+  matches, the focus ring still draws on the box beside it in `--color-accent-neutral`, and Space
+  still toggles it - with `#app.screen` at 0 throughout.
+- WebKit leaves `document.activeElement` on `body` after a mouse click on a checkbox label. That is
+  WebKit's own convention, confirmed byte-identical against production before the change, and the
+  control still toggles. Keyboard focus, ring and Space all hold there.
+
+All suites re-run: 0 failures. The one skip is `inline-edit`'s pre-existing GAPS.md G91.
+
+### Two more of the same shape, reported and deliberately not fixed here
+
+The same scan across all 31 routes found two other elements resolving their containing block to
+`#app.screen`, both `.visually-hidden` (`components.css`), which is the same `position: absolute`
+with no insets:
+
+- `span.visually-hidden` inside frame 09's property field, `/calculator/property`.
+- `#chart-view-legend.visually-hidden` on `/calculator/result`.
+
+Neither is focusable, neither contains a focusable, and neither currently lands outside `.screen`'s
+box, so neither creates scroll range today - every route measures 852/852. They are the same latent
+shape and they are left alone deliberately: nothing is fixed here on evidence that has not been
+gathered, and a change to `.visually-hidden` reaches every screen that uses it. Recorded so the
+next person meets them as a known item rather than a discovery.
+
+`.sheet-overlay` also resolves against `.screen`, and that one is correct and intended - shell.css
+documents it, and its `inset: 0` makes it exactly the screen box by design.
+
+**To reverse.** Delete the rule. The inputs strand themselves against `#app.screen` again, frame 03
+regains 141px of hidden scroll range, and the first deselect after a scroll moves the phone up by
+it on Blink and not on WebKit.

@@ -869,13 +869,44 @@
   justify-content: center;
 }
 
+/* --- The row the hidden input is positioned against. DECISIONS.md D145. ---
+   `.checkbox-row__input` below is `position: absolute` with no insets, so it
+   is placed at its static position INSIDE ITS CONTAINING BLOCK - and an
+   absolutely positioned box whose containing block sits outside the scroller
+   does not move when the scroller scrolls. With no positioned ancestor
+   between it and `#app.screen` (which is `position: relative` for the sheet
+   overlay), the containing block was the phone screen itself: the visible
+   label moved with `.screen-content` and the focusable 1px input stayed
+   pinned where the row had been at `scrollTop` 0. On frame 03 that stranded
+   two inputs past the bottom of `.screen`'s 852px box, which is what gave an
+   `overflow: hidden` element 141px of scroll range; clicking a label then
+   focused a target outside the box and Blink scrolled the whole phone up by
+   it, irrecoverably. See D145 for the measurements.
+
+   `:has(> ...)` rather than the two class names, because the defect is a
+   missing containing block on WHATEVER element holds the input, and a third
+   checkbox row added later would inherit the same fault from a list that had
+   not been updated. `label` is the contract already documented above
+   `checkboxRow()` in `consent.js`: a real checkbox inside a real label, so
+   the whole row is the target. Nothing else changes - `position: relative`
+   with `z-index: auto` establishes a containing block without a stacking
+   context, the static position is exactly where the box already draws, and
+   the two labels overlap no sibling for the paint order to matter. */
+label:has(> .checkbox-row__input) {
+  position: relative;
+}
+
 /* --- The native control ---
    Visually hidden, deliberately NOT `display: none` or `visibility: hidden`:
    either would take it out of the accessibility tree, and this input is the
    thing a screen reader reads. It is also what carries `indeterminate`, which
    exists only as a DOM property — there is no attribute and no ARIA state on
    a button that a browser will announce as reliably. Kept focusable, with its
-   focus ring drawn on the box beside it. */
+   focus ring drawn on the box beside it.
+
+   `position: absolute` is load-bearing and stays: it is what keeps the 1px
+   box out of the row's flex flow. What it needed was a containing block on
+   the row, which the rule above supplies. */
 .checkbox-row__input {
   position: absolute;
   width: 1px;
