@@ -411,7 +411,7 @@ export function render(container, ctx) {
 
   container.innerHTML = `
     ${appBarHTML({ title: c.appBarTitle, left: 'back', appBarLabels: content.shared.appBar })}
-    <main class="screen-content" role="main">
+    <main class="screen-content screen-content--no-scroll-anchor" role="main">
       <h2 class="screen-title">${c.headline}</h2>
       <p class="entry-card__body">${c.subhead}</p>
 

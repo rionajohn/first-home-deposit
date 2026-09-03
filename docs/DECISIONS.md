@@ -12000,3 +12000,62 @@ rather than assumed - `components.css` carries a note about an author `display` 
 **To reverse.** Restore the single card-level signature and the whole-subtree `innerHTML`, drop the
 wrappers, `syncGroupSections`, `nextSectionAfter`, `captionApplies` and the `captionWhileCounted`
 flag, and render the caption unconditionally.
+
+---
+
+## D143. Scroll anchoring is turned off on frame 03's scroller, so the same tap moves the screen the same way on every device
+
+**Date.** 3 September 2026. One CSS block in `src/css/components.css`, one class on one element in
+`src/screens/consent.js`. Closes the open question D142 left. **No copy, no figure, no route, and
+no JavaScript behaviour changed.**
+
+**Decision.** `.screen-content--no-scroll-anchor { overflow-anchor: none; }`, applied by
+`consent.js` to frame 03's scroll container and to nothing else.
+
+### The reason is cross-device comparability, not the shift itself
+
+D142 removed the unnecessary replacement of unchanged group sections, which let Chrome's default
+scroll anchoring engage for the first time - before that, the subtree it would have anchored to was
+destroyed on every update. Chrome then overcompensated, adjusting 280px where the content above had
+shrunk by 179.
+
+**Safari does not implement scroll anchoring at all.** Every participant on an iPhone was already
+getting the anchoring-off behaviour, and always had been. So after D142 the same tap moved the
+screen 179px one way on iOS and 101px the other way in Chrome.
+
+This prototype is an instrument in a moderated study whose measure is what participants notice. A
+gesture that moves the screen by different amounts in opposite directions depending on which device
+a session happened to be run on is a confound in exactly the thing being measured, and it would be
+invisible in the transcript - two participants describing different experiences of the same tap,
+with nothing in the record to say why. The anchoring-off behaviour is made the behaviour everywhere
+because it is the one the majority of sessions already had, and because it is the one that is the
+same on every engine.
+
+### What this is not
+
+**It is not a fix for the 179px shift, which stays, per D142.** A section the participant has just
+emptied should disappear and the content below it should move up. What is removed here is the
+browser silently disagreeing with itself about by how much.
+
+**It is not the `overflow-anchor` fix D142 declined.** That would have been anchoring used to hold
+the scroll position - to compensate for a replacement rather than remove it. D142 removed the
+replacement, and this turns anchoring off so no compensation happens at all. The two point in
+opposite directions.
+
+### Scope, and why it is drawn where it is
+
+`.screen-content` is the scroll container on all 19 screens that have one, so the rule is a
+modifier applied by `consent.js` alone rather than a change to the base class. Not on `body` or
+`html` either: `shell.css` relies on the page scroller for the short-window case, and disabling
+anchoring there would be a change to a container this decision has no evidence about.
+
+Verified in Chromium across all 30 registered routes: `overflow-anchor` computes to `none` on frame
+03's scroller and `auto` on every other route's, with `html` and `body` untouched at a 500px-tall
+window. `/consent/move-account` reports the scoped element too, and that is correct rather than
+leakage - 03b is a sheet drawn over frame 03, whose scroller is still the one mounted underneath.
+
+Measured on frame 03, ticking the unsorted account from `scrollTop` 400: `scrollTop` 400 -> 400,
+the tracked row -179px, `scrollHeight` 1727 -> 1548. That is D142's anchoring-disabled row exactly.
+
+**To reverse.** Delete the CSS block and the modifier class from `consent.js`. Chrome returns to
+compensating, Safari does not, and the two diverge again.

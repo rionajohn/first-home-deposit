@@ -1258,6 +1258,33 @@
   justify-content: center;
 }
 
+/* --- Scroll anchoring off, frame 03 only (DECISIONS.md D143) ---
+   Chrome and Firefox implement scroll anchoring and adjust `scrollTop` when
+   content above the viewport changes height. Safari does not implement it at
+   all. On frame 03 that difference is visible: filing the last unsorted
+   account removes the "Not sorted yet" section, and the same tap moved the
+   screen 179px one way on an iPhone and 101px the other way in Chrome.
+
+   This is a study instrument, and the thing being measured is what a
+   participant notices. A gesture that moves the screen by different amounts
+   in opposite directions depending on the device the session happens to be
+   run on is a confound, so the anchoring-off behaviour - the one every iOS
+   participant already gets - is made the behaviour everywhere.
+
+   IT IS NOT A FIX FOR THE 179px SHIFT, WHICH STAYS (D142). A section the
+   participant has just emptied should disappear, and the content below it
+   should move up. What this removes is the browser silently disagreeing with
+   itself about by how much.
+
+   SCOPED TO THIS ONE SCROLLER, deliberately. `.screen-content` is the scroll
+   container on all 19 screens; the modifier is applied only by consent.js, so
+   no other frame's scrolling changes. Not set on `body` or `html`, which
+   would disable anchoring for the page scroller the short-window case relies
+   on (shell.css). */
+.screen-content--no-scroll-anchor {
+  overflow-anchor: none;
+}
+
 /* --- Disclosure / accordion (frames 05, 05b, 06) --- */
 .disclosure {
   width: 100%;
