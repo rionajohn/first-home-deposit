@@ -159,17 +159,29 @@ cannot import a module, so it is the one place the name is necessarily written t
 
 ## Maintenance rules
 
-### Shell-asset paths and `CACHE_VERSION`
+### Shell assets and `CACHE_VERSION`
 
-**Any change to a path in `sw.js`'s `SHELL_ASSETS` requires a `CACHE_VERSION` bump in the same
-commit.** An installed copy is served cache-first, so a renamed or moved shell asset that ships
-without a bump leaves the old path cached and the new one unfetched. When that asset is the
-manifest, PWA install breaks *silently* - the app still runs, and nothing surfaces the fault until
-someone tries to add it to a home screen.
+**Any commit that changes a file listed in `sw.js`'s `SHELL_ASSETS` bumps `CACHE_VERSION` in the
+same commit.** Its content, not only its path. A commit that touches no shell asset does not bump -
+documentation, `docs/`, `scripts/`, tests and this file are all outside the list.
 
-This is separate from the existing rule that `CACHE_VERSION` is bumped on every deploy and in the
-same commit as any change to a value in `src/model/rates.js`. Adding a new module or icon to
-`SHELL_ASSETS` counts as a path change.
+This replaces "bumped on every deploy", which was the same rule stated against the wrong event.
+Bumping at the merge protects `main`, and nothing protected the `build` branch alias
+(`...-git-build-riona-john.vercel.app`), which is a **stable hostname that serves every push**. A
+browser that opened it in the morning holds that cache name, `sw.js` serves cache-first with no
+revalidation, and `activate` deletes only caches whose name differs - so an unchanged
+`CACHE_VERSION` leaves the earlier shell in place indefinitely, on a URL a returning participant may
+open on the same device. See `DECISIONS.md` D147.
+
+A change to a **path** in the list is included by the same rule and was always the sharpest case: an
+installed copy is served cache-first, so a renamed or moved shell asset that ships without a bump
+leaves the old path cached and the new one unfetched. When that asset is the manifest, PWA install
+breaks *silently* - the app still runs, and nothing surfaces the fault until someone tries to add it
+to a home screen. Adding a new module or icon to `SHELL_ASSETS` counts as a path change.
+
+A change to a value in `src/model/rates.js` is included too, for the same reason as everything else
+on the list rather than as a rule of its own: it is a shell asset, and a stale copy of it is a stale
+figure on a participant's screen.
 
 Keep `src/cache-version.js`'s `BUILD_VERSION` in step with `sw.js` - a paired hand-edit,
 by design; see that file's comment for why the two cannot be derived from one another.
@@ -282,8 +294,10 @@ Anything committed to `main` by accident should be moved to `build` rather than 
    rather than just the newest, check the connection before reading the URL from `vercel deploy`
    output instead.
 8. Fill the row's Commit and Vercel Link cells **in one commit, on `build`**, together with the
-   matching `src/deployments.js` row. **Documentation only - no `CACHE_VERSION` bump**, since
-   nothing a participant sees has changed.
+   matching `src/deployments.js` row. **This commit changes a shell asset - `src/deployments.js` is
+   in `SHELL_ASSETS` - so it bumps `CACHE_VERSION` like any other.** The test is what the commit
+   touches, not whether it is documentation: the README half alone would need no bump, the
+   `deployments.js` half does.
 
    **This commit is not merged forward as part of this deployment.** It reaches `main` with the
    next one. Merging it forward is what used to move `main` after the commit had been read, which

@@ -86,6 +86,12 @@ do not introduce a state management library.
 - Preserve existing dark mode support in anything you touch.
 - Update docs/DECISIONS.md with a dated entry for any design decision you make.
 - Before adding a decision entry, read the last number in docs/DECISIONS.md and take the next one.
+- **Any commit that changes a file in `sw.js`'s `SHELL_ASSETS` bumps `CACHE_VERSION` in `sw.js` and
+  `BUILD_VERSION` in `src/cache-version.js` together** - the paired hand-edit `docs/README.md`
+  requires, in that commit, not at the merge. Content counts, not only paths. A commit touching no
+  shell asset - docs, scripts, tests - does not bump. The `build` branch alias is a stable hostname
+  serving every push, and `sw.js` is cache-first with no revalidation, so an unchanged version
+  leaves an earlier shell on a URL a returning participant may open. See docs/DECISIONS.md D147.
 - Every merge from `build` to `main` adds a row to the deployment version log in `docs/README.md`
   in the same operation, before the push. The row is written as part of the merge, never
   retrospectively - a deployment that is recorded later is a deployment nobody can attribute a

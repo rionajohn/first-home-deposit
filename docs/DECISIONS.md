@@ -12331,3 +12331,103 @@ once `main` has stopped moving.
 
 **To reverse.** Merge the fill commit forward again as part of the deployment. Every row from then
 on names the commit before the one Vercel built, and G134 gains an entry per deployment.
+
+---
+
+## D147. `CACHE_VERSION` bumps on every commit that changes a shell asset, not at the merge
+
+**Date.** 3 September 2026. `sw.js`, `src/cache-version.js`, the maintenance rule and step 8 of the
+deploy procedure in `docs/README.md`, and one standing rule in `CLAUDE.md`. **No copy, no figure, no
+route, and no change to what any screen draws.**
+
+**Decision.** Any commit that changes a file listed in `SHELL_ASSETS` bumps `CACHE_VERSION` in
+`sw.js` and `BUILD_VERSION` in `src/cache-version.js` together, in that commit. A commit that
+touches no shell asset does not. The bump is no longer tied to the merge.
+
+### The repository already required this, against the wrong event
+
+`docs/README.md`, written up after the `v41` incident on 28 August 2026, already says it:
+
+> **A version number covers ONE state of `SHELL_ASSETS`, not one working session.** [...] It is not
+> enough that the version differs from the last commit; it has to differ from **every build a
+> browser may already be holding**.
+
+Bumping at the merge satisfies that for `main` and satisfies nothing for
+`...-git-build-riona-john.vercel.app`. That alias is a **stable hostname that serves every push to
+`build`** - it served `f6f95af` from 11:50 and `370105d` from 15:13 on 3 September, both under
+`yfh-shell-v124`. `sw.js` serves cache-first with no revalidation, and `activate` deletes only
+caches whose name differs from the current one, so the first shell was never evicted.
+
+**That is the `v41` failure with a different trigger.** v41 was two shells under one version number
+because the asset list changed twice inside one session; this is two shells under one version number
+because the alias serves many commits between merges. The README's own note on v41 says the caption
+cannot save you either: *"both builds honestly reported `v41` [...] and is not caught by anything
+the caption can do."*
+
+### Measured, not assumed
+
+Serving `git archive` of each commit at one origin, one browser throughout: pre-fix build with the
+worker controlling, then the origin switched to the fixed build and reloaded. `curl` confirmed the
+server was returning the new `components.css`. The page kept rendering the old one - D145's rule
+absent, row label `position: static`, `#app.screen` back to 141px of scroll range. Only a browser
+profile that had never seen the origin came up clean. **The deployment was correct and the browser
+was running something else.**
+
+### The participant risk this is chosen against
+
+A returning participant on the same device opens the alias and gets a build predating recent fixes,
+with nothing on screen saying so. The settings caption cannot reveal it, because
+`readCachedVersions()` lists only cache names that differ from the running `BUILD_VERSION` - and
+under merge-only bumping there is exactly one, so the line stays silent. That silence is the whole
+problem: the instrument changes underneath a session and the transcript records nothing.
+
+### What this costs, and both costs are accepted deliberately
+
+**A session is discarded when the version changes, and that is intended.** `state.js` drops a stored
+session whose `buildVersion` is not the running one (D59). Bumping per push means a preview session
+is discarded on the next document load after a push, and per **G66** a refresh, tab restore or
+home-screen relaunch is a document load. This is not a side effect to be minimised - it is **the
+other half of the same participant risk**. A device holding a session written by different code is
+the state D59 exists to prevent, and a build change is exactly when that state arises. Production is
+unaffected in frequency: it already bumps once per deployment.
+
+**The one-load residue is accepted, not closed.** A bump does not make the first load after a push
+fresh. D49 established the sequence: the new worker installs, activates and claims while the
+document keeps executing the modules it already has. So a bump converts *stale indefinitely* into
+*stale for one load* - and makes that load visible, because two cache names briefly coexist and the
+settings screen's second line appears, which is D49's design finally able to do its job.
+
+Closing the residue entirely needs a forced reload once the new worker claims. **G66 rejected that
+on its own evidence**: the check runs on every document load, so it would reset a participant
+mid-task. That rejection stands, and the residue stands with it.
+
+### What was considered and not done
+
+- **`version.json` fetched past the worker**, compared against the compiled-in stamp. It reveals
+  staleness without removing it: the participant still runs the old build and someone has to read a
+  caption mid-session. A check, not a fix.
+- **Network-first shell.** Breaks the offline capability the pinned-rates decision depends on - a
+  hanging network becomes a hanging screen, mid-session, on a phone.
+- **Stale-while-revalidate.** Keeps offline, but the returning participant's *first* load is still
+  the old shell, which is the case being defended against, and it lets a shell change between loads
+  with no version change - the confusion D49 and `v41` each cost an investigation.
+
+None is implemented here.
+
+### Deliberately unchanged
+
+`src/deployments.js` and `scripts/version-chips.test.mjs` are untouched. Both already handle a
+running stamp with no matching row: `currentDeployment()` returns `null` by design - *"a build
+served from a local `python -m http.server`, or a deployment whose row has not been written yet, has
+no entry here"* - and the test's current-chip case skips itself when no row carries the running
+version. Between merges that is now the normal state on `build`, which is what those two were
+already written to survive. The cache-first strategy is unchanged, no forced reload is added, and
+frame 33's list still says what shipped.
+
+### This entry's own commit
+
+It changes `src/cache-version.js`, which is in `SHELL_ASSETS`, so it carries its own bump: **v125 to
+v126**. The rule's first application is the commit that writes it.
+
+**To reverse.** Return the bump to the merge. `main` stays protected and the `build` alias goes back
+to serving every commit between merges under one cache name.
