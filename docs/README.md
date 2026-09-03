@@ -232,24 +232,33 @@ Anything committed to `main` by accident should be moved to `build` rather than 
 
 1. Get the deployment reason from Riona. Without one, stop here and ask. Do not infer it from
    the commits.
-2. Add the row to the deployment version log above, on `build`: version, date and reason. **Leave
-   the Commit and Vercel Link cells empty** - neither value exists yet. Commit.
+2. Add the row to the deployment version log above, on `build`: version, date and reason. **Put
+   `pending` in the Commit and Vercel Link cells** - neither value exists yet. Commit.
 3. Confirm `git status` is clean, then push `build`.
 4. `git checkout main`, then `git merge build`.
-5. Record the deployed commit:
+5. Tag, then push. Every build a participant sees gets a tag, so the session can be traced to a
+   commit.
+
+   ```bash
+   git tag vN.0
+   git push origin main --tags
+   ```
+
+   **`main` is now final for this deployment and nothing further is pushed to it.** That is the
+   condition the next step depends on: Vercel builds whatever `main` points at when it is pushed,
+   so as long as no further commit reaches `main`, the tip and the deployed commit are the same
+   thing. See `DECISIONS.md` D146.
+6. Record the deployed commit:
 
    ```bash
    git rev-parse --short main
    ```
 
-   This is the commit `main` points at after the merge, read directly. **Never count it back from
-   the Commit cell.** The offset between the two is not fixed - it has been 0, 1 and 2 across the
-   versions logged so far, because it depends on what happened to be on `build` that day. See
+   This is the commit `main` points at, read directly. **Never count it back from the Commit
+   cell.** The offset between the two is not fixed - it has been 0, 1 and 2 across the versions
+   logged so far, because it depends on what happened to be on `build` that day. See
    `DECISIONS.md` D144.
-6. Fill the row's Commit cell with that value, on `build`, and merge it forward.
-7. Tag. Every build a participant sees gets a tag, so the session can be traced to a commit.
-8. `git push origin main --tags`.
-9. Wait for Vercel to finish, then look up the deployment URL:
+7. Wait for Vercel to finish, then look up the deployment URL:
 
    ```bash
    vercel ls -m githubCommitSha=$(git rev-parse main)
@@ -264,19 +273,32 @@ Anything committed to `main` by accident should be moved to `build` rather than 
      and taking a row from it would record someone else's deployment.
    - Nothing returned means the build has not finished, or has failed. **Wait and retry rather
      than substituting a nearby deployment.**
-   - More than one production deployment for the same SHA: stop and report.
+   - More than one production deployment for the same SHA: stop and report. This has happened -
+     `2ad1f2a` carries two, and v8's row records `gwr476cgw`.
 
-   This query returns nothing while the Vercel project has no connected Git repository, because
-   CLI deployments carry no `githubCommitSha`. Until that is connected, read the URL from the
-   `vercel deploy` output instead.
-10. Fill the row's Vercel Link cell, on `build`, and commit. **Documentation only - no
-    `CACHE_VERSION` bump**, since nothing a participant sees has changed.
-11. `git checkout build` to carry on working. **Do not leave the working copy on `main`** - the next
-    session will otherwise commit to it without noticing.
+   The Vercel project's Git repository **is** connected, verified 3 September 2026 by this query
+   returning the right deployment for v6, v7, v8 and v9. It previously was not, and CLI
+   deployments carry no `githubCommitSha`; if the query ever returns nothing for every version
+   rather than just the newest, check the connection before reading the URL from `vercel deploy`
+   output instead.
+8. Fill the row's Commit and Vercel Link cells **in one commit, on `build`**, together with the
+   matching `src/deployments.js` row. **Documentation only - no `CACHE_VERSION` bump**, since
+   nothing a participant sees has changed.
 
-Steps 2 and 10 are two commits because the deployment does not exist until after the push. **They
-belong to the same deployment and both are written in the same session.** A row left with an empty
-Vercel Link cell is an incomplete merge, not a task for next time.
+   **This commit is not merged forward as part of this deployment.** It reaches `main` with the
+   next one. Merging it forward is what used to move `main` after the commit had been read, which
+   made the recorded value one behind the commit Vercel actually built - see `GAPS.md` G134 for
+   the rows that carry that error.
+9. `git checkout build` to carry on working. **Do not leave the working copy on `main`** - the next
+   session will otherwise commit to it without noticing.
+
+Steps 2 and 8 are two commits because the deployment does not exist until after the push. **They
+belong to the same deployment and both are written in the same session.** A row left with a
+`pending` Vercel Link cell is an incomplete merge, not a task for next time.
+
+`main`'s copy of the log therefore trails `build`'s by one deployment, and that is correct rather
+than a gap: the log is maintained on `build`, and the row is complete there before the session
+ends.
 
 Vercel deploys `main` automatically. The production URL is `first-home-feature.vercel.app` and a
 static build takes under a minute.

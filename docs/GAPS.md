@@ -5579,3 +5579,67 @@ match the total" would have put copy or a suppression rule on screen that nobody
 **Options when it is taken up.** Suppress the breakdown at "Further along"; or stash and restore the
 account list alongside the figure so the rows describe the checkpoint too. The first is smaller. The
 second is the only one that keeps a breakdown on screen at all. Both need copy decisions.
+
+---
+
+## G134. Four version log rows name a commit Vercel did not build. OPEN - RECORDED, NOT BACKFILLED
+
+*Raised 3 September 2026 with `DECISIONS.md` D146, which stops it recurring. The rows themselves are
+left as they are, deliberately - see below.*
+
+### What is wrong
+
+The Commit cell is meant to name the commit that was deployed. In four rows it names a commit one or
+two behind the one Vercel actually built, so anyone tracing a participant's session back to the code
+it ran lands on the wrong commit and does not find out.
+
+Confirmed against Vercel rather than inferred, by querying each candidate SHA and matching the
+production deployment it returns against the URL already written in that row:
+
+| Version | Commit cell | Commit Vercel built | Production deployment, matching that row's URL | Offset |
+|---|---|---|---|---|
+| v1 - v5 | the deployed commit itself | same | - | **0** |
+| v6 | `2fb6667` | `90e3b60` | `...-qz5gnoxco-...` | **1** |
+| v7 | `c92e064` | `518ac22` | `...-99qnniq61-...` | **2** |
+| v8 | `6ae4259` | `2ad1f2a` | `...-gwr476cgw-...` | **1** |
+| v9 | `b4353d9` | `2bf287d` | `...-8oi3bzsi5-...` | **1** |
+
+**v8 carries it too.** D144's table already recorded v8 at offset 1 alongside v6 and v7; it is worth
+stating plainly here because the rows are otherwise easy to read as "v6 and v7 were the bad ones".
+
+### Two different causes, and the second is the interesting one
+
+**v6, v7 and v8** predate D144. The Commit cell was defined then as the last *content* commit of the
+version, on D91's reasoning that a commit cannot contain its own SHA. The cell was accurate to its
+own definition and simply did not name what was deployed.
+
+**v9 is the one that matters**, because it was produced by D144's own procedure, followed exactly.
+D144 fixed the read - `git rev-parse --short main`, never counted back - and the read was correct
+when it was taken. What falsified it was the step after it: the commit that filled the cell was
+merged forward into `main`, which moved `main` past the value just recorded, and the push then
+deployed the newer commit. The procedure measured the right thing and then changed it.
+
+That is the same shape as the standing rule in `CLAUDE.md` about a value measured against a
+reference the screen does not show: the recorded commit was correct against `main` at the moment of
+reading, and nothing in the row revealed that `main` had moved since.
+
+### Why the rows are not being corrected
+
+Backfilling would rewrite the record of what was deployed using knowledge gathered afterwards, in a
+table whose whole purpose is to say what was true at the time. The rows are also not wrong in the
+sense of pointing nowhere: each names a real commit whose content is what that version shipped, and
+each row's Vercel Link still names the deployment a participant actually loaded, which is the
+stronger identifier of the two.
+
+What was missing was anywhere saying so. This entry is that.
+
+### Also observed, and not the same thing
+
+`2ad1f2a` has **two** production deployments (`gwr476cgw`, which v8's row records, and
+`cpghuzr8y`). The deploy procedure says to stop and report when a SHA carries more than one, so it
+is reported here. It does not affect v8's row, which names the one Vercel served, and no session is
+known to have run against the other.
+
+*Status: **open**, as a known inaccuracy in rows v6 to v9. Closed by nothing - D146 stops the cause,
+and these four rows keep the error they shipped with. Anyone tracing a session to code should read
+the row's Vercel Link, not its Commit cell, for those four versions.*

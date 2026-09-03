@@ -12270,3 +12270,64 @@ documents it, and its `inset: 0` makes it exactly the screen box by design.
 **To reverse.** Delete the rule. The inputs strand themselves against `#app.screen` again, frame 03
 regains 141px of hidden scroll range, and the first deselect after a scroll moves the phone up by
 it on Blink and not on WebKit.
+
+---
+
+## D146. Nothing is merged into `main` after the deployed commit is read, so the Commit cell names what Vercel built
+
+**Date.** 3 September 2026. A dated amendment to **D144**, which is not rewritten and stands as its
+own record. Changes the deploy procedure in `docs/README.md` and one standing rule in `CLAUDE.md`.
+**Documentation and governance only - no prototype code, no copy, no `CACHE_VERSION` bump.**
+
+**Decision.** The commit that fills a version log row's Commit and Vercel Link cells is **not merged
+forward as part of that deployment**. Both cells are filled in one commit on `build`, which reaches
+`main` with the next deployment. `main` is final for a deployment at the tag and push, and the
+deployed commit is read after that.
+
+### D144's read was right. The step after it was not
+
+D144 established that the deployed commit is read with `git rev-parse --short main` and never
+counted back from the Commit cell, because the offset between the two is not a property of anything.
+That is correct and unchanged.
+
+What it did not account for is that the procedure then **moved `main`**. Step 6 filled the Commit
+cell on `build` and merged it forward; step 8 pushed. Vercel builds whatever `main` points at when
+it is pushed, so it built the fill commit - one past the value the fill commit itself records. The
+read was accurate at the moment it was taken and false by the time it was pushed.
+
+Measured on v9, following D144 exactly: read `b4353d9` after the merge, filled the cell, merged
+forward to `2bf287d`, pushed, and Vercel's production deployment for `2bf287d` is the one the row's
+own Vercel Link names. **The procedure measured the right thing and then changed it.** `GAPS.md`
+G134 records the four rows that carry the result.
+
+### Why not simply read it later
+
+Reading after the fill cannot work: the fill commit would have to contain its own SHA, which is
+D91's original observation and the reason the Commit cell was ever a separate step. The fix has to
+remove the movement rather than chase it. With nothing merged forward, `main`'s tip at the push and
+the commit recorded afterwards are the same object, and the read can happen at any point after the
+push without becoming stale.
+
+### What this costs, and why it is acceptable
+
+**`main`'s copy of the log trails `build`'s by one deployment.** The row is complete on `build`
+before the session ends, which is what `CLAUDE.md` requires, and `build` is where the log is
+maintained. `main` is a record of what was deployed, not of what the log says about it, and the
+trailing row catches up on the next merge.
+
+This is not a new situation. It is what already happened to every Vercel Link cell: v8's URL fill
+(`26ea272`) sat on `build` and reached `main` with a later merge. The change makes the Commit cell
+behave the same way rather than being the one cell that forced an extra push.
+
+**A documentation-only merge still takes no version number**, per `CLAUDE.md`. The trailing fill
+rides forward inside the next deployment's merge and does not earn a row of its own.
+
+### Not reversed
+
+D144's substance is untouched: the deployed commit is still read with `git rev-parse --short main`,
+still never counted back from the Commit cell, and the URL is still looked up by full SHA with the
+all-zero and multiple-production-deployment cautions intact. What changes is that the value is read
+once `main` has stopped moving.
+
+**To reverse.** Merge the fill commit forward again as part of the deployment. Every row from then
+on names the commit before the one Vercel built, and G134 gains an entry per deployment.
