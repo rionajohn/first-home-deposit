@@ -47,6 +47,7 @@ have seen.
 | v6 | 2026-09-01 | `2fb6667` | Pilot feedback changes: Scaling in different screens when on desktop, copy on the screen where a participant will decide how to save for their deposit, and the results for the deposit page - improving the chart to show a better comparison over the years | first-home-deposit-ux-prototype-qz5gnoxco-riona-john.vercel.app |
 | v7 | 2026-09-01 | `c92e064` | Reserve the browser toolbar's space so the tab bar stays reachable on iPhone Safari during phone-based usability sessions | first-home-deposit-ux-prototype-99qnniq61-riona-john.vercel.app |
 | v8 | 2026-09-03 | `6ae4259` | The deposit breakdown now lists only the accounts its total counts, on both the results card and the sources sheet, and the accounts screen no longer contradicts the participant's own selection | first-home-deposit-ux-prototype-gwr476cgw-riona-john.vercel.app |
+| v9 | 2026-09-03 | pending | Clicking an account row on frame 03 no longer scrolls the device screen inside the bezel. The checkbox input's containing block was resolving to #app.screen, stranding the focus target outside the scroller and giving Blink a 141px scroll it could not recover, which opened an empty band under the tab bar and clipped the app bar. Affected Chrome and Edge only, so this removes a device-dependent difference in what participants saw. Carries D144 and D145. | pending |
 
 A production deployment that changes only documentation or governance files carries no
 version number, so Vercel's deployment history holds more deployments than this table holds
