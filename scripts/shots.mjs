@@ -23,6 +23,33 @@
  * the run above produces 2 entries x 2 states x 2 themes = 8 PNGs plus a sheet.
  *
  *   --routes   App routes, without the `#`.            default /tracker
+ *              `--routes=all` is THE SCREEN SURVEY: all 30 screens, once each,
+ *              in docs/ROUTES.md's order (not router.js's - the two sequence
+ *              /learn/stamp-duty and /mip/adviser differently). It is the only
+ *              value that changes how files are NAMED: `NN-screen-name.png`,
+ *              zero-padded, numbered by the SURVEY table below. Each screen
+ *              carries its own entry there, so the two screens no hash reaches
+ *              - 03b and frame 20 - are walked rather than skipped, and frames
+ *              20 and 21 are two passes with frame 33's outcome pill flipped
+ *              between them.
+ *   --browser  `chromium` or `webkit`.                 default chromium
+ *              WebKit is the engine closest to the iPhone Safari a participant
+ *              is on. Both are already downloaded; neither is a new dependency.
+ *   --stitch   `off` or `scroll`.                      default off
+ *              `scroll` keeps the frame at its BUILT size - so the action bar
+ *              pins and the content overflows exactly as in a session - and
+ *              captures the whole screen by scrolling `.screen-content` (or a
+ *              sheet's `.bottom-sheet__content`), taking one discrete
+ *              screenshot per scrollful and compositing them on a canvas.
+ *              Deliberately not `fullPage`, which leaves the scaled bezel
+ *              unpainted in WebKit. Writes no contact sheet. Mutually
+ *              exclusive with `--fit=content` and `--full`.
+ *   --fit      `frame` or `content`.                   default frame
+ *              `content` raises `--frame-height` on the live page so a `--full`
+ *              shot holds the WHOLE screen instead of stopping at the 393x852
+ *              frame. Runtime only, no source file touched. It changes what the
+ *              action bar draws (see `fitFrameToContent`), so leave it at
+ *              `frame` for anything about that bar.
  *   --entry    How the screen is REACHED. `direct` sets the hash; `goals`
  *              taps the tracker card on /goals; `insights` taps the Mortgage
  *              tab. Those three differ in what the app bar draws (D41) and in
@@ -246,7 +273,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 import { FULL } from './session-seed.mjs';
 import { STAGES } from '../src/stage.js';
 import { MOCK_ACCOUNTS, GROUP_ORDER } from '../src/model/accounts.js';
@@ -280,6 +307,23 @@ const DEFAULTS = {
   routes: '/tracker',
   entry: 'direct',
   session: 'seeded',
+  // `chromium` (default) or `webkit`. WebKit is the engine closest to the
+  // iPhone Safari participants are on, so a survey pass meant to stand in for
+  // what a session looks like is worth taking there; chromium stays the
+  // default so every existing invocation renders on the engine it always did.
+  browser: 'chromium',
+  // `frame` (default) leaves the 393x852 frame exactly as shell.css sets it.
+  // `content` raises `--frame-height` at runtime to whatever the screen's own
+  // scroller needs, so one `--full` image holds the whole screen instead of
+  // truncating at the frame. Runtime only - it writes a CSS custom property on
+  // the page's `:root`, touches no source file, and the context is thrown away
+  // after the shot. See `fitFrameToContent` for what it costs.
+  fit: 'frame',
+  // `off` (default) takes one screenshot of the viewport. `scroll` scrolls the
+  // screen's own scroller and composites the segments into one tall image, so a
+  // whole screen is captured WITHOUT growing the frame - the opposite trade to
+  // `--fit=content`. See `captureStitched`.
+  stitch: 'off',
   // Frame 12's chart/table toggle (DECISIONS.md D100). The table is a view
   // setting, so it is seeded rather than clicked - a click would need the
   // chart to have rendered first, and the point of the shot is the table.
@@ -399,7 +443,77 @@ for (const route of list(args.routes)) {
   }
 }
 
-const ROUTES = list(args.routes).map((r) => (r.startsWith('/') ? r : `/${r}`));
+/**
+ * `--routes=all`: THE SCREEN SURVEY - every screen in the prototype, once each,
+ * in `docs/ROUTES.md`'s order.
+ *
+ * ROUTES.MD'S ORDER, NOT `router.js`'s. The two hold the same 30 routes and
+ * sequence two of them differently (`/learn/stamp-duty` and `/mip/adviser`),
+ * and ROUTES.md's is the facilitator-facing one a numbered set of images is
+ * read against. `index` is therefore written here rather than derived from
+ * position, so inserting a screen is a deliberate renumbering rather than a
+ * silent shift of every file after it.
+ *
+ * `entry` is how that screen is REACHED, and two of them are not reachable by
+ * setting a hash:
+ *   - `/consent/move-account` (03b) is guarded on `selectedAccountId`, which
+ *     only a tap on an account row writes.
+ *   - `/mip/result/likely` (20) is guarded on `borrow-high`, which only a real
+ *     19b run commits.
+ * Both are walked as a participant walks them. Nothing here seeds a key, stubs
+ * a guard, or writes to storage.
+ *
+ * `outcome` presses frame 33's Mortgage in Principle control before the flow
+ * starts. It is needed because `mip-running.js` reads TWO things - below the
+ * checkpoint the position decides and the pill is ignored (D51); at or above it
+ * `resultOutcome` decides - so reaching frame 20 needs the skip-ahead control
+ * pressed AND the pill on Likely, and frame 21 is the same walk with the pill
+ * flipped. That is the "two passes" this list encodes as two rows.
+ */
+const SURVEY = [
+  { index: 1, name: 'home', route: '/home' },
+  { index: 2, name: 'journey', route: '/journey' },
+  { index: 3, name: 'consent', route: '/consent' },
+  { index: 4, name: 'consent-move-account', route: '/consent/move-account', entry: 'account' },
+  { index: 5, name: 'position', route: '/position' },
+  { index: 6, name: 'position-summary', route: '/position/summary' },
+  { index: 7, name: 'goals', route: '/goals' },
+  { index: 8, name: 'goal-check', route: '/goal-check' },
+  { index: 9, name: 'calculator-property', route: '/calculator/property' },
+  { index: 10, name: 'calculator-saving', route: '/calculator/saving' },
+  { index: 11, name: 'calculator-exit', route: '/calculator/exit' },
+  { index: 12, name: 'calculator-review', route: '/calculator/review' },
+  { index: 13, name: 'calculator-result', route: '/calculator/result' },
+  { index: 14, name: 'learn-ltv', route: '/learn/ltv' },
+  { index: 15, name: 'learn-ltv-video', route: '/learn/ltv/video' },
+  { index: 16, name: 'tracker', route: '/tracker' },
+  { index: 17, name: 'mip', route: '/mip' },
+  { index: 18, name: 'mip-about', route: '/mip/about' },
+  { index: 19, name: 'mip-pre-check', route: '/mip/pre-check' },
+  { index: 20, name: 'mip-running', route: '/mip/running' },
+  { index: 21, name: 'mip-result-likely', route: '/mip/result/likely', entry: 'mip', state: 'ahead', outcome: 'likely' },
+  { index: 22, name: 'mip-result-not-yet', route: '/mip/result/not-yet', entry: 'mip', state: 'ahead', outcome: 'not-yet' },
+  { index: 23, name: 'mip-adviser', route: '/mip/adviser' },
+  { index: 24, name: 'assumptions-saving', route: '/assumptions/saving' },
+  { index: 25, name: 'assumptions-deposit', route: '/assumptions/deposit' },
+  { index: 26, name: 'assumptions-borrowing', route: '/assumptions/borrowing' },
+  { index: 27, name: 'assumptions-sources', route: '/assumptions/sources' },
+  { index: 28, name: 'assumptions-costs', route: '/assumptions/costs' },
+  { index: 29, name: 'learn-stamp-duty', route: '/learn/stamp-duty' },
+  { index: 30, name: 'settings', route: '/settings' },
+];
+
+/**
+ * True when `--routes=all` asked for the survey. It is the only thing that
+ * changes how a file is NAMED, so every other invocation keeps `shotName`'s
+ * variant-describing filename exactly as it was.
+ */
+const SURVEY_MODE = list(args.routes).length === 1 && list(args.routes)[0] === 'all';
+const SURVEY_BY_ROUTE = new Map(SURVEY.map((s) => [s.route, s]));
+
+const ROUTES = SURVEY_MODE
+  ? SURVEY.map((s) => s.route)
+  : list(args.routes).map((r) => (r.startsWith('/') ? r : `/${r}`));
 
 /**
  * `--saved` moves the session's deposit balance before anything is rendered.
@@ -701,7 +815,36 @@ function startServer() {
  * (D41). Seeding the hash directly would give a third result that no
  * participant ever sees.
  */
-async function navigate(page, base, route, entry, state) {
+async function navigate(page, base, route, entry, state, outcome = null) {
+  // FRAME 33'S OUTCOME PILL, PRESSED. `resultOutcome` is a frame 33 toggle with
+  // a real on-screen control, so the survey flips it the way a facilitator does
+  // rather than writing the key - the same rule `--stage`, `--open` and
+  // `--build` already follow. It has to happen BEFORE the flow starts, because
+  // `mip-running.js` reads the value at the moment 19b resolves.
+  if (outcome) {
+    await page.goto(`${base}/#/settings`);
+    await page.waitForTimeout(300);
+    const pill = await page.$(`[data-action="set-outcome"][data-value="${outcome}"]`);
+    if (!pill) throw new Error(`frame 33 has no Mortgage in Principle outcome pill for '${outcome}'`);
+    await pill.click();
+    await page.waitForTimeout(250);
+  }
+
+  // FRAME 03b, REACHED BY TAPPING AN ACCOUNT. The sheet is guarded on
+  // `selectedAccountId`, which nothing but a tap on a row writes - deep-linking
+  // it lands back on `/consent` (verified in WebKit on an empty session). The
+  // first enabled row is used; which account it is does not change the screen's
+  // layout, only the name in its heading.
+  if (entry === 'account') {
+    await page.goto(`${base}/#/consent`);
+    await page.waitForTimeout(300);
+    const row = await page.$('[data-action="open-account"]:not([disabled])');
+    if (!row) throw new Error('no enabled account row on /consent to open frame 03b with');
+    await row.click();
+    await page.waitForTimeout(400);
+    return;
+  }
+
   // THE ONLY HONEST WAY TO REACH FRAMES 20 AND 21. Both results are guarded on
   // figures that ONLY a real `/mip/running` pass commits (`ROUTES.md`: frame 20
   // "still redirects - it needs `borrow-high`, which only a real 19b run
@@ -834,6 +977,267 @@ async function tabTo(page) {
   await page.waitForTimeout(150);
 }
 
+/**
+ * `--fit=content`: grows the device frame so one image holds the whole screen.
+ *
+ * WHY IT IS NEEDED. The frame is a FIXED 393x852 logical box (D92) and
+ * `.screen-content` scrolls inside it. A `--full` shot at a desktop width is
+ * therefore full-page in the PAGE's sense and still truncated in the SCREEN's -
+ * it captures the whole document, and the document contains a phone showing
+ * one scrollful. Raising `--frame-height` is what makes the two mean the same
+ * thing.
+ *
+ * GROWN BY THE OVERFLOW, NOT SET TO A CONTENT HEIGHT. The frame also holds
+ * chrome that does not scroll - a step header, a pinned action bar, the tab bar
+ * - so `scrollHeight - clientHeight` is exactly the part that does not fit
+ * without this needing to know which of those a given screen draws. Twice,
+ * because growing the frame reflows the screen and can release a little more.
+ *
+ * `--frame-scale` IS PINNED TO 1 FIRST. shell-scale.js sizes the frame to the
+ * WINDOW, so a frame grown past the window would be scaled straight back down
+ * to fit and the shot would be the same truncation at a smaller size.
+ *
+ * WHAT IT COSTS, AND IT IS NOT NOTHING: a screen whose content no longer
+ * overflows draws its action bar in the visible/fits state rather than the
+ * hidden-with-scroll-affordance state (D17), and the `--more-below` fade is
+ * gone. A fitted shot is the right picture of a SCREEN and the wrong picture of
+ * that bar. `--fit=frame` (the default) is what to use for anything about the
+ * action bar's own behaviour.
+ *
+ * Runtime only: two custom properties on the live page's `:root`, in a context
+ * that is closed after the shot. No source file is touched.
+ */
+async function fitFrameToContent(page) {
+  if (args.fit !== 'content') return null;
+
+  const height = await page.evaluate(async () => {
+    const root = document.documentElement;
+    const px = (n) => Number.parseFloat(getComputedStyle(root).getPropertyValue(n)) || 0;
+    const CAP = 12000; // a runaway screen should give a big PNG, not a hung run
+    const frame = () => document.querySelector('.bottom-sheet__content, .screen-content');
+
+    root.style.setProperty('--frame-scale', '1');
+
+    let height = px('--frame-height');
+    for (let pass = 0; pass < 2; pass += 1) {
+      const s = frame();
+      if (!s) break;
+      const overflow = s.scrollHeight - s.clientHeight;
+      if (overflow <= 1) break;
+      height = Math.min(CAP, height + overflow);
+      root.style.setProperty('--frame-height', `${height}px`);
+      // Two frames: one for the custom property, one for the reflow it causes.
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    }
+    return height;
+  });
+
+  // THE VIEWPORT IS THEN GIVEN ROOM, AND THIS IS NOT OPTIONAL.
+  //
+  // A grown frame that sits below the fold is captured BLANK. `fullPage`
+  // stitches by scrolling, and `.device-bezel` is a `transform: scale()` layer
+  // (shell.css) - WebKit does not repaint a transformed layer for that stitch,
+  // so the first run of this produced a 2880x6028 PNG with a correct phone in
+  // the top 1800px and pure white under it. Verified, not guessed.
+  //
+  // Growing the viewport HEIGHT is layout-neutral here, which is why it is safe
+  // to do rather than a compromise: the frame is a fixed logical box, the
+  // width (unchanged) is what picks the >=768px framed branch, and the only
+  // thing height fed was shell-scale.js's scale, which is pinned to 1 above.
+  // MEASURED OFF `#app-frame`, NOT off `documentElement.scrollHeight`. `html`
+  // is `overflow: hidden` (shell.css), which clamps that figure to the viewport
+  // - it returned exactly 900 on a 900-tall window holding a 2900-tall frame,
+  // so the resize below was a no-op and the shot came back blank a second time
+  // in exactly the same 190KB. The frame's own layout box plus the body gutter
+  // above and below it is the height the page actually needs.
+  const docHeight = await page.evaluate(() => {
+    const frame = document.getElementById('app-frame');
+    if (!frame) return document.documentElement.scrollHeight;
+    const body = getComputedStyle(document.body);
+    const pad = Number.parseFloat(body.paddingTop) + Number.parseFloat(body.paddingBottom);
+    return Math.ceil(frame.getBoundingClientRect().height + (Number.isFinite(pad) ? pad : 0));
+  });
+  await page.setViewportSize({ width: WIDTH, height: Math.min(Math.max(docHeight, HEIGHT), 30000) });
+
+  // shell-scale.js debounces `resize` by SETTLE_MS (100ms) and then writes its
+  // own `--frame-scale`, so the two properties are re-pinned AFTER that lands
+  // rather than before it overwrites them.
+  await page.waitForTimeout(250);
+  await page.evaluate((h) => {
+    const root = document.documentElement;
+    root.style.setProperty('--frame-scale', '1');
+    root.style.setProperty('--frame-height', `${h}px`);
+  }, height);
+  await page.waitForTimeout(200);
+
+  return height;
+}
+
+/**
+ * `--stitch=scroll`: THE WHOLE SCREEN, AT THE FRAME'S REAL SIZE.
+ *
+ * `--fit=content` grows the frame so one shot holds everything, which changes
+ * what the action bar draws (D17: content that no longer overflows gets the
+ * inline bar, not the pinned one). This is the other trade: the frame stays at
+ * its built size, the app overflows and pins exactly as it does in a session,
+ * and the SCROLLER is moved instead - one screenshot per scrollful, composited
+ * here. Nothing about the page's layout is touched.
+ *
+ * NOT `fullPage`. Playwright's own stitch does not repaint the `transform:
+ * scale()` bezel layer in WebKit - it produced a correct phone in the top
+ * segment and pure white below it. Every segment here is a discrete
+ * `page.screenshot()` of a settled viewport, composited on a canvas.
+ *
+ * ---------------------------------------------------------------------------
+ * WHAT REPEATS, AND WHY IT IS NOT WHAT IT LOOKS LIKE
+ * ---------------------------------------------------------------------------
+ * `.action-bar-dock` reappears at the bottom of every segment. It is NOT
+ * `position: sticky` - audited across all 30 routes, NOTHING in this app is
+ * sticky or fixed. It is a flex SIBLING of the scroller with a negative top
+ * margin (components.css, "in pinned mode it overlaps the end of the content"),
+ * so it paints over the scroller's last 81px or 137px on every screen that
+ * pins it. Same symptom, different cause, and a sticky-only audit misses it.
+ *
+ * It is suppressed with `visibility: hidden` for the content segments, which
+ * reveals the content beneath it and reflows NOTHING - `display: none` would
+ * have changed the layout this pass is meant to preserve. It is then taken
+ * ONCE, from a final extra shot at the end of the scroll with the dock
+ * restored, and composited at `maxScroll + dockTop` - the exact place it sits
+ * when a participant reaches the bottom. What it covers there is the
+ * scroller's own bottom padding, not content: `action-bar.test.mjs` already
+ * asserts the bar is clear of the last content element at the end of scroll.
+ *
+ * `.sheet-scrim` also intersects the scroller's box on the 8 sheet routes and
+ * is deliberately NOT suppressed: it is the dim backdrop BEHIND the sheet, so
+ * it never paints over the content being captured. Checked, not assumed.
+ */
+async function captureStitched(page, file) {
+  const geom = await page.evaluate(() => {
+    const s = document.querySelector('.bottom-sheet__content, .screen-content');
+    if (!s) return null;
+    const r = s.getBoundingClientRect();
+    // The tail is everything from the top of the pinned dock down: the dock
+    // itself plus the tab bar under it. Where a screen draws no dock (frames
+    // 08, 12, 21 and /settings - D50/D52/D53), it starts at the scroller's
+    // own bottom edge and is just the tab bar, which the same maths covers.
+    const dock = document.querySelector('.action-bar-dock');
+    let tailTop = Math.round(r.bottom);
+    if (dock) {
+      const dr = dock.getBoundingClientRect();
+      if (dr.height > 0 && dr.top < r.bottom) tailTop = Math.round(dr.top);
+    }
+    return {
+      top: Math.round(r.top),
+      bottom: Math.round(r.bottom),
+      scrollHeight: Math.round(s.scrollHeight),
+      clientHeight: Math.round(s.clientHeight),
+      viewportH: window.innerHeight,
+      viewportW: window.innerWidth,
+      tailTop,
+      hasDock: !!dock && tailTop < Math.round(r.bottom),
+    };
+  });
+
+  if (!geom) {
+    await page.screenshot({ path: file });
+    return { segments: 1, stitched: false, reason: 'no scroll container on this screen' };
+  }
+
+  const maxScroll = Math.max(0, geom.scrollHeight - geom.clientHeight);
+  const positions = [];
+  for (let y = 0; y < maxScroll; y += geom.clientHeight) positions.push(y);
+  positions.push(maxScroll); // always ends exactly at the bottom
+
+  const setDock = (visible) => page.evaluate((v) => {
+    const dock = document.querySelector('.action-bar-dock');
+    if (dock) dock.style.visibility = v ? '' : 'hidden';
+  }, visible);
+
+  const shotAt = async (y) => {
+    await page.evaluate((top) => {
+      const s = document.querySelector('.bottom-sheet__content, .screen-content');
+      if (s) s.scrollTop = top;
+    }, y);
+    // Long enough for action-bar.js to re-measure and for any scroll-linked
+    // class to settle before the pixel is taken.
+    await page.waitForTimeout(220);
+    return (await page.screenshot()).toString('base64');
+  };
+
+  const segments = [];
+  for (const y of positions) {
+    await setDock(false); // re-applied per segment: the bar is re-mounted on mutation
+    segments.push(await shotAt(y));
+  }
+  await setDock(true);
+  const tail = await shotAt(maxScroll);
+
+  // Composited in a throwaway page rather than in the app's own: drawing a
+  // canvas into the page under capture would mutate the thing being measured.
+  const context = await browser.newContext({ viewport: { width: 600, height: 600 }, serviceWorkers: 'block' });
+  const blank = await context.newPage();
+  const dataUrl = await blank.evaluate(async (input) => {
+    const { segs, tailB64, g, positions: pos, dsf, maxScroll: ms } = input;
+    const load = (b64) => new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => res(img);
+      img.onerror = () => rej(new Error('segment failed to decode'));
+      img.src = `data:image/png;base64,${b64}`;
+    });
+    const imgs = await Promise.all(segs.map(load));
+    const tailImg = await load(tailB64);
+
+    const totalH = g.top + g.scrollHeight + (g.viewportH - g.bottom);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(g.viewportW * dsf);
+    canvas.height = Math.round(totalH * dsf);
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const put = (img, sy, sh, dy) => {
+      if (sh <= 0) return;
+      ctx.drawImage(img, 0, Math.round(sy * dsf), W, Math.round(sh * dsf), 0, Math.round(dy * dsf), W, Math.round(sh * dsf));
+    };
+
+    // 1. The chrome above the scroller (app bar / step header), from the first
+    //    segment only - it does not move.
+    put(imgs[0], 0, g.top, 0);
+
+    // 2. The content, strip by strip. Each segment contributes only the rows
+    //    the previous one did not already cover, which is what makes the
+    //    clamped final position (it overlaps its predecessor) join seamlessly
+    //    instead of duplicating a band.
+    let contentY = 0;
+    for (let i = 0; i < pos.length; i += 1) {
+      const s = pos[i];
+      const availableEnd = s + g.clientHeight;
+      if (availableEnd <= contentY) continue;
+      const srcOffset = contentY - s;
+      const h = availableEnd - contentY;
+      put(imgs[i], g.top + srcOffset, h, g.top + contentY);
+      contentY = availableEnd;
+    }
+
+    // 3. The tail - pinned dock (once) plus tab bar - from the shot taken at
+    //    the end of the scroll with the dock restored.
+    put(tailImg, g.tailTop, g.viewportH - g.tailTop, ms + g.tailTop);
+
+    return canvas.toDataURL('image/png');
+  }, { segs: segments, tailB64: tail, g: geom, positions, dsf: SCALE, maxScroll });
+  await context.close();
+
+  fs.writeFileSync(file, Buffer.from(dataUrl.split(',')[1], 'base64'));
+
+  return {
+    segments: positions.length,
+    stitched: true,
+    positions,
+    dockSuppressed: geom.hasDock,
+    tailTop: geom.tailTop,
+    contentHeight: geom.scrollHeight,
+    totalHeight: geom.top + geom.scrollHeight + (geom.viewportH - geom.bottom),
+  };
+}
+
 const slug = (route) => route.replace(/^\//, '').replace(/\//g, '-') || 'root';
 
 function shotName({ route, entry, state, theme, text, scroll }) {
@@ -907,18 +1311,67 @@ if (STAGE && !STAGES.includes(STAGE)) {
   process.exit(1);
 }
 
+// `--browser`. Validated against the engines actually imported rather than a
+// second list, so the error names what can be launched instead of what was
+// once written down here.
+const ENGINES = { chromium, webkit };
+if (!(args.browser in ENGINES)) {
+  console.error(`--browser must be one of ${Object.keys(ENGINES).join(', ')}, got '${args.browser}'.`);
+  process.exit(1);
+}
+if (!['frame', 'content'].includes(args.fit)) {
+  console.error(`--fit must be 'frame' or 'content', got '${args.fit}'.`);
+  process.exit(1);
+}
+if (!['off', 'scroll'].includes(args.stitch)) {
+  console.error(`--stitch must be 'off' or 'scroll', got '${args.stitch}'.`);
+  process.exit(1);
+}
+
+/**
+ * `--stitch=scroll` and `--fit=content` are two answers to the same question
+ * and disagree about the frame, so asking for both is refused rather than
+ * silently resolved in one direction - the same treatment `--session=opening`
+ * gets against the seeding options.
+ */
+const STITCH = args.stitch === 'scroll';
+if (STITCH && args.fit === 'content') {
+  console.error('--stitch=scroll and --fit=content are mutually exclusive: one grows the frame, the other scrolls inside it.');
+  process.exit(1);
+}
+if (STITCH && args.full) {
+  console.error('--stitch=scroll does its own compositing; --full (Playwright fullPage) does not repaint the scaled bezel in WebKit and must not be combined with it.');
+  process.exit(1);
+}
+if (STITCH && SCROLLS.length > 1) {
+  console.error(`--stitch=scroll captures the whole scroller, so --scroll must name one position (got ${SCROLLS.join(', ')}).`);
+  process.exit(1);
+}
+
+/** Per-screen stitch facts, printed as a table at the end of a stitched run. */
+const stitchReport = [];
+
 const [server, base] = await startServer();
-const browser = await chromium.launch();
+const browser = await ENGINES[args.browser].launch();
 const shots = [];
 const skipped = [];
 
 try {
   for (const route of ROUTES) {
-    for (const entry of ENTRIES) {
+    // In survey mode the route carries its own recipe, so the product loops
+    // below collapse to the one combination that screen is reached by. Outside
+    // it nothing changes: `ENTRIES` and `STATES` are the lists `--entry` and
+    // `--state` built, exactly as before.
+    const spec = SURVEY_MODE ? SURVEY_BY_ROUTE.get(route) : null;
+    const entriesHere = spec ? [spec.entry ?? 'direct'] : ENTRIES;
+    const statesHere = spec ? [spec.state ?? 'now'] : STATES;
+    const outcomeHere = spec?.outcome ?? null;
+
+    for (const entry of entriesHere) {
       // /tracker is the only screen with two doors into it; asking for a
       // `goals` or `insights` entry anywhere else would silently shoot the
       // same thing twice under two names.
-      if (entry !== 'direct' && entry !== 'mip' && route !== '/tracker') {
+      if (entry !== 'direct' && entry !== 'mip' && entry !== 'account' && route !== '/tracker') {
         skipped.push(`${route} via ${entry} - only /tracker has more than one entry`);
         continue;
       }
@@ -926,9 +1379,13 @@ try {
         skipped.push(`${route} via mip - the flow ends on a result, not on ${route}`);
         continue;
       }
+      if (entry === 'account' && route !== '/consent/move-account') {
+        skipped.push(`${route} via account - the account tap opens frame 03b, not ${route}`);
+        continue;
+      }
       for (const theme of THEMES) {
         for (const text of TEXTS) {
-          for (const state of STATES) {
+          for (const state of statesHere) {
             const context = await browser.newContext({
               viewport: { width: WIDTH, height: HEIGHT },
               deviceScaleFactor: SCALE,
@@ -1058,7 +1515,7 @@ try {
                 await control.click();
                 await page.waitForTimeout(300);
               }
-              await navigate(page, base, route, entry, state);
+              await navigate(page, base, route, entry, state, outcomeHere);
 
               const landed = await page.evaluate(() => window.location.hash);
               if (landed !== `#${route}`) {
@@ -1110,9 +1567,21 @@ try {
                 }, scroll);
                 await page.waitForTimeout(300);
 
-                const name = shotName({ route, entry, state, theme, text, scroll });
+                // Fitted LAST, after every state-setting step above and after
+                // the scroll, so what it measures is the screen as it will be
+                // shot rather than as it first painted.
+                await fitFrameToContent(page);
+
+                const name = spec
+                  ? `${String(spec.index).padStart(2, '0')}-${spec.name}.png`
+                  : shotName({ route, entry, state, theme, text, scroll });
                 const file = path.join(OUT, name);
-                await page.screenshot({ path: file, fullPage: args.full });
+                if (STITCH) {
+                  const result = await captureStitched(page, file);
+                  stitchReport.push({ name, route, ...result });
+                } else {
+                  await page.screenshot({ path: file, fullPage: args.full });
+                }
                 shots.push({ name, file, route, entry, state, theme, text, scroll });
                 console.log(`  ${name}`);
 
@@ -1161,7 +1630,10 @@ try {
   // rather than by pulling in an image library - this repo has no runtime
   // dependencies and the one dev dependency it does have can already do it.
   // -------------------------------------------------------------------------
-  if (args.sheet && shots.length > 0) {
+  // A stitched run writes no contact sheet even without `--no-sheet`: its
+  // images are the full screens, so a grid of them is a composite of thirty
+  // screens rather than a way of looking at one.
+  if (args.sheet && !STITCH && shots.length > 0) {
     const THUMB = 260;
     const cards = shots.map((s) => {
       const data = fs.readFileSync(s.file).toString('base64');
@@ -1212,6 +1684,17 @@ try {
   }
 
   await new Promise((resolve) => server.close(resolve));
+}
+
+if (STITCH && stitchReport.length > 0) {
+  console.log('\nStitch (segments = discrete screenshots composited; dock = pinned action bar suppressed in all but the tail):');
+  for (const r of stitchReport) {
+    console.log(
+      `  ${r.name.padEnd(30)} ${String(r.segments).padStart(2)} seg  ` +
+      `content ${String(r.contentHeight ?? '-').padStart(5)}  total ${String(r.totalHeight ?? '-').padStart(5)}  ` +
+      `${r.dockSuppressed ? `dock@${r.tailTop}` : 'no dock'}${r.stitched ? '' : `  (${r.reason})`}`,
+    );
+  }
 }
 
 console.log(`\n${shots.length} shot${shots.length === 1 ? '' : 's'} -> ${path.relative(ROOT, OUT)}`);
