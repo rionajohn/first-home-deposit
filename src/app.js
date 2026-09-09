@@ -64,6 +64,7 @@ import { render as renderAssumptionsSources } from './screens/assumptions-source
 import { render as renderAssumptionsCosts } from './screens/assumptions-costs.js';
 import { render as renderLearnStampDuty } from './screens/learn-stamp-duty.js';
 import { render as renderSettings } from './screens/settings.js';
+import './diagnostics.js'; // TEMPORARY: ?diag=1 device readout. Remove with src/diagnostics.js.
 
 registerRoute('/home', renderHome);
 registerRoute('/journey', renderJourney);
