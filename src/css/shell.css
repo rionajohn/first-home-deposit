@@ -281,6 +281,27 @@ body::-webkit-scrollbar,
   padding-bottom: 0;
 }
 
+/* --- The same fact again, with no selector a parser can reject ---
+   A SEPARATE BLOCK, DELIBERATELY, AND IT MUST STAY ONE. An invalid selector
+   invalidates the WHOLE selector list it sits in, so adding this class as a
+   third line of the rule above would tie it to `:has()` and drop it on exactly
+   the engines it exists for. Its own block is dropped by nothing.
+
+   `screen--has-nav` is set by `mountBottomNav` (router.js) off the same `path`
+   that decides whether the bar is drawn, and toggled off again on the routes
+   that have no bar. It says what the rule above asks `:has()` to work out: this
+   screen has a tab bar, so the bar carries the bottom inset itself
+   (components.css) and `.screen` must not also reserve it.
+
+   Idempotent with the rule above rather than replacing it. Both set the same
+   declaration to the same value, so on an engine that supports `:has()`
+   nothing changes at all - the cascade resolves to `0` whichever rule wins.
+   The `:has()` rule stays because it also covers the action bar case, which
+   has no published class of its own. */
+.screen--has-nav {
+  padding-bottom: 0;
+}
+
 /* Below 768px, the bezel wrapper is a no-op so .screen alone fills the
    viewport. */
 #app-frame,

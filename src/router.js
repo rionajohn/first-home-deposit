@@ -417,7 +417,26 @@ const TAB_FOR_ROUTE = new Map([
  * is the second renderer.
  */
 function mountBottomNav(container, path) {
-  if (BOTTOM_NAV_EXCLUDED_ROUTES.has(path)) return;
+  // `screen--has-nav` IS THE `:has()`-FREE WAY SHELL.CSS LEARNS A BAR IS HERE.
+  // `.screen:has(> .bottom-nav)` cancels `.screen`'s own bottom safe-area
+  // padding so it cannot double-count with the bar's own (components.css); an
+  // engine that cannot parse `:has()` drops that rule whole and counts the
+  // inset twice. This class carries the same fact with no selector the parser
+  // can reject. Set from `path` here, in the same function and off the same
+  // argument that decides whether the bar exists at all, so the class and the
+  // element can never disagree about which routes have one.
+  //
+  // Toggled rather than added, and toggled BEFORE either early return, which
+  // is what makes it correct on the excluded routes too: `#app` outlives every
+  // route change, so a class merely added would strand itself on the next
+  // screen. `mountActionBars` clears `actions-inline` at the top of itself for
+  // exactly this reason (action-bar.js) - both functions are reached from the
+  // hash-driven path, where `container.className = 'screen'` has already
+  // cleared everything, AND from the MutationObserver, where it has not.
+  const excluded = BOTTOM_NAV_EXCLUDED_ROUTES.has(path);
+  container.classList.toggle('screen--has-nav', !excluded);
+
+  if (excluded) return;
   if (container.querySelector('.bottom-nav')) return;
 
   // Which tab is lit is a fact about the route, not about the bar — and on
