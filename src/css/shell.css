@@ -118,7 +118,21 @@ h1, h2, h3, h4, h5, h6 {
    The scrolling that does happen is `.screen-content` and
    `.bottom-sheet__content` (components.css / screens.css), both
    `overflow-y: auto` — untouched here. */
-html,
+/* TEMPORARY VISUAL PROBE - REVERT BEFORE ANY FURTHER WORK.
+   `html` is split out of the shared rule below for one reason only: so its
+   background can be painted red while `body` stays separately identifiable.
+   Every other declaration is byte-identical to the rule this replaced, and
+   `body` keeps `var(--color-bg)` here exactly as before. No geometry. */
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-family);
+  background: #ff0000; /* PROBE: was var(--color-bg) */
+  color: var(--color-label);
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -158,7 +172,7 @@ body {
      surround outside the bezel is body, and at 390x844 in a desktop browser
      none of it shows at all, because `env(safe-area-inset-bottom)` is 0 there
      and `100svh` equals the viewport. The strip exists on real hardware only. */
-  background: var(--color-surface);
+  background: #00ff00; /* PROBE: was var(--color-surface) */
 }
 
 /* --- Hidden scrollbars, still scrollable ---
@@ -542,4 +556,14 @@ body::-webkit-scrollbar,
       opacity: 1;
     }
   }
+}
+
+/* --- TEMPORARY VISUAL PROBE - REVERT BEFORE ANY FURTHER WORK ---
+   Draws `.screen`'s exact bounds so the strip below `.bottom-nav` on iPhone
+   standalone can be read as inside or outside it by eye. `outline`, not
+   `border`, so it occupies no space and shifts no layout. Last in the file
+   so it overrides nothing that follows. */
+.screen {
+  outline: 3px solid #ff00ff;
+  outline-offset: -3px;
 }
