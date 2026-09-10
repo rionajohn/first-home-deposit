@@ -12599,3 +12599,115 @@ device is where the defect was found. The next probe on hardware is what confirm
 **To reverse.** Delete the `@media (display-mode: standalone)` block. `svh` then applies on both
 surfaces again, which is D137 exactly - and puts the ~49px strip back below the tab bar on installed
 iPhone.
+
+---
+
+## D149, amended 10 September 2026. `dvh` did not close it on device; standalone fills its PARENT instead
+
+**Date.** 10 September 2026. `src/css/shell.css` only. **No copy, no figure, no route, no change to
+any spacing value.** This amends D149 above, which is left standing as the original dated record.
+D137's browser-mode behaviour remains untouched by both.
+
+**Decision.** The `display-mode: standalone` override takes `height: 100%`, not `100dvh`:
+
+```css
+@media (display-mode: standalone) {
+  .screen { height: 100%; }
+}
+```
+
+Same block, same position in the file, so D149's cascade argument for the framed view is unchanged.
+
+### What v133 did on device
+
+Nothing. `100dvh` **did not close the ~49px strip** on installed iPhone. On that surface `dvh`
+resolves the same as `svh`, so the two units name the same short number and swapping between them
+cannot move anything.
+
+### Why no viewport unit could have worked, which D149 should have seen
+
+D149 correctly identified that `svh` was reporting a viewport shorter than the window, and then
+reached for a different unit **measured against the same viewport**. `vh`, `svh`, `lvh` and `dvh` are
+four readings of one thing: the engine's idea of the viewport. **If that idea is the thing that is
+wrong, no unit built on it can be right.** Swapping units was rearranging the reading rather than
+changing what is read.
+
+This is the standing `CLAUDE.md` failure shape for the fifth time, and this instance is instructive
+because the *fix* repeated it, not just the defect: **a value measured against a reference the screen
+does not show.** A viewport unit's reference is invisible to the participant and, on this surface,
+invisible to us as well - no browser here reproduces it.
+
+### Why `height: 100%` is expected to work where a viewport unit is not
+
+It names a **different reference, and one that is on the page**: the parent box.
+
+- `html, body { height: 100% }` (shell.css:121-130) makes body exactly as tall as the initial
+  containing block, which is the real window.
+- `.screen { height: 100% }` then fills body.
+
+At no point does `.screen` ask the engine what the viewport is. The chain terminates in the initial
+containing block via ordinary percentage resolution, so the number `.screen` gets is the number body
+actually has - which is checkable in the DOM rather than inferred from a unit.
+
+### It resolves through `display: contents` - checked, not assumed
+
+`.screen`'s DOM parents are `#app-frame` and `.device-bezel`, both `display: contents` at frameless
+widths, which raised a real question: does a percentage height resolve against body, or is the chain
+broken by ancestors that generate no box?
+
+**Measured at 390x844 on `/home`, before making the change:**
+
+- `#app-frame` and `.device-bezel` both compute `display: contents` and return **zero client rects** -
+  they generate no boxes at all.
+- With `height: 100%` applied, `.screen` computed **844px**, equal to body.
+- **Decisive step:** forcing `html, body` to `500px` made `.screen` compute **500px**. The percentage
+  tracks body, so it is resolving against body.
+- **Control against a false positive:** with `height: auto`, `.screen` measured **1001px** on the same
+  screen. The 844 was therefore the percentage resolving, not content height coinciding with the
+  window.
+
+`display: contents` does not break percentage height resolution here. The containing block is the
+nearest ancestor that generates a box, and that is body.
+
+### The safe-area padding still lands inside the height
+
+`* { box-sizing: border-box }` (shell.css:61) means padding comes out of the declared height rather
+than adding to it, exactly as under `svh`. Verified with real insets simulated at `--safe-top: 59px`
+and `--safe-bottom: 34px`, on both a route with a tab bar and one without:
+
+- `/home` (bar carries the bottom inset per D14/G39, so `.screen`'s `padding-bottom` is 0): padding
+  59/0, border-box stays 844, content box 785, `rect.bottom` 844 = `innerHeight`.
+- `/mip/running` (no bottom chrome, so `.screen` keeps the inset): padding 59/34, border-box stays
+  844, content box 751 - shrunk by exactly the 93px of padding - lowest child ends at 810, which is
+  844 minus the bottom inset.
+
+Page overflow was 0 in every case. **The padding shrinks the content box; it does not push anything
+past the bottom edge.**
+
+### Verified, and what still cannot be
+
+At 390x844, 402x874 and 1280x900 on `/home`, `/tracker` and `/goals`, with the rule's condition
+rewritten to `all` through the CSSOM so it matched everywhere: frameless `.screen` computed height
+equals `innerHeight` and `rect.bottom` equals `innerHeight`, gap 0. Framed 1280x900 stayed `852px`,
+so `height: var(--frame-height)` still wins on source order and D149's cascade argument holds
+unchanged.
+
+**Headless Chromium still cannot be put into standalone display mode**, for the reasons D149 records,
+so every row measured reported `display-mode: browser` and the rule was again verified in two halves
+rather than end to end.
+
+**And the fix is still not observable in any browser here** - desktop Chromium has no short viewport
+to correct, so `100svh`, `100dvh` and `100%` all measure the same 0px gap. That is exactly why v133
+looked fine and failed on device. **What is verified is that nothing regresses. Only the device can
+confirm the fix, and v133 is the standing proof that a green run here means little for this
+particular defect.**
+
+If `height: 100%` also fails on device, the next thing to check is whether `body` is itself short in
+standalone - the probe would be to read `document.body.getBoundingClientRect().height` against
+`window.innerHeight` on hardware, which distinguishes a short parent from a short `.screen` and would
+move the defect up the chain rather than sideways to another unit.
+
+**Version.** **v133 to v134.**
+
+**To reverse.** Restore `height: 100dvh` in that block, which is v133 - known not to close the strip -
+or delete the block for D137's original single-rule behaviour.

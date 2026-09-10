@@ -247,7 +247,7 @@ body::-webkit-scrollbar,
   overflow: hidden;
 }
 
-/* --- Standalone only: the DYNAMIC viewport, because there is no chrome to move ---
+/* --- Standalone only: fill the PARENT, because no viewport unit is right here ---
    D137 chose `svh` over `dvh` and that choice STANDS IN BROWSER MODE, untouched
    by this rule. Its reasoning is about Safari's bottom toolbar collapsing on
    scroll: `dvh` would track it, the tab bar would move under the participant's
@@ -282,11 +282,36 @@ body::-webkit-scrollbar,
    at the end overrides it. Keeping this rule ABOVE that breakpoint is therefore
    load-bearing, not incidental.
 
-   An engine that does not know `dvh` discards this declaration and keeps
-   `100svh` from the rule above - the exact behaviour it has today. */
+   NOT A VIEWPORT UNIT, BECAUSE THE VIEWPORT IS NOT THE LEVER. `100dvh` was
+   tried here first (v133) and did NOT close the strip on device: on installed
+   iPhone `dvh` resolves the same as `svh`, so all three units name the same
+   short number and swapping between them changes nothing. The engine's idea of
+   the viewport is the thing that is wrong, so no unit measured against it can
+   be right.
+
+   `height: 100%` measures against something else entirely: the PARENT BOX.
+   `html, body` are `height: 100%` above, so body is exactly as tall as the
+   initial containing block - the real window - and `.screen` fills body rather
+   than asking the engine for a viewport. This is the standing CLAUDE.md rule
+   about naming the reference: the reference here is body, which is an element
+   on the page, instead of a viewport the participant cannot see.
+
+   IT RESOLVES THROUGH `display: contents`, VERIFIED RATHER THAN ASSUMED.
+   `.screen`'s DOM parents are `#app-frame` and `.device-bezel`, both
+   `display: contents` at frameless widths (below), and both were confirmed to
+   generate no box at all - zero client rects. The percentage therefore resolves
+   against body, the nearest ancestor that does generate one. Checked by forcing
+   body to 500px and watching `.screen` compute 500px, with a `height: auto`
+   control measuring 1001px on the same screen - so the match is the percentage
+   resolving, not content height coinciding with the window.
+
+   `box-sizing: border-box` (the `*` rule at the top of this file) keeps the
+   safe-area padding INSIDE that height, exactly as it did under `svh`: the
+   padding comes out of the 100%, the content box shrinks, and nothing is pushed
+   past the bottom edge. */
 @media (display-mode: standalone) {
   .screen {
-    height: 100dvh;
+    height: 100%;
   }
 }
 
