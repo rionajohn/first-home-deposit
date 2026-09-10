@@ -5643,3 +5643,76 @@ known to have run against the other.
 *Status: **open**, as a known inaccuracy in rows v6 to v9. Closed by nothing - D146 stops the cause,
 and these four rows keep the error they shipped with. Anyone tracing a session to code should read
 the row's Vercel Link, not its Commit cell, for those four versions.*
+
+---
+
+## G135. The tab bar's band is still painted, after the band stopped existing. OPEN - SCHEDULED REMOVAL, KEPT ONE SESSION
+
+*Raised 10 September 2026 with `DECISIONS.md` D151, which confirms the underlying defect is fixed.
+The paint is deliberately still in the tree - see the trigger below.*
+
+### What is there
+
+`src/css/shell.css`:
+
+```css
+body.screen--has-nav {
+  background: var(--color-surface);
+}
+```
+
+with its matching override inside `@media (min-width: 768px)`, and the `document.body` half of the
+`screen--has-nav` toggle in `mountBottomNav` (`src/router.js`).
+
+It was added in `382efc7` (D149's second amendment) to colour the ~49px band below the tab bar in the
+installed iPhone PWA so the band read as part of the bar rather than as the app floating off the
+bottom edge.
+
+### Why it is now wrong
+
+**There is no band.** D150 changed `apple-mobile-web-app-status-bar-style` from `black-translucent` to
+`default`, and D151 records the confirmed device result: `env(safe-area-inset-top)` 0px, `.screen`
+`padding-top` 0px, tab bar flush. The rule paints a strip that does not exist.
+
+It is not harmful while it stays - `--color-surface` is the tab bar's own colour and the band it
+would paint has zero height - but it is a cosmetic answer to a defect that has since been fixed
+properly, and its own comment says it is a holding measure to be removed the moment the geometry is
+right.
+
+### Why it is being kept anyway
+
+**The fix is confirmed on one device.** If a participant arrives with different hardware, a different
+iOS version, or - most likely - a Home Screen icon installed before v137, they get the old web view
+bounds and the strip returns. D151 records that the meta tag is read at INSTALL time, so a
+pre-v137 icon keeps the old behaviour indefinitely regardless of what is deployed.
+
+Removing the paint in the same pass as confirming the fix would mean that in exactly that case the
+strip comes back **and its cover is gone**, in one step, in front of a participant. The paint costs
+nothing while the geometry is right and protects the session if it is not.
+
+### The trigger, so this is not open-ended
+
+Remove once **one participant session has run on v137 or later, on a freshly added Home Screen icon,
+with no strip below the tab bar.** That is the whole condition.
+
+Removed together, as one commit, because they are one temporary apparatus:
+
+- `body.screen--has-nav` in `src/css/shell.css` and its `@media (min-width: 768px)` twin
+- the `document.body.classList.toggle('screen--has-nav', ...)` line in `mountBottomNav`
+  (`src/router.js`) - the `#app` half **stays**, it is 723e236's `:has()`-free inset fix and is
+  unrelated
+- `src/diagnostics.js`, its import in `src/app.js`, and the `renderStoredReadout` import and call in
+  `src/screens/settings.js`
+- the `.diag-block` block in `src/css/components.css`
+- `--diag` in `scripts/shots.mjs`
+
+That commit changes shell assets, so it bumps `CACHE_VERSION` and `BUILD_VERSION` like any other.
+
+**The one thing to be careful of on removal:** the `#app` toggle and the `body` toggle sit on
+consecutive lines in the same function and read the same `excluded`. Only the `body` one goes. Taking
+both would restore the double-counted safe-area inset on engines without `:has()`, which is the bug
+723e236 was written to fix.
+
+*Status: **open by design**, with a stated trigger. Not a defect in what ships - the paint is
+invisible while the geometry is correct - but it must not become permanent by being forgotten, which
+is why it is written down rather than left as a comment in the CSS.*

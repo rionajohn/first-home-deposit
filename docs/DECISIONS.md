@@ -12938,3 +12938,122 @@ which come out together with it.
 
 **To reverse.** Restore `content="black-translucent"`. The web view goes back to reporting a 62px top
 inset for space it does not occupy, and the app sits 62px low and runs 62px off the bottom.
+
+---
+
+## D151. Closing the strip: `default` fixed it, and 812 is now the RIGHT number
+
+**Date.** 10 September 2026. **No code changes** - this entry records a confirmed device result and
+closes D137, D149 and its two amendments, and D150. It is the closing entry for the band below the
+tab bar in the installed iPhone PWA.
+
+**Confirmed on device.** iPhone, iOS 18.7, Safari 26.6.1, installed standalone. The fix is D150's:
+`apple-mobile-web-app-status-bar-style` changed from `black-translucent` to `default` in
+`index.html`. Nothing else. No CSS was involved in the cause or the cure.
+
+### The evidence, before and after
+
+| | before (`black-translucent`) | after (`default`) |
+|---|---|---|
+| `window.innerHeight` | 812 | **812** |
+| `screen.height` | 874 | 874 |
+| `env(safe-area-inset-top)` | **62px** | **0px** |
+| `.screen` `padding-top` | 62px | **0px** |
+| tab bar | ~49px band beneath it | **flush** |
+
+### THE NUMBER THAT DID NOT CHANGE IS THE POINT
+
+`window.innerHeight` reads **812 in both columns.** It was wrong before and it is right now, and the
+height alone cannot tell you which.
+
+**Before**, 812 was a web view 62px shorter than the display, positioned below the status bar and
+running off the bottom by the same 62px. **After**, 812 is the whole viewport: `default` gives the
+status bar its own opaque band OUTSIDE the web view, so 874 minus that band IS the space the app has,
+and the app fills it exactly.
+
+> **THE DISCRIMINATOR IS THE TOP INSET, NOT THE HEIGHT.**
+>
+> `innerHeight` 812 against `screen.height` 874 with **`env(safe-area-inset-top): 0px`** is the
+> CORRECT, FIXED state. The status bar owns those 62px and the web view never sees them.
+>
+> The same 812 against 874 with a **NON-ZERO top inset** is the defect: the web view is being told to
+> reserve space it does not occupy.
+
+Anyone who finds 812 under 874 in a future readout and reads it as this defect returning will chase a
+bug that is not there. **Read the inset.** It is in section 4 of the frame 33 diagnostic and takes
+one line to check.
+
+### THE META TAG IS READ AT INSTALL TIME, WHICH COST TWO ROUNDS
+
+`apple-mobile-web-app-status-bar-style` is read by iOS when the app is added to the Home Screen and
+is **baked into the installed app**. Deploying a change to it does nothing for an icon that already
+exists - the running app keeps the value it was installed with, no matter how many times it is
+reopened or how the cache is versioned.
+
+**Two rounds of testing appeared to fail for this reason alone**, on a fix that was already correct
+and already deployed. The readout kept reporting a 62px inset because the installed app was still the
+`black-translucent` one.
+
+**Any future change to this tag requires deleting the Home Screen icon and adding it again.** This is
+not the service worker, and `CACHE_VERSION` cannot reach it - a bump replaces the shell, not the
+installed app's launch configuration. It is worth saying twice because everything else in this
+project is fixed by a version bump, and the one thing that is not looks identical to a bump that
+failed.
+
+### Three correct fixes that could not have worked
+
+| version | attempt | why it failed |
+|---|---|---|
+| pre-v133 | `height: 100svh` (D137) | correct against the web view |
+| v133 | `height: 100dvh`, standalone-scoped (D149) | correct against the web view |
+| v134 | `height: 100%` against `body` (D149 amd. 1) | correct against the web view |
+
+**Each one made `.screen` exactly as tall as the window it was given, and each one was right.** The
+window was the wrong size. **Nothing inside a document can resize the web view containing it** - not
+a viewport unit, not a percentage, not a media query. Every one of these was a correct answer to a
+question that was not the question.
+
+This is the standing `CLAUDE.md` rule at its limit - *a value measured against a reference the screen
+does not show* - and the hardest instance of it in this repo, because the faulty reference was the
+container itself. Measuring from inside could never reveal it, which is exactly why three rounds of
+measuring from inside produced three correct-looking fixes and no progress.
+
+### THE LESSON IS THE DIAGNOSTIC, NOT THE FIX
+
+Eight builds went into this. **Seven changed the app. One changed what could be seen, and that is the
+one that ended it.**
+
+- v133, v134: height fixes. No effect.
+- v135: painted the band so it read as bar. Cosmetic cover, recorded as such.
+- **v136: put the readout on frame 33** - because `?diag=1` can never be typed into an installed app
+  whose `start_url` is frozen and which has no address bar. **This is the build that mattered.**
+- v137: the actual fix, chosen off two numbers that build produced.
+- v138: width fields, to separate two remaining explanations.
+
+The `innerHeight` 812 against `screen.height` 874 comparison is trivial. It was unobtainable for
+seven builds, not because it was hard to compute, but because **there was no way to read anything at
+all off the surface where the defect lived.** Desktop Chromium reproduced none of it: `env()` resolves
+to 0 there, so every attempt passed the full suite and every screenshot looked correct.
+
+**When a defect appears only on a surface you cannot instrument, build the instrument first.** Three
+rounds of fixing blind cost more than the readout did.
+
+### Scheduled removal, not a decision: the painted band
+
+`body.screen--has-nav { background: var(--color-surface) }` (382efc7, D149 amd. 2) paints the band so
+it reads as part of the bar. **There is no longer a band.** The rule is now colouring a strip that
+does not exist.
+
+**It is kept for one session, deliberately, as insurance** - the fix is confirmed on one device, and
+a participant arriving with different hardware, a different iOS version, or an icon installed before
+v137 would meet the strip with its cover already gone. It costs nothing while the geometry is right.
+
+**This is a scheduled removal with a trigger, not a standing design decision.** It comes out once one
+participant session has run on v137 or later without the strip appearing, together with the frame 33
+diagnostic, the `?diag=1` overlay and `--diag` in `scripts/shots.mjs`. Recorded in `GAPS.md` **G135**
+so it is not lost.
+
+**Version.** None. This entry changes no shell asset.
+
+**To reverse.** Nothing to reverse. The fix is D150's meta tag; this entry only records that it
+worked and what the numbers now mean.
