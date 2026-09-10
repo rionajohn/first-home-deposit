@@ -12431,3 +12431,67 @@ v126**. The rule's first application is the commit that writes it.
 
 **To reverse.** Return the bump to the merge. `main` stays protected and the `build` alias goes back
 to serving every commit between merges under one cache name.
+
+---
+
+## D148. The band below the tab bar is a geometry defect, so `body` stops being painted to hide it
+
+**Date.** 10 September 2026. `src/css/shell.css` only. **No copy, no figure, no route, and no change
+to any layout value.** Reverses the whole of D-less commit `72f7778` and the temporary probe
+`fdd2273`.
+
+**Decision.** `body` carries no background of its own again. It returns to `var(--color-bg)` from
+the shared `html, body` rule, exactly as before 72f7778, and the explanatory comment that argued for
+`var(--color-surface)` is removed rather than kept, because it no longer describes what the file
+does or why.
+
+### The colour was answering the wrong question
+
+72f7778 painted `body` in `--color-surface` so the strip below `.bottom-nav` on iPhone standalone
+would read as a continuation of the bar. That treated the strip as a **colour** problem: the band
+exists, so make it look deliberate.
+
+Device evidence now says it is a **geometry** problem - the strip is `.screen` failing to reach the
+bottom of the visible viewport, not a band that wants a better colour. Painting it therefore fixes
+nothing and cannot: a strip that should not be there does not stop being wrong by matching the bar.
+
+### It was also making one thing actively worse
+
+72f7778's own commit message flagged this as a limit rather than solving it, and the flag was
+correct: on the nine dialog routes and `/mip/running` there is no bar for the band to continue, so a
+**white strip sits below a grey screen** where before it was grey on grey. That is a visible
+regression on ten routes, accepted at the time as the price of the improvement on the routes that do
+have a bar. With the improvement now known to be cosmetic cover over a real defect, the price buys
+nothing, and the ten routes are worse for it.
+
+**A cosmetic change that regresses part of the surface is only worth keeping while the benefit it
+buys is real.** That is the general form, and it is why this reverses rather than narrows: scoping
+the paint to bar-bearing routes would keep the cover-up and merely stop it hurting elsewhere.
+
+### The probe, and what it was for
+
+`fdd2273` painted `html` red, `body` green and outlined `.screen` in magenta, because no browser
+available here reproduces the strip - `env(safe-area-inset-bottom)` resolves to 0 in desktop
+Chromium, so `100svh` equals the viewport and `.screen` covers `body` exactly. It was pushed to the
+`build` alias to be read off the device by eye, and is reverted here in full. **A deliberately ugly
+build is reverted in the session that reads it, not left for the next one to find.**
+
+### What is deliberately NOT reverted
+
+`723e236`, which publishes the tab bar's presence as `screen--has-nav` so the inset rule does not
+depend on `:has()`, **stays**. It removed a real fragility - an engine that cannot parse `:has()`
+drops the entire rule, not just that selector - and it is independent of the paint: it concerns
+which padding `.screen` gets, not what colour anything is. It is also a candidate cause of the strip
+itself, so removing it would discard a fix while the defect is still open.
+
+**The geometry defect is left open, not closed here.** This entry restores the pre-72f7778 state; it
+does not say what makes `.screen` reach the bottom of the visible viewport.
+
+**Version.** `src/css/shell.css` is in `SHELL_ASSETS`, so this carries its own bump: **v130 to
+v132**. It skips v131 deliberately - v131 was the probe, already pushed to the `build` alias, and
+that alias serves every push under a cache-first worker with no revalidation (D147). Reusing the
+number would leave a device holding the red-and-green shell with nothing to evict it.
+
+**To reverse.** Restore `background: var(--color-surface)` to the `body` rule in `shell.css`, and
+with it the comment recording why - which would again be a cosmetic answer to a geometry defect, and
+would again put a white strip under grey on the ten routes with no bar.

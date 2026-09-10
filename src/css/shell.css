@@ -118,21 +118,7 @@ h1, h2, h3, h4, h5, h6 {
    The scrolling that does happen is `.screen-content` and
    `.bottom-sheet__content` (components.css / screens.css), both
    `overflow-y: auto` — untouched here. */
-/* TEMPORARY VISUAL PROBE - REVERT BEFORE ANY FURTHER WORK.
-   `html` is split out of the shared rule below for one reason only: so its
-   background can be painted red while `body` stays separately identifiable.
-   Every other declaration is byte-identical to the rule this replaced, and
-   `body` keeps `var(--color-bg)` here exactly as before. No geometry. */
-html {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow: hidden;
-  font-family: var(--font-family);
-  background: #ff0000; /* PROBE: was var(--color-bg) */
-  color: var(--color-label);
-}
-
+html,
 body {
   margin: 0;
   padding: 0;
@@ -145,34 +131,6 @@ body {
 
 body {
   -webkit-font-smoothing: antialiased;
-
-  /* --- THE BAND BELOW THE TAB BAR READS AS BAR, NOT AS PAGE ---
-     Frameless only. `.screen` is `100svh` (see above) while the visible
-     viewport on a real iPhone can be taller, so a strip of the page shows
-     beneath the bar - and painted in `--color-bg` it read as the app floating
-     off the bottom edge, the same complaint D14 and G39 answered elsewhere by
-     moving the inset INSIDE the chrome that owns it. This is the one case that
-     cannot be answered that way, because the strip is outside `.screen`
-     altogether and no element in the app spans it. Painting it in the bar's own
-     surface makes it continuous with the bar instead.
-
-     NOT ON `html`, DELIBERATELY, AND NOT IN THE SHARED RULE ABOVE. The root
-     element's background is what propagates to the canvas - overscroll, and the
-     area behind the frame at >=768px - so it stays `--color-bg`. Only `body` is
-     repainted, and only where `body` is not the surround.
-
-     SCOPED BY THE FILE'S EXISTING BREAKPOINT, with no new media query and no
-     second copy of the 768 literal: `@media (min-width: 768px)` further down
-     already sets `body { background: var(--color-canvas) }`, at the same
-     specificity and later in source, so the framed surround wins there
-     untouched. This is the mobile-first shape the rest of the file uses - the
-     base rule states the frameless case, the one media query overrides it.
-
-     Verified by painting `body` magenta at runtime: at 1280x900 the whole
-     surround outside the bezel is body, and at 390x844 in a desktop browser
-     none of it shows at all, because `env(safe-area-inset-bottom)` is 0 there
-     and `100svh` equals the viewport. The strip exists on real hardware only. */
-  background: #00ff00; /* PROBE: was var(--color-surface) */
 }
 
 /* --- Hidden scrollbars, still scrollable ---
@@ -556,14 +514,4 @@ body::-webkit-scrollbar,
       opacity: 1;
     }
   }
-}
-
-/* --- TEMPORARY VISUAL PROBE - REVERT BEFORE ANY FURTHER WORK ---
-   Draws `.screen`'s exact bounds so the strip below `.bottom-nav` on iPhone
-   standalone can be read as inside or outside it by eye. `outline`, not
-   `border`, so it occupies no space and shifts no layout. Last in the file
-   so it overrides nothing that follows. */
-.screen {
-  outline: 3px solid #ff00ff;
-  outline-offset: -3px;
 }
