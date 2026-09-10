@@ -5748,3 +5748,66 @@ its own entry, not the completion of this one.**
 
 *Status: **closed**. The paint is gone, the geometry fix that made it unnecessary is D150 and D151,
 and the diagnostic that found it stays by choice.*
+
+---
+
+## G136. No deployment can ever match its own row, so frame 33's "current" chip never lights. OPEN - REPORT ONLY
+
+*Found 10 September 2026 while completing the v10 merge, by checking a claim rather than assuming
+it: `version-chips.test.mjs` was expected to stop skipping its current-build case once a row finally
+carried the running build. It did not, and the reason is structural.*
+
+### What is wrong
+
+`currentDeployment(buildVersion)` matches a row's `build` stamp against the running
+`BUILD_VERSION`. **The two can never be equal, on either branch**, because of how the deploy
+procedure is sequenced:
+
+- **On `main`.** v10 shipped `BUILD_VERSION` `v140` at commit `5bece4c`. Its `deployments.js` row -
+  which records `build: 'v140'` correctly - is written in the step 8 commit, and step 8 says that
+  commit **is not merged forward as part of this deployment**. So production runs `v140` against a
+  `deployments.js` whose newest row is v9. Verified: `git show main:src/deployments.js` contains no
+  row with `build: 'v140'`.
+- **On `build`.** Step 8 also bumps, because `src/deployments.js` is in `SHELL_ASSETS`. So the
+  moment the v10 row naming `v140` exists, the branch it exists on is running `v141`.
+
+The row is correct in both places. The running build has simply moved past it by the time it is
+written, in one case, and not yet reached it in the other.
+
+### It is not fixed by the next deployment either
+
+v11 will merge v10's completed row forward, so production will then hold a row naming `v140` - while
+running whatever v11 ships. The mismatch travels with each deployment rather than closing.
+
+### Consequences, both small
+
+- **Frame 33 never draws the `--current` chip.** Every deployment renders as a selectable link,
+  including the one being looked at. `currentDeployment()` returning `null` is documented as a real
+  state, and the screen handles it correctly, so nothing breaks - the facilitator just gets no
+  marker for "you are here".
+- **`version-chips.test.mjs` skips its last case permanently.** It skips itself with a truthful
+  message (`no row carries build v141, so no chip is current`), so the suite stays honest, but that
+  one assertion has never actually executed and cannot under the current sequence.
+
+### Why it is reported and not fixed
+
+The obvious fixes each break something the procedure exists to protect:
+
+- **Write the next build stamp in the row** (`v141` here). The row would then name a build that
+  deployment did not ship, which is the one thing `deployments.js`'s own header says this data cannot
+  do: *"a constructed URL would be plausible and wrong, which is the one failure this data cannot
+  have."* The same applies to a constructed build stamp.
+- **Skip the bump at step 8.** `deployments.js` is a shell asset, and `sw.js` is cache-first with no
+  revalidation - an unchanged version leaves an earlier shell on the `build` alias for a returning
+  participant. D147 exists because of exactly that.
+- **Merge step 8 forward.** This is what G134 records as having corrupted four Commit cells: merging
+  after the commit was read is what moved `main` past the recorded value.
+
+A real fix probably means deriving "current" from something that is not the build stamp - the
+deployment URL the app is being served from would do it, and is available at runtime - but that is a
+design change to `deployments.js` and D140's chip contract, not a correction to a row.
+
+*Status: **open, report only**. Nothing shipped is wrong: every row records what its deployment
+actually ran, and the screen behaves correctly when nothing matches. Recorded so the permanent skip
+in `version-chips.test.mjs` is understood as a known structural gap rather than read as a test that
+merely has not been exercised yet.*
