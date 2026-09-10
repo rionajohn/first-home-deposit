@@ -60,6 +60,12 @@ import { formatFullDate } from '../format.js';
 import { applyScenarioClasses } from '../router.js';
 import { stagePatch } from '../stage.js';
 import { chevronRight } from '../icons.js';
+// TEMPORARY, AND IT LEAVES WITH THE REST OF THE DIAGNOSTIC. See the second
+// block at the end of src/diagnostics.js: the `?diag=1` overlay cannot be
+// reached in an installed home-screen app, because its `start_url` is frozen
+// and there is no address bar to type a flag into - which is the only mode
+// where the band below the tab bar appears.
+import { renderStoredReadout } from '../diagnostics.js';
 
 export const anchors = [];
 
@@ -323,4 +329,21 @@ export function render(container, ctx) {
     line.textContent = fill(c.cachedBuildTemplate, { versions: waiting.join(', ') });
     footer.append(line);
   });
+
+  // TEMPORARY DEVICE READOUT, APPENDED LAST AND OWNED ENTIRELY BY
+  // diagnostics.js. It is the same `collectSynchronous()` the `?diag=1`
+  // overlay uses - one measurement function, not a second copy that could
+  // drift from it.
+  //
+  // The figures are NOT measured here. `/settings` is in
+  // `BOTTOM_NAV_EXCLUDED_ROUTES` (router.js), so it has no `.bottom-nav` and
+  // `.screen`'s box is a different shape; the readout shows a capture taken
+  // while a barred route was on screen, and prints which route and when at
+  // the top of itself.
+  //
+  // Appended to the existing <main> after everything else, so no control
+  // above it is touched, moved or re-ordered. Deleting these two statements
+  // and the import restores frame 33 exactly.
+  const main = container.querySelector('main') || container;
+  renderStoredReadout(main);
 }

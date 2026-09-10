@@ -19,11 +19,20 @@
  * (router.js) watches `#app`'s childList, so appending here cannot re-enter
  * `mountBottomNav`.
  *
- * IT IS GATED ON `?diag=1` AND DOES NOTHING WITHOUT IT. Everything below is
- * a function declaration until the single guarded call at the end of the
- * file. With the flag absent that call is not made: no element is created,
- * no style is set, no listener is attached, and the app behaves exactly as
- * it does with this file deleted.
+ * THE OVERLAY IS GATED ON `?diag=1`. `render()` is called from one guarded
+ * statement at the end of the file; without the flag it is never called and
+ * no overlay element is created.
+ *
+ * THE FILE ITSELF IS NO LONGER INERT WITHOUT THE FLAG, and the second block
+ * at the end of the file is why. An installed home-screen app launches a
+ * frozen `start_url` with no address bar, so `?diag=1` cannot be typed in the
+ * one mode where the defect appears - which made the overlay unreachable
+ * exactly where it was needed. So the same readout is also shown on frame 33
+ * (`/settings`), and reaching it needs a capture taken earlier, on a route
+ * that HAS a bottom bar. Two listeners are therefore registered
+ * unconditionally. They only read, and write to one module-level variable;
+ * nothing is created or styled until frame 33 renders. See that block for the
+ * full reasoning.
  *
  * Both places the flag can sit are accepted, because this app is hash routed
  * and either is a reasonable thing to type:
@@ -37,8 +46,11 @@
  * session, and putting debug labels in the content module would leave them
  * behind when this file goes.
  *
- * TO REMOVE: delete this file and the one `import './diagnostics.js';` line
- * in src/app.js. Nothing else references it.
+ * TO REMOVE: delete this file, the one `import './diagnostics.js';` line in
+ * src/app.js, and the `renderStoredReadout` import and call in
+ * src/screens/settings.js. The overlay and the settings readout are one
+ * temporary diagnostic and come out together; leaving the settings half
+ * behind would put a debug block on a participant-facing screen.
  */
 
 // Already in the eager module graph (app.js imports screens/settings.js,
@@ -126,8 +138,15 @@ function testHasSelector(screen) {
   }
 }
 
-/** Everything that can be read synchronously, as label/value pairs. */
-function collectSynchronous() {
+/**
+ * Everything that can be read synchronously, as label/value pairs.
+ *
+ * EXPORTED so the settings readout below reuses this exact function rather
+ * than growing a second copy of the measurement logic. Two copies would drift,
+ * and the whole value of the readout is that the numbers it shows are the ones
+ * the overlay would have shown.
+ */
+export function collectSynchronous() {
   const screen = document.querySelector('.screen');
   const nav = document.querySelector('.bottom-nav');
   const insets = readSafeAreaInsets();
@@ -402,9 +421,174 @@ function scheduleCapture() {
   else window.addEventListener('load', start, { once: true });
 }
 
-// THE ONLY STATEMENT IN THIS FILE THAT EXECUTES. Everything above is a
-// declaration. Without the flag, `diagnosticsRequested()` reads `location`,
-// returns false, and nothing else in this module is ever called.
+/* ===========================================================================
+   THE SAME READOUT ON /settings, FOR THE INSTALLED APP
+   ===========================================================================
+
+   WHY THIS EXISTS. The `?diag=1` gate above cannot be reached in the one mode
+   that matters. An installed iOS home-screen app launches its FROZEN
+   `start_url` (`./index.html`, manifest.webmanifest) with no address bar, so
+   there is nowhere to type the flag and the overlay has never once been
+   readable in standalone - which is the only place the band below the tab bar
+   appears. This block puts the same numbers on frame 33, which the facilitator
+   gesture (D54) can reach from inside the running app.
+
+   WHY THE VALUES ARE CAPTURED ELSEWHERE AND ONLY DISPLAYED HERE. `/settings`
+   is in `BOTTOM_NAV_EXCLUDED_ROUTES` (router.js), so it has NO `.bottom-nav`,
+   and `.screen`'s box is a different shape there - it keeps its own
+   `padding-bottom` because no bar is present to carry the inset (shell.css),
+   and there is no bar to measure at all. Measuring on `/settings` would answer
+   a question nobody asked. So the readout is captured while a BARRED route is
+   on screen and held until frame 33 asks for it.
+
+   EVERY CAPTURE STAMPS THE ROUTE AND TIME IT CAME FROM, and the readout prints
+   both at the top. That is the standing CLAUDE.md rule about naming the
+   reference: these figures describe a screen that is no longer the one being
+   looked at, and nothing else about them would reveal which.
+
+   THIS FILE NOW HAS SIDE EFFECTS WITHOUT THE FLAG, which the header above used
+   to be able to promise it did not. Two listeners are registered
+   unconditionally and a capture is taken on every barred route. They only
+   READ - computed styles and bounding boxes - and write to one module-level
+   variable; no element is created, no style is set and no layout value is
+   touched until `renderStoredReadout` is called from frame 33.
+
+   TO REMOVE: this whole block, plus the `renderStoredReadout` call and its
+   import in src/screens/settings.js. It comes out at the same time as the
+   `?diag=1` overlay, not later. */
+
+/** The most recent readout taken while a bottom bar was on screen, or null. */
+let lastBarredCapture = null;
+
+/**
+ * Take a readout IF a bar is on screen, and stamp where it came from.
+ *
+ * The `.bottom-nav` test is the whole gate: it is the same fact
+ * `mountBottomNav` acts on, read off the DOM rather than off a route list, so
+ * this cannot disagree with what was actually drawn.
+ */
+function captureIfBarred() {
+  if (!document.querySelector('.bottom-nav')) return;
+
+  const route = window.location.hash.split('?')[0].slice(1) || '/home';
+  const lines = collectSynchronous();
+  const capture = { route, at: new Date(), lines };
+  lastBarredCapture = capture;
+
+  // Resolve item 10's async half into the STORED lines, so a readout opened
+  // later already has it rather than showing the placeholder for ever.
+  describeServiceWorker().then((description) => {
+    const index = capture.lines.indexOf('service worker: (reading...)');
+    if (index !== -1) capture.lines[index] = `service worker: ${description}`;
+  });
+}
+
+/**
+ * Two frames after a route settles, matching `scheduleCapture` above and for
+ * the same reason: the bar is in the DOM before `shell-scale.js` and the
+ * safe-area padding have finished, and a measurement taken then is of a layout
+ * that never reached the screen.
+ */
+function scheduleBarredCapture() {
+  window.requestAnimationFrame(() => window.requestAnimationFrame(captureIfBarred));
+}
+
+/**
+ * Build the readout into `host`, from the stored capture.
+ *
+ * Everything is set with `textContent` and inline styles on elements this
+ * function creates, so no participant-facing string, stylesheet rule or
+ * existing settings control is touched. Colours come from the app's own tokens
+ * so the block follows the theme like everything else on the screen.
+ */
+export function renderStoredReadout(host) {
+  const wrap = document.createElement('section');
+  Object.assign(wrap.style, {
+    margin: '24px 0 0',
+    padding: '12px',
+    borderRadius: '10px',
+    background: 'var(--color-surface)',
+    border: '1px solid var(--color-border-subtle)',
+  });
+
+  const heading = document.createElement('p');
+  heading.textContent = 'Device diagnostic (temporary)';
+  Object.assign(heading.style, {
+    margin: '0 0 8px',
+    font: '600 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+    color: 'var(--color-label)',
+  });
+  wrap.appendChild(heading);
+
+  if (!lastBarredCapture) {
+    const empty = document.createElement('p');
+    empty.textContent =
+      'No capture yet. Open Home, then come back - the figures are read from a screen that has the tab bar.';
+    Object.assign(empty.style, {
+      margin: '0',
+      font: '11px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+      color: 'var(--color-label-secondary)',
+    });
+    wrap.appendChild(empty);
+    host.appendChild(wrap);
+    return;
+  }
+
+  const { route, at, lines } = lastBarredCapture;
+  const stamp = [
+    `CAPTURED ON: ${route}`,
+    `CAPTURED AT: ${at.toTimeString().slice(0, 8)}`,
+    'These figures describe the route named above, NOT this screen.',
+    '/settings has no bottom bar, so measuring here would answer nothing.',
+  ].join('\n');
+  const text = () => `${stamp}\n${lines.join('\n').replace(/^\n/, '')}`;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = 'Copy';
+  Object.assign(button.style, {
+    display: 'block',
+    marginBottom: '8px',
+    padding: '6px 14px',
+    minHeight: '32px',
+    background: 'var(--color-label)',
+    color: 'var(--color-surface)',
+    border: '0',
+    borderRadius: '6px',
+    font: '600 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+    cursor: 'pointer',
+  });
+  button.addEventListener('click', () => copyToClipboard(text(), button));
+  wrap.appendChild(button);
+
+  const readout = document.createElement('pre');
+  readout.textContent = text();
+  Object.assign(readout.style, {
+    margin: '0',
+    // `pre-wrap` and `break-word` together are what keep the longest line -
+    // the user agent string - inside the column instead of overflowing it.
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    userSelect: 'text',
+    WebkitUserSelect: 'text',
+    font: '11px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+    color: 'var(--color-label)',
+  });
+  wrap.appendChild(readout);
+
+  host.appendChild(wrap);
+}
+
+// Ungated, unlike the overlay: capture on first load and on every route
+// change, so whatever barred screen was last on display is the one frame 33
+// reports. Both handlers no-op on a route with no bar.
+if (document.readyState === 'complete') scheduleBarredCapture();
+else window.addEventListener('load', scheduleBarredCapture, { once: true });
+window.addEventListener('hashchange', scheduleBarredCapture);
+
+// THE ONLY *GATED* STATEMENT IN THIS FILE. The overlay above is still behind
+// `?diag=1`: without the flag `diagnosticsRequested()` reads `location`,
+// returns false, and `render()` is never called.
 if (diagnosticsRequested()) {
   scheduleCapture();
 }
