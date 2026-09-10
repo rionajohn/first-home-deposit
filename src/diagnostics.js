@@ -218,11 +218,45 @@ export function collectSynchronous() {
   section('8. :has() SELECTOR MATCH');
   row(".screen.matches('.screen:has(> .bottom-nav)')", testHasSelector(screen));
 
+  // WIDTH IS HERE TO TELL TWO EXPLANATIONS APART. The installed app measured
+  // `innerHeight` 812 against a `screen.height` of 874 - short by exactly the
+  // 62px top inset - and that is consistent with two quite different things:
+  // a web view positioned under the status bar but sized short, or iOS handing
+  // the app a LEGACY 375x812 viewport instead of the device's own 402x874.
+  // The heights alone cannot separate them, because 812 is both `874 - 62` and
+  // the legacy iPhone X height. The WIDTH can: 402 means a correctly sized
+  // viewport that is merely offset, 375 means the legacy one.
+  //
+  // `window.screen`, spelled out, because `screen` is shadowed in this
+  // function by the `.screen` ELEMENT looked up at the top of it.
+  const vv = window.visualViewport;
+  const vvRow = (label, read) =>
+    row(label, vv ? round(read(vv)) : '(visualViewport unavailable)');
+  const viewportMeta = document.querySelector('meta[name="viewport"]');
+
   section('9. VIEWPORT');
   row('window.innerHeight', round(window.innerHeight));
+  row('window.innerWidth', round(window.innerWidth));
+  row('screen.width', round(window.screen.width));
+  row('window.outerWidth', round(window.outerWidth));
+  row('window.outerHeight', round(window.outerHeight));
+  vvRow('visualViewport.width', (v) => v.width);
+  vvRow('visualViewport.offsetTop', (v) => v.offsetTop);
+  vvRow('visualViewport.pageTop', (v) => v.pageTop);
+  row('document.documentElement.clientWidth', round(document.documentElement.clientWidth));
+  row('document.documentElement.clientHeight', round(document.documentElement.clientHeight));
+  row("matchMedia('(device-width: 402px)')", String(window.matchMedia('(device-width: 402px)').matches));
+  row("matchMedia('(device-width: 375px)')", String(window.matchMedia('(device-width: 375px)').matches));
+  // Read off the DOM rather than repeated from index.html, so this reports the
+  // tag that is actually in the served document instead of what the source is
+  // believed to say.
+  row(
+    'viewport meta content',
+    viewportMeta ? show(viewportMeta.getAttribute('content')) : '(no viewport meta tag)'
+  );
   row(
     'visualViewport.height',
-    window.visualViewport ? round(window.visualViewport.height) : '(visualViewport unavailable)'
+    vv ? round(vv.height) : '(visualViewport unavailable)'
   );
   row('screen.height', round(window.screen.height));
   row('devicePixelRatio', round(window.devicePixelRatio));
@@ -234,6 +268,13 @@ export function collectSynchronous() {
   // Derived, because these three are the whole question and working them out
   // by hand off a phone screen is where a transcription error would go.
   section('DERIVED');
+  // Outside the guard below on purpose: this one needs neither `.screen` nor
+  // `.bottom-nav`, so gating it would hide the width answer on exactly the
+  // routes that have no bar.
+  row(
+    'width shortfall (screen.width - innerWidth)',
+    `${round(window.screen.width - window.innerWidth)}px`
+  );
   if (screen && nav) {
     const screenRect = screen.getBoundingClientRect();
     const navRect = nav.getBoundingClientRect();
