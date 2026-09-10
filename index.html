@@ -26,7 +26,22 @@
     -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!--
+      `default`, NOT `black-translucent` (v137). With `black-translucent` on
+      iOS 18.7 the installed app measured `window.innerHeight` 812 against a
+      `screen.height` of 874 - the web view was 62px SHORT of the display,
+      exactly `env(safe-area-inset-top)` - so the app sat below the status bar
+      AND ran off the bottom by the same amount. The layout inside the web view
+      was correct throughout: `.screen` filled it exactly, gap below the nav 0,
+      gap below the screen 0. It was the web view's own bounds that were wrong,
+      which is why no stylesheet change could reach it and three attempts to
+      fix it as a CSS height failed (DECISIONS.md D149).
+
+      `default` gives the status bar its own opaque band OUTSIDE the web view,
+      so the web view is the space below it rather than the whole display with
+      a reserved strip. See DECISIONS.md D150.
+    -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="apple-touch-icon" href="assets/icons/app/apple-touch-icon.png" />
 
     <!--

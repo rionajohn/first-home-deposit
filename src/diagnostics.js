@@ -351,8 +351,11 @@ function render() {
     overflowY: 'auto',
     zIndex: String(OVERLAY_Z_INDEX),
     boxSizing: 'border-box',
-    // The top inset, so the first lines clear the notch in standalone, where
-    // `black-translucent` puts the web view under the status bar.
+    // The top inset, kept as a `calc` rather than a flat 8px so this still
+    // clears the notch wherever the inset is non-zero. Under the `default`
+    // status-bar style (index.html, v137) iOS gives the status bar its own
+    // band outside the web view and the inset resolves to 0, which leaves
+    // the plain 8px - correct, because there is then nothing to clear.
     padding: 'calc(8px + env(safe-area-inset-top)) 10px 10px',
     background: 'rgba(0, 0, 0, 0.88)',
     color: '#f2f2f7',

@@ -12815,3 +12815,126 @@ band now reads as bar is a device observation and nothing here can stand in for 
 **To reverse.** Delete the `body.screen--has-nav` rule and its framed twin, and the `document.body`
 toggle in `mountBottomNav`. The strip returns to `--color-bg` on every route - which is the honest
 state, and the one to go back to the moment the geometry is actually fixed.
+
+---
+
+## D150. The web view was never full-screen: the status bar style, not the stylesheet
+
+**Date.** 10 September 2026. `index.html` only, plus one stale comment in `src/diagnostics.js`. **No
+copy, no figure, no route, no CSS, and no height, padding or safe-area value changed anywhere.**
+This closes what D137, D149 and D149's two amendments were all reaching for and failing to reach.
+
+**Decision.** The iOS status bar style becomes `default`:
+
+```html
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+```
+
+It was `black-translucent`.
+
+### What the device actually reported
+
+The frame 33 readout added in v136 - which exists because `?diag=1` can never be typed into an
+installed app - was read on iPhone, iOS 18.7, Safari 26.6.1, installed standalone, v137's
+predecessor:
+
+| reading | value |
+|---|---|
+| `window.innerHeight` | **812** |
+| `screen.height` | **874** |
+| `env(safe-area-inset-top)` | **62px** |
+| `.screen` `rect.bottom` | 812 - fills the web view exactly |
+| gap below nav | **0px** |
+| gap below screen | **0px** |
+
+**The layout inside the web view was correct in every particular.** `.screen` filled its web view
+exactly, the bar sat flush on its bottom edge, and neither gap existed. What was wrong is that the
+web view was **62px shorter than the display - exactly the top inset** - so the app sat below the
+status bar and ran off the bottom by the same amount.
+
+### Why three CSS fixes failed, and had to
+
+`100svh`, `100dvh` (v133) and `height: 100%` against `body` (v134) all failed on device, and D149
+kept looking for a fourth height. **All three were correct.** Each one made `.screen` exactly as tall
+as the window it was given. The window was the wrong size, and **nothing inside a document can
+resize the web view that contains it.**
+
+This is the standing `CLAUDE.md` failure shape at its limit: *a value measured against a reference
+the screen does not show.* Every attempt measured against the web view, and the web view was itself
+the thing that was wrong - a reference that no amount of measuring from inside could reveal as
+faulty. The colour probe (`fdd2273`, D148) is what finally showed it, by making `.screen`'s own
+bounds visible against a window that outran them; and the frame 33 readout is what produced the two
+numbers, `innerHeight` 812 against `screen.height` 874, that named the deficit.
+
+**The lesson worth keeping: when a layout is correct at every level and still wrong on screen, stop
+adjusting the layout and measure the container it is given.**
+
+### What `default` changes
+
+`black-translucent` is documented to put the web view *under* the status bar - full display height,
+with `env(safe-area-inset-top)` reporting the strip the status bar covers so the page can hold its
+content clear. On this device it did the second half without the first: it reported a 62px inset for
+space the web view **did not occupy**, and the app was pushed down by an inset that bought it
+nothing.
+
+`default` gives the status bar **its own opaque band outside the web view**. The web view is then the
+space below it, `env(safe-area-inset-top)` resolves to **0**, and `.screen`'s `padding-top:
+var(--safe-top)` collapses to nothing - correctly, because the system is now drawing the band
+`--safe-top` used to reserve.
+
+**This is stated as the documented behaviour of the two values, NOT as something verified here.** No
+iOS is available in this environment; see the honesty note below.
+
+### The top of the screen with the inset at 0, which IS checkable here
+
+Measured on `/home` at 390x844, forcing `--safe-top` to `62px` and to `0px`:
+
+| | inset 62px | inset 0px |
+|---|---|---|
+| `.screen` padding-top | 62px | **0px** |
+| app bar top / bottom | 62 / 118 | **0 / 56** |
+| app bar height | 56 | **56** |
+| title box | 79-101 | **17-39** |
+
+**The header content still clears the top edge, and it never depended on the inset to do so.** The
+app bar keeps its own 56px height and its own internal padding, which is what holds the title 17px
+below the bar's top edge. Removing the inset moves the whole column up by exactly 62px and changes
+nothing else - nothing is clipped, nothing overlaps, and no box changes size.
+
+**Desktop Chromium resolves `env()` to 0 already**, so the "as shipped" measurement here is
+byte-identical to the forced-0 case. **Every screenshot ever taken in this repo is therefore already
+a preview of what `default` looks like on device** - which is the one piece of luck in this whole
+sequence, and it is why the screenshots for this change show no difference at all.
+
+### What is NOT verified
+
+**No iOS device or simulator exists in this environment**, so the central claim - that `default`
+moves the status bar outside the web view and takes the inset to 0 - is **documented iOS behaviour,
+not a measurement**. Chromium has no `apple-mobile-web-app-status-bar-style` at all: it parses the
+tag and ignores it, so the full suite passing says only that nothing else broke.
+
+**This is the fourth attempt at this defect and the first three all passed everything here before
+failing on hardware.** That record is the reason to state plainly that this one is unconfirmed too.
+The readout on frame 33 is how it gets confirmed: after this deploys, `window.innerHeight` should
+read **874** rather than 812, and `env(safe-area-inset-top)` should read **0px** rather than 62px. If
+`innerHeight` is still 812, `default` did not do it either and the deficit is somewhere else again.
+
+### Flagged, deliberately not done: the painted band
+
+`body.screen--has-nav { background: var(--color-surface) }` (382efc7, D149's second amendment) paints
+the band below the tab bar so it reads as part of the bar. **If this change works there is no band
+left to paint**, and that rule should come out - it would then be colouring a strip that does not
+exist, and its own comment already says it is a holding measure to be removed the moment the geometry
+is fixed.
+
+**It is deliberately left in place here.** Removing it in the same commit would mean that if
+`default` does not work, the strip returns *and* its cover is gone, in one step, in front of
+whoever next opens the app. The paint costs nothing while the geometry is right and protects the
+session if it is not. **It comes out in a separate commit once the device readout confirms
+`innerHeight` is 874** - and the same applies to the frame 33 diagnostic and the `?diag=1` overlay,
+which come out together with it.
+
+**Version.** `index.html` is in `SHELL_ASSETS`: **v136 to v137**.
+
+**To reverse.** Restore `content="black-translucent"`. The web view goes back to reporting a 62px top
+inset for space it does not occupy, and the app sits 62px low and runs 62px off the bottom.
