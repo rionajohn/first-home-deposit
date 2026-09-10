@@ -195,9 +195,14 @@ body::-webkit-scrollbar,
      collapses on scroll. `dvh` would do the last of those, which would move
      the tab bar mid-session - a confound in an observed think-aloud session,
      where the place the app's furniture sits has to be the same at minute
-     twenty as at minute one. In the installed PWA there is no Safari
-     toolbar, so `svh` resolves to the full height and this one rule holds on
-     both surfaces.
+     twenty as at minute one. That argument holds in BROWSER MODE and this
+     pair is what serves it.
+
+     STANDALONE IS OVERRIDDEN BELOW, and deliberately. D137 originally
+     reasoned that with no Safari toolbar `svh` resolves to the full height,
+     so one rule held on both surfaces. A device probe disproved that: on an
+     installed iPhone PWA `100svh` came up ~49px short of the window. See the
+     `display-mode: standalone` rule after this one, and D149.
 
      The `100vh` line below it is the fallback for an engine that does not
      know `svh` (pre-15.4 Safari, pre-108 Chrome): it ignores the second
@@ -240,6 +245,49 @@ body::-webkit-scrollbar,
   padding-right: env(safe-area-inset-right);
   position: relative;
   overflow: hidden;
+}
+
+/* --- Standalone only: the DYNAMIC viewport, because there is no chrome to move ---
+   D137 chose `svh` over `dvh` and that choice STANDS IN BROWSER MODE, untouched
+   by this rule. Its reasoning is about Safari's bottom toolbar collapsing on
+   scroll: `dvh` would track it, the tab bar would move under the participant's
+   thumb mid-session, and furniture that shifts between minute one and minute
+   twenty is a confound in an observed think-aloud session. That is a research
+   argument, not a technical one, and it is unchanged.
+
+   IT DOES NOT REACH STANDALONE, because it is an argument about a thing that is
+   not there. An installed PWA has no browser toolbar to collapse, so the small
+   and dynamic viewports cannot diverge over time and `dvh` cannot move anything
+   mid-session. There is no confound to protect against here.
+
+   D137 ASSUMED THIS CASE NEEDED NO RULE, and that assumption is what a device
+   probe disproved - see D149. It reasoned that with no toolbar the small and
+   large viewports are equal, so `svh` resolves to the full height on both
+   surfaces and one declaration holds. On an installed iPhone PWA it does not:
+   `100svh` came up ~49px SHORT of the window, `.screen`'s outline ended above
+   the bottom edge, and `body` painted the strip below it. `svh` is the small
+   viewport as the ENGINE reports it, which on this surface still reserves a
+   band for chrome that never appears. `dvh` is the viewport as it actually is.
+
+   This fixes the geometry rather than painting over it. The band was previously
+   answered by colouring `body` to match the tab bar (reverted, D148); a strip
+   that should not exist does not stop being wrong by matching its neighbour.
+
+   NO SECOND COPY OF THE 768 LITERAL, and none needed. `.screen` here and
+   `.screen` in the framed media query have the SAME specificity (0,1,0) - a
+   media query adds none - so source order decides, and `height:
+   var(--frame-height)` at the end of this file is LATER and wins. The framed
+   view is untouched at >=768px on both surfaces. This is the mobile-first shape
+   the rest of the file uses: the base states the frameless case, the breakpoint
+   at the end overrides it. Keeping this rule ABOVE that breakpoint is therefore
+   load-bearing, not incidental.
+
+   An engine that does not know `dvh` discards this declaration and keeps
+   `100svh` from the rule above - the exact behaviour it has today. */
+@media (display-mode: standalone) {
+  .screen {
+    height: 100dvh;
+  }
 }
 
 /* --- The bottom inset belongs INSIDE the lowest chrome, not beneath it ---

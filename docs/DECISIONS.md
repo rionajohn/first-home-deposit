@@ -12495,3 +12495,107 @@ number would leave a device holding the red-and-green shell with nothing to evic
 **To reverse.** Restore `background: var(--color-surface)` to the `body` rule in `shell.css`, and
 with it the comment recording why - which would again be a cosmetic answer to a geometry defect, and
 would again put a white strip under grey on the ten routes with no bar.
+
+---
+
+## D149. Standalone takes the dynamic viewport, because D137's research argument is about chrome that standalone does not have
+
+**Date.** 10 September 2026. `src/css/shell.css` only. **No copy, no figure, no route, no change to
+any spacing value.** This entry **amends D137**; D137 stands as the original dated record and its
+browser-mode behaviour is untouched.
+
+**Decision.** `.screen` takes `height: 100dvh` **in standalone display mode only**:
+
+```css
+@media (display-mode: standalone) {
+  .screen { height: 100dvh; }
+}
+```
+
+The `100vh` / `100svh` pair in the base `.screen` rule is unchanged, so browser mode behaves exactly
+as D137 specified and an engine without `dvh` keeps `svh`.
+
+### What the device showed
+
+A colour probe on an installed iPhone PWA - `html` red, `body` green, `.screen` outlined magenta
+(pushed as `fdd2273`, reverted in D148) - put `.screen`'s outline **roughly 49px above the bottom of
+the window**, with `body` painting the strip below it.
+
+So `100svh` resolves **short of the window in standalone on this device**, even though there is no
+browser chrome for the small viewport to account for.
+
+### The assumption this corrects
+
+D137 said, in terms:
+
+> In the installed PWA there is no Safari toolbar, so the small and large viewports are the same and
+> `svh` resolves to the full height. The single declaration is therefore correct on both surfaces.
+
+That is the one claim in D137 that was reasoned rather than measured, and it is the one that was
+wrong. `svh` is the small viewport **as the engine reports it**, and on this surface the engine still
+reserves a band for chrome that never appears. `dvh` is the viewport as it actually is.
+
+This is the standing `CLAUDE.md` shape again, for the fourth time: **a value measured against a
+reference the screen does not show.** The reference here was "the viewport, assuming no chrome" - an
+assumption about the surface, invisible on screen, and wrong on the surface that mattered.
+
+### Why standalone is exempt from D137's reasoning
+
+D137 rejected `dvh` on research grounds, not technical ones, and the argument is worth restating
+because it is still correct where it applies:
+
+> Chrome that shifts under the participant's thumb as they scroll gives them something to react to
+> that is an artefact of the browser rather than a property of the design - a confound in what the
+> session is there to observe.
+
+**That is an argument about a thing that is not present in standalone.** An installed PWA has no
+browser toolbar to collapse on scroll, so the dynamic viewport has nothing to track and cannot change
+mid-session. `dvh`, `svh` and `lvh` are all the same number there and stay that number. The confound
+D137 protects against **cannot occur on the surface this rule applies to**, so the trade D137 made -
+give up a band of height to buy furniture that never moves - buys nothing here and costs the band.
+
+Browser mode keeps `svh` and keeps D137's trade in full. This is not a reversal of D137; it is D137's
+reasoning applied to a surface D137 assumed it did not need to reach.
+
+### The geometry is fixed, not painted over
+
+`72f7778` answered the same strip by painting `body` in the tab bar's surface so the band read as a
+continuation of the bar. D148 reverted that once the device showed the strip was `.screen` failing to
+reach the bottom of the window. **A strip that should not be there does not stop being wrong by
+matching its neighbour**, and the paint regressed the ten routes with no bar - a white strip under a
+grey screen. This entry removes the strip, so there is nothing left to paint.
+
+### The framed view cannot be reached by this rule
+
+`.screen` in this media query and `.screen` in `@media (min-width: 768px)` have the **same
+specificity (0,1,0)** - a media query contributes none - so **source order decides**, and
+`height: var(--frame-height)` is later in the file. It wins at framed widths on both surfaces.
+
+**Keeping this rule above that breakpoint is load-bearing, not incidental**, and it is why no
+`max-width` was added: the file deliberately holds one copy of the 768 literal, and this follows its
+existing mobile-first shape - the base states the frameless case, the breakpoint at the end overrides
+it.
+
+**Verified by making the condition strictly harder than reality.** The rule's condition was rewritten
+to `all` through the CSSOM so it matched *everywhere*, and at 1280x900 `.screen` still computed
+`852px` on `/home`, `/tracker` and `/goals`. If the framed view survives the query matching on every
+surface, it survives it matching in standalone.
+
+### What could NOT be verified here, stated plainly
+
+**Headless Chromium cannot be put into standalone display mode.** `Emulation.setEmulatedMedia` does
+not carry `display-mode` as an emulatable feature, and `--app=` did not produce it under
+`launchPersistentContext` either; every row measured reported `display-mode: browser`. The rule was
+therefore verified in two separable halves - that it is absent in browser mode, and what it does when
+active - rather than end to end.
+
+Desktop Chromium would not show the fix even if it could match: with no dynamic chrome, `dvh`, `svh`
+and `lvh` are all `innerHeight`, so the frameless rows measure a 0px gap before and after. **What is
+verified here is that nothing regresses; the fix itself is only observable on the device**, and the
+device is where the defect was found. The next probe on hardware is what confirms it.
+
+**Version.** `src/css/shell.css` is in `SHELL_ASSETS`: **v132 to v133**.
+
+**To reverse.** Delete the `@media (display-mode: standalone)` block. `svh` then applies on both
+surfaces again, which is D137 exactly - and puts the ~49px strip back below the tab bar on installed
+iPhone.
