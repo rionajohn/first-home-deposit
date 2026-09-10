@@ -12711,3 +12711,107 @@ move the defect up the chain rather than sideways to another unit.
 
 **To reverse.** Restore `height: 100dvh` in that block, which is v133 - known not to close the strip -
 or delete the block for D137's original single-rule behaviour.
+
+---
+
+## D149, amended again 10 September 2026. Three height fixes failed on device; the strip is now PAINTED and the geometry stays OPEN
+
+**Date.** 10 September 2026. `src/css/shell.css` and `src/router.js`. **No copy, no figure, no route,
+no change to any spacing value.** Amends D149 and its first amendment, both left standing as the
+record of what was tried.
+
+**READ THIS FIRST.** The tab bar on installed iPhone now looks flush. **It is not flush because the
+layout is correct. It is flush because the band below it has been painted the same colour as the
+bar.** The geometry defect is open. Anyone who later sees a clean bottom edge and concludes the
+height problem was solved will be wrong, and will remove the paint.
+
+### Decision
+
+Two changes, and the removal of a third:
+
+1. The `@media (display-mode: standalone)` height override is **removed entirely**. `.screen` returns
+   to the `100vh` / `100svh` pair alone, exactly as before v133.
+2. `mountBottomNav` (router.js) toggles `screen--has-nav` on **`document.body`** as well as on the
+   container, off the same `excluded`, in the same place.
+3. `body.screen--has-nav { background: var(--color-surface) }` paints the band in the tab bar's own
+   surface, **only where a bar exists.**
+
+### Three fixes, all failed on device
+
+| version | attempt | result on installed iPhone |
+|---|---|---|
+| pre-v133 | `height: 100svh` (D137) | ~49px short |
+| v133 | `height: 100dvh`, scoped to standalone (D149) | **no change** - `dvh` resolves as `svh` there |
+| v134 | `height: 100%` against `body` (D149 amendment) | **no change** |
+
+The colour probe (`fdd2273`, D148) is what makes this conclusive: it showed **`.screen`'s own outline
+ending ~49px above the bottom of the window, with `body` painting the strip below it**. `.screen` is
+filling what it is told the window is. `body` is filling what it is told the window is. Both agree,
+and both are short.
+
+**So the deficit is in the window itself, not in how `.screen` resolves its height.** That is why a
+percentage against `body` failed for the same reason a viewport unit failed: `body` inherits the same
+wrong number. **No further height fix belongs here** until something identifies where those ~49px
+actually go - the next probe is `document.body.getBoundingClientRect().height` against
+`window.innerHeight` and `screen.height` on hardware.
+
+### Why paint, having reverted paint once already
+
+D148 reverted exactly this approach, and the reasoning there was right at the time: the strip was
+believed to be a geometry problem with a fix available, so covering it was cover-up. **Three failed
+attempts have changed what is known, not what is wanted.** The geometry fix is not available, the
+strip is in front of participants now, and a band of page background under the tab bar reads as the
+app floating off the bottom edge - the complaint D14 and G39 answered elsewhere.
+
+**What was actually wrong with `72f7778` is fixed here, and it was not the painting.** That commit
+painted *every* `body`, including the ten routes with no bar, putting a white strip under a grey
+screen where before it was grey on grey. Keying the paint to `screen--has-nav` means it appears only
+where there is a bar for the band to continue.
+
+This is a **holding measure recorded as one**, not a solution. It is why the CSS rule and the router
+comment both say so in place, rather than only here.
+
+### The class is published on `body` by the one function that knows
+
+`mountBottomNav` already toggles `screen--has-nav` on the container off `excluded` (723e236, kept
+through D148 deliberately). The `body` toggle reads **the same `excluded`, on the next line, before
+both early returns**, so the two classes cannot disagree about which routes have a bar and neither
+can strand itself on the next route - `body` outlives route changes exactly as `#app` does.
+
+**Verified across 32 frameless rows** (16 routes x two widths): `body.screen--has-nav` is present
+**if and only if** a `.bottom-nav` element is present, and the paint follows - bar to
+`--color-surface`, no bar to `--color-bg`.
+
+The ten no-bar routes as rendered - eight dialogs, `/mip/running`, `/settings` - all carry
+`--color-bg` with the class absent. `/consent/move-account` is in `DIALOG_ROUTES` but **redirects to
+`#/consent`** when entered directly, which is a full screen that legitimately has a bar; it is
+therefore correctly painted, and it is not a counter-example.
+
+### Specificity, which source order would NOT have saved
+
+`body.screen--has-nav` is **(0,1,1)**. The framed `body { background: var(--color-canvas) }` inside
+`@media (min-width: 768px)` is **(0,0,1)**.
+
+**A class selector beats an element selector regardless of source order**, so the frameless rule would
+have won at desktop width and painted the whole surround outside the bezel in the tab bar's surface
+on every route with a bar. This is the opposite of the `.screen` case in D149, where both selectors
+were (0,1,0) and source order genuinely decided - the reasoning there does not transfer, and assuming
+it did would have shipped the bug.
+
+**Scoped by repeating the selector at matching specificity inside the existing breakpoint:**
+`body.screen--has-nav { background: var(--color-canvas) }`. Same specificity, later in source, so it
+wins; no new media query and no third copy of the 768 literal. Verified at 1280x900: all 16 routes
+resolve `--color-canvas`, with and without a bar, and `.screen` is still `852px`.
+
+### What cannot be verified here, again
+
+Desktop Chromium has no short viewport, so **the strip does not exist in any browser available**, and
+neither the defect nor this paint over it can be seen. What is verified is the contract: which routes
+carry the class, which colour each resolves, and that the framed view is untouched. **Whether the
+band now reads as bar is a device observation and nothing here can stand in for it.**
+
+**Version.** **v134 to v135.**
+
+**To reverse.** Delete the `body.screen--has-nav` rule and its framed twin, and the `document.body`
+toggle in `mountBottomNav`. The strip returns to `--color-bg` on every route - which is the honest
+state, and the one to go back to the moment the geometry is actually fixed.

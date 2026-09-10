@@ -133,6 +133,38 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* --- The band below the tab bar is PAINTED to read as bar. It is not fixed ---
+   `.screen` stops ~49px above the bottom of the window on installed iPhone and
+   `body` shows through beneath it. THIS RULE COLOURS THAT BAND; IT DOES NOT
+   CLOSE IT. The geometry is an open defect - D149 and its amendments - and a
+   bar that looks flush on a device is NOT evidence that it has been fixed.
+
+   Painted in the bar's own surface so the band continues the bar instead of
+   reading as the app floating off the bottom edge, which is the complaint D14
+   and G39 answered elsewhere by moving an inset INSIDE the chrome that owns it.
+   That answer is unavailable here: the strip is outside `.screen` altogether
+   and no element in the app spans it.
+
+   KEYED ON THE CLASS, NOT ON `body` ITSELF, WHICH IS THE WHOLE POINT. An
+   earlier attempt (72f7778) painted every `body` and put a white strip under a
+   grey screen on the ten routes with no bar - nine dialogs and `/mip/running` -
+   where there is no bar for the band to continue. That regression is why it was
+   reverted in D148. `screen--has-nav` is toggled on `body` by `mountBottomNav`
+   (router.js) off the same `excluded` that decides whether the bar is drawn, so
+   the paint appears exactly on the routes that have one and the rest keep
+   `--color-bg`. `/settings` is excluded there and unaffected here anyway,
+   because `.settings-screen` already paints that screen itself.
+
+   ITS SPECIFICITY IS WHY THE FRAMED OVERRIDE IS NOT A BARE `body`. This
+   selector is (0,1,1); the `body { background: var(--color-canvas) }` inside
+   `@media (min-width: 768px)` is (0,0,1), so source order would NOT save the
+   framed surround - this rule would win at desktop width on specificity alone
+   and paint the whole area outside the bezel. The breakpoint therefore repeats
+   this selector at matching specificity; see the note there. */
+body.screen--has-nav {
+  background: var(--color-surface);
+}
+
 /* --- Hidden scrollbars, still scrollable ---
    A real phone shows no persistent scrollbar track, and at framed widths a
    desktop scrollbar appearing inside the bezel reads as a browser artefact
@@ -195,14 +227,23 @@ body::-webkit-scrollbar,
      collapses on scroll. `dvh` would do the last of those, which would move
      the tab bar mid-session - a confound in an observed think-aloud session,
      where the place the app's furniture sits has to be the same at minute
-     twenty as at minute one. That argument holds in BROWSER MODE and this
-     pair is what serves it.
+     twenty as at minute one.
 
-     STANDALONE IS OVERRIDDEN BELOW, and deliberately. D137 originally
-     reasoned that with no Safari toolbar `svh` resolves to the full height,
-     so one rule held on both surfaces. A device probe disproved that: on an
-     installed iPhone PWA `100svh` came up ~49px short of the window. See the
-     `display-mode: standalone` rule after this one, and D149.
+     THIS PAIR IS SHORT ON INSTALLED iPHONE AND THAT IS AN OPEN DEFECT, NOT A
+     SOLVED ONE. A colour probe on device put `.screen`'s own outline ~49px
+     above the bottom of the window, with `body` painting the strip below it.
+     Three fixes have been tried on hardware and all three failed:
+     `100dvh` scoped to standalone (v133), `height: 100%` against `body`
+     (v134), and this `svh` pair itself. `dvh` and `svh` resolve to the same
+     short number there, and `100%` inherits the deficit through `body`,
+     because the shortfall is in the WINDOW rather than in how `.screen`
+     resolves its height. No further height fix belongs here until something
+     identifies where those ~49px actually go.
+
+     THE STRIP IS CURRENTLY PAINTED, NOT REMOVED - `body.screen--has-nav`
+     further down colours it in the tab bar's surface so it reads as part of
+     the bar. **A flush-looking bar is therefore NOT evidence that this
+     geometry is correct.** See D149 and its amendments.
 
      The `100vh` line below it is the fallback for an engine that does not
      know `svh` (pre-15.4 Safari, pre-108 Chrome): it ignores the second
@@ -245,74 +286,6 @@ body::-webkit-scrollbar,
   padding-right: env(safe-area-inset-right);
   position: relative;
   overflow: hidden;
-}
-
-/* --- Standalone only: fill the PARENT, because no viewport unit is right here ---
-   D137 chose `svh` over `dvh` and that choice STANDS IN BROWSER MODE, untouched
-   by this rule. Its reasoning is about Safari's bottom toolbar collapsing on
-   scroll: `dvh` would track it, the tab bar would move under the participant's
-   thumb mid-session, and furniture that shifts between minute one and minute
-   twenty is a confound in an observed think-aloud session. That is a research
-   argument, not a technical one, and it is unchanged.
-
-   IT DOES NOT REACH STANDALONE, because it is an argument about a thing that is
-   not there. An installed PWA has no browser toolbar to collapse, so the small
-   and dynamic viewports cannot diverge over time and `dvh` cannot move anything
-   mid-session. There is no confound to protect against here.
-
-   D137 ASSUMED THIS CASE NEEDED NO RULE, and that assumption is what a device
-   probe disproved - see D149. It reasoned that with no toolbar the small and
-   large viewports are equal, so `svh` resolves to the full height on both
-   surfaces and one declaration holds. On an installed iPhone PWA it does not:
-   `100svh` came up ~49px SHORT of the window, `.screen`'s outline ended above
-   the bottom edge, and `body` painted the strip below it. `svh` is the small
-   viewport as the ENGINE reports it, which on this surface still reserves a
-   band for chrome that never appears. `dvh` is the viewport as it actually is.
-
-   This fixes the geometry rather than painting over it. The band was previously
-   answered by colouring `body` to match the tab bar (reverted, D148); a strip
-   that should not exist does not stop being wrong by matching its neighbour.
-
-   NO SECOND COPY OF THE 768 LITERAL, and none needed. `.screen` here and
-   `.screen` in the framed media query have the SAME specificity (0,1,0) - a
-   media query adds none - so source order decides, and `height:
-   var(--frame-height)` at the end of this file is LATER and wins. The framed
-   view is untouched at >=768px on both surfaces. This is the mobile-first shape
-   the rest of the file uses: the base states the frameless case, the breakpoint
-   at the end overrides it. Keeping this rule ABOVE that breakpoint is therefore
-   load-bearing, not incidental.
-
-   NOT A VIEWPORT UNIT, BECAUSE THE VIEWPORT IS NOT THE LEVER. `100dvh` was
-   tried here first (v133) and did NOT close the strip on device: on installed
-   iPhone `dvh` resolves the same as `svh`, so all three units name the same
-   short number and swapping between them changes nothing. The engine's idea of
-   the viewport is the thing that is wrong, so no unit measured against it can
-   be right.
-
-   `height: 100%` measures against something else entirely: the PARENT BOX.
-   `html, body` are `height: 100%` above, so body is exactly as tall as the
-   initial containing block - the real window - and `.screen` fills body rather
-   than asking the engine for a viewport. This is the standing CLAUDE.md rule
-   about naming the reference: the reference here is body, which is an element
-   on the page, instead of a viewport the participant cannot see.
-
-   IT RESOLVES THROUGH `display: contents`, VERIFIED RATHER THAN ASSUMED.
-   `.screen`'s DOM parents are `#app-frame` and `.device-bezel`, both
-   `display: contents` at frameless widths (below), and both were confirmed to
-   generate no box at all - zero client rects. The percentage therefore resolves
-   against body, the nearest ancestor that does generate one. Checked by forcing
-   body to 500px and watching `.screen` compute 500px, with a `height: auto`
-   control measuring 1001px on the same screen - so the match is the percentage
-   resolving, not content height coinciding with the window.
-
-   `box-sizing: border-box` (the `*` rule at the top of this file) keeps the
-   safe-area padding INSIDE that height, exactly as it did under `svh`: the
-   padding comes out of the 100%, the content box shrinks, and nothing is pushed
-   past the bottom edge. */
-@media (display-mode: standalone) {
-  .screen {
-    height: 100%;
-  }
 }
 
 /* --- The bottom inset belongs INSIDE the lowest chrome, not beneath it ---
@@ -413,6 +386,15 @@ body::-webkit-scrollbar,
     --frame-gutter: var(--space-4xl);
     --frame-total-width: calc(var(--frame-width) + var(--frame-bezel) * 2);
     --frame-total-height: calc(var(--frame-height) + var(--frame-bezel) * 2);
+  }
+
+  /* Matching `body.screen--has-nav` (0,1,1) from the frameless rule above.
+     A bare `body` is (0,0,1) and would LOSE to it here regardless of source
+     order, painting the surround outside the bezel in the tab bar's surface on
+     every route that has a bar. Same value as the rule below, so the framed
+     surround is one colour whether a bar is drawn or not. */
+  body.screen--has-nav {
+    background: var(--color-canvas);
   }
 
   body {
