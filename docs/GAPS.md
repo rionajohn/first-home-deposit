@@ -5646,7 +5646,7 @@ the row's Vercel Link, not its Commit cell, for those four versions.*
 
 ---
 
-## G135. The tab bar's band is still painted, after the band stopped existing. OPEN - SCHEDULED REMOVAL, KEPT ONE SESSION
+## G135. The tab bar's band is still painted, after the band stopped existing. CLOSED - PAINT REMOVED IN v140
 
 *Raised 10 September 2026 with `DECISIONS.md` D151, which confirms the underlying defect is fixed.
 The paint is deliberately still in the tree - see the trigger below.*
@@ -5713,6 +5713,38 @@ consecutive lines in the same function and read the same `excluded`. Only the `b
 both would restore the double-counted safe-area inset on engines without `:has()`, which is the bug
 723e236 was written to fix.
 
-*Status: **open by design**, with a stated trigger. Not a defect in what ships - the paint is
-invisible while the geometry is correct - but it must not become permanent by being forgotten, which
-is why it is written down rather than left as a comment in the CSS.*
+### Closed 10 September 2026, in v140
+
+**The trigger is met.** Usability sessions are complete, so the insurance the paint was bought for -
+a participant meeting the strip with its cover already gone - can no longer be needed. The paint is
+removed:
+
+- `body.screen--has-nav { background: var(--color-surface) }` and its `@media (min-width: 768px)`
+  twin, deleted from `src/css/shell.css` with the comment block that explained them
+- the `document.body.classList.toggle('screen--has-nav', ...)` line in `mountBottomNav`
+  (`src/router.js`), deleted with its comment
+
+**`container.classList.toggle('screen--has-nav', !excluded)` is UNTOUCHED**, which was the whole
+hazard named above. It is 723e236's `:has()`-free inset fix and is unrelated to the paint. Verified
+after removal across 16 routes at three viewport sizes: `#app` still carries the class exactly where
+a `.bottom-nav` element is, its `padding-bottom` is 0 on every barred route - so the safe-area inset
+is still counted once, not twice - and the bar still reaches the bottom of `.screen` everywhere.
+
+`body` now resolves `--color-bg` on all 30 frameless rows, barred and unbarred alike, so the
+white-under-grey seam on the ten no-bar routes is gone; `--color-canvas` still holds the framed
+surround at 1280x900.
+
+### THE SIX-POINT REMOVAL LIST ABOVE NO LONGER APPLIES
+
+It bundled the paint with the diagnostic apparatus on the assumption that both were temporary. **The
+diagnostic is now retained by decision** - `src/diagnostics.js`, the `?diag=1` overlay, the
+Diagnostics chip on frame 33, the `.diag-block` rules in `components.css`, `--diag` in
+`scripts/shots.mjs` and both imports all stay, as a record of the debugging work and because the
+readout is the only way to see anything on the installed surface. Only the two paint points on that
+list were removed.
+
+So nothing here is outstanding. **If the diagnostic is ever taken out, that is a fresh decision with
+its own entry, not the completion of this one.**
+
+*Status: **closed**. The paint is gone, the geometry fix that made it unnecessary is D150 and D151,
+and the diagnostic that found it stays by choice.*

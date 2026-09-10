@@ -436,23 +436,6 @@ function mountBottomNav(container, path) {
   const excluded = BOTTOM_NAV_EXCLUDED_ROUTES.has(path);
   container.classList.toggle('screen--has-nav', !excluded);
 
-  // THE SAME FACT ON `body`, FOR THE STRIP THE BAR DOES NOT REACH. On
-  // installed iPhone `.screen` stops ~49px above the bottom of the window and
-  // `body` paints the band below it (D149, an OPEN geometry defect - three
-  // height fixes have failed on device). `body.screen--has-nav` in shell.css
-  // colours that band in the tab bar's own surface so it reads as part of the
-  // bar rather than as the app floating off the bottom edge.
-  //
-  // ON THE SAME LINE AS THE TOGGLE ABOVE, off the same `excluded`, and before
-  // both early returns - deliberately. `body` outlives every route change just
-  // as `#app` does, so this has to be toggled rather than added or it would
-  // strand itself on the next screen; and the band must stay `--color-bg` on
-  // the routes with no bar, where there is nothing for it to continue and the
-  // surface colour would put a white strip under a grey screen. Reading the
-  // one `excluded` twice is what stops the two classes disagreeing about which
-  // routes have a bar.
-  document.body.classList.toggle('screen--has-nav', !excluded);
-
   if (excluded) return;
   if (container.querySelector('.bottom-nav')) return;
 

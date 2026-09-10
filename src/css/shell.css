@@ -133,38 +133,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* --- The band below the tab bar is PAINTED to read as bar. It is not fixed ---
-   `.screen` stops ~49px above the bottom of the window on installed iPhone and
-   `body` shows through beneath it. THIS RULE COLOURS THAT BAND; IT DOES NOT
-   CLOSE IT. The geometry is an open defect - D149 and its amendments - and a
-   bar that looks flush on a device is NOT evidence that it has been fixed.
-
-   Painted in the bar's own surface so the band continues the bar instead of
-   reading as the app floating off the bottom edge, which is the complaint D14
-   and G39 answered elsewhere by moving an inset INSIDE the chrome that owns it.
-   That answer is unavailable here: the strip is outside `.screen` altogether
-   and no element in the app spans it.
-
-   KEYED ON THE CLASS, NOT ON `body` ITSELF, WHICH IS THE WHOLE POINT. An
-   earlier attempt (72f7778) painted every `body` and put a white strip under a
-   grey screen on the ten routes with no bar - nine dialogs and `/mip/running` -
-   where there is no bar for the band to continue. That regression is why it was
-   reverted in D148. `screen--has-nav` is toggled on `body` by `mountBottomNav`
-   (router.js) off the same `excluded` that decides whether the bar is drawn, so
-   the paint appears exactly on the routes that have one and the rest keep
-   `--color-bg`. `/settings` is excluded there and unaffected here anyway,
-   because `.settings-screen` already paints that screen itself.
-
-   ITS SPECIFICITY IS WHY THE FRAMED OVERRIDE IS NOT A BARE `body`. This
-   selector is (0,1,1); the `body { background: var(--color-canvas) }` inside
-   `@media (min-width: 768px)` is (0,0,1), so source order would NOT save the
-   framed surround - this rule would win at desktop width on specificity alone
-   and paint the whole area outside the bezel. The breakpoint therefore repeats
-   this selector at matching specificity; see the note there. */
-body.screen--has-nav {
-  background: var(--color-surface);
-}
-
 /* --- Hidden scrollbars, still scrollable ---
    A real phone shows no persistent scrollbar track, and at framed widths a
    desktop scrollbar appearing inside the bezel reads as a browser artefact
@@ -229,21 +197,25 @@ body::-webkit-scrollbar,
      where the place the app's furniture sits has to be the same at minute
      twenty as at minute one.
 
-     THIS PAIR IS SHORT ON INSTALLED iPHONE AND THAT IS AN OPEN DEFECT, NOT A
-     SOLVED ONE. A colour probe on device put `.screen`'s own outline ~49px
-     above the bottom of the window, with `body` painting the strip below it.
-     Three fixes have been tried on hardware and all three failed:
-     `100dvh` scoped to standalone (v133), `height: 100%` against `body`
-     (v134), and this `svh` pair itself. `dvh` and `svh` resolve to the same
-     short number there, and `100%` inherits the deficit through `body`,
-     because the shortfall is in the WINDOW rather than in how `.screen`
-     resolves its height. No further height fix belongs here until something
-     identifies where those ~49px actually go.
+     THIS PAIR ONCE MEASURED SHORT ON INSTALLED iPHONE, AND IT WAS NEVER THE
+     CAUSE. `.screen` stopped ~49px above the bottom of the window, and three
+     height fixes were tried against it - `100dvh` scoped to standalone (v133),
+     `height: 100%` against `body` (v134), and this `svh` pair itself. All
+     three were CORRECT and all three failed: each made `.screen` exactly as
+     tall as the window it was given, and the window was the wrong size.
 
-     THE STRIP IS CURRENTLY PAINTED, NOT REMOVED - `body.screen--has-nav`
-     further down colours it in the tab bar's surface so it reads as part of
-     the bar. **A flush-looking bar is therefore NOT evidence that this
-     geometry is correct.** See D149 and its amendments.
+     The cause was `apple-mobile-web-app-status-bar-style: black-translucent`
+     in index.html, which reported a 62px top inset for space the web view did
+     not occupy. `default` (v137) fixed it at source: the status bar takes its
+     own band outside the web view, the top inset resolves to 0, and the bar is
+     flush. See D150 and D151.
+
+     SO DO NOT REACH FOR A HEIGHT HERE IF A BAND EVER REAPPEARS. The
+     discriminator is the TOP INSET, not the height: `innerHeight` short of
+     `screen.height` with an inset of 0 is correct, the same shortfall with a
+     NON-ZERO inset is the defect - and the meta tag is read at install time,
+     so a home-screen icon added before v137 keeps the old bounds no matter
+     what is deployed. D151 has the full reading.
 
      The `100vh` line below it is the fallback for an engine that does not
      know `svh` (pre-15.4 Safari, pre-108 Chrome): it ignores the second
@@ -386,15 +358,6 @@ body::-webkit-scrollbar,
     --frame-gutter: var(--space-4xl);
     --frame-total-width: calc(var(--frame-width) + var(--frame-bezel) * 2);
     --frame-total-height: calc(var(--frame-height) + var(--frame-bezel) * 2);
-  }
-
-  /* Matching `body.screen--has-nav` (0,1,1) from the frameless rule above.
-     A bare `body` is (0,0,1) and would LOSE to it here regardless of source
-     order, painting the surround outside the bezel in the tab bar's surface on
-     every route that has a bar. Same value as the rule below, so the framed
-     surround is one colour whether a bar is drawn or not. */
-  body.screen--has-nav {
-    background: var(--color-canvas);
   }
 
   body {
