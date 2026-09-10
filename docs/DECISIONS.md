@@ -13057,3 +13057,84 @@ so it is not lost.
 
 **To reverse.** Nothing to reverse. The fix is D150's meta tag; this entry only records that it
 worked and what the numbers now mean.
+
+---
+
+## D152. The device diagnostic ships to production, by decision
+
+**Date.** 10 September 2026. No code change - this entry records a decision about code already in
+the tree, taken at the v10 merge. It amends the removal instructions in `src/diagnostics.js`,
+`src/app.js`, `src/screens/settings.js`, `src/css/components.css` and `scripts/shots.mjs`, all of
+which describe the apparatus as temporary.
+
+**Decision.** `src/diagnostics.js` and everything that reaches it - the `?diag=1` overlay, the
+Diagnostics chip on frame 33, the `.diag-block` rules in `components.css`, `--diag` in
+`scripts/shots.mjs` - **ship in production and stay**. They are retained as the record of the work
+D151 describes, not left in by oversight.
+
+### What it is
+
+Two ways into one readout, both built from the same `collectSynchronous()`:
+
+- **`?diag=1`** draws a fixed overlay at the top of the screen. Both `index.html?diag=1#/home` and
+  `index.html#/home?diag=1` are accepted.
+- **A "Diagnostics" chip at the foot of frame 33**, which reveals the same readout in place.
+
+The readout reports the user agent, display mode, `:has()` support, the four resolved safe-area
+insets, `.screen` and `.bottom-nav` boxes, the nav's parent, the `:has()` selector match, sixteen
+viewport figures, the build version and service-worker state, and four derived lines. Frame 33's copy
+is captured on a route that HAS a bottom bar and stamps which route and when, because `/settings`
+has no bar and measuring there would answer nothing.
+
+### Why it is not a risk to leave in
+
+**It is inert until asked for.** Without `?diag=1` no overlay element is created, no style is set and
+`render()` is never called. On frame 33 the panel is collapsed on every render, with no stored open
+state anywhere - it computes `display: none` and occupies zero height until the chip is pressed.
+
+**It measures and changes nothing.** It reads computed styles and bounding boxes. It touches no
+height, padding or safe-area value, writes nothing to `sessionStorage`, and its elements are appended
+outside `#app` or after every existing control, so the router's MutationObserver cannot be re-entered
+and no participant-facing string, stylesheet rule or settings control is involved.
+
+**The one thing that is not inert** is the capture itself: two listeners registered unconditionally
+take a readout two frames after load and after each `hashchange`, when a bar is present, into one
+module-level variable. That is a read and an assignment, and it is what makes the chip able to show
+anything at all.
+
+### Why a participant will not meet it
+
+**Frame 33 is not on any participant path.** It is reached only by D54's hidden facilitator gesture -
+a long press on the disabled Profile tab - and it is excluded from the tab bar
+(`BOTTOM_NAV_EXCLUDED_ROUTES`, router.js). Its own first line says *"These control what the prototype
+shows. They are not part of the design being tested."* Every control on it is a research instrument,
+and the chip is one more.
+
+**It is shaped to sit apart from the ones a facilitator does operate mid-session**: last element in
+`<main>`, below even the build caption, outside all four grouping cards, a single outline chip with no
+fill until pressed, labelled with the one word "Diagnostics".
+
+### Why it is kept rather than removed
+
+**Because the readout is the finding.** D151 records that eight builds went into the strip below the
+tab bar: seven changed the app and one changed what could be seen, and the one that changed what could
+be seen is what ended it. Deleting it would remove the only artefact of that, and leave the write-up
+describing an instrument nobody could look at.
+
+**And because the surface is still uninstrumentable.** Desktop Chromium resolves `env()` to 0 and has
+no `display-mode: standalone`, so nothing about the installed iPhone can be reproduced here. If a
+band, an inset or a viewport figure is ever questioned again, the alternative to this readout is
+another seven builds of guessing.
+
+**The removal notes elsewhere are now historical.** They were written while the apparatus was expected
+to be temporary. `GAPS.md` G135's six-point removal list is explicitly closed against this decision;
+the file-level "TO REMOVE" comments are left as accurate instructions for how to take it out, should
+that ever be wanted, rather than as a statement that it should be.
+
+**If it is ever removed, that is a fresh decision with its own entry**, not the completion of this
+one.
+
+**Version.** None of its own. It ships as part of v10, whose row records build `v140`.
+
+**To reverse.** Follow the "TO REMOVE" note at the top of `src/diagnostics.js`, which lists all five
+points. Nothing else depends on the module.

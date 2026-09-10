@@ -48,6 +48,7 @@ have seen.
 | v7 | 2026-09-01 | `c92e064` | Reserve the browser toolbar's space so the tab bar stays reachable on iPhone Safari during phone-based usability sessions | first-home-deposit-ux-prototype-99qnniq61-riona-john.vercel.app |
 | v8 | 2026-09-03 | `6ae4259` | The deposit breakdown now lists only the accounts its total counts, on both the results card and the sources sheet, and the accounts screen no longer contradicts the participant's own selection | first-home-deposit-ux-prototype-gwr476cgw-riona-john.vercel.app |
 | v9 | 2026-09-03 | `b4353d9` | Clicking an account row on frame 03 no longer scrolls the device screen inside the bezel. The checkbox input's containing block was resolving to #app.screen, stranding the focus target outside the scroller and giving Blink a 141px scroll it could not recover, which opened an empty band under the tab bar and clipped the app bar. Affected Chrome and Edge only, so this removes a device-dependent difference in what participants saw. Carries D144 and D145. | first-home-deposit-ux-prototype-8oi3bzsi5-riona-john.vercel.app |
+| v10 | 2026-09-10 | `pending` | Fixes the installed iOS app running off the bottom of the screen (status bar meta tag, D151); adds a device diagnostic on frame 33; hardens the tab bar safe-area rule against engines without :has(). | pending |
 
 A production deployment that changes only documentation or governance files carries no
 version number, so Vercel's deployment history holds more deployments than this table holds
