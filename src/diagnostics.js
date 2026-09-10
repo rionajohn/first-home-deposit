@@ -538,43 +538,77 @@ function scheduleBarredCapture() {
 }
 
 /**
- * Build the readout into `host`, from the stored capture.
+ * Build the collapsed diagnostics control into `host`, from the stored capture.
  *
- * Everything is set with `textContent` and inline styles on elements this
- * function creates, so no participant-facing string, stylesheet rule or
- * existing settings control is touched. Colours come from the app's own tokens
- * so the block follows the theme like everything else on the screen.
+ * HIDDEN BY DEFAULT, BEHIND A CHIP. The readout used to render open, which put
+ * a wall of debug text on frame 33 permanently. It is now a "Diagnostics" chip
+ * that reveals the readout in place and hides it again, collapsed on every
+ * render (see the comment on `panel.hidden`).
+ *
+ * STYLED FROM THE STYLESHEET, NOT INLINE. The chip carries the same classes as
+ * the version chips in the card above, and the block's own three rules live in
+ * components.css under `.diag-block`, built from the same tokens as everything
+ * else on the screen. Nothing here sets a colour, a size or a font of its own,
+ * so it follows the theme and the text-size setting like any other control.
+ *
+ * Every string is set with `textContent`, and no existing settings control is
+ * read, moved or modified.
  */
 export function renderStoredReadout(host) {
-  const wrap = document.createElement('section');
-  Object.assign(wrap.style, {
-    margin: '24px 0 0',
-    padding: '12px',
-    borderRadius: '10px',
-    background: 'var(--color-surface)',
-    border: '1px solid var(--color-border-subtle)',
+  const block = document.createElement('div');
+  block.className = 'diag-block';
+
+  // MODELLED ON THE VERSION CHIPS ON THIS SAME SCREEN. `.pill-segments__option`
+  // is the shared control base `pillChipsHTML` and `pillSegmentsHTML`
+  // (components/ui.js) both put on every pill and chip in the cards above, and
+  // it carries `min-height: var(--touch-target-min)` (48px), the pill radius,
+  // the control border and the footnote type - all from tokens, none of them
+  // restated here.
+  //
+  // `.diag-block__chip` RATHER THAN `.pill-chips__chip`, though that is the
+  // chip this copies. `.pill-chips__chip` MEANS "a version chip", and
+  // version-chips.test.mjs counts those elements to assert one chip per
+  // deployment; borrowing the class made that count 10 against 9 deployments.
+  // The class is a contract, not a bag of declarations, so this takes a copy of
+  // the two shape rules instead - see `.diag-block__chip` in components.css.
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'pill-segments__option diag-block__chip diag-block__toggle';
+  toggle.textContent = 'Diagnostics';
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-controls', 'diagnostics-readout');
+
+  const panel = document.createElement('div');
+  panel.className = 'diag-block__panel';
+  panel.id = 'diagnostics-readout';
+  // COLLAPSED ON EVERY RENDER, with no stored open state anywhere. `render()`
+  // rebuilds frame 33 from scratch on each visit and on each control change,
+  // and this function is called fresh each time, so hidden is not merely the
+  // initial value - it is the value after any re-render.
+  panel.hidden = true;
+  panel.setAttribute('aria-hidden', 'true');
+
+  toggle.addEventListener('click', () => {
+    const open = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!open));
+    // `--selected` is the same class the pills above use for their on state,
+    // so "open" reads the way "Large" or "Saving" does rather than inventing a
+    // second visual language for the same idea.
+    toggle.classList.toggle('pill-segments__option--selected', !open);
+    panel.hidden = open;
+    panel.setAttribute('aria-hidden', String(open));
   });
 
-  const heading = document.createElement('p');
-  heading.textContent = 'Device diagnostic (temporary)';
-  Object.assign(heading.style, {
-    margin: '0 0 8px',
-    font: '600 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-    color: 'var(--color-label)',
-  });
-  wrap.appendChild(heading);
+  block.appendChild(toggle);
+  block.appendChild(panel);
 
   if (!lastBarredCapture) {
     const empty = document.createElement('p');
+    empty.className = 'diag-block__empty';
     empty.textContent =
       'No capture yet. Open Home, then come back - the figures are read from a screen that has the tab bar.';
-    Object.assign(empty.style, {
-      margin: '0',
-      font: '11px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-      color: 'var(--color-label-secondary)',
-    });
-    wrap.appendChild(empty);
-    host.appendChild(wrap);
+    panel.appendChild(empty);
+    host.appendChild(block);
     return;
   }
 
@@ -587,40 +621,19 @@ export function renderStoredReadout(host) {
   ].join('\n');
   const text = () => `${stamp}\n${lines.join('\n').replace(/^\n/, '')}`;
 
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.textContent = 'Copy';
-  Object.assign(button.style, {
-    display: 'block',
-    marginBottom: '8px',
-    padding: '6px 14px',
-    minHeight: '32px',
-    background: 'var(--color-label)',
-    color: 'var(--color-surface)',
-    border: '0',
-    borderRadius: '6px',
-    font: '600 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-    cursor: 'pointer',
-  });
-  button.addEventListener('click', () => copyToClipboard(text(), button));
-  wrap.appendChild(button);
+  const copy = document.createElement('button');
+  copy.type = 'button';
+  copy.className = 'pill-segments__option diag-block__chip diag-block__copy';
+  copy.textContent = 'Copy';
+  copy.addEventListener('click', () => copyToClipboard(text(), copy));
+  panel.appendChild(copy);
 
   const readout = document.createElement('pre');
+  readout.className = 'diag-block__readout';
   readout.textContent = text();
-  Object.assign(readout.style, {
-    margin: '0',
-    // `pre-wrap` and `break-word` together are what keep the longest line -
-    // the user agent string - inside the column instead of overflowing it.
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
-    userSelect: 'text',
-    WebkitUserSelect: 'text',
-    font: '11px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-    color: 'var(--color-label)',
-  });
-  wrap.appendChild(readout);
+  panel.appendChild(readout);
 
-  host.appendChild(wrap);
+  host.appendChild(block);
 }
 
 // Ungated, unlike the overlay: capture on first load and on every route

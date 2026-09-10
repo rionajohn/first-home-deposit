@@ -3326,3 +3326,81 @@ button.milestone-row {
 
 .goal-breakdown__swatch--deposit { background: var(--color-accent-neutral); }
 .goal-breakdown__swatch--stamp-duty { background: var(--color-accent-neutral-muted); }
+
+
+/* --- TEMPORARY: the device diagnostic's chip and readout (frame 33) --------
+   Goes with src/diagnostics.js. TO REMOVE: delete this block, that file, the
+   `import './diagnostics.js';` in src/app.js, and the `renderStoredReadout`
+   import and call in src/screens/settings.js. All four come out together.
+
+   NOT PARTICIPANT-FACING, AND SHAPED SO IT CANNOT READ AS THOUGH IT WERE. It
+   sits after `.settings-footer` - below even the build caption, so it is the
+   last thing on the screen and outside all three grouping cards, which is what
+   separates it from the prototype controls above rather than any colour of its
+   own. The chip itself carries `.pill-segments__option`, the same control base
+   every pill and chip on this screen uses, so its height, radius, border and
+   type all come from that rule and this block restates none of them.
+
+   Frame 33 is already a facilitator screen reached by a hidden gesture (D54)
+   and says so in its own first line, so this adds no participant-visible
+   surface; it only has to stay clearly apart from the settings a facilitator
+   DOES operate during a session. --- */
+.diag-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-md);
+  width: 100%;
+  padding-bottom: var(--space-3xl);
+}
+
+/* The two declarations `.pill-chips__chip` adds on top of
+   `.pill-segments__option`, copied rather than shared: that class is a
+   contract meaning "a version chip", and version-chips.test.mjs counts those
+   elements against the deployment list. A pill, not a circle, for the reason
+   given on `.pill-chips__chip` itself. */
+.diag-block__chip {
+  flex: 0 0 auto;
+  min-width: var(--touch-target-min);
+  padding: var(--space-sm) var(--space-2xl);
+}
+
+.diag-block__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-md);
+  width: 100%;
+}
+
+/* MUST STAY, AND MUST STAY AFTER THE RULE ABOVE. The UA sheet's
+   `[hidden] { display: none }` is an ELEMENT-level default that any `display`
+   declaration in an author sheet beats, so `display: flex` above silently
+   defeats `panel.hidden = true` and the readout renders open on every visit -
+   which is the whole thing the chip exists to prevent. Verified: without this
+   rule the collapsed panel measured `display: flex` with its <pre> visible,
+   while `hidden` and `aria-hidden` both read as set. */
+.diag-block__panel[hidden] {
+  display: none;
+}
+
+/* `pre-wrap` and `break-word` are what keep the longest line - the user agent
+   string - inside the column instead of overflowing it. */
+.diag-block__readout,
+.diag-block__empty {
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-label);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--text-caption2-size);
+  line-height: var(--text-caption2-line);
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+}

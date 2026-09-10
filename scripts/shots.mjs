@@ -196,6 +196,12 @@
  *              written to the session (D140), so it can only be reached by
  *              pressing the control.
  *                                                       default none
+ *   --diag     `open` presses frame 33's "Diagnostics" chip before the shot, so
+ *              the readout is in the picture. It is collapsed on every render
+ *              and its open state lives only in the DOM, so - like `--build` -
+ *              pressing the control is the only way to reach it.
+ *              TEMPORARY: comes out with src/diagnostics.js.
+ *                                                       default none
  *   --focus    A whole number of Tab presses to make before the shot, so the
  *              keyboard focus ring is in the picture. Real key presses, since
  *              the ring is on `:focus-visible` and a scripted `.focus()` does
@@ -350,6 +356,8 @@ const DEFAULTS = {
   stage: '',
   open: '',
   build: '',
+  // TEMPORARY, with src/diagnostics.js: `open` presses the Diagnostics chip.
+  diag: '',
 };
 
 /**
@@ -958,6 +966,26 @@ async function selectBuild(page) {
 }
 
 /**
+ * `--diag=open`: presses frame 33's Diagnostics chip so the readout is shown.
+ *
+ * TEMPORARY, AND IT LEAVES WITH THE DIAGNOSTIC. Same shape as `selectBuild`
+ * above and for the same reason: the chip's open state is held in the DOM and
+ * reset on every render, so it cannot be seeded - the control has to be
+ * pressed. Warns rather than throwing on a route that has no such chip, so a
+ * multi-route run is not aborted by one screen that cannot show it.
+ */
+async function openDiagnostics(page) {
+  if (args.diag !== 'open') return;
+  const chip = await page.$('.diag-block__toggle');
+  if (!chip) {
+    console.warn('  note: --diag=open found no Diagnostics chip on this screen; shot taken at rest.');
+    return;
+  }
+  await chip.click();
+  await page.waitForTimeout(250);
+}
+
+/**
  * `--focus`: presses Tab n times so the shot carries a visible focus ring.
  *
  * REAL TAB PRESSES, NOT `.focus()`. shell.css draws the ring on
@@ -1528,6 +1556,7 @@ try {
               await openDisclosure(page);
               await openDateList(page);
               await selectBuild(page);
+              await openDiagnostics(page);
               await tabTo(page);
 
               if (state === 'ahead' && entry !== 'mip') {
