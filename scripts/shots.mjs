@@ -260,6 +260,15 @@
  *   --full     Capture the whole scroller rather than the viewport.
  *   --no-sheet Skip the contact sheet.
  *   --scale    Device pixel ratio.                       default 2
+ *   --cover    A cover image: the phone alone, centred, with its whole drop
+ *              shadow on flat `--color-canvas` ground. Widens the viewport to
+ *              the framed breakpoint if `--width` is narrower (no phone is
+ *              drawn below it), pins the frame to scale 1, and clips to
+ *              `.device-bezel`'s rendered box plus `--cover-margin` on every
+ *              side. See `prepareCover`. Refused with `--full`, `--fit=content`
+ *              and `--stitch=scroll`.
+ *   --cover-margin  Ground around the bezel in a `--cover` shot, in CSS px
+ *              at frame scale 1.                         default 120
  *
  * ---------------------------------------------------------------------------
  * OUTPUT
@@ -358,6 +367,10 @@ const DEFAULTS = {
   build: '',
   // TEMPORARY, with src/diagnostics.js: `open` presses the Diagnostics chip.
   diag: '',
+  // Only read with `--cover`. 120 clears the first shadow layer on
+  // `.device-bezel` (shell.css, `0 24px 60px`), which reaches about 84px below
+  // the bezel at frame scale 1.
+  'cover-margin': '120',
 };
 
 /**
@@ -367,9 +380,10 @@ const DEFAULTS = {
 const figureDump = [];
 
 function parseArgs(argv) {
-  const flags = { ...DEFAULTS, full: false, sheet: true, figures: false };
+  const flags = { ...DEFAULTS, full: false, sheet: true, figures: false, cover: false };
   for (const arg of argv) {
     if (arg === '--full') { flags.full = true; continue; }
+    if (arg === '--cover') { flags.cover = true; continue; }
     if (arg === '--no-sheet') { flags.sheet = false; continue; }
     if (arg === '--figures') { flags.figures = true; continue; }
     const m = arg.match(/^--([a-z-]+)=(.*)$/);
@@ -379,7 +393,7 @@ function parseArgs(argv) {
     }
     const [, key, value] = m;
     if (!(key in DEFAULTS)) {
-      console.error(`Unknown option --${key}. Known: ${Object.keys(DEFAULTS).map((k) => `--${k}`).join(', ')}, --full, --no-sheet, --figures.`);
+      console.error(`Unknown option --${key}. Known: ${Object.keys(DEFAULTS).map((k) => `--${k}`).join(', ')}, --full, --no-sheet, --figures, --cover.`);
       process.exit(1);
     }
     flags[key] = value;
@@ -1102,6 +1116,82 @@ async function fitFrameToContent(page) {
 }
 
 /**
+ * `--cover`: THE PHONE ALONE, WITH ITS WHOLE SHADOW. Returns the clip box.
+ *
+ * WHY A PLAIN SHOT CUTS THE SHADOW OFF. A box-shadow never extends the
+ * scrollable area, and `html, body` are `overflow: hidden` (shell.css), so the
+ * WINDOW is what bounds it - and shell-scale.js leaves at most `--space-4xl`
+ * (40px) of gutter under the bezel against a shadow reaching ~84px. Growing the
+ * window does not help on its own: shell-scale.js answers a taller window with
+ * a larger scale, so the gutter stays at 40px until the 1.5 cap binds, and at
+ * 1.5 the shadow itself reaches ~126px.
+ *
+ * SO THE SCALE AND GUTTER ARE PINNED, as `fitFrameToContent` pins the scale:
+ * `--frame-scale` to 1, which makes `--cover-margin` a length in the same
+ * logical px the shadow is declared in, and `--frame-gutter` to the margin, so
+ * the ground above the bezel exists in the page rather than being clipped into
+ * the body padding. Layout inside the frame is identical at every scale (D92),
+ * so this changes the magnification of the screen and nothing about it.
+ *
+ * THE CLIP IS THE BEZEL'S RENDERED BOX, measured with `getBoundingClientRect()`
+ * - in viewport CSS px, the same space `page.screenshot({ clip })` takes - and
+ * never its declared 421x880. That box includes any transform, so the clip
+ * stays on the bezel even if the pin is ever removed.
+ *
+ * Runtime only: two custom properties on the live page's `:root`, in a context
+ * that is closed after the shot. No source file is touched.
+ */
+async function prepareCover(page) {
+  const pin = () => page.evaluate((margin) => {
+    const root = document.documentElement;
+    root.style.setProperty('--frame-scale', '1');
+    root.style.setProperty('--frame-gutter', `${margin}px`);
+  }, COVER_MARGIN);
+  const measure = () => page.evaluate(() => {
+    const bezel = document.querySelector('.device-bezel');
+    if (!bezel) return null;
+    const r = bezel.getBoundingClientRect();
+    return { left: r.left, top: r.top, width: r.width, height: r.height, right: r.right, bottom: r.bottom };
+  });
+
+  await pin();
+  await page.waitForTimeout(200);
+  let box = await measure();
+  if (!box) throw new Error('--cover found no .device-bezel on the page');
+
+  // The clip has to lie inside the viewport - there is no page scroll to reach
+  // past it - so the window is grown to hold the bezel plus the margin below
+  // and to its right. shell-scale.js debounces `resize` by SETTLE_MS (100ms)
+  // and then rewrites both properties, so they are re-pinned after it lands.
+  //
+  // AND ONE PX WIDER WHEN THE BEZEL IS CENTRED ON A HALF PIXEL. At 768 the
+  // 421px bezel sits at left 173.5: `getBoundingClientRect()` reports 173.5,
+  // but Chromium paints it at a whole CSS px, so the clip came out 241 device
+  // px left of the bezel and 239 right at scale 2. Measured, not guessed - at
+  // 769 the same shot is 240 on all four sides. Widening by one px moves the
+  // centre by half a px, which puts the bezel on a whole px where the rect and
+  // the paint agree.
+  const viewport = page.viewportSize();
+  const halfPx = Number.isInteger(box.left) ? 0 : 1;
+  const needW = Math.max(viewport.width, Math.ceil(box.right + COVER_MARGIN)) + halfPx;
+  const needH = Math.max(viewport.height, Math.ceil(box.bottom + COVER_MARGIN));
+  if (needW !== viewport.width || needH !== viewport.height) {
+    await page.setViewportSize({ width: needW, height: needH });
+    await page.waitForTimeout(250);
+    await pin();
+    await page.waitForTimeout(200);
+    box = await measure();
+  }
+
+  return {
+    x: box.left - COVER_MARGIN,
+    y: box.top - COVER_MARGIN,
+    width: box.width + COVER_MARGIN * 2,
+    height: box.height + COVER_MARGIN * 2,
+  };
+}
+
+/**
  * `--stitch=scroll`: THE WHOLE SCREEN, AT THE FRAME'S REAL SIZE.
  *
  * `--fit=content` grows the frame so one shot holds everything, which changes
@@ -1269,7 +1359,7 @@ async function captureStitched(page, file) {
 const slug = (route) => route.replace(/^\//, '').replace(/\//g, '-') || 'root';
 
 function shotName({ route, entry, state, theme, text, scroll }) {
-  const parts = [slug(route), entry, state, theme, `${WIDTH}w`];
+  const parts = [slug(route), entry, state, theme, `${VIEWPORT_WIDTH}w`];
   if (args.goal === 'none') parts.splice(1, 0, 'no-goal');
   if (args.draft !== 'none') parts.splice(1, 0, args.draft);
   if (args.view !== 'chart') parts.splice(1, 0, `view-${args.view}`);
@@ -1281,6 +1371,7 @@ function shotName({ route, entry, state, theme, text, scroll }) {
   if (text !== 'default') parts.push(text);
   if (scroll !== 'top') parts.push(`scroll-${scroll}`);
   if (args.full) parts.push('full');
+  if (COVER) parts.push('cover');
   return `${parts.join('__')}.png`;
 }
 
@@ -1376,6 +1467,42 @@ if (STITCH && SCROLLS.length > 1) {
   process.exit(1);
 }
 
+/**
+ * `--cover`. Each of the three options it refuses already decides what bounds
+ * the capture - Playwright's full page, a grown frame, a composite - and
+ * `fitFrameToContent` resizes the window back to `--width`, which would drop a
+ * widened cover below the framed breakpoint.
+ */
+const COVER = args.cover;
+const COVER_MARGIN = Number(args['cover-margin']);
+if (COVER && (STITCH || args.fit === 'content' || args.full)) {
+  console.error('--cover sets its own clip, so it cannot be combined with --full, --fit=content or --stitch=scroll.');
+  process.exit(1);
+}
+if (COVER && !(Number.isFinite(COVER_MARGIN) && COVER_MARGIN >= 0)) {
+  console.error(`--cover-margin must be a number of px, 0 or more, got '${args['cover-margin']}'.`);
+  process.exit(1);
+}
+
+/**
+ * The width the context opens at. `--width` itself, except under `--cover`,
+ * where it is raised to the framed breakpoint: below it shell.css draws no
+ * phone at all (`#app-frame, .device-bezel { display: contents }`).
+ *
+ * The breakpoint is READ FROM shell.css's `--frame-breakpoint`, the token
+ * shell-scale.js reads, rather than written here as a third copy of 768.
+ */
+function framedBreakpoint() {
+  const css = fs.readFileSync(path.join(ROOT, 'src/css/shell.css'), 'utf8');
+  const m = css.match(/--frame-breakpoint:\s*(\d+)px/);
+  if (!m) {
+    console.error('--cover could not read --frame-breakpoint from src/css/shell.css.');
+    process.exit(1);
+  }
+  return Number(m[1]);
+}
+const VIEWPORT_WIDTH = COVER ? Math.max(WIDTH, framedBreakpoint()) : WIDTH;
+
 /** Per-screen stitch facts, printed as a table at the end of a stitched run. */
 const stitchReport = [];
 
@@ -1415,7 +1542,7 @@ try {
         for (const text of TEXTS) {
           for (const state of statesHere) {
             const context = await browser.newContext({
-              viewport: { width: WIDTH, height: HEIGHT },
+              viewport: { width: VIEWPORT_WIDTH, height: HEIGHT },
               deviceScaleFactor: SCALE,
               serviceWorkers: 'block',
             });
@@ -1608,6 +1735,10 @@ try {
                 if (STITCH) {
                   const result = await captureStitched(page, file);
                   stitchReport.push({ name, route, ...result });
+                } else if (COVER) {
+                  const clip = await prepareCover(page);
+                  await page.screenshot({ path: file, clip });
+                  console.log(`    cover clip: ${clip.width}x${clip.height} CSS px at x=${clip.x}, y=${clip.y}`);
                 } else {
                   await page.screenshot({ path: file, fullPage: args.full });
                 }
