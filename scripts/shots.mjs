@@ -287,9 +287,10 @@
  *              `.device-bezel`'s rendered box plus `--cover-margin` on every
  *              side. See `prepareCover`. Refused with `--full`, `--fit=content`
  *              and `--stitch=scroll`. The window opens at the size the clip
- *              needs (`coverViewport`), infinite animations are paused at their
- *              first frame, and the run fails if the app has left the route by
- *              the time the capture is taken (D155).
+ *              needs (`coverViewport`), and the run fails if the app has left
+ *              the route by the time the capture is taken (D155). Infinite
+ *              animations are paused at their first frame on every capture,
+ *              cover or not (D157).
  *   --cover-margin  Ground around the bezel in a `--cover` shot, in CSS px
  *              at frame scale 1.                         default 120
  *
@@ -1292,12 +1293,18 @@ async function prepareCover(page) {
     throw new Error(`--cover clip ${JSON.stringify(clip)} does not fit the ${size.width}x${size.height} viewport`);
   }
 
-  // INFINITE ANIMATIONS ARE PAUSED AT THEIR FIRST FRAME (D155). A looping
-  // animation - `/mip/running`'s spinner - is at a different point every time
-  // the shutter falls, so a cover of that screen could never be reproduced.
-  // Paused through the Web Animations API on the live page, at `currentTime`
-  // 0; finite animations are left to finish, which `settle` has already
-  // waited for.
+  return clip;
+}
+
+/**
+ * INFINITE ANIMATIONS ARE PAUSED AT THEIR FIRST FRAME, ON EVERY CAPTURE. D155,
+ * widened from `--cover` to every shot by D157. A looping animation -
+ * `/mip/running`'s spinner - is at a different point every time the shutter
+ * falls, so no capture of that screen could be byte-compared with another.
+ * Paused through the Web Animations API on the live page, at `currentTime` 0;
+ * finite animations are left to finish, which `settle` has already waited for.
+ */
+async function pauseInfiniteAnimations(page) {
   await page.evaluate(() => {
     for (const a of document.getAnimations()) {
       if (a.effect && a.effect.getComputedTiming().iterations === Infinity) {
@@ -1307,7 +1314,6 @@ async function prepareCover(page) {
     }
   });
   await nextFrames(page);
-  return clip;
 }
 
 /** Two animation frames: one for a queued rAF callback, one for its paint. */
@@ -2032,6 +2038,7 @@ try {
                 // the scroll, so what it measures is the screen as it will be
                 // shot rather than as it first painted.
                 await fitFrameToContent(page);
+                await pauseInfiniteAnimations(page);
 
                 const name = spec
                   ? `${String(spec.index).padStart(2, '0')}-${spec.name}.png`

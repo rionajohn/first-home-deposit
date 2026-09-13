@@ -13403,3 +13403,32 @@ own comment, and the pin overrides it only on the seed `shots.mjs` writes.
 **To reverse.** Delete `CAPTURE_TODAY`, `CAPTURE_TIMEZONE`, `captureNow`, `PINNED` and `--today`.
 Restore `new Date()` in `monthsFromToday` and `saving-past-date`. Remove `timezoneId`, the
 `clock.setFixedTime` call and the `sessionAnchor` override from the context and the seed.
+
+---
+
+## D157. Infinite animations are paused at their first frame on every `shots.mjs` capture, not only covers
+
+**Date.** 13 September 2026. `scripts/shots.mjs` only. **No application source file changes.** Not a
+shell asset, so no version bump (D147). This widens D155, which paused infinite animations only
+under `--cover`.
+
+**Decision.** The pause moves out of `prepareCover` into `pauseInfiniteAnimations`. That function
+runs on every capture, after the scroll has settled and the frame is fitted, and before the
+cover, stitched or plain screenshot. The mechanism is unchanged: the Web Animations API sets
+`currentTime` to 0 on every animation with infinite iterations. Finite animations are still left to
+finish, and `settle` still waits for them.
+
+**Why.** Under D156 every capture is pinned to one date. After that, the only thing stopping two
+runs of the full capture set from being byte-identical was `/mip/running`'s spinner in the
+non-cover survey shot. The spinner is caught mid-turn at a different angle each time, which makes a
+byte comparison useless on that screen. A byte comparison is the point of pinning anything.
+
+**What changed.** Against the D156 captures, the full set was compared: the `--routes=all` survey,
+the `/tracker` and `/mip/running` covers, and `/tracker --scroll=end`. Exactly one PNG changed:
+`survey/20-mip-running.png`, which now shows the spinner at its first frame. The `/mip/running`
+cover is byte-identical to its D155 capture, because it was already paused.
+
+**Verified.** Two full runs of the same set are byte-identical, 33 of 33 PNGs.
+
+**To reverse.** Move the `pauseInfiniteAnimations` body back to the end of `prepareCover`, and
+remove its call from the shot loop.
