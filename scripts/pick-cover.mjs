@@ -1,7 +1,9 @@
 /**
- * PICK A COVER BY EYE, IN A REAL BROWSER, WITH THE HARNESS'S OWN RULES.
- * DECISIONS.md D159.
+ * PICK A COVER BY EYE, IN A REAL BROWSER, WITH THE HARNESS'S OWN RULES - AND
+ * SHOOT IT WITH THE HARNESS ITSELF. DECISIONS.md D159 and D160.
  *
+ *     pick-cover.cmd                          (double-click, in the repo root)
+ *     node scripts/pick-cover.mjs             (opens on /home)
  *     node scripts/pick-cover.mjs --routes=consent
  *
  * Opens a visible Chromium on the route in the session `scripts/shots.mjs`
@@ -14,28 +16,47 @@
  *   blue line       where `--scroll-align=start` puts an anchor's top edge
  *   box             the anchor candidate - magenta when the rules pass, red
  *                   when they fail
- *   panel           the candidate's selector, the alignment and the verdict
+ *   panel           a route menu, the candidate's selector, the alignment and
+ *                   the verdict
  *
- * Keys (Alt+Shift, so they collide with nothing the app handles):
+ * Keys. Alt+Shift, and none of these letters is a Chromium shortcut or handled
+ * by the app. (Alt+Shift+A was the align key in D159: Chromium on Windows
+ * reserves it for "focus inactive dialogs", so in a real window it could be
+ * taken by the browser. Synthetic key events in the D159 tests bypass browser
+ * shortcuts, which is why they did not catch it.)
  *
  *   Alt+Shift+N   next anchor candidate
- *   Alt+Shift+A   toggle --scroll-align between start and center
+ *   Alt+Shift+L   toggle --scroll-align between start and center
  *   Alt+Shift+S   snap: move the screen to exactly where shots.mjs will put it
- *                 and run the visibility check, without copying
+ *                 and run the visibility check
  *   Alt+Shift+C   snap, check, and copy the full shots.mjs command to the
- *                 clipboard, PowerShell-quoted. Also printed here. Nothing is
- *                 copied when a check fails; the reason is shown instead.
+ *                 clipboard, PowerShell-quoted. Also printed in the terminal.
+ *   Alt+Shift+P   snap, check, and SHOOT: run that same command, verify the PNG
+ *                 and report where it went
+ *   Alt+Shift+R   focus the route menu
+ *
+ * Nothing is copied or shot when a check fails; the reason is shown.
+ *
+ * CHANGING ROUTE RELOADS THE PAGE on the new route, so it is entered the way
+ * shots.mjs enters it - a fresh document, freshly seeded. A screen reached by
+ * tapping through the app instead can draw differently from a direct load (a
+ * back chevron, D41), so the panel says so and the shoot key refuses it.
  *
  * THE CHECKS ARE THE HARNESS'S, NOT A COPY. The overlay's verdict comes from
  * `anchorRules` in `scripts/anchor-rules.mjs`, the function shots.mjs hands to
  * `page.evaluate`, injected here as the same source. The selector a candidate
  * gets is this file's own, but whether it is usable is decided by those rules.
  *
- * WHAT IT CANNOT DO. It does not shoot; run the copied command. A screen you
- * reached by tapping, or state you changed by typing or picking, may not be
- * reproducible from shots.mjs's flags - the panel lists every stored value
- * that differs from the seed and would not survive into the command. Close the
- * browser window to stop.
+ * THE SHOOT KEY RUNS THE HARNESS, IT DOES NOT SCREENSHOT THIS WINDOW. This
+ * window is the full, visible Chromium; shots.mjs runs Playwright's headless
+ * build, and the two rasterise text differently (D159: 93.6-94.1% of screen
+ * pixels identical). So Alt+Shift+P spawns `node scripts/shots.mjs` as its own
+ * headless process with exactly the arguments Alt+Shift+C copies, plus an
+ * output folder. The PNG is checked (`scripts/cover-checks.mjs`) before it is
+ * moved to `.screenshots/picked/`; one that fails goes to
+ * `.screenshots/picked/failed/` with a note naming the failed check, so it is
+ * never left looking like a good one. It also refuses when this session holds a
+ * change no shots.mjs flag reproduces, since the PNG would not show it.
  *
  * `--cdp-port=<n>` opens a Chrome DevTools Protocol port so a script can drive
  * the picker, which is how it was verified. Leave it off otherwise.
@@ -43,10 +64,12 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { FULL } from './session-seed.mjs';
 import { anchorRules, isAnchorSelector } from './anchor-rules.mjs';
+import { checkCover } from './cover-checks.mjs';
 import { BUILD_VERSION } from '../src/cache-version.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -60,12 +83,14 @@ const args = Object.fromEntries(process.argv.slice(2).map((a) => {
 for (const key of Object.keys(args)) {
   if (!['routes', 'cdp-port'].includes(key)) { console.error(`pick-cover: unknown option --${key}. Known: --routes, --cdp-port.`); process.exit(1); }
 }
-if (!args.routes) { console.error('pick-cover: --routes=<route> is required, e.g. --routes=consent.'); process.exit(1); }
-if (/^\/?[A-Za-z]:[\\/]/.test(args.routes) || args.routes.includes('Program Files')) {
-  console.error(`pick-cover: --routes was rewritten by the shell to "${args.routes}". Drop the leading slash (--routes=consent).`);
+// /home when none is given: it renders on a fresh seeded session without a
+// redirect, and the route menu in the window goes anywhere from there.
+const requested = args.routes || 'home';
+if (/^\/?[A-Za-z]:[\\/]/.test(requested) || requested.includes('Program Files')) {
+  console.error(`pick-cover: --routes was rewritten by the shell to "${requested}". Drop the leading slash (--routes=consent).`);
   process.exit(1);
 }
-const ROUTE = args.routes.startsWith('/') ? args.routes : `/${args.routes}`;
+const ROUTE = requested.startsWith('/') ? requested : `/${requested}`;
 
 // The route list is router.js's own, read the way smoke.test.mjs reads it.
 const routerSrc = fs.readFileSync(path.join(ROOT, 'src/router.js'), 'utf8');
@@ -80,11 +105,12 @@ if (!KNOWN.includes(ROUTE)) {
 // Read, not repeated, so the picker cannot pin a different date, zone or
 // instant than the harness does (D156).
 const shotsSrc = fs.readFileSync(path.join(ROOT, 'scripts/shots.mjs'), 'utf8');
-const readConst = (re, name) => {
-  const m = shotsSrc.match(re);
-  if (!m) { console.error(`pick-cover: could not read ${name} from scripts/shots.mjs.`); process.exit(1); }
+const readFrom = (src, file) => (re, name) => {
+  const m = src.match(re);
+  if (!m) { console.error(`pick-cover: could not read ${name} from ${file}.`); process.exit(1); }
   return m[1];
 };
+const readConst = readFrom(shotsSrc, 'scripts/shots.mjs');
 const CAPTURE_TODAY = readConst(/const CAPTURE_TODAY = '(\d{4}-\d{2}-\d{2})';/, 'CAPTURE_TODAY');
 const CAPTURE_TIMEZONE = readConst(/const CAPTURE_TIMEZONE = '([^']+)';/, 'CAPTURE_TIMEZONE');
 const CLOCK_TIME = readConst(/setFixedTime\(new Date\(`\$\{CAPTURE_TODAY\}T([0-9:+-]+)`\)\)/, 'the setFixedTime instant');
@@ -94,8 +120,22 @@ const CLOCK_TIME = readConst(/setFixedTime\(new Date\(`\$\{CAPTURE_TODAY\}T([0-9
 // frame out differently. The window's own display scaling is a separate
 // problem, handled at launch below.
 const DEVICE_SCALE = Number(readConst(/\n  scale: '(\d+(?:\.\d+)?)',/, 'the --scale default'));
+const COVER_MARGIN = Number(readConst(/\n  'cover-margin': '(\d+)',/, 'the --cover-margin default'));
 // shots.mjs's seed at its defaults: --theme=light, --text=default, no seeding option.
 const SEED = { ...FULL, theme: 'greyscale', textSize: 'default', sessionAnchor: CAPTURE_TODAY, buildVersion: BUILD_VERSION };
+
+// What a cover must measure, for the shoot key's checks: the bezel from the
+// tokens shots.mjs's `coverViewport` reads, its radius from tokens.css.
+const shellCss = fs.readFileSync(path.join(ROOT, 'src/css/shell.css'), 'utf8');
+const tokensCss = fs.readFileSync(path.join(ROOT, 'src/css/tokens.css'), 'utf8');
+const readShell = readFrom(shellCss, 'src/css/shell.css');
+const COVER_SPEC = {
+  bezelWidth: Number(readShell(/--frame-width:\s*(\d+)px/, '--frame-width')) + 2 * Number(readShell(/--frame-bezel:\s*(\d+)px/, '--frame-bezel')),
+  bezelHeight: Number(readShell(/--frame-height:\s*(\d+)px/, '--frame-height')) + 2 * Number(readShell(/--frame-bezel:\s*(\d+)px/, '--frame-bezel')),
+  radius: Number(readFrom(tokensCss, 'src/css/tokens.css')(/--radius-device:\s*(\d+)px/, '--radius-device')),
+  margin: COVER_MARGIN,
+  scale: DEVICE_SCALE,
+};
 
 // --- A static server, as shots.mjs serves the app ---------------------------
 const MIME = {
@@ -115,11 +155,11 @@ const base = `http://127.0.0.1:${server.address().port}`;
 
 // --- The overlay, run in the page -------------------------------------------
 // Self-contained like anchorRules: it is injected as source text.
-function overlay({ seed }) {
+function overlay({ seed, routes }) {
   const rules = window.__anchorRules;
   const isAnchorSelector = window.__isAnchorSelector;
   const report = (payload) => { try { window.__pickerReport(payload); } catch { /* not bound */ } };
-  const ui = { align: 'start', selected: null, candidates: [], snapped: null, message: '' };
+  const ui = { align: 'start', selected: null, candidates: [], message: '', busy: false };
 
   const css = `
     #cp-root { position: fixed; inset: 0; pointer-events: none; z-index: 2147483647; font: 12px/1.35 system-ui, sans-serif; }
@@ -128,12 +168,15 @@ function overlay({ seed }) {
     #cp-root .cp-anchor { position: fixed; box-sizing: border-box; border: 2px solid #c2185b; background: rgba(194,24,91,0.08); }
     #cp-root .cp-anchor.fail { border-color: #d50000; background: rgba(213,0,0,0.12); }
     #cp-root .cp-panel { position: fixed; left: 12px; top: 12px; width: 340px; background: rgba(255,255,255,0.97); color: #111;
-      border: 1px solid #999; border-radius: 6px; padding: 10px 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); white-space: pre-wrap; word-break: break-word; }
+      border: 1px solid #999; border-radius: 6px; padding: 10px 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); pointer-events: auto; }
+    #cp-root .cp-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    #cp-root .cp-head select { flex: 1; font: inherit; }
+    #cp-root .cp-body { white-space: pre-wrap; word-break: break-word; }
     #cp-root .cp-panel b { font-weight: 700; }
     #cp-root .cp-ok { color: #1b5e20; } #cp-root .cp-bad { color: #b71c1c; } #cp-root .cp-note { color: #555; }
     #cp-root.cp-hidden { display: none; }`;
 
-  let root, clearBox, startLine, anchorBox, panel;
+  let root, clearBox, startLine, anchorBox, panel, routeMenu, body;
   function build() {
     const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
     root = document.createElement('div'); root.id = 'cp-root';
@@ -141,6 +184,22 @@ function overlay({ seed }) {
     startLine = document.createElement('div'); startLine.className = 'cp-start';
     anchorBox = document.createElement('div'); anchorBox.className = 'cp-anchor';
     panel = document.createElement('div'); panel.className = 'cp-panel';
+    // The route menu is built once and never re-rendered, so an open menu is
+    // not closed under the pointer by the next redraw.
+    const head = document.createElement('div'); head.className = 'cp-head';
+    const title = document.createElement('b'); title.textContent = 'Cover picker';
+    routeMenu = document.createElement('select'); routeMenu.id = 'cp-route'; routeMenu.setAttribute('aria-label', 'Route');
+    for (const r of routes) { const o = document.createElement('option'); o.value = r; o.textContent = r; routeMenu.appendChild(o); }
+    routeMenu.value = routeNow();
+    routeMenu.addEventListener('change', () => {
+      // A fresh document on the new route: re-seeded by the init script, and
+      // entered the way shots.mjs enters it.
+      history.replaceState(null, '', `#${routeMenu.value}`);
+      location.reload();
+    });
+    head.append(title, routeMenu);
+    body = document.createElement('div'); body.className = 'cp-body';
+    panel.append(head, body);
     root.append(clearBox, startLine, anchorBox, panel);
     // Appended to body, not #app: the router observes #app's children.
     document.body.appendChild(root);
@@ -149,6 +208,7 @@ function overlay({ seed }) {
   const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   const scroller = () => document.querySelector('.bottom-sheet__content, .screen-content');
   const routeNow = () => (location.hash.slice(1).split('?')[0] || '/home');
+  const loadRoute = routeNow();
 
   function place(el, r) {
     el.style.display = 'block';
@@ -218,6 +278,9 @@ function overlay({ seed }) {
     if (uniqueOpen.length === 1) flags.push(`--open=${uniqueOpen[0]}`);
     if (uniqueOpen.length > 1) notes.push(`${uniqueOpen.length} disclosures are open (${uniqueOpen.join(', ')}); shots.mjs opens one`);
     if (stored.chartView === 'table') flags.push('--view=table');
+    if (routeNow() !== loadRoute) {
+      notes.push(`this screen was reached by navigating inside the app from ${loadRoute}; shots.mjs loads ${routeNow()} directly, which can draw it differently - choose it from the route menu to see it as it will be captured`);
+    }
     // Compared with what the app stored on first load, not with the raw seed:
     // on load it fills in thirty-odd defaults the seed does not carry, the same
     // on every route, and none of those is a change anyone made. Keys a flag
@@ -248,11 +311,14 @@ function overlay({ seed }) {
       .map((a) => a.finished));
   }
 
+  const KEYS = '<span class="cp-note">Alt+Shift+N next  ·  L align  ·  S snap  ·  C copy  ·  P shoot  ·  R route</span>';
+
   function draw() {
+    if (routeMenu.value !== routeNow() && document.activeElement !== routeMenu) routeMenu.value = routeNow();
     const s = scroller();
     if (!s) {
       clearBox.style.display = startLine.style.display = anchorBox.style.display = 'none';
-      panel.innerHTML = `<b>Cover picker</b>\n<span class="cp-bad">This screen has no scroller, so it can only be shot at --scroll=top.</span>\nRoute: ${esc(routeNow())}`;
+      body.innerHTML = `<span class="cp-bad">This screen has no scroller, so it can only be shot at --scroll=top.</span>\n${ui.message ? `${ui.message}\n` : ''}${KEYS}`;
       return;
     }
     const sr = s.getBoundingClientRect();
@@ -265,8 +331,7 @@ function overlay({ seed }) {
     if (!ui.candidates.some((c) => c.sel === ui.selected)) ui.selected = ui.candidates[0]?.sel ?? null;
     const index = ui.candidates.findIndex((c) => c.sel === ui.selected);
 
-    const lines = [`<b>Cover picker</b>  <span class="cp-note">${esc(routeNow())}</span>`];
-    if (routeNow() !== window.__pickerLaunchRoute) lines.push(`<span class="cp-note">Launched on ${esc(window.__pickerLaunchRoute)}; the command uses this screen's route.</span>`);
+    const lines = [];
     if (!ui.selected) {
       anchorBox.style.display = 'none';
       lines.push('<span class="cp-bad">No usable anchor near the top of the screen. Scroll until an element with a unique class or data attribute sits under the header.</span>');
@@ -296,12 +361,12 @@ function overlay({ seed }) {
     if (flags.length) lines.push(`Flags from this session: ${esc(flags.join(' '))}`);
     for (const n of notes) lines.push(`<span class="cp-bad">Warning: ${esc(n)}</span>`);
     if (ui.message) lines.push(ui.message);
-    lines.push('<span class="cp-note">Alt+Shift+N next  ·  A align  ·  S snap  ·  C copy</span>');
-    panel.innerHTML = lines.join('\n');
+    lines.push(KEYS);
+    body.innerHTML = lines.join('\n');
   }
 
   let queued = false;
-  const schedule = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; try { draw(); } catch (e) { panel.textContent = `Cover picker error: ${e.message}`; } }); };
+  const schedule = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; try { draw(); } catch (e) { body.textContent = `Cover picker error: ${e.message}`; } }); };
 
   async function snap() {
     ui.message = '';
@@ -315,35 +380,58 @@ function overlay({ seed }) {
     return vis.error ? { error: vis.error, sel } : { sel, scrollTop: placed.scrollTop };
   }
 
+  // The shots.mjs arguments, once: the copy key prints them, the shoot key runs them.
   function command(sel) {
     const route = routeNow().replace(/^\//, '');
-    const ps = (v) => `'${v.replace(/'/g, "''")}'`;
     const { flags, notes } = stateFlags();
-    return { text: ['node scripts/shots.mjs --cover --no-sheet', `--routes=${route}`, ps(`--scroll=${sel}`), `--scroll-align=${ui.align}`, ...flags].join(' '), notes };
+    const argv = ['--cover', '--no-sheet', `--routes=${route}`, `--scroll=${sel}`, `--scroll-align=${ui.align}`, ...flags];
+    const ps = (v) => `'${v.replace(/'/g, "''")}'`;
+    const text = ['node scripts/shots.mjs', ...argv.map((a) => (a.startsWith('--scroll=') ? ps(a) : a))].join(' ');
+    return { argv, text, notes };
   }
 
   async function onKey(e) {
     if (!(e.altKey && e.shiftKey)) return;
     const code = e.code;
-    if (!['KeyN', 'KeyA', 'KeyS', 'KeyC'].includes(code)) return;
+    if (!['KeyN', 'KeyL', 'KeyS', 'KeyC', 'KeyP', 'KeyR'].includes(code)) return;
     e.preventDefault(); e.stopPropagation();
+    if (code === 'KeyR') { routeMenu.focus(); try { routeMenu.showPicker(); } catch { /* focus is enough */ } return; }
+    if (ui.busy) { ui.message = '<span class="cp-note">Still shooting - wait for the result.</span>'; schedule(); return; }
     if (code === 'KeyN' && ui.candidates.length) {
       const i = ui.candidates.findIndex((c) => c.sel === ui.selected);
       ui.selected = ui.candidates[(i + 1) % ui.candidates.length].sel;
       ui.message = '';
     }
-    if (code === 'KeyA') { ui.align = ui.align === 'start' ? 'center' : 'start'; ui.message = ''; }
-    if (code === 'KeyS' || code === 'KeyC') {
+    if (code === 'KeyL') { ui.align = ui.align === 'start' ? 'center' : 'start'; ui.message = ''; }
+    if (code === 'KeyS' || code === 'KeyC' || code === 'KeyP') {
+      const verb = { KeyS: 'Snap', KeyC: 'Not copied', KeyP: 'Not shot' }[code];
       const result = await snap();
       if (result.error) {
-        ui.message = `<span class="cp-bad">${code === 'KeyC' ? 'Not copied. ' : ''}--scroll "${esc(result.sel || '')}" ${esc(result.error)}</span>`;
-        report({ kind: 'refused', route: routeNow(), selector: result.sel, align: ui.align, error: result.error });
+        ui.message = `<span class="cp-bad">${code === 'KeyS' ? '' : `${verb}. `}--scroll "${esc(result.sel || '')}" ${esc(result.error)}</span>`;
+        report({ kind: 'refused', action: code === 'KeyP' ? 'shot' : code === 'KeyC' ? 'copied' : 'snapped', route: routeNow(), selector: result.sel, align: ui.align, error: result.error });
       } else if (code === 'KeyC') {
         const cmd = command(result.sel);
         let copied = true;
         try { await navigator.clipboard.writeText(cmd.text); } catch { copied = false; }
         ui.message = `<span class="cp-ok">${copied ? 'Copied' : 'Clipboard unavailable - printed in the terminal'}:</span>\n${esc(cmd.text)}`;
         report({ kind: 'copied', command: cmd.text, notes: cmd.notes, copied, route: routeNow(), selector: result.sel, align: ui.align, scrollTop: result.scrollTop });
+      } else if (code === 'KeyP') {
+        const cmd = command(result.sel);
+        if (cmd.notes.length) {
+          ui.message = `<span class="cp-bad">Not shot: the PNG would not show this screen as it is - ${esc(cmd.notes.join('; '))}. Alt+Shift+C still copies the command.</span>`;
+          report({ kind: 'refused', action: 'shot', route: routeNow(), selector: result.sel, align: ui.align, error: cmd.notes.join('; ') });
+        } else {
+          ui.busy = true;
+          ui.message = `<span class="cp-note">Shooting with the harness:\n${esc(cmd.text)}</span>`;
+          schedule();
+          let shot;
+          try { shot = await window.__pickerShoot({ argv: cmd.argv, text: cmd.text }); } catch (err) { shot = { ok: false, error: String(err) }; }
+          ui.busy = false;
+          const checks = (shot.checks || []).map((c) => `${c.pass ? 'pass' : 'FAIL'}  ${c.name}: ${c.detail}`).join('\n');
+          ui.message = shot.ok
+            ? `<span class="cp-ok">Shot and verified:</span>\n${esc(shot.file)}\n${esc(checks)}`
+            : `<span class="cp-bad">Shot failed${shot.file ? ` - moved to ${esc(shot.file)}` : ''}: ${esc(shot.error || 'a check failed')}</span>${checks ? `\n${esc(checks)}` : ''}`;
+        }
       } else {
         ui.message = `<span class="cp-ok">Snapped to ${result.scrollTop}.</span>`;
       }
@@ -368,6 +456,58 @@ function overlay({ seed }) {
     }, 600);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+}
+
+// --- The shoot key: the real harness, in its own headless process -------------
+const PICKED = path.join(ROOT, '.screenshots', 'picked');
+
+async function shoot({ argv, text }) {
+  const staging = path.join(PICKED, `.staging-${Date.now()}`);
+  fs.mkdirSync(staging, { recursive: true });
+  console.log(`\nShooting:\n  ${text}`);
+  const run = await new Promise((resolve) => {
+    let out = '';
+    const child = spawn(process.execPath, ['scripts/shots.mjs', ...argv, `--out=${staging}`], { cwd: ROOT });
+    child.stdout.on('data', (d) => { out += d; });
+    child.stderr.on('data', (d) => { out += d; });
+    child.on('close', (code) => resolve({ code, out }));
+  });
+  const pngs = fs.existsSync(staging) ? fs.readdirSync(staging).filter((f) => f.endsWith('.png')) : [];
+  const finish = (result) => {
+    fs.rmSync(staging, { recursive: true, force: true });
+    if (result.ok) {
+      console.log(`  verified -> ${result.file}`);
+    } else {
+      console.log(`  FAILED: ${result.error}${result.file ? ` (moved to ${result.file})` : ''}`);
+    }
+    for (const c of result.checks || []) console.log(`    ${c.pass ? 'pass' : 'FAIL'}  ${c.name}: ${c.detail}`);
+    return result;
+  };
+  if (run.code !== 0 || pngs.length !== 1) {
+    const why = (run.out.match(/^Error: .*$/m) || [])[0] || `shots.mjs exited ${run.code} and wrote ${pngs.length} PNG(s)`;
+    // Anything it did write is not presented as a result.
+    if (pngs.length) {
+      fs.mkdirSync(path.join(PICKED, 'failed'), { recursive: true });
+      for (const f of pngs) fs.renameSync(path.join(staging, f), path.join(PICKED, 'failed', f));
+    }
+    return finish({ ok: false, error: why.replace(/^Error: /, '') });
+  }
+  const name = pngs[0];
+  const checked = checkCover(fs.readFileSync(path.join(staging, name)), COVER_SPEC);
+  if (checked.ok) {
+    fs.mkdirSync(PICKED, { recursive: true });
+    const dest = path.join(PICKED, name);
+    fs.rmSync(dest, { force: true });
+    fs.renameSync(path.join(staging, name), dest);
+    return finish({ ok: true, file: path.relative(ROOT, dest), checks: checked.checks });
+  }
+  const failedDir = path.join(PICKED, 'failed');
+  fs.mkdirSync(failedDir, { recursive: true });
+  const dest = path.join(failedDir, name);
+  fs.rmSync(dest, { force: true });
+  fs.renameSync(path.join(staging, name), dest);
+  fs.writeFileSync(`${dest}.txt`, `${text}\n\n${checked.checks.map((c) => `${c.pass ? 'pass' : 'FAIL'}  ${c.name}: ${c.detail}`).join('\n')}\n`);
+  return finish({ ok: false, file: path.relative(ROOT, dest), error: `failed: ${checked.checks.filter((c) => !c.pass).map((c) => c.name).join(', ')}`, checks: checked.checks });
 }
 
 // --- Launch -------------------------------------------------------------------
@@ -399,21 +539,26 @@ await context.exposeBinding('__pickerReport', (_source, payload) => {
     console.log(`\n${payload.copied ? 'Copied' : 'Clipboard unavailable; copy this'}:\n  ${payload.command}`);
     for (const n of payload.notes) console.log(`  warning: ${n}`);
   } else if (payload.kind === 'refused') {
-    console.log(`\nNot copied: --scroll "${payload.selector}" on ${payload.route} ${payload.error}.`);
+    console.log(`\nNot ${payload.action}: --scroll "${payload.selector}" on ${payload.route} ${payload.error}.`);
   }
+});
+let shooting = false;
+await context.exposeBinding('__pickerShoot', async (_source, request) => {
+  if (shooting) return { ok: false, error: 'a shot is already running' };
+  shooting = true;
+  try { return await shoot(request); } finally { shooting = false; }
 });
 await context.addInitScript({
   content: `window.__anchorRules = ${anchorRules.toString()};
 window.__isAnchorSelector = ${isAnchorSelector.toString()};
-window.__pickerLaunchRoute = ${JSON.stringify(ROUTE)};
-(${overlay.toString()})(${JSON.stringify({ seed: SEED })});`,
+(${overlay.toString()})(${JSON.stringify({ seed: SEED, routes: KNOWN })});`,
 });
 
 const page = await context.newPage();
 await page.goto(`${base}/#${ROUTE}`);
 console.log(`Cover picker on ${ROUTE} (${base}). Seeded at ${CAPTURE_TODAY}, ${CAPTURE_TIMEZONE}, build ${BUILD_VERSION}.`);
-console.log('Keys: Alt+Shift+N next anchor · Alt+Shift+A start/center · Alt+Shift+S snap · Alt+Shift+C snap and copy the command.');
-console.log('Close the browser window to stop.');
+console.log('Keys: Alt+Shift+N next anchor, L start/center, S snap, C copy the command, P shoot and verify, R route menu.');
+console.log('Verified shots go to .screenshots/picked/. Close the browser window to stop.');
 
 await new Promise((resolve) => browser.on('disconnected', resolve));
 server.close();

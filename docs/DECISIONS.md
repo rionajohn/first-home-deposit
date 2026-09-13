@@ -13681,3 +13681,84 @@ Measured with the anchor on frame 03, which the harness places at `scrollTop` 54
 **To reverse.** Delete `scripts/pick-cover.mjs`. The extraction can stay, since it is behaviour-neutral;
 to reverse it too, move `anchorRules`' `place` and `inspect` bodies back into `anchorScroll` and
 `checkAnchor` in `shots.mjs`.
+
+---
+
+## D160. The cover picker launches by double-click, changes route in-window, and shoots with the real harness
+
+**Date.** 13 September 2026. `scripts/pick-cover.mjs`, with new `scripts/cover-checks.mjs` and
+`pick-cover.cmd` in the repo root. **No application source file changes, nothing in `src/`, no
+cached-file change and no version bump** (D147). Extends D159.
+
+**Decision.**
+
+1. **A double-clickable launcher, not an npm script.** `pick-cover.cmd` changes to its own folder,
+   runs `node scripts/pick-cover.mjs` and keeps its window open when the picker closes, so the printed
+   commands and shot results stay readable. An npm script still needs a terminal and a typed
+   `npm run`, which is the step being removed. Arguments pass through, so `pick-cover.cmd
+   --routes=consent` also works.
+   - With no `--routes`, the picker opens on `/home`, which renders on a fresh seeded session without
+     a redirect.
+2. **Route changes happen in the window.** The panel carries a menu of `router.js`'s own routes
+   (Alt+Shift+R focuses it). Choosing one reloads the page on that route, so it is entered as
+   `shots.mjs` enters it: a fresh document, freshly seeded.
+   - A screen reached by tapping through the app instead can draw differently from a direct load (a
+     back chevron, D41). The panel warns about that, and the shoot key refuses it.
+3. **A shoot key, Alt+Shift+P, that runs the real harness.** It snaps and checks exactly as the copy
+   key does, then spawns `node scripts/shots.mjs` as its own headless process, with the same arguments
+   the copy key prints plus `--out` pointing at a staging folder.
+   - **Checks:** the PNG is decoded in Node (`scripts/cover-checks.mjs`, no image library) and
+     checked for size, alpha-0 corners, equal margins at `--cover-margin` x `--scale`, the whole phone
+     and nothing clipped, no shadow, and an opaque phone.
+   - **Pass:** it moves to `.screenshots/picked/`.
+   - **Fail:** it moves to `.screenshots/picked/failed/` beside a note naming the failed check.
+   - **Harness error:** the harness's own message is shown and nothing is kept as a result.
+   - **Unreproducible session:** the key refuses when the session holds a change no `shots.mjs` flag
+     reproduces, since the PNG would not show it. The copy key still works then.
+4. **The align key moves from Alt+Shift+A to Alt+Shift+L.** Chromium on Windows reserves Alt+Shift+A
+   for focusing inactive dialogs, so in a real window the browser could take it. D159's tests sent
+   synthetic key events, which bypass browser shortcuts, so they could not show this. The keys are now
+   N, L, S, C, P and R; none is a Chromium shortcut (T, B and A are taken, and I in Chrome builds), and
+   the app handles only arrows, Home, End, Enter, Space, Escape and Tab.
+
+### Why the shoot key spawns a process instead of screenshotting the window
+
+The picker window is the full, visible Chromium, and `shots.mjs` runs Playwright's headless shell. The
+two rasterise text differently: D159 measured 93.6-94.1% of screen pixels identical between them, with
+layout exact. A screenshot of the window therefore cannot equal the command-line PNG. Running the
+harness itself makes the output the harness's output by construction. `--out` changes only where the
+file is written.
+
+### Verified
+
+- **The launcher,** run by cmd.exe by its full path from another folder, as Explorer runs it. It
+  opened the picker on `/home`, and after the browser closed it printed "Picker closed…" and waited.
+  - This environment sets `NoDefaultCurrentDirectoryInExePath`, so `cmd /c pick-cover.cmd` by bare
+    name was not found. Double-clicking is unaffected.
+- **The route menu** reloaded onto `/consent`, `/position/summary`, `/learn/ltv` and
+  `/calculator/review`, with the menu and the hash in agreement each time.
+- **Two shoots of `/consent`** (`[data-signature^='deposit:house-pot']`, start) were
+  **byte-identical**, and identical to the frame 03 cover captured earlier (`5F6B4D71…`).
+- **Three routes shot from the picker** matched the same command run as printed in PowerShell,
+  **byte for byte**: `/consent`, `/position/summary` (`.figure-input`, start) and `/learn/ltv`
+  (`.explainer-library-card`, start, 26px from the end of its scroller). Every check passed on all
+  three.
+- **Refusals.** A near-end anchor (`/learn/ltv` `.flag-row`, start) was not shot, with the harness's
+  "needs scrollTop 1797 … only scrolls 0 to 1391". A property value typed on step 3 was not shot,
+  naming `property-value, deposit-target, combined-goal, loan-amount, ltv`.
+- **Failure paths, through the real shoot binding.** A non-cover run was moved to `picked/failed/`
+  with its note, reported as failing the format check, and never presented as good. An anchor
+  matching nothing returned the harness's message and wrote nothing. No staging folder was left
+  behind.
+- **The checks,** separately: they pass real covers, reject an opaque PNG, and catch a margin shadow
+  and a shifted, clipped phone in corrupted copies.
+- **Full suite:** 434 tests, 432 passing, 0 failing, 2 skipped, run one file at a time because the
+  machine was low on memory.
+
+**One unexplained observation.** In one launcher test the page, left on `/home`, was later found on
+`/journey`. An instrumented 20-second idle repeat logged no navigation, click or key event. The likely
+cause is a real pointer event reaching the newly opened window; it was not reproduced.
+
+**To reverse.** Delete `pick-cover.cmd` and `scripts/cover-checks.mjs`. In `pick-cover.mjs`, remove
+the `shoot` function, the `__pickerShoot` binding, the route menu and the P and R keys, restore the
+required `--routes`, and put align back on A.
