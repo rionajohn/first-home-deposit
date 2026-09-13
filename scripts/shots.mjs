@@ -260,9 +260,9 @@
  *   --full     Capture the whole scroller rather than the viewport.
  *   --no-sheet Skip the contact sheet.
  *   --scale    Device pixel ratio.                       default 2
- *   --cover    A cover image: the phone alone, centred, on flat white
- *              `--color-canvas` ground (the bezel has no drop shadow since
- *              DECISIONS.md D153). Widens the viewport to
+ *   --cover    A cover image: the phone alone, centred, on a fully
+ *              transparent ground with no drop shadow, whatever the live page
+ *              paints behind the frame (DECISIONS.md D154). Widens the viewport to
  *              the framed breakpoint if `--width` is narrower (no phone is
  *              drawn below it), pins the frame to scale 1, and clips to
  *              `.device-bezel`'s rendered box plus `--cover-margin` on every
@@ -370,7 +370,7 @@ const DEFAULTS = {
   diag: '',
   // Only read with `--cover`. 120 was chosen to clear the drop shadow
   // `.device-bezel` carried until DECISIONS.md D153 removed it; it is now
-  // plain white ground around the bezel at frame scale 1.
+  // transparent ground around the bezel at frame scale 1 (D154).
   'cover-margin': '120',
 };
 
@@ -1117,23 +1117,25 @@ async function fitFrameToContent(page) {
 }
 
 /**
- * `--cover`: THE PHONE ALONE, WITH ITS WHOLE SHADOW. Returns the clip box.
+ * `--cover`: THE PHONE ALONE, ON A TRANSPARENT GROUND. Returns the clip box.
+ * DECISIONS.md D154.
  *
- * SINCE DECISIONS.md D153 THE BEZEL HAS NO SHADOW, so the reasoning below is
- * historical: the pins it describes still give a bezel centred on
- * `--cover-margin` of flat white ground, and are kept for that.
- *
- * WHY A PLAIN SHOT CUTS THE SHADOW OFF. A box-shadow never extends the
- * scrollable area, and `html, body` are `overflow: hidden` (shell.css), so the
- * WINDOW is what bounds it - and shell-scale.js leaves at most `--space-4xl`
- * (40px) of gutter under the bezel against a shadow reaching ~84px. Growing the
- * window does not help on its own: shell-scale.js answers a taller window with
- * a larger scale, so the gutter stays at 40px until the 1.5 cap binds, and at
- * 1.5 the shadow itself reaches ~126px.
+ * THE GROUND IS ALPHA 0, AND IT IS NOT THE LIVE PAGE'S. A cover is placed on
+ * whatever background the document it goes into has, so it must not carry the
+ * prototype's own. `html` and `body` both paint (`--color-bg`, and
+ * `--color-canvas` at framed widths), so their backgrounds are cleared here and
+ * the caller passes `omitBackground: true` to drop the browser's default white
+ * as well - neither alone is enough. The bezel's `box-shadow` is turned off in
+ * the same stylesheet: D153 removed it from shell.css, but a shadow on a
+ * transparent ground bakes semi-transparent black into the margins, and the
+ * cover should not depend on it staying removed. The result owes nothing to
+ * what `--color-canvas` is set to. The phone's rounded outer corners come out
+ * with soft-edged alpha, which is intended: it lets the cover anti-alias onto
+ * any background. The bezel and the screen stay fully opaque.
  *
  * SO THE SCALE AND GUTTER ARE PINNED, as `fitFrameToContent` pins the scale:
  * `--frame-scale` to 1, which makes `--cover-margin` a length in the same
- * logical px the shadow is declared in, and `--frame-gutter` to the margin, so
+ * logical px the bezel is declared in, and `--frame-gutter` to the margin, so
  * the ground above the bezel exists in the page rather than being clipped into
  * the body padding. Layout inside the frame is identical at every scale (D92),
  * so this changes the magnification of the screen and nothing about it.
@@ -1143,10 +1145,17 @@ async function fitFrameToContent(page) {
  * never its declared 421x880. That box includes any transform, so the clip
  * stays on the bezel even if the pin is ever removed.
  *
- * Runtime only: two custom properties on the live page's `:root`, in a context
- * that is closed after the shot. No source file is touched.
+ * Runtime only: two custom properties on `:root` and one injected stylesheet,
+ * on the live page, in a context that is closed after the shot. These are
+ * capture-time overrides by the harness. No source file is touched.
  */
 async function prepareCover(page) {
+  await page.addStyleTag({
+    content: `
+      html, body { background: transparent !important; }
+      .device-bezel { box-shadow: none !important; }
+    `,
+  });
   const pin = () => page.evaluate((margin) => {
     const root = document.documentElement;
     root.style.setProperty('--frame-scale', '1');
@@ -1165,21 +1174,27 @@ async function prepareCover(page) {
   if (!box) throw new Error('--cover found no .device-bezel on the page');
 
   // The clip has to lie inside the viewport - there is no page scroll to reach
-  // past it - so the window is grown to hold the bezel plus the margin below
-  // and to its right. shell-scale.js debounces `resize` by SETTLE_MS (100ms)
-  // and then rewrites both properties, so they are re-pinned after it lands.
+  // past it - so the window is grown to hold the bezel plus the margin on
+  // every side. shell-scale.js debounces `resize` by SETTLE_MS (100ms) and
+  // then rewrites both properties, so they are re-pinned after it lands.
   //
-  // AND ONE PX WIDER WHEN THE BEZEL IS CENTRED ON A HALF PIXEL. At 768 the
-  // 421px bezel sits at left 173.5: `getBoundingClientRect()` reports 173.5,
-  // but Chromium paints it at a whole CSS px, so the clip came out 241 device
-  // px left of the bezel and 239 right at scale 2. Measured, not guessed - at
-  // 769 the same shot is 240 on all four sides. Widening by one px moves the
-  // centre by half a px, which puts the bezel on a whole px where the rect and
-  // the paint agree.
+  // SIZED FROM THE BEZEL, NOT FROM WHERE IT SITS BEFORE THE RESIZE. The bezel
+  // is centred, so growing the window moves its left edge too; a width taken
+  // from the pre-resize `right + margin` left less than the margin on the left
+  // for any margin above ~174px, and the clip started off the page. Width is
+  // `bezel + 2 x margin` and height is the same, since the gutter puts exactly
+  // the margin above it.
+  //
+  // AND ONE PX WIDER WHEN THE BEZEL WOULD BE CENTRED ON A HALF PIXEL.
+  // `getBoundingClientRect()` reports the half (173.5 at 768), but Chromium
+  // paints the 421px bezel at a whole CSS px, so the clip came out 241 device
+  // px left of the bezel and 239 right at scale 2. Measured, not guessed. The
+  // parity is decided from the width the window is about to be, not from the
+  // position measured before it.
   const viewport = page.viewportSize();
-  const halfPx = Number.isInteger(box.left) ? 0 : 1;
-  const needW = Math.max(viewport.width, Math.ceil(box.right + COVER_MARGIN)) + halfPx;
-  const needH = Math.max(viewport.height, Math.ceil(box.bottom + COVER_MARGIN));
+  let needW = Math.max(viewport.width, Math.ceil(box.width + COVER_MARGIN * 2));
+  if (!Number.isInteger((needW - box.width) / 2)) needW += 1;
+  const needH = Math.max(viewport.height, Math.ceil(box.height + COVER_MARGIN * 2));
   if (needW !== viewport.width || needH !== viewport.height) {
     await page.setViewportSize({ width: needW, height: needH });
     await page.waitForTimeout(250);
@@ -1188,12 +1203,17 @@ async function prepareCover(page) {
     box = await measure();
   }
 
-  return {
+  const clip = {
     x: box.left - COVER_MARGIN,
     y: box.top - COVER_MARGIN,
     width: box.width + COVER_MARGIN * 2,
     height: box.height + COVER_MARGIN * 2,
   };
+  const size = page.viewportSize();
+  if (clip.x < 0 || clip.y < 0 || clip.x + clip.width > size.width || clip.y + clip.height > size.height) {
+    throw new Error(`--cover clip ${JSON.stringify(clip)} does not fit the ${size.width}x${size.height} viewport`);
+  }
+  return clip;
 }
 
 /**
@@ -1742,7 +1762,7 @@ try {
                   stitchReport.push({ name, route, ...result });
                 } else if (COVER) {
                   const clip = await prepareCover(page);
-                  await page.screenshot({ path: file, clip });
+                  await page.screenshot({ path: file, clip, omitBackground: true });
                   console.log(`    cover clip: ${clip.width}x${clip.height} CSS px at x=${clip.x}, y=${clip.y}`);
                 } else {
                   await page.screenshot({ path: file, fullPage: args.full });

@@ -13186,3 +13186,54 @@ backdrop only.
 **To reverse.** Set the light `--color-canvas` back to `#e5e5ea`, and restore
 `box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28), 0 2px 10px rgba(0, 0, 0, 0.16);` on the framed
 `.device-bezel` rule in `shell.css`. Put the DESIGN.md rows and the `--cover` comments back to match.
+
+---
+
+## D154. The `--cover` capture is transparent, shadow-free, and independent of `--color-canvas`
+
+**Date.** 13 September 2026. `scripts/shots.mjs` only (`prepareCover` and the one `page.screenshot`
+call that uses its clip). **No application source file changes**, and nothing a participant can see.
+`shots.mjs` is not in `SHELL_ASSETS`, so there is no version bump (D147).
+
+**Decision.** A `--cover` capture now produces the phone alone on a fully transparent ground, with no
+drop shadow and an equal margin on all four sides. Three changes, all applied by the harness to the
+live page at capture time:
+
+1. **Transparent ground.** An injected stylesheet sets `html, body { background: transparent
+   !important }`, and the screenshot passes `omitBackground: true`. Both are needed. `omitBackground`
+   only drops the browser's default white, while `html` (`--color-bg`) and `body` (`--color-canvas` at
+   framed widths) paint their own opaque colours over it.
+2. **No shadow.** The same stylesheet sets `.device-bezel { box-shadow: none !important }`. D153 has
+   already removed the shadow from `shell.css`, but on a transparent ground a shadow would bake
+   semi-transparent black into the margins. The cover should not rely on it staying removed.
+3. **Viewport sized from the bezel.** The window is now at least `bezel + 2 x margin` in each
+   direction, with the half-pixel parity fix applied to that width. It used to be sized from the
+   bezel's position before the resize (`right + margin`). Because the bezel is centred, growing the
+   window moves its left edge, so for any margin above ~174px the clip started off the page. The
+   function now also throws if the clip does not fit the viewport, rather than capturing a cropped
+   phone.
+
+**Why.** The cover image for the portfolio used to be captured by hand with a DevTools node
+screenshot. That clipped at the viewport, so the frame ran off the top and right edges, and the
+`#e5e5ea` canvas and the bezel shadow were baked into the corners. A cover is placed on whatever
+background the document it goes into has, so it has to carry none of its own. **The cover is
+deliberately decoupled from the live site's backdrop.** The live site keeps its flat white surround
+(D153), and changing `--color-canvas` again must not change the cover. Verified: the same script run
+against the pre-D153 styles (`#e5e5ea` canvas and the shadow present) produced a PNG byte-identical
+to one from the current styles.
+
+**What the output is.** At the default margin of 120 and scale 2 it is 1322x2240. The opaque area is
+842x1760 (the 421x880 bezel), with 240 PNG px of alpha-0 margin on every side and all four corners at
+alpha 0. Every pixel more than 2px inside the bezel's rounded outline is alpha 255, and every pixel
+more than 2px outside it is alpha 0. **The soft-edged alpha on the phone's rounded outer corners
+(about 800 pixels, all within 2px of the outline) is intended, not a defect.** It lets the cover
+anti-alias onto any background. At a margin of 250 the output is 1842x2760, with 500 px on every side
+and the same opaque area.
+
+**Within the screenshot constraint.** CLAUDE.md requires screenshots to come from `shots.mjs`, and
+these overrides are exactly that: page-context changes made by the harness in a context that is
+closed after the shot. They are not edits to the application's stylesheets.
+
+**To reverse.** Remove the `addStyleTag` call and the viewport guard from `prepareCover`, drop
+`omitBackground: true` from the cover's `page.screenshot`, and restore the `right + margin` /
+`bottom + margin` sizing. The large-margin flaw returns with that last step.
