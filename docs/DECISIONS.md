@@ -13560,3 +13560,124 @@ Restore the three hand-typed figures and `max-property` 210,000 in `session-seed
 Restore frame-scale's `at(120)`, the inline-edit literal "21,000" and the `--saved` text. Remove the
 error states' balances, `requireState`/`requireCapInSpan` and the `--solve=amount` guard. The
 28-of-29 disagreement returns with the first step.
+
+---
+
+## D159. A command-line cover picker, running the harness's own anchor rules
+
+**Date.** 13 September 2026. New `scripts/anchor-rules.mjs` and `scripts/pick-cover.mjs`, with
+`scripts/shots.mjs` importing the rules. **No application source file changes, nothing in `src/`, no
+cached-file change and no version bump** (D147). Nothing the prototype serves loads either script.
+
+**Decision.** Choosing a cover screen and scroll position is done in a picker launched from the
+command line, `node scripts/pick-cover.mjs --routes=<route>`, **not** in a mode inside the prototype.
+
+The picker opens a visible Chromium on the route in the session a capture uses:
+- the shared seed, greyscale theme and default text size;
+- `CAPTURE_TODAY` and its timezone pinned on the browser clock;
+- this build's stamp;
+- the service worker blocked;
+- the harness's device scale.
+
+The date, zone, clock instant and device scale are read from `shots.mjs`'s source, not repeated.
+
+It draws an overlay over the phone:
+- the part of the screen an anchor must sit in (below the pinned header, above the dock and its fade);
+- the line `--scroll-align=start` puts an anchor's top on;
+- the anchor candidate's box;
+- a panel with the selector, the alignment and the verdict.
+
+Keys:
+- **Alt+Shift+N:** cycles candidates.
+- **Alt+Shift+A:** toggles start/center.
+- **Alt+Shift+S:** snaps the screen to exactly where `shots.mjs` will put it and runs the visibility
+  check.
+- **Alt+Shift+C:** snaps, checks and copies the full `shots.mjs --cover` command, PowerShell-quoted,
+  also printing it in the terminal. **Nothing is copied when a check fails**; the reason is shown.
+
+The command gains:
+- `--state=ahead`, `--text=large`, `--theme=dark`, `--solve=amount`, `--view=table` or `--open=<id>`
+  when the session shows them;
+- **a warning** for any stored value that changed in the window and no flag reproduces, such as a
+  typed figure.
+
+### Why a command, not a mode in the prototype
+
+A mode in the app could not pin the browser clock or timezone. After the pinned month its overlay would
+show different dates from the capture, which defeats the point of a picker. It would also ship code
+to the public deployment for a tool only the researcher uses, and every edit to it would be a
+cached-file change. The command pins everything a capture pins, and nothing of it is part of the app.
+
+### The rules are extracted, not copied
+
+`anchorScroll` and `checkAnchor`'s page-side logic moved from `shots.mjs` into one self-contained
+function, `anchorRules`, in `scripts/anchor-rules.mjs`:
+- **`resolve`** returns the target scroll position without moving;
+- **`place`** moves there;
+- **`inspect`** checks the anchor is wholly visible;
+- **`region`**, added for the overlay, returns the clear area `inspect` checks against, from the same
+  inner calculation.
+
+`shots.mjs` passes the function to `page.evaluate`; the picker injects the same source. A copy plus a
+parity test would have been two implementations and a third file to keep them agreeing, and nothing
+catches that drift automatically. The picker's selector generation is its own, but whether a selector
+is usable is always decided by `anchorRules`.
+
+**The extraction was committed alone (`ce0a27c`) and changed nothing.** A 49-PNG capture set was
+byte-identical before and after, with the same exit codes, failure messages and anchor log lines. The
+set was:
+- the survey;
+- five covers, four of them anchored;
+- top/end and anchored plain shots;
+- nine error states;
+- five expected anchor failures.
+
+The later `region` refactor was checked against the same set with the same result.
+
+### Two ways a visible window differed from the harness, and the fix
+
+Measured with the anchor on frame 03, which the harness places at `scrollTop` 549:
+
+1. **Device pixel ratio.** A visible window takes the display's scaling (1.25 here). The page now runs
+   at `shots.mjs`'s `--scale` (2), because Chromium snaps borders and line boxes to device pixels.
+2. **The window's own scaling leaked into layout** even at device scale 2: the rendered-to-layout
+   ratio came out 1.0003 at frame scale 1, the anchor measured 572.22px instead of 573, the scroller
+   ended at 1077 instead of 1080, and the picker snapped to 548. The headless shell and new-headless
+   Chromium both measured 573 and 1080, so only the visible window was affected. Launching with
+   `--force-device-scale-factor=1` lays the headed window out exactly as the harness does: 573, 1080,
+   ratio 1, snap 549. The window's own interface is drawn at 100% as a result.
+
+### Verified
+
+- **Three routes, driven over `--cdp-port` as a person would.** Scrolled near the anchor but
+  deliberately off the snap position, cycled to the candidate, then Alt+Shift+C:
+  - `/consent`: `[data-signature^='deposit:house-pot']`, start;
+  - `/position/summary`: `.figure-input`, start;
+  - `/learn/ltv`: `.explainer-library-card`, start, 26px from the end of its scroller.
+
+  Each copied command matched the clipboard, ran as printed in PowerShell and exited 0. The harness
+  placed each anchor at the scroll position the picker had snapped to: 549, 591 and 1365.
+- **Screen contents.** The picker's screen at the cover's resolution was compared with the phone
+  screen inside each cover: best alignment at zero offset, with 93.6%, 93.7% and 94.1% of pixels
+  identical. The rest differ at glyph edges (0.7-1% by more than 40 in a channel, about 1.1% by 9-40,
+  and about 4% by 8 or less), consistent with text anti-aliasing: the picker has to be the full headed Chromium, and the
+  harness runs Playwright's headless shell. Layout and position are exact; rasterisation is not
+  byte-identical, and cannot be between the two binaries.
+- **Refusal near the end.** `.flag-row` on `/learn/ltv` with start was refused before copying, with the
+  harness's own message ("needs scrollTop 1797 … only scrolls 0 to 1391"), and nothing was copied.
+- **Flags.** "Further along" added `--state=ahead` with no warnings (the keys it changes are exactly
+  those in `skipAheadStash`); an opened disclosure added `--open=ltv-how-we-worked`; a property value
+  typed on step 3 was warned about as `property-value, deposit-target, combined-goal, loan-amount,
+  ltv`.
+
+### What it cannot do
+
+- **It does not shoot.** There is no "shoot now" key in v1; run the copied command, which does the
+  transparency, margins, scale and verification.
+- **Screens reached only by tapping** (the two result screens, 03b) and typed or picked state cannot be
+  rebuilt from `shots.mjs`'s flags. The picker warns rather than guessing.
+- **`/mip/running`** leaves after 1.4 seconds.
+
+**To reverse.** Delete `scripts/pick-cover.mjs`. The extraction can stay, since it is behaviour-neutral;
+to reverse it too, move `anchorRules`' `place` and `inspect` bodies back into `anchorScroll` and
+`checkAnchor` in `shots.mjs`.
