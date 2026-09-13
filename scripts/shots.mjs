@@ -320,6 +320,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { chromium, webkit } from 'playwright';
 import { FULL } from './session-seed.mjs';
+import { anchorRules, isAnchorSelector } from './anchor-rules.mjs';
 import { STAGES } from '../src/stage.js';
 import { MOCK_ACCOUNTS, GROUP_ORDER } from '../src/model/accounts.js';
 import { BUILD_VERSION } from '../src/cache-version.js';
@@ -924,7 +925,7 @@ for (const state of STATES) {
     process.exit(1);
   }
 }
-const isAnchor = (scroll) => /^[.#[]/.test(scroll);
+const isAnchor = isAnchorSelector;
 for (const scroll of SCROLLS) {
   if (scroll !== 'top' && scroll !== 'end' && !isAnchor(scroll)) {
     console.error(`Unknown --scroll "${scroll}". One of: top, end, or a CSS selector starting ., # or [.`);
@@ -1401,56 +1402,13 @@ async function settle(page) {
  * `--scroll=<selector>`: SCROLLS THE ACTIVE SCROLLER TO ONE ANCHOR, OR FAILS.
  * Returns `{ top, height, scrollTop, max }` in layout px. DECISIONS.md D155.
  *
- * THE OFFSET IS MEASURED FROM THE SCROLLER, NOT FROM `offsetTop`. `offsetTop`
- * is relative to the element's offset parent, and `.screen-content` is not
- * positioned, so that parent is `.screen` (the app bar and top inset included -
- * 115px out on /home) or whatever positioned box sits between (a table on
- * /learn/ltv, 492px out). The position is taken from the two rendered boxes
- * instead, divided by the scroller's own rendered-to-layout ratio, so it is in
- * the layout px `scrollTop` is written in whatever `--frame-scale` is (D92) -
- * the reference is the scroller, and it is named here.
- *
- * `scrollTop` is written directly rather than through `scrollIntoView`, which
- * also scrolls every scrollable ancestor - and at framed widths `body` is one,
- * so it could move the page under a `--cover` clip.
- *
- * FAILS, rather than capturing somewhere else, when the selector is invalid,
- * matches nothing, matches more than one element (a new match earlier on the
- * screen would otherwise move the anchor silently), matches outside the active
- * scroller, or needs a `scrollTop` the scroller cannot reach - an anchor too
- * near either end for the requested alignment.
+ * The rules - how the offset is measured, what fails and why - live in
+ * `scripts/anchor-rules.mjs` (D159), which `scripts/pick-cover.mjs` runs too,
+ * so a position the picker accepts is one this accepts. This throws on the
+ * phrase they return.
  */
 async function anchorScroll(page, selector, align, route) {
-  const result = await page.evaluate(({ selector, align }) => {
-    const s = document.querySelector('.bottom-sheet__content, .screen-content');
-    if (!s) return { error: 'this screen has no .bottom-sheet__content or .screen-content to scroll' };
-    let matches;
-    try {
-      matches = document.querySelectorAll(selector);
-    } catch {
-      return { error: 'is not a valid CSS selector' };
-    }
-    if (matches.length === 0) return { error: 'matches nothing on this screen' };
-    if (matches.length > 1) return { error: `matches ${matches.length} elements; an anchor must match exactly one` };
-    const el = matches[0];
-    const scroller = `.${[...s.classList].join('.')}`;
-    if (el === s || !s.contains(el)) return { error: `matches an element outside the active scroller ${scroller}` };
-
-    const sr = s.getBoundingClientRect();
-    const k = sr.height / s.offsetHeight;
-    const er = el.getBoundingClientRect();
-    const top = (er.top - sr.top) / k - s.clientTop + s.scrollTop;
-    const height = er.height / k;
-    const padTop = parseFloat(getComputedStyle(s).paddingTop) || 0;
-    const want = Math.round(align === 'start' ? top - padTop : top + height / 2 - s.clientHeight / 2);
-    const max = s.scrollHeight - s.clientHeight;
-    if (want < 0 || want > max) {
-      return { error: `needs scrollTop ${want} for --scroll-align=${align}, but ${scroller} only scrolls 0 to ${max} - the anchor is too near that end` };
-    }
-    s.scrollTop = want;
-    if (Math.abs(s.scrollTop - want) > 1) return { error: `was scrolled to ${want} but ${scroller} settled at ${s.scrollTop}` };
-    return { top: Math.round(top * 100) / 100, height: Math.round(height * 100) / 100, scrollTop: s.scrollTop, max };
-  }, { selector, align });
+  const result = await page.evaluate(anchorRules, { op: 'place', selector, align });
   if (result.error) throw new Error(`--scroll "${selector}" on ${route} ${result.error}.`);
   return result;
 }
@@ -1461,44 +1419,11 @@ async function anchorScroll(page, selector, align, route) {
  * re-render could move it), and the anchor must be WHOLLY VISIBLE - below
  * whatever is pinned above the scroller, and above whatever is pinned below
  * it, including the 56px `--more-below` fade the dock draws over the content
- * while there is more to scroll. Its height is read from the dock's own
- * `::before`, not written here. Fails otherwise.
+ * while there is more to scroll. `anchorRules`' `inspect` (anchor-rules.mjs,
+ * D159). Fails otherwise.
  */
 async function checkAnchor(page, selector, anchor, route) {
-  const result = await page.evaluate(({ selector, want }) => {
-    const s = document.querySelector('.bottom-sheet__content, .screen-content');
-    const el = s && document.querySelector(selector);
-    if (!s || !el || !s.contains(el)) return { error: 'is no longer on the screen, inside the scroller' };
-    if (Math.abs(s.scrollTop - want) > 1) return { error: `moved: the scroller was left at ${want} and is now at ${s.scrollTop}` };
-
-    const sr = s.getBoundingClientRect();
-    const k = sr.height / s.offsetHeight;
-    let visTop = sr.top + s.clientTop * k;
-    let visBottom = visTop + s.clientHeight * k;
-    let seenScroller = false;
-    for (const c of s.parentElement.children) {
-      if (c === s) { seenScroller = true; continue; }
-      const pos = getComputedStyle(c).position;
-      const r = c.getBoundingClientRect();
-      if (pos === 'absolute' || pos === 'fixed' || r.height === 0) continue;
-      if (!seenScroller) {
-        visTop = Math.max(visTop, r.bottom);
-      } else {
-        let edge = r.top;
-        if (c.classList.contains('action-bar-dock--more-below')) {
-          edge -= (parseFloat(getComputedStyle(c, '::before').height) || 0) * k;
-        }
-        visBottom = Math.min(visBottom, edge);
-      }
-    }
-    const er = el.getBoundingClientRect();
-    const tol = 0.5 * k;
-    if (er.top < visTop - tol || er.bottom > visBottom + tol) {
-      const px = (v) => Math.round((v - sr.top) / k);
-      return { error: `is not wholly visible: it spans ${px(er.top)} to ${px(er.bottom)}px of the scroller, and the part clear of the pinned header, dock and fade is ${px(visTop)} to ${px(visBottom)}px` };
-    }
-    return {};
-  }, { selector, want: anchor.scrollTop });
+  const result = await page.evaluate(anchorRules, { op: 'inspect', selector, want: anchor.scrollTop });
   if (result.error) throw new Error(`--scroll "${selector}" on ${route} ${result.error}.`);
 }
 
