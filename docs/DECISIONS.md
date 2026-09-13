@@ -13237,3 +13237,96 @@ closed after the shot. They are not edits to the application's stylesheets.
 **To reverse.** Remove the `addStyleTag` call and the viewport guard from `prepareCover`, drop
 `omitBackground: true` from the cover's `page.screenshot`, and restore the `right + margin` /
 `bottom + margin` sizing. The large-margin flaw returns with that last step.
+
+---
+
+## D155. `--scroll` anchors to one element measured from its scroller, or fails; a cover pauses infinite animations
+
+**Date.** 13 September 2026. `scripts/shots.mjs` only. **No application source file changes**, and
+nothing a participant can see. `shots.mjs` is not in `SHELL_ASSETS`, so there is no version bump
+(D147). This hardens the existing `--scroll` option rather than adding a new one.
+
+**Decision.** `--scroll=<selector>` scrolls the active scroller (`.bottom-sheet__content`, or
+`.screen-content`) to one ANCHOR element, and the run fails rather than capture anywhere else.
+
+1. **Fails loudly.** The run exits non-zero with no PNG written in each of these cases:
+   - the selector is invalid;
+   - it matches nothing (before this entry it silently captured the top of the screen);
+   - it matches more than one element (a new match earlier on the screen would otherwise move the
+     anchor without anyone noticing);
+   - it matches outside the active scroller.
+2. **Measured from the scroller.** The old code used `el.offsetTop`, which is relative to the
+   element's offset parent. `.screen-content` is not positioned, so that parent was `.screen` or
+   some box in between, not the scroller. The error was 115px on `/home` (the app bar plus the top
+   inset) and 492px on `/learn/ltv` (inside the comparison table). The offset now comes from the two
+   rendered boxes, divided by the scroller's rendered-to-layout ratio. That puts it in the layout px
+   `scrollTop` uses at any `--frame-scale` (D92), and names the reference, per CLAUDE.md. `scrollTop`
+   is written directly. `scrollIntoView` is not used, because it would also scroll `body`, which is
+   scrollable at framed widths, and could move a `--cover` clip.
+3. **`--scroll-align=start|center`**, default `center`. `start` puts the anchor's top edge where
+   the scroller's first content sits at the top of the screen, which is the scroller's top padding
+   below the pinned header.
+4. **Checked before the capture.** The run fails if:
+   - the alignment needs a `scrollTop` the scroller cannot reach (an anchor too near either end);
+   - the scroller has moved by the time of capture;
+   - the anchor is not wholly visible between the pinned header and whatever is pinned below it,
+     including the dock's `--more-below` fade. The fade's height is read from the dock's own
+     `::before`, not written into the script.
+5. **Settles on the page's own animations.** After the scroll the script waits two frames, then
+   for every finite animation to finish (`document.getAnimations()`). The wait therefore follows the
+   CSS durations, including the fade transition that action-bar.js starts a frame after the scroll.
+   The existing 300ms pause is kept, so `top` and `end` shots are unchanged.
+6. **Attribute selectors.** A selector may start with `[`, so an anchor can use a stable data
+   attribute rather than a class name that repeats. A selector containing a comma still cannot be
+   given, because the option splits on commas. File names keep only a safe spelling of the selector.
+
+**For `--cover` only,** three capture-time overrides join D154's:
+
+- **Infinite animations are paused at their first frame** (Web Animations API, `currentTime` 0).
+  `/mip/running`'s spinner is at a different point every time the capture is taken, so that screen
+  could never be reproduced. Pausing is scoped to the capture, like the other overrides.
+- **The window opens at the size the capture needs** (`coverViewport`, read from `--frame-width`,
+  `--frame-height` and `--frame-bezel` in shell.css), instead of being resized after load. The
+  resize cost about 650ms of fixed waits. That pushed the capture past `/mip/running`'s 1400ms
+  processing delay, after which the screen replaces itself with a result. The old resize path stays
+  as a fallback and warns if it ever runs.
+- **The run fails if the app has left the route** before or after the capture. A cover of the next
+  screen, saved under this screen's name, is the wrong capture this harness exists to prevent.
+
+**Why.** Covers for the portfolio are to be taken partway down a screen, and a re-run has to give
+the same image. A pixel offset breaks when content changes. An anchor survives it, provided that a
+missing or ambiguous anchor stops the run instead of quietly capturing the top.
+
+**Verified.**
+- A missing selector, a selector matching 19 elements (`.icon`) and a selector outside the scroller
+  (`.app-bar`) each exit 1 with no PNG.
+- Offsets match an independent reference (the layout-only `offsetTop` chain, walked up to the
+  scroller): `/home` `.transactions-card` 150 vs 150, and `/learn/ltv`
+  `.ltv-comparison-table tbody tr:last-child` 748.5 vs 749. The second one's offset parent is the
+  table, and `offsetTop` rounds to whole px.
+- `/learn/ltv` `.explainer-library-card` with `start` is byte-identical across two runs, and its
+  top edge sits 24px (the scroller's padding) below the app bar.
+- `.legal-text` with `start` fails because it is too near the end. `/tracker`'s `.milestone-tracker`
+  centred fails because it runs 3px into the dock's fade.
+- `/mip/running` is byte-identical across two runs, and the route check confirms it was still on
+  screen.
+- Scrolled and unscrolled covers keep 1322x2240, alpha-0 corners, 240px margins, no shadow and an
+  opaque bezel.
+- Against a baseline from `a67c609`, top-of-screen covers of `/tracker` and `/home`, and non-cover
+  `/tracker` shots at `top` and `end`, are byte-identical.
+
+**What changes for existing commands.** `top` and `end` do not change. A `--scroll=<selector>`
+command with the default `center` does land somewhere different from before. The old position was
+measured against the wrong reference, so every selector shot was off by at least the header height:
+`/home` `.transactions-card` moves from `scrollTop` 176 to 61, and `/learn/ltv`
+`.explainer-library-card` from 1336 to 1220. `center` means what `--scroll` always said it meant.
+It now does it.
+
+**Not addressed here.** Projected dates are counted from the real "today", so a screen that shows
+one (the tracker's "On track for", frame 12, `/learn/ltv`'s years, frame 10b, frame 33) is only
+byte-identical within one month. This is diagnosed separately and awaits a decision.
+
+**To reverse.** Restore the `offsetTop` evaluate in the scroll loop and the `.`/`#`-only
+validation. Remove `anchorScroll`, `checkAnchor`, `settle`, `assertStillOn`, `coverViewport` and
+`--scroll-align`. Remove the infinite-animation pause from `prepareCover`, and put its 200ms pin
+wait back.

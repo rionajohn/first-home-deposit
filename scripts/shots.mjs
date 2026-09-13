@@ -240,15 +240,27 @@
  *              it. That is D12 working correctly, not a bug to route around.
  *              Same reason `--state=ahead` and `--stage` press their controls.
  *                                                       default none
- *   --scroll   `top`, `end`, or a CSS selector (anything starting `.` or `#`),
- *              which is centred in the viewport - for an element in the middle
- *              of a long screen that neither end reaches.
+ *   --scroll   `top`, `end`, or a CSS selector (anything starting `.`, `#` or
+ *              `[`), which is an ANCHOR - for an element in the middle of a
+ *              long screen that neither end reaches. DECISIONS.md D155. The
+ *              selector must match exactly one element, inside the active
+ *              scroller (`.bottom-sheet__content` or `.screen-content`), or the
+ *              run fails; so does an anchor the scroller cannot bring to the
+ *              requested alignment, or one that ends up not wholly visible
+ *              between the pinned header and the dock's fade. A selector with
+ *              a comma in it cannot be given, because the option splits on
+ *              commas. See `anchorScroll`.
  *              Otherwise: where the screen's scroller is left before the
  *              shot. An axis like the others, so `--scroll=top,end` shoots
  *              both. Added for the screens whose bottom edge is the thing
  *              under review: what clears the tab bar at the end of a long
  *              screen, and whether a dock's `--more-below` fade is drawn.
  *                                                       default top
+ *   --scroll-align  `center` or `start`: where a `--scroll` selector's anchor
+ *              is placed. `center` centres it in the scroller; `start` puts its
+ *              top edge where the scroller's first content sits at the top of
+ *              the screen, just below the pinned header.
+ *                                                    default center
  *   --out      Output directory.                  default .screenshots/shots
  *   --figures  Also dump every currency string each screen actually rendered,
  *              to stdout and to `figures.txt` beside the PNGs. Read from the
@@ -267,7 +279,10 @@
  *              drawn below it), pins the frame to scale 1, and clips to
  *              `.device-bezel`'s rendered box plus `--cover-margin` on every
  *              side. See `prepareCover`. Refused with `--full`, `--fit=content`
- *              and `--stitch=scroll`.
+ *              and `--stitch=scroll`. The window opens at the size the clip
+ *              needs (`coverViewport`), infinite animations are paused at their
+ *              first frame, and the run fails if the app has left the route by
+ *              the time the capture is taken (D155).
  *   --cover-margin  Ground around the bezel in a `--cover` shot, in CSS px
  *              at frame scale 1.                         default 120
  *
@@ -368,6 +383,9 @@ const DEFAULTS = {
   build: '',
   // TEMPORARY, with src/diagnostics.js: `open` presses the Diagnostics chip.
   diag: '',
+  // Only read when `--scroll` names a selector. `center` is the behaviour
+  // `--scroll` has always described; `start` is D155's addition.
+  'scroll-align': 'center',
   // Only read with `--cover`. 120 was chosen to clear the drop shadow
   // `.device-bezel` carried until DECISIONS.md D153 removed it; it is now
   // transparent ground around the bezel at frame scale 1 (D154).
@@ -799,11 +817,17 @@ for (const state of STATES) {
     process.exit(1);
   }
 }
+const isAnchor = (scroll) => /^[.#[]/.test(scroll);
 for (const scroll of SCROLLS) {
-  if (scroll !== 'top' && scroll !== 'end' && !scroll.startsWith('.') && !scroll.startsWith('#')) {
-    console.error(`Unknown --scroll "${scroll}". One of: top, end, or a CSS selector starting . or #.`);
+  if (scroll !== 'top' && scroll !== 'end' && !isAnchor(scroll)) {
+    console.error(`Unknown --scroll "${scroll}". One of: top, end, or a CSS selector starting ., # or [.`);
     process.exit(1);
   }
+}
+const SCROLL_ALIGN = args['scroll-align'];
+if (SCROLL_ALIGN !== 'start' && SCROLL_ALIGN !== 'center') {
+  console.error(`Unknown --scroll-align "${SCROLL_ALIGN}". One of: start, center.`);
+  process.exit(1);
 }
 if (!Number.isFinite(WIDTH) || !Number.isFinite(HEIGHT) || !Number.isFinite(SCALE)) {
   console.error('--width, --height and --scale must be numbers.');
@@ -1168,14 +1192,19 @@ async function prepareCover(page) {
     return { left: r.left, top: r.top, width: r.width, height: r.height, right: r.right, bottom: r.bottom };
   });
 
+  // Two frames, not a fixed wait: the window already has its final size
+  // (`coverViewport`), so there is no resize for shell-scale.js to answer and
+  // nothing to wait out but the layout the pin itself causes.
   await pin();
-  await page.waitForTimeout(200);
+  await nextFrames(page);
   let box = await measure();
   if (!box) throw new Error('--cover found no .device-bezel on the page');
 
   // The clip has to lie inside the viewport - there is no page scroll to reach
-  // past it - so the window is grown to hold the bezel plus the margin on
-  // every side. shell-scale.js debounces `resize` by SETTLE_MS (100ms) and
+  // past it. `coverViewport` opens the window at the size this computes, so
+  // the branch below should never run; it stays as the fallback for a window
+  // that is somehow not that size, and grows it to hold the bezel plus the
+  // margin on every side. shell-scale.js debounces `resize` by SETTLE_MS (100ms) and
   // then rewrites both properties, so they are re-pinned after it lands.
   //
   // SIZED FROM THE BEZEL, NOT FROM WHERE IT SITS BEFORE THE RESIZE. The bezel
@@ -1196,6 +1225,7 @@ async function prepareCover(page) {
   if (!Number.isInteger((needW - box.width) / 2)) needW += 1;
   const needH = Math.max(viewport.height, Math.ceil(box.height + COVER_MARGIN * 2));
   if (needW !== viewport.width || needH !== viewport.height) {
+    console.warn(`    cover: window was ${viewport.width}x${viewport.height}, resizing to ${needW}x${needH} (coverViewport should have opened it at that size)`);
     await page.setViewportSize({ width: needW, height: needH });
     await page.waitForTimeout(250);
     await pin();
@@ -1213,7 +1243,164 @@ async function prepareCover(page) {
   if (clip.x < 0 || clip.y < 0 || clip.x + clip.width > size.width || clip.y + clip.height > size.height) {
     throw new Error(`--cover clip ${JSON.stringify(clip)} does not fit the ${size.width}x${size.height} viewport`);
   }
+
+  // INFINITE ANIMATIONS ARE PAUSED AT THEIR FIRST FRAME (D155). A looping
+  // animation - `/mip/running`'s spinner - is at a different point every time
+  // the shutter falls, so a cover of that screen could never be reproduced.
+  // Paused through the Web Animations API on the live page, at `currentTime`
+  // 0; finite animations are left to finish, which `settle` has already
+  // waited for.
+  await page.evaluate(() => {
+    for (const a of document.getAnimations()) {
+      if (a.effect && a.effect.getComputedTiming().iterations === Infinity) {
+        a.pause();
+        a.currentTime = 0;
+      }
+    }
+  });
+  await nextFrames(page);
   return clip;
+}
+
+/** Two animation frames: one for a queued rAF callback, one for its paint. */
+function nextFrames(page) {
+  return page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(true)))));
+}
+
+/**
+ * Waits for what the last step set moving to stop moving. Two frames first,
+ * because action-bar.js answers a scroll in a `requestAnimationFrame` and only
+ * then toggles the dock's `--more-below` class, whose fade is a transition that
+ * does not exist until that class changes. Then every FINITE animation on the
+ * page - that transition, a push or a sheet rise - is awaited to its end, so
+ * the wait follows the durations in the CSS rather than a number written here.
+ * An infinite animation never finishes and is not awaited.
+ */
+async function settle(page) {
+  await nextFrames(page);
+  await page.evaluate(() => Promise.allSettled(
+    document.getAnimations()
+      .filter((a) => a.playState === 'running' && a.effect && a.effect.getComputedTiming().iterations !== Infinity)
+      .map((a) => a.finished),
+  ).then(() => true));
+}
+
+/**
+ * `--scroll=<selector>`: SCROLLS THE ACTIVE SCROLLER TO ONE ANCHOR, OR FAILS.
+ * Returns `{ top, height, scrollTop, max }` in layout px. DECISIONS.md D155.
+ *
+ * THE OFFSET IS MEASURED FROM THE SCROLLER, NOT FROM `offsetTop`. `offsetTop`
+ * is relative to the element's offset parent, and `.screen-content` is not
+ * positioned, so that parent is `.screen` (the app bar and top inset included -
+ * 115px out on /home) or whatever positioned box sits between (a table on
+ * /learn/ltv, 492px out). The position is taken from the two rendered boxes
+ * instead, divided by the scroller's own rendered-to-layout ratio, so it is in
+ * the layout px `scrollTop` is written in whatever `--frame-scale` is (D92) -
+ * the reference is the scroller, and it is named here.
+ *
+ * `scrollTop` is written directly rather than through `scrollIntoView`, which
+ * also scrolls every scrollable ancestor - and at framed widths `body` is one,
+ * so it could move the page under a `--cover` clip.
+ *
+ * FAILS, rather than capturing somewhere else, when the selector is invalid,
+ * matches nothing, matches more than one element (a new match earlier on the
+ * screen would otherwise move the anchor silently), matches outside the active
+ * scroller, or needs a `scrollTop` the scroller cannot reach - an anchor too
+ * near either end for the requested alignment.
+ */
+async function anchorScroll(page, selector, align, route) {
+  const result = await page.evaluate(({ selector, align }) => {
+    const s = document.querySelector('.bottom-sheet__content, .screen-content');
+    if (!s) return { error: 'this screen has no .bottom-sheet__content or .screen-content to scroll' };
+    let matches;
+    try {
+      matches = document.querySelectorAll(selector);
+    } catch {
+      return { error: 'is not a valid CSS selector' };
+    }
+    if (matches.length === 0) return { error: 'matches nothing on this screen' };
+    if (matches.length > 1) return { error: `matches ${matches.length} elements; an anchor must match exactly one` };
+    const el = matches[0];
+    const scroller = `.${[...s.classList].join('.')}`;
+    if (el === s || !s.contains(el)) return { error: `matches an element outside the active scroller ${scroller}` };
+
+    const sr = s.getBoundingClientRect();
+    const k = sr.height / s.offsetHeight;
+    const er = el.getBoundingClientRect();
+    const top = (er.top - sr.top) / k - s.clientTop + s.scrollTop;
+    const height = er.height / k;
+    const padTop = parseFloat(getComputedStyle(s).paddingTop) || 0;
+    const want = Math.round(align === 'start' ? top - padTop : top + height / 2 - s.clientHeight / 2);
+    const max = s.scrollHeight - s.clientHeight;
+    if (want < 0 || want > max) {
+      return { error: `needs scrollTop ${want} for --scroll-align=${align}, but ${scroller} only scrolls 0 to ${max} - the anchor is too near that end` };
+    }
+    s.scrollTop = want;
+    if (Math.abs(s.scrollTop - want) > 1) return { error: `was scrolled to ${want} but ${scroller} settled at ${s.scrollTop}` };
+    return { top: Math.round(top * 100) / 100, height: Math.round(height * 100) / 100, scrollTop: s.scrollTop, max };
+  }, { selector, align });
+  if (result.error) throw new Error(`--scroll "${selector}" on ${route} ${result.error}.`);
+  return result;
+}
+
+/**
+ * The anchor, checked again immediately before the shutter: the scroller must
+ * still be where `anchorScroll` left it (a `--cover` resize, a re-measure or a
+ * re-render could move it), and the anchor must be WHOLLY VISIBLE - below
+ * whatever is pinned above the scroller, and above whatever is pinned below
+ * it, including the 56px `--more-below` fade the dock draws over the content
+ * while there is more to scroll. Its height is read from the dock's own
+ * `::before`, not written here. Fails otherwise.
+ */
+async function checkAnchor(page, selector, anchor, route) {
+  const result = await page.evaluate(({ selector, want }) => {
+    const s = document.querySelector('.bottom-sheet__content, .screen-content');
+    const el = s && document.querySelector(selector);
+    if (!s || !el || !s.contains(el)) return { error: 'is no longer on the screen, inside the scroller' };
+    if (Math.abs(s.scrollTop - want) > 1) return { error: `moved: the scroller was left at ${want} and is now at ${s.scrollTop}` };
+
+    const sr = s.getBoundingClientRect();
+    const k = sr.height / s.offsetHeight;
+    let visTop = sr.top + s.clientTop * k;
+    let visBottom = visTop + s.clientHeight * k;
+    let seenScroller = false;
+    for (const c of s.parentElement.children) {
+      if (c === s) { seenScroller = true; continue; }
+      const pos = getComputedStyle(c).position;
+      const r = c.getBoundingClientRect();
+      if (pos === 'absolute' || pos === 'fixed' || r.height === 0) continue;
+      if (!seenScroller) {
+        visTop = Math.max(visTop, r.bottom);
+      } else {
+        let edge = r.top;
+        if (c.classList.contains('action-bar-dock--more-below')) {
+          edge -= (parseFloat(getComputedStyle(c, '::before').height) || 0) * k;
+        }
+        visBottom = Math.min(visBottom, edge);
+      }
+    }
+    const er = el.getBoundingClientRect();
+    const tol = 0.5 * k;
+    if (er.top < visTop - tol || er.bottom > visBottom + tol) {
+      const px = (v) => Math.round((v - sr.top) / k);
+      return { error: `is not wholly visible: it spans ${px(er.top)} to ${px(er.bottom)}px of the scroller, and the part clear of the pinned header, dock and fade is ${px(visTop)} to ${px(visBottom)}px` };
+    }
+    return {};
+  }, { selector, want: anchor.scrollTop });
+  if (result.error) throw new Error(`--scroll "${selector}" on ${route} ${result.error}.`);
+}
+
+/**
+ * The screen must still be the one asked for when the shutter falls. A screen
+ * can leave on its own - `/mip/running` replaces itself with a result after
+ * its processing delay - and a cover of the next screen, named after this one,
+ * is exactly the wrong capture this harness exists not to produce.
+ */
+async function assertStillOn(page, route) {
+  const hash = await page.evaluate(() => window.location.hash);
+  if (hash !== `#${route}`) {
+    throw new Error(`--cover of ${route}: the app left for ${hash} before the capture finished.`);
+  }
 }
 
 /**
@@ -1394,7 +1581,11 @@ function shotName({ route, entry, state, theme, text, scroll }) {
   if (args.date !== '') parts.splice(1, 0, `date-${args.date.replace('+', 'plus')}`);
   if (args.list !== '') parts.splice(1, 0, `list-${args.list}`);
   if (text !== 'default') parts.push(text);
-  if (scroll !== 'top') parts.push(`scroll-${scroll}`);
+  // A selector can hold characters no filename may (`"`, `:`, `*`), so the
+  // name keeps only a safe spelling of it. Two selectors that differ only in
+  // those characters would share a name; pick anchors that do not.
+  if (scroll !== 'top') parts.push(`scroll-${scroll.replace(/[^A-Za-z0-9._-]+/g, '_')}`);
+  if (isAnchor(scroll) && SCROLL_ALIGN !== 'center') parts.push(`align-${SCROLL_ALIGN}`);
   if (args.full) parts.push('full');
   if (COVER) parts.push('cover');
   return `${parts.join('__')}.png`;
@@ -1528,6 +1719,36 @@ function framedBreakpoint() {
 }
 const VIEWPORT_WIDTH = COVER ? Math.max(WIDTH, framedBreakpoint()) : WIDTH;
 
+/**
+ * `--cover` OPENS THE WINDOW AT THE SIZE THE CAPTURE NEEDS (D155), so
+ * `prepareCover` has nothing to resize. The bezel is `--frame-width` and
+ * `--frame-height` plus `--frame-bezel` on each side, read from shell.css the
+ * way `framedBreakpoint` reads its token, and at the pinned scale of 1 the
+ * window it needs is that plus the margin on every side - known before the
+ * page loads. Resizing after load cost ~650ms of settling, which is longer
+ * than `/mip/running` stays on screen before replacing itself with a result.
+ * The parity rule is `prepareCover`'s: an odd bezel width needs an odd window
+ * width, or the bezel is centred on a half pixel. The FILE NAME keeps
+ * `VIEWPORT_WIDTH`, so cover names do not change.
+ */
+function coverViewport() {
+  const css = fs.readFileSync(path.join(ROOT, 'src/css/shell.css'), 'utf8');
+  const token = (name) => {
+    const m = css.match(new RegExp(`--${name}:\\s*(\\d+)px`));
+    if (!m) {
+      console.error(`--cover could not read --${name} from src/css/shell.css.`);
+      process.exit(1);
+    }
+    return Number(m[1]);
+  };
+  const bezelW = token('frame-width') + token('frame-bezel') * 2;
+  const bezelH = token('frame-height') + token('frame-bezel') * 2;
+  let width = Math.max(VIEWPORT_WIDTH, Math.ceil(bezelW + COVER_MARGIN * 2));
+  if ((width - bezelW) % 2 !== 0) width += 1;
+  return { width, height: Math.max(HEIGHT, Math.ceil(bezelH + COVER_MARGIN * 2)) };
+}
+const CONTEXT_VIEWPORT = COVER ? coverViewport() : { width: VIEWPORT_WIDTH, height: HEIGHT };
+
 /** Per-screen stitch facts, printed as a table at the end of a stitched run. */
 const stitchReport = [];
 
@@ -1567,7 +1788,7 @@ try {
         for (const text of TEXTS) {
           for (const state of statesHere) {
             const context = await browser.newContext({
-              viewport: { width: VIEWPORT_WIDTH, height: HEIGHT },
+              viewport: CONTEXT_VIEWPORT,
               deviceScaleFactor: SCALE,
               serviceWorkers: 'block',
             });
@@ -1728,25 +1949,22 @@ try {
               // action-bar.js to re-measure and settle the `--more-below`
               // fade, which is part of what such a shot is taken to show.
               for (const scroll of SCROLLS) {
-                await page.evaluate((where) => {
-                  const s = document.querySelector('.bottom-sheet__content, .screen-content');
-                  if (!s) return;
-                  // A SELECTOR SCROLLS TO AN ELEMENT. `top` and `end` reach the
-                  // two ends of a screen, which is all most shots need, but an
-                  // element in the middle of a long screen is unreachable by
-                  // either - and the tracker's milestone rows are exactly that.
-                  // Anything beginning `.` or `#` is treated as a selector and
-                  // centred in the viewport.
-                  if (where.startsWith('.') || where.startsWith('#')) {
-                    const el = document.querySelector(where);
-                    if (el) {
-                      s.scrollTop = el.offsetTop - s.clientHeight / 2 + el.offsetHeight / 2;
-                    }
-                    return;
-                  }
-                  s.scrollTop = where === 'end' ? s.scrollHeight : 0;
-                }, scroll);
+                // A SELECTOR SCROLLS TO AN ANCHOR (D155). `top` and `end` reach
+                // the two ends of a screen, which is all most shots need, but an
+                // element in the middle of a long screen is unreachable by
+                // either - and the tracker's milestone rows are exactly that.
+                let anchor = null;
+                if (isAnchor(scroll)) {
+                  anchor = await anchorScroll(page, scroll, SCROLL_ALIGN, route);
+                } else {
+                  await page.evaluate((where) => {
+                    const s = document.querySelector('.bottom-sheet__content, .screen-content');
+                    if (!s) return;
+                    s.scrollTop = where === 'end' ? s.scrollHeight : 0;
+                  }, scroll);
+                }
                 await page.waitForTimeout(300);
+                await settle(page);
 
                 // Fitted LAST, after every state-setting step above and after
                 // the scroll, so what it measures is the screen as it will be
@@ -1762,10 +1980,17 @@ try {
                   stitchReport.push({ name, route, ...result });
                 } else if (COVER) {
                   const clip = await prepareCover(page);
+                  if (anchor) await checkAnchor(page, scroll, anchor, route);
+                  await assertStillOn(page, route);
                   await page.screenshot({ path: file, clip, omitBackground: true });
+                  await assertStillOn(page, route);
                   console.log(`    cover clip: ${clip.width}x${clip.height} CSS px at x=${clip.x}, y=${clip.y}`);
                 } else {
+                  if (anchor) await checkAnchor(page, scroll, anchor, route);
                   await page.screenshot({ path: file, fullPage: args.full });
+                }
+                if (anchor) {
+                  console.log(`    anchor ${scroll}: top ${anchor.top}px in the scroller, --scroll-align=${SCROLL_ALIGN}, scrollTop ${anchor.scrollTop} of ${anchor.max}`);
                 }
                 shots.push({ name, file, route, entry, state, theme, text, scroll });
                 console.log(`  ${name}`);
