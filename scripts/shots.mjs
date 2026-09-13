@@ -260,8 +260,9 @@
  *   --full     Capture the whole scroller rather than the viewport.
  *   --no-sheet Skip the contact sheet.
  *   --scale    Device pixel ratio.                       default 2
- *   --cover    A cover image: the phone alone, centred, with its whole drop
- *              shadow on flat `--color-canvas` ground. Widens the viewport to
+ *   --cover    A cover image: the phone alone, centred, on flat white
+ *              `--color-canvas` ground (the bezel has no drop shadow since
+ *              DECISIONS.md D153). Widens the viewport to
  *              the framed breakpoint if `--width` is narrower (no phone is
  *              drawn below it), pins the frame to scale 1, and clips to
  *              `.device-bezel`'s rendered box plus `--cover-margin` on every
@@ -367,9 +368,9 @@ const DEFAULTS = {
   build: '',
   // TEMPORARY, with src/diagnostics.js: `open` presses the Diagnostics chip.
   diag: '',
-  // Only read with `--cover`. 120 clears the first shadow layer on
-  // `.device-bezel` (shell.css, `0 24px 60px`), which reaches about 84px below
-  // the bezel at frame scale 1.
+  // Only read with `--cover`. 120 was chosen to clear the drop shadow
+  // `.device-bezel` carried until DECISIONS.md D153 removed it; it is now
+  // plain white ground around the bezel at frame scale 1.
   'cover-margin': '120',
 };
 
@@ -1117,6 +1118,10 @@ async function fitFrameToContent(page) {
 
 /**
  * `--cover`: THE PHONE ALONE, WITH ITS WHOLE SHADOW. Returns the clip box.
+ *
+ * SINCE DECISIONS.md D153 THE BEZEL HAS NO SHADOW, so the reasoning below is
+ * historical: the pins it describes still give a bezel centred on
+ * `--cover-margin` of flat white ground, and are kept for that.
  *
  * WHY A PLAIN SHOT CUTS THE SHADOW OFF. A box-shadow never extends the
  * scrollable area, and `html, body` are `overflow: hidden` (shell.css), so the

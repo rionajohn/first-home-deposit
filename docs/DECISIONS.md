@@ -13138,3 +13138,51 @@ one.
 
 **To reverse.** Follow the "TO REMOVE" note at the top of `src/diagnostics.js`, which lists all five
 points. Nothing else depends on the module.
+
+---
+
+## D153. The surround behind the framed phone is flat white, and the bezel loses its drop shadow
+
+**Date.** 13 September 2026. `src/css/tokens.css` and `src/css/shell.css`, with matching wording in
+`docs/DESIGN.md` and `scripts/shots.mjs`. **No copy, no figure, no route, and no layout value.**
+Applies at framed widths (>=768px) only.
+
+**Decision.** Two changes, both to what is painted OUTSIDE the phone:
+
+1. The light value of `--color-canvas` goes from `#e5e5ea` to `#ffffff`. That token is read in one
+   place, the framed `body { background: var(--color-canvas) }` inside `shell.css`'s
+   `@media (min-width: 768px)`, and `body` is the element that paints the whole window around the
+   phone there. The dark value (`#1c1c1e`) is not touched. It never reaches `body` in any case,
+   because `.theme-dark` is applied to `.screen`, not to an ancestor of `body`.
+2. The `box-shadow` on `.device-bezel` is removed.
+
+**Why.** Riona screenshots the framed phone for the dissertation write-up and needs a clean, flat
+white surround. The grey canvas made every capture carry a tinted rectangle. The shadow painted a grey
+blur up to ~84px around the bezel, strongest at the corners, so even on a white canvas the corners of
+a capture were not white. In a write-up that halo reads as an artefact, and it looks different
+depending on the page the image is placed on. The `#1c1c1e` bezel ring is enough on its own to
+separate the phone from white.
+
+### What is deliberately NOT changed
+
+- **The shared `html, body { background: var(--color-bg) }` rule.** It is what paints the page below
+  768px. At framed widths the framed `body` rule overrides it for `body`. `html` still carries
+  `#f7f7f8` underneath, but `body` fills the window, and `html` is `overflow: hidden` while `body`
+  does its own scrolling, so that colour is never visible.
+- **The bezel itself**: its `#1c1c1e` colour, `--radius-device`, padding, dimensions, transform and
+  clipping. The screen's own corner radius and everything inside `.screen`.
+- **Anything below 768px.** `#app-frame` and `.device-bezel` are `display: contents` there and paint
+  nothing, and neither changed token nor rule applies.
+- **`--cover`'s default margin of 120px.** It was sized to clear the shadow, and is now just white
+  ground. The value is left alone so existing cover captures keep their framing.
+
+**Relation to earlier entries.** This is independent of D148. That entry was about `body`'s paint
+BELOW the breakpoint, where it once covered for a geometry defect. This one concerns the framed
+backdrop only.
+
+**Version.** `tokens.css` and `shell.css` are both in `SHELL_ASSETS`, so this carries its own bump,
+**v141 to v142**, in `sw.js` and `src/cache-version.js` together (D147).
+
+**To reverse.** Set the light `--color-canvas` back to `#e5e5ea`, and restore
+`box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28), 0 2px 10px rgba(0, 0, 0, 0.16);` on the framed
+`.device-bezel` rule in `shell.css`. Put the DESIGN.md rows and the `--cover` comments back to match.
