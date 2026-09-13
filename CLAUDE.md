@@ -115,6 +115,7 @@ do not introduce a state management library.
 
 ## Commands
 - Serve: `python -m http.server 8080` on Windows (ES modules need a server, not file://)
+- Setup on a fresh clone, for the harness, picker and browser tests: `npm install`, then `npx playwright install chromium webkit` - `npm install` does not download browsers; Chromium and its headless shell (revision 1234) and WebKit (revision 2336, for `shots.mjs --browser=webkit`). GAPS.md G140.
 - Test the model: `node --test src/model/*.test.js` (the bare directory form fails on Node 24)
 - Test the sheet gesture: `node --test scripts/sheet-drag.test.mjs` (drives Chromium via Playwright)
 - Smoke test every route: `node --test scripts/smoke.test.mjs` (drives Chromium; reads the route list

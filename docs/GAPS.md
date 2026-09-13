@@ -5939,3 +5939,33 @@ Set the seed's borrow range and projections from the model, the way D158 set the
 measure what moves before doing it. Frame 20's range and every capture of it would change.
 
 *Status: **open, report only**.*
+
+---
+
+## G140. Playwright is imported by the harness and tests but declared nowhere. CLOSED - DECLARED AS A DEVDEPENDENCY
+
+*Found 13 September 2026 while diagnosing a `npm run dev` failure, which turned out to belong to
+another repo: this repo has never had a `scripts` block.*
+
+### What was wrong
+
+`package.json` (unchanged since `ac18b2c`, 19 August 2026) declared no dependencies at all, and the
+tracked `package-lock.json` (`7526dc6`) listed only the root package. Fifteen tracked files import
+`playwright`: `shots.mjs`, `pick-cover.mjs`, `inset-shots.mjs` and twelve browser-driven test suites.
+They ran only because `node_modules/` held a local install of `playwright` 1.62.1. A fresh clone plus
+`npm install` would have installed nothing, and every one of them would have failed at its import.
+
+### What was done
+
+`playwright` is declared in `devDependencies`, pinned exactly to `1.62.1`: the version every capture,
+byte-identical check and the picker's layout match (D155-D160) was verified on. A newer Playwright
+ships a different Chromium, so a range would allow a silent change of rendering engine.
+`@playwright/test` is not added; nothing imports it, and the suites use `node:test`.
+
+This is within CLAUDE.md's "No runtime npm dependencies. Dev dependencies for screenshots and tests
+only." The prototype loads nothing from `node_modules/`.
+
+The browsers are a separate setup step, because `npm install` does not download them; see CLAUDE.md's
+Commands list.
+
+*Status: **closed** by the `devDependencies` entry; `package-lock.json` regenerated in the same commit.*

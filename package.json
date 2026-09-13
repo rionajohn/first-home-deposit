@@ -1,5 +1,8 @@
 {
   "name": "your-first-home",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
 }
