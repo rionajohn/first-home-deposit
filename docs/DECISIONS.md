@@ -2769,6 +2769,12 @@ through saving" belong in it. A key that selects the variant one script is looki
 that script's own override list, because a key added to the shared seed changes every script that
 imports it - which is the point of the file and also its one hazard.
 
+**Amended 13 September 2026 by D158.** "The shared seed sits exactly AT `checkpoint-amount`" is no
+longer true. The seed's `saved-toward-deposit`, `emergency-fund` and `unassigned` are now read from
+the mock accounts (8,950, 5,600 and 2,400) instead of being typed by hand (21,000, 4,200 and 800), so
+the seed is below the checkpoint and "Now" and "Further along" differ without `--saved`. The rest of
+this entry stands.
+
 ## D44. The goals area does not advertise a door that redirects
 
 **Date.** 27 August 2026.
@@ -8388,6 +8394,16 @@ month list. Worth recording: the file that exists because of D77 grew a D77 defe
 
 Full suite: 391 tests, 390 passing, 1 skipped (G91), 0 failing.
 
+**Amended 13 September 2026 by D158.** Every figure above that says "the shared seed" or "the seed" was
+measured when the seed held a hand-typed 21,000 saved. That includes the solve of +0.62 at month 93
+and -0.18 at month 94, the goal-met case (a 14,000 goal against 21,000), and "10 of 45" at "the shared
+fixture's 21,000". The seed now holds the accounts' own 8,950, where the unaided crossing is past
+the year list's span and a 5% goal is not met. The measurements are still correct for a 21,000
+balance, and `date-ceiling.test.mjs`'s cap and goal-met tests now open with that balance explicitly
+(`CAP_BALANCE`, `GOAL_MET`). They do not describe today's shared seed. To reproduce them in a
+screenshot, add `--saved=21000` or use `--error=saving-near-cap`, `saving-moved-to-cap` or
+`saving-goal-met`, which now carry that balance themselves.
+
 ---
 
 ## D86. The move down to the cap is disclosed, and its copy leads with the reason rather than the change
@@ -8517,6 +8533,14 @@ one new test sweeps all three branches - cap wins, span wins, no cap - and asser
 longer than the span and never past the cap. Removing the co-bound fails it.
 
 Full suite: 396 tests, 395 passing, 1 skipped (G91), 0 failing.
+
+**Amended 13 September 2026 by D158.** The first row of the table, "Shared seed - saved 21,000", and
+"the shared seed is a cap-wins case at 8 years" describe the seed as it was. The seed now holds the
+accounts' own 8,950, which is the second row's balance, so **today's shared seed is a span-wins
+case**. The "unrepresentative case" this entry named is gone from the seed. The sweep test's
+cap-wins case now opens with an explicit 21,000 (`CAP_BALANCE`). The seed itself is a fourth case,
+labelled span wins, so every branch is still covered by name. Because the seed keeps the fixture's
+left-over of 1,150 rather than the real session's 640, its floor year is not the second row's.
 
 ---
 
@@ -13138,3 +13162,665 @@ one.
 
 **To reverse.** Follow the "TO REMOVE" note at the top of `src/diagnostics.js`, which lists all five
 points. Nothing else depends on the module.
+
+---
+
+## D153. The surround behind the framed phone is flat white, and the bezel loses its drop shadow
+
+**Date.** 13 September 2026. `src/css/tokens.css` and `src/css/shell.css`, with matching wording in
+`docs/DESIGN.md` and `scripts/shots.mjs`. **No copy, no figure, no route, and no layout value.**
+Applies at framed widths (>=768px) only.
+
+**Decision.** Two changes, both to what is painted OUTSIDE the phone:
+
+1. The light value of `--color-canvas` goes from `#e5e5ea` to `#ffffff`. That token is read in one
+   place, the framed `body { background: var(--color-canvas) }` inside `shell.css`'s
+   `@media (min-width: 768px)`, and `body` is the element that paints the whole window around the
+   phone there. The dark value (`#1c1c1e`) is not touched. It never reaches `body` in any case,
+   because `.theme-dark` is applied to `.screen`, not to an ancestor of `body`.
+2. The `box-shadow` on `.device-bezel` is removed.
+
+**Why.** Riona screenshots the framed phone for the dissertation write-up and needs a clean, flat
+white surround. The grey canvas made every capture carry a tinted rectangle. The shadow painted a grey
+blur up to ~84px around the bezel, strongest at the corners, so even on a white canvas the corners of
+a capture were not white. In a write-up that halo reads as an artefact, and it looks different
+depending on the page the image is placed on. The `#1c1c1e` bezel ring is enough on its own to
+separate the phone from white.
+
+### What is deliberately NOT changed
+
+- **The shared `html, body { background: var(--color-bg) }` rule.** It is what paints the page below
+  768px. At framed widths the framed `body` rule overrides it for `body`. `html` still carries
+  `#f7f7f8` underneath, but `body` fills the window, and `html` is `overflow: hidden` while `body`
+  does its own scrolling, so that colour is never visible.
+- **The bezel itself**: its `#1c1c1e` colour, `--radius-device`, padding, dimensions, transform and
+  clipping. The screen's own corner radius and everything inside `.screen`.
+- **Anything below 768px.** `#app-frame` and `.device-bezel` are `display: contents` there and paint
+  nothing, and neither changed token nor rule applies.
+- **`--cover`'s default margin of 120px.** It was sized to clear the shadow, and is now just white
+  ground. The value is left alone so existing cover captures keep their framing.
+
+**Relation to earlier entries.** This is independent of D148. That entry was about `body`'s paint
+BELOW the breakpoint, where it once covered for a geometry defect. This one concerns the framed
+backdrop only.
+
+**Version.** `tokens.css` and `shell.css` are both in `SHELL_ASSETS`, so this carries its own bump,
+**v141 to v142**, in `sw.js` and `src/cache-version.js` together (D147).
+
+**To reverse.** Set the light `--color-canvas` back to `#e5e5ea`, and restore
+`box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28), 0 2px 10px rgba(0, 0, 0, 0.16);` on the framed
+`.device-bezel` rule in `shell.css`. Put the DESIGN.md rows and the `--cover` comments back to match.
+
+---
+
+## D154. The `--cover` capture is transparent, shadow-free, and independent of `--color-canvas`
+
+**Date.** 13 September 2026. `scripts/shots.mjs` only (`prepareCover` and the one `page.screenshot`
+call that uses its clip). **No application source file changes**, and nothing a participant can see.
+`shots.mjs` is not in `SHELL_ASSETS`, so there is no version bump (D147).
+
+**Decision.** A `--cover` capture now produces the phone alone on a fully transparent ground, with no
+drop shadow and an equal margin on all four sides. Three changes, all applied by the harness to the
+live page at capture time:
+
+1. **Transparent ground.** An injected stylesheet sets `html, body { background: transparent
+   !important }`, and the screenshot passes `omitBackground: true`. Both are needed. `omitBackground`
+   only drops the browser's default white, while `html` (`--color-bg`) and `body` (`--color-canvas` at
+   framed widths) paint their own opaque colours over it.
+2. **No shadow.** The same stylesheet sets `.device-bezel { box-shadow: none !important }`. D153 has
+   already removed the shadow from `shell.css`, but on a transparent ground a shadow would bake
+   semi-transparent black into the margins. The cover should not rely on it staying removed.
+3. **Viewport sized from the bezel.** The window is now at least `bezel + 2 x margin` in each
+   direction, with the half-pixel parity fix applied to that width. It used to be sized from the
+   bezel's position before the resize (`right + margin`). Because the bezel is centred, growing the
+   window moves its left edge, so for any margin above ~174px the clip started off the page. The
+   function now also throws if the clip does not fit the viewport, rather than capturing a cropped
+   phone.
+
+**Why.** The cover image for the portfolio used to be captured by hand with a DevTools node
+screenshot. That clipped at the viewport, so the frame ran off the top and right edges, and the
+`#e5e5ea` canvas and the bezel shadow were baked into the corners. A cover is placed on whatever
+background the document it goes into has, so it has to carry none of its own. **The cover is
+deliberately decoupled from the live site's backdrop.** The live site keeps its flat white surround
+(D153), and changing `--color-canvas` again must not change the cover. Verified: the same script run
+against the pre-D153 styles (`#e5e5ea` canvas and the shadow present) produced a PNG byte-identical
+to one from the current styles.
+
+**What the output is.** At the default margin of 120 and scale 2 it is 1322x2240. The opaque area is
+842x1760 (the 421x880 bezel), with 240 PNG px of alpha-0 margin on every side and all four corners at
+alpha 0. Every pixel more than 2px inside the bezel's rounded outline is alpha 255, and every pixel
+more than 2px outside it is alpha 0. **The soft-edged alpha on the phone's rounded outer corners
+(about 800 pixels, all within 2px of the outline) is intended, not a defect.** It lets the cover
+anti-alias onto any background. At a margin of 250 the output is 1842x2760, with 500 px on every side
+and the same opaque area.
+
+**Within the screenshot constraint.** CLAUDE.md requires screenshots to come from `shots.mjs`, and
+these overrides are exactly that: page-context changes made by the harness in a context that is
+closed after the shot. They are not edits to the application's stylesheets.
+
+**To reverse.** Remove the `addStyleTag` call and the viewport guard from `prepareCover`, drop
+`omitBackground: true` from the cover's `page.screenshot`, and restore the `right + margin` /
+`bottom + margin` sizing. The large-margin flaw returns with that last step.
+
+---
+
+## D155. `--scroll` anchors to one element measured from its scroller, or fails; a cover pauses infinite animations
+
+**Date.** 13 September 2026. `scripts/shots.mjs` only. **No application source file changes**, and
+nothing a participant can see. `shots.mjs` is not in `SHELL_ASSETS`, so there is no version bump
+(D147). This hardens the existing `--scroll` option rather than adding a new one.
+
+**Decision.** `--scroll=<selector>` scrolls the active scroller (`.bottom-sheet__content`, or
+`.screen-content`) to one ANCHOR element, and the run fails rather than capture anywhere else.
+
+1. **Fails loudly.** The run exits non-zero with no PNG written in each of these cases:
+   - the selector is invalid;
+   - it matches nothing (before this entry it silently captured the top of the screen);
+   - it matches more than one element (a new match earlier on the screen would otherwise move the
+     anchor without anyone noticing);
+   - it matches outside the active scroller.
+2. **Measured from the scroller.** The old code used `el.offsetTop`, which is relative to the
+   element's offset parent. `.screen-content` is not positioned, so that parent was `.screen` or
+   some box in between, not the scroller. The error was 115px on `/home` (the app bar plus the top
+   inset) and 492px on `/learn/ltv` (inside the comparison table). The offset now comes from the two
+   rendered boxes, divided by the scroller's rendered-to-layout ratio. That puts it in the layout px
+   `scrollTop` uses at any `--frame-scale` (D92), and names the reference, per CLAUDE.md. `scrollTop`
+   is written directly. `scrollIntoView` is not used, because it would also scroll `body`, which is
+   scrollable at framed widths, and could move a `--cover` clip.
+3. **`--scroll-align=start|center`**, default `center`. `start` puts the anchor's top edge where
+   the scroller's first content sits at the top of the screen, which is the scroller's top padding
+   below the pinned header.
+4. **Checked before the capture.** The run fails if:
+   - the alignment needs a `scrollTop` the scroller cannot reach (an anchor too near either end);
+   - the scroller has moved by the time of capture;
+   - the anchor is not wholly visible between the pinned header and whatever is pinned below it,
+     including the dock's `--more-below` fade. The fade's height is read from the dock's own
+     `::before`, not written into the script.
+5. **Settles on the page's own animations.** After the scroll the script waits two frames, then
+   for every finite animation to finish (`document.getAnimations()`). The wait therefore follows the
+   CSS durations, including the fade transition that action-bar.js starts a frame after the scroll.
+   The existing 300ms pause is kept, so `top` and `end` shots are unchanged.
+6. **Attribute selectors.** A selector may start with `[`, so an anchor can use a stable data
+   attribute rather than a class name that repeats. A selector containing a comma still cannot be
+   given, because the option splits on commas. File names keep only a safe spelling of the selector.
+
+**For `--cover` only,** three capture-time overrides join D154's:
+
+- **Infinite animations are paused at their first frame** (Web Animations API, `currentTime` 0).
+  `/mip/running`'s spinner is at a different point every time the capture is taken, so that screen
+  could never be reproduced. Pausing is scoped to the capture, like the other overrides.
+- **The window opens at the size the capture needs** (`coverViewport`, read from `--frame-width`,
+  `--frame-height` and `--frame-bezel` in shell.css), instead of being resized after load. The
+  resize cost about 650ms of fixed waits. That pushed the capture past `/mip/running`'s 1400ms
+  processing delay, after which the screen replaces itself with a result. The old resize path stays
+  as a fallback and warns if it ever runs.
+- **The run fails if the app has left the route** before or after the capture. A cover of the next
+  screen, saved under this screen's name, is the wrong capture this harness exists to prevent.
+
+**Why.** Covers for the portfolio are to be taken partway down a screen, and a re-run has to give
+the same image. A pixel offset breaks when content changes. An anchor survives it, provided that a
+missing or ambiguous anchor stops the run instead of quietly capturing the top.
+
+**Verified.**
+- A missing selector, a selector matching 19 elements (`.icon`) and a selector outside the scroller
+  (`.app-bar`) each exit 1 with no PNG.
+- Offsets match an independent reference (the layout-only `offsetTop` chain, walked up to the
+  scroller): `/home` `.transactions-card` 150 vs 150, and `/learn/ltv`
+  `.ltv-comparison-table tbody tr:last-child` 748.5 vs 749. The second one's offset parent is the
+  table, and `offsetTop` rounds to whole px.
+- `/learn/ltv` `.explainer-library-card` with `start` is byte-identical across two runs, and its
+  top edge sits 24px (the scroller's padding) below the app bar.
+- `.legal-text` with `start` fails because it is too near the end. `/tracker`'s `.milestone-tracker`
+  centred fails because it runs 3px into the dock's fade.
+- `/mip/running` is byte-identical across two runs, and the route check confirms it was still on
+  screen.
+- Scrolled and unscrolled covers keep 1322x2240, alpha-0 corners, 240px margins, no shadow and an
+  opaque bezel.
+- Against a baseline from `a67c609`, top-of-screen covers of `/tracker` and `/home`, and non-cover
+  `/tracker` shots at `top` and `end`, are byte-identical.
+
+**What changes for existing commands.** `top` and `end` do not change. A `--scroll=<selector>`
+command with the default `center` does land somewhere different from before. The old position was
+measured against the wrong reference, so every selector shot was off by at least the header height:
+`/home` `.transactions-card` moves from `scrollTop` 176 to 61, and `/learn/ltv`
+`.explainer-library-card` from 1336 to 1220. `center` means what `--scroll` always said it meant.
+It now does it.
+
+**Not addressed here.** Projected dates are counted from the real "today", so a screen that shows
+one (the tracker's "On track for", frame 12, `/learn/ltv`'s years, frame 10b, frame 33) is only
+byte-identical within one month. This is diagnosed separately and awaits a decision.
+
+**To reverse.** Restore the `offsetTop` evaluate in the scroll loop and the `.`/`#`-only
+validation. Remove `anchorScroll`, `checkAnchor`, `settle`, `assertStillOn`, `coverViewport` and
+`--scroll-align`. Remove the infinite-animation pause from `prepareCover`, and put its 200ms pin
+wait back.
+
+---
+
+## D156. Every screenshot capture runs at a pinned date, `CAPTURE_TODAY`, with `--today=real` to opt out
+
+**Date.** 13 September 2026. `scripts/shots.mjs` only. **No application source file changes, and
+nothing reaches the tests.** `shots.mjs` is not in `SHELL_ASSETS`, so there is no version bump
+(D147). The UTC read this works around is logged as `GAPS.md` G137 and is not fixed here.
+
+**Decision.** `shots.mjs` runs the app at noon on `CAPTURE_TODAY = '2026-09-12'` in `Europe/London`,
+set in one named constant. Three places have to agree, and all three read that constant:
+
+1. **The browser clock.** `context.clock.setFixedTime` runs before any page exists, because
+   `load()` reads the clock when `state.js` first evaluates. `setFixedTime` fixes `Date` only.
+   Timers and animation frames keep running, and every wait in the harness depends on them.
+2. **The seeded `sessionAnchor`.** It is set to `CAPTURE_TODAY` on the seed the harness writes.
+   This is needed because `load()` discards a stored session whose anchor month is not the clock's
+   month. The discard is silent and opens a different session (£8,950 against £52,500) with no
+   redirect for the harness to catch. An `--session=opening` run needs nothing extra, since the app
+   stamps its own anchor from the pinned clock.
+3. **The Node-side date helpers.** `monthsFromToday` (frame 10b's `--date` states) and the
+   `saving-past-date` error state now count from `captureNow()`, not `new Date()`.
+
+The context's timezone is pinned to `Europe/London`. `calculator-result.js:98` reads the anchor as
+UTC (G137), so frame 12's year labels shift in any zone west of UTC. Pinning the zone keeps captures
+identical on any machine. It works around that read for captures only, and a participant's device is
+unaffected.
+
+`--today=real` opts a run out: the machine's clock and zone are used, as before this entry, and
+`today-real` is added to the file name so the two kinds of image cannot be confused.
+
+**Why.** Projected dates are counted from the session anchor (D97), so a capture of any screen that
+shows one changed with the calendar, and no re-run reproduced it. Captures are an instrument for the
+write-up and the portfolio, and an image that cannot be reproduced cannot be checked. Every capture
+is now measured against one stated reference, and frame 33 prints it on screen ("Dates worked out
+from 12 September 2026"). That follows CLAUDE.md's rule that a value measured against a reference
+must state it.
+
+**Why 12 September 2026.**
+- **In the past.** A capture should not claim a day that has not happened. 15 September would have
+  been two days ahead, and nothing about that date needed it.
+- **Mid-month and at noon.** No timezone offset can move it into another month.
+- **After every dated constant a screen shows beside it:** `RATES.asAt` (30 July 2026) and the
+  August 2026 figures in `model/rates.js`.
+- **After every deployment in `src/deployments.js`** (the latest is v10, 10 September 2026), so
+  frame 33 never shows a session dated before a build it lists.
+
+A later deployment will postdate it, which no fixed date can avoid.
+
+**Why in shots.mjs and not session-seed.mjs.** The tests import the seed and assert against the
+real date (`stale-session.test.mjs` among them). `SEED_ANCHOR` stays computed at run time, per its
+own comment, and the pin overrides it only on the seed `shots.mjs` writes.
+
+**Verified.**
+- **Repeatability.** The full capture set (`--routes=all`, 30 screens, plus the `/tracker` cover and
+  `/tracker --scroll=end`) was run twice with the pin. 31 of 32 PNGs are byte-identical. The one
+  that differs is `20-mip-running.png`, and the difference is confined to an 81x81 px box at the
+  spinner: the survey is not a `--cover` capture, and D155 pauses infinite animations only under
+  `--cover`. The `/mip/running` cover itself is byte-identical (D155).
+- **Changes against the captures taken before this entry (real date, 13 September 2026).** The
+  same 32 PNGs were compared: none changed apart from that same spinner frame. Nothing date-bearing
+  on those shots moves between 12 and 13 September, because every projected date works to the month.
+  Frame 33's full-date caption does move. It is below the fold in the survey shot, and a
+  `/settings --scroll=end` capture differs from `--today=real` only in that caption line (12 vs
+  13 September).
+- **Across a month.** A scratch copy with `CAPTURE_TODAY` set to 14 August 2026 kept the seeded
+  session: the tracker shows the seed's own £310 and £38, "On track for" moved from August 2027 to
+  November 2027 to July 2027 to October 2027, and frame 33 reads "14 August 2026". That is the case
+  the anchor override exists for, and today's runs cannot exercise it.
+
+**To reverse.** Delete `CAPTURE_TODAY`, `CAPTURE_TIMEZONE`, `captureNow`, `PINNED` and `--today`.
+Restore `new Date()` in `monthsFromToday` and `saving-past-date`. Remove `timezoneId`, the
+`clock.setFixedTime` call and the `sessionAnchor` override from the context and the seed.
+
+---
+
+## D157. Infinite animations are paused at their first frame on every `shots.mjs` capture, not only covers
+
+**Date.** 13 September 2026. `scripts/shots.mjs` only. **No application source file changes.** Not a
+shell asset, so no version bump (D147). This widens D155, which paused infinite animations only
+under `--cover`.
+
+**Decision.** The pause moves out of `prepareCover` into `pauseInfiniteAnimations`. That function
+runs on every capture, after the scroll has settled and the frame is fitted, and before the
+cover, stitched or plain screenshot. The mechanism is unchanged: the Web Animations API sets
+`currentTime` to 0 on every animation with infinite iterations. Finite animations are still left to
+finish, and `settle` still waits for them.
+
+**Why.** Under D156 every capture is pinned to one date. After that, the only thing stopping two
+runs of the full capture set from being byte-identical was `/mip/running`'s spinner in the
+non-cover survey shot. The spinner is caught mid-turn at a different angle each time, which makes a
+byte comparison useless on that screen. A byte comparison is the point of pinning anything.
+
+**What changed.** Against the D156 captures, the full set was compared: the `--routes=all` survey,
+the `/tracker` and `/mip/running` covers, and `/tracker --scroll=end`. Exactly one PNG changed:
+`survey/20-mip-running.png`, which now shows the spinner at its first frame. The `/mip/running`
+cover is byte-identical to its D155 capture, because it was already paused.
+
+**Verified.** Two full runs of the same set are byte-identical, 33 of 33 PNGs.
+
+**To reverse.** Move the `pauseInfiniteAnimations` body back to the end of `prepareCover`, and
+remove its call from the shot loop.
+
+---
+
+## D158. The shared seed's account totals come from the accounts, and D43's seed stops sitting at the checkpoint
+
+**Date.** 13 September 2026. `scripts/session-seed.mjs`, `scripts/shots.mjs`,
+`scripts/date-ceiling.test.mjs`, `scripts/frame-scale.test.mjs` and `scripts/inline-edit.test.mjs`,
+plus dated amendments to D43, D85, D87, `GAPS.md` G98 and G99, and new G138 and G139. **No application
+source file changes.** None of these files is in `SHELL_ASSETS`, so there is no version bump (D147).
+**Amends D43.**
+
+### The defect
+
+The shared seed set `saved-toward-deposit` 21,000, `emergency-fund` 4,200 and `unassigned` 800 by
+hand. The mock accounts the app reads total **8,950, 5,600 and 2,400**. Frame 06
+(`position-summary.js:86-96`) recalculates those three from the accounts on every render and writes
+back whatever differs. So a seeded session showed £21,000 saved on the calculator, the tracker, the
+Mortgage in Principle screens and the assumption sheets **until it visited "Where you stand"**, and
+£8,950 everywhere afterwards. Frame 03 always showed £8,950 regardless.
+
+Measured with a scratch probe on every route except `/mip/running` (29 routes), comparing a fresh
+seeded session opened straight at the route with one that had visited `/position/summary` first, on
+rendered £ figures, field values and the stored figures: **28 of 29 differed on the old seed.**
+
+### Which figure is authoritative
+
+**The accounts.**
+- `build-spec.md:18` and `:20` say frames 03 and 03b recalculate `saved-toward-deposit` from the
+  account selection.
+- D48 says the saved figure "is the sum of the four accounts", and that raising it "would mean
+  inventing balances the account list contradicts".
+- The 21,000 was typed for the original `overlap.test.mjs` layout fixture (`7f0f4cc`) and carried into
+  the shared seed by D43.
+- D43 recorded that it sat exactly at the checkpoint as a property of the seed, not a choice, and D87
+  called it "the unrepresentative case".
+
+The alternative, raising the mock balances to 21,000, was rejected. It would change what participants
+see on frames 03, 06, 32 and `/goals`, move the real opening session, and invent balances.
+
+### Decision
+
+1. **The seed reads the three figures from the accounts.** `FULL`'s `saved-toward-deposit`,
+   `emergency-fund` and `unassigned` are now `accountFigures({})` from `src/model/accounts.js`, the same
+   function frames 03 and 06 use, so the seed cannot disagree with them again. `max-property` becomes
+   **197,950**: build-spec.md section 4's `borrow-high` + `saved-toward-deposit`, applied to the
+   borrow range the seed stores. `checkpoint-amount` stays 21,000, because it comes from the goal, not
+   the saved figure. The seed is now **below the checkpoint**, the position a real session opens in.
+2. **Tests and captures that need a different balance state their own.**
+   - `date-ceiling.test.mjs`'s cap tests open with `CAP_BALANCE` (21,000). At 8,950 the unaided
+     crossing is about 31 years out, past the year list's 20-year span, so the span ends the list and
+     no cap test would reach the cap. The first cap test now also **fails by name if that balance ever
+     puts the cap outside the span**.
+   - `GOAL_MET` carries its own 21,000 against its 14,000 goal.
+   - The span sweep keeps a cap-wins case under that balance and adds the shared seed as a labelled
+     span-wins case.
+   - `frame-scale.test.mjs`'s moved-to-cap state was a hand-written 120 months, "far past the cap" only
+     at 21,000. It now carries the same balance and a date 40 months past the cap the model gives.
+3. **`shots.mjs`'s `saving-goal-met`, `saving-near-cap` and `saving-moved-to-cap` carry the 21,000
+   themselves, and fail the run if the model says they would not show their state**: a goal not met,
+   no cap, or a cap past the span.
+   - Checking them turned up a second silent failure. Every frame 10b error state renders only on
+     the date path (`--solve=amount`), but `--solve` defaults to `date`. Without that flag, all seven
+     wrote a PNG of frame 10's monthly slider with their state nowhere on it, and exited 0. They are
+     now **refused without `--solve=amount`**.
+4. **The literals follow.** `inline-edit.test.mjs` expects "8,950", and the `--saved` help text and
+   its comment no longer claim the seed sits at the checkpoint.
+
+**Out of scope, logged.** G138: the seed's `money-in`, `essential-spending` and `left-over` (2,600,
+1,450, 1,150) disagree with `MOCK_POSITION` (2,500, 1,860, 640). G139: the seed's borrow range,
+`months-to-target` and `on-track-for` are also typed by hand and disagree with the model.
+
+### Verified
+
+- **Full suite:** 434 tests, 432 passing, 0 failing, 2 skipped. Same count and the same two skips as
+  before: G91, and the frame 33 current-build chip.
+- **The defect is gone.** The same 29-route probe on the new seed found **29 of 29 identical** whether
+  or not the session visited `/position/summary`: every rendered figure, every field, and the stored
+  saved figure, emergency fund, unassigned and `max-property`.
+- **Captures that changed.** Compared against the same captures before this change, 10 of the set
+  changed:
+  - survey `08-goal-check`, `12-calculator-review`, `13-calculator-result`, `14-learn-ltv`,
+    `16-tracker`, `26-assumptions-borrowing`, `27-assumptions-sources`
+  - the `/tracker` cover and `/tracker --scroll=end`
+  - `--error=review-all`
+
+  Of the frame 10b date-path states, captured before and after with `--solve=amount`,
+  `saving-date-below-bound` and `saving-past-date` changed, because both are placed relative to the
+  floor, which moves with the balance.
+- **Unchanged:** frames 03 and 06 and the `first-home-cover` capture (they read the accounts
+  directly); every other survey screen, including survey `20` to `22` (the Mortgage in Principle
+  running and result screens), which are shot at the "ahead" position; the `/mip/running` cover; and `saving-goal-met`, `saving-near-cap`, `saving-moved-to-cap`,
+  `saving-span-wins`, `saving-narrow-list` and `saving-ceiling`.
+- The three named states are byte-identical to their 21,000 captures and were checked by eye:
+  - goal-met: the date control replaced by its statement, Continue disabled;
+  - moved-to-cap: "We've moved your date to June 2034";
+  - date-below-bound: "January 2028 is the earliest".
+
+### To reverse
+
+Restore the three hand-typed figures and `max-property` 210,000 in `session-seed.mjs`. Remove
+`CAP_BALANCE` and the span assertion from `date-ceiling.test.mjs` and the balance from its `GOAL_MET`.
+Restore frame-scale's `at(120)`, the inline-edit literal "21,000" and the `--saved` text. Remove the
+error states' balances, `requireState`/`requireCapInSpan` and the `--solve=amount` guard. The
+28-of-29 disagreement returns with the first step.
+
+---
+
+## D159. A command-line cover picker, running the harness's own anchor rules
+
+**Date.** 13 September 2026. New `scripts/anchor-rules.mjs` and `scripts/pick-cover.mjs`, with
+`scripts/shots.mjs` importing the rules. **No application source file changes, nothing in `src/`, no
+cached-file change and no version bump** (D147). Nothing the prototype serves loads either script.
+
+**Decision.** Choosing a cover screen and scroll position is done in a picker launched from the
+command line, `node scripts/pick-cover.mjs --routes=<route>`, **not** in a mode inside the prototype.
+
+The picker opens a visible Chromium on the route in the session a capture uses:
+- the shared seed, greyscale theme and default text size;
+- `CAPTURE_TODAY` and its timezone pinned on the browser clock;
+- this build's stamp;
+- the service worker blocked;
+- the harness's device scale.
+
+The date, zone, clock instant and device scale are read from `shots.mjs`'s source, not repeated.
+
+It draws an overlay over the phone:
+- the part of the screen an anchor must sit in (below the pinned header, above the dock and its fade);
+- the line `--scroll-align=start` puts an anchor's top on;
+- the anchor candidate's box;
+- a panel with the selector, the alignment and the verdict.
+
+Keys:
+- **Alt+Shift+N:** cycles candidates.
+- **Alt+Shift+A:** toggles start/center.
+- **Alt+Shift+S:** snaps the screen to exactly where `shots.mjs` will put it and runs the visibility
+  check.
+- **Alt+Shift+C:** snaps, checks and copies the full `shots.mjs --cover` command, PowerShell-quoted,
+  also printing it in the terminal. **Nothing is copied when a check fails**; the reason is shown.
+
+The command gains:
+- `--state=ahead`, `--text=large`, `--theme=dark`, `--solve=amount`, `--view=table` or `--open=<id>`
+  when the session shows them;
+- **a warning** for any stored value that changed in the window and no flag reproduces, such as a
+  typed figure.
+
+### Why a command, not a mode in the prototype
+
+A mode in the app could not pin the browser clock or timezone. After the pinned month its overlay would
+show different dates from the capture, which defeats the point of a picker. It would also ship code
+to the public deployment for a tool only the researcher uses, and every edit to it would be a
+cached-file change. The command pins everything a capture pins, and nothing of it is part of the app.
+
+### The rules are extracted, not copied
+
+`anchorScroll` and `checkAnchor`'s page-side logic moved from `shots.mjs` into one self-contained
+function, `anchorRules`, in `scripts/anchor-rules.mjs`:
+- **`resolve`** returns the target scroll position without moving;
+- **`place`** moves there;
+- **`inspect`** checks the anchor is wholly visible;
+- **`region`**, added for the overlay, returns the clear area `inspect` checks against, from the same
+  inner calculation.
+
+`shots.mjs` passes the function to `page.evaluate`; the picker injects the same source. A copy plus a
+parity test would have been two implementations and a third file to keep them agreeing, and nothing
+catches that drift automatically. The picker's selector generation is its own, but whether a selector
+is usable is always decided by `anchorRules`.
+
+**The extraction was committed alone (`ce0a27c`) and changed nothing.** A 49-PNG capture set was
+byte-identical before and after, with the same exit codes, failure messages and anchor log lines. The
+set was:
+- the survey;
+- five covers, four of them anchored;
+- top/end and anchored plain shots;
+- nine error states;
+- five expected anchor failures.
+
+The later `region` refactor was checked against the same set with the same result.
+
+### Two ways a visible window differed from the harness, and the fix
+
+Measured with the anchor on frame 03, which the harness places at `scrollTop` 549:
+
+1. **Device pixel ratio.** A visible window takes the display's scaling (1.25 here). The page now runs
+   at `shots.mjs`'s `--scale` (2), because Chromium snaps borders and line boxes to device pixels.
+2. **The window's own scaling leaked into layout** even at device scale 2: the rendered-to-layout
+   ratio came out 1.0003 at frame scale 1, the anchor measured 572.22px instead of 573, the scroller
+   ended at 1077 instead of 1080, and the picker snapped to 548. The headless shell and new-headless
+   Chromium both measured 573 and 1080, so only the visible window was affected. Launching with
+   `--force-device-scale-factor=1` lays the headed window out exactly as the harness does: 573, 1080,
+   ratio 1, snap 549. The window's own interface is drawn at 100% as a result.
+
+### Verified
+
+- **Three routes, driven over `--cdp-port` as a person would.** Scrolled near the anchor but
+  deliberately off the snap position, cycled to the candidate, then Alt+Shift+C:
+  - `/consent`: `[data-signature^='deposit:house-pot']`, start;
+  - `/position/summary`: `.figure-input`, start;
+  - `/learn/ltv`: `.explainer-library-card`, start, 26px from the end of its scroller.
+
+  Each copied command matched the clipboard, ran as printed in PowerShell and exited 0. The harness
+  placed each anchor at the scroll position the picker had snapped to: 549, 591 and 1365.
+- **Screen contents.** The picker's screen at the cover's resolution was compared with the phone
+  screen inside each cover: best alignment at zero offset, with 93.6%, 93.7% and 94.1% of pixels
+  identical. The rest differ at glyph edges (0.7-1% by more than 40 in a channel, about 1.1% by 9-40,
+  and about 4% by 8 or less), consistent with text anti-aliasing: the picker has to be the full headed Chromium, and the
+  harness runs Playwright's headless shell. Layout and position are exact; rasterisation is not
+  byte-identical, and cannot be between the two binaries.
+- **Refusal near the end.** `.flag-row` on `/learn/ltv` with start was refused before copying, with the
+  harness's own message ("needs scrollTop 1797 … only scrolls 0 to 1391"), and nothing was copied.
+- **Flags.** "Further along" added `--state=ahead` with no warnings (the keys it changes are exactly
+  those in `skipAheadStash`); an opened disclosure added `--open=ltv-how-we-worked`; a property value
+  typed on step 3 was warned about as `property-value, deposit-target, combined-goal, loan-amount,
+  ltv`.
+
+### What it cannot do
+
+- **It does not shoot.** There is no "shoot now" key in v1; run the copied command, which does the
+  transparency, margins, scale and verification.
+- **Screens reached only by tapping** (the two result screens, 03b) and typed or picked state cannot be
+  rebuilt from `shots.mjs`'s flags. The picker warns rather than guessing.
+- **`/mip/running`** leaves after 1.4 seconds.
+
+**To reverse.** Delete `scripts/pick-cover.mjs`. The extraction can stay, since it is behaviour-neutral;
+to reverse it too, move `anchorRules`' `place` and `inspect` bodies back into `anchorScroll` and
+`checkAnchor` in `shots.mjs`.
+
+---
+
+## D160. The cover picker launches by double-click, changes route in-window, and shoots with the real harness
+
+**Date.** 13 September 2026. `scripts/pick-cover.mjs`, with new `scripts/cover-checks.mjs` and
+`pick-cover.cmd` in the repo root. **No application source file changes, nothing in `src/`, no
+cached-file change and no version bump** (D147). Extends D159.
+
+**Decision.**
+
+1. **A double-clickable launcher, not an npm script.** `pick-cover.cmd` changes to its own folder,
+   runs `node scripts/pick-cover.mjs` and keeps its window open when the picker closes, so the printed
+   commands and shot results stay readable. An npm script still needs a terminal and a typed
+   `npm run`, which is the step being removed. Arguments pass through, so `pick-cover.cmd
+   --routes=consent` also works.
+   - With no `--routes`, the picker opens on `/home`, which renders on a fresh seeded session without
+     a redirect.
+2. **Route changes happen in the window.** The panel carries a menu of `router.js`'s own routes
+   (Alt+Shift+R focuses it). Choosing one reloads the page on that route, so it is entered as
+   `shots.mjs` enters it: a fresh document, freshly seeded.
+   - A screen reached by tapping through the app instead can draw differently from a direct load (a
+     back chevron, D41). The panel warns about that, and the shoot key refuses it.
+3. **A shoot key, Alt+Shift+P, that runs the real harness.** It snaps and checks exactly as the copy
+   key does, then spawns `node scripts/shots.mjs` as its own headless process, with the same arguments
+   the copy key prints plus `--out` pointing at a staging folder.
+   - **Checks:** the PNG is decoded in Node (`scripts/cover-checks.mjs`, no image library) and
+     checked for size, alpha-0 corners, equal margins at `--cover-margin` x `--scale`, the whole phone
+     and nothing clipped, no shadow, and an opaque phone.
+   - **Pass:** it moves to `.screenshots/picked/`.
+   - **Fail:** it moves to `.screenshots/picked/failed/` beside a note naming the failed check.
+   - **Harness error:** the harness's own message is shown and nothing is kept as a result.
+   - **Unreproducible session:** the key refuses when the session holds a change no `shots.mjs` flag
+     reproduces, since the PNG would not show it. The copy key still works then.
+4. **The align key moves from Alt+Shift+A to Alt+Shift+L.** Chromium on Windows reserves Alt+Shift+A
+   for focusing inactive dialogs, so in a real window the browser could take it. D159's tests sent
+   synthetic key events, which bypass browser shortcuts, so they could not show this. The keys are now
+   N, L, S, C, P and R; none is a Chromium shortcut (T, B and A are taken, and I in Chrome builds), and
+   the app handles only arrows, Home, End, Enter, Space, Escape and Tab.
+
+### Why the shoot key spawns a process instead of screenshotting the window
+
+The picker window is the full, visible Chromium, and `shots.mjs` runs Playwright's headless shell. The
+two rasterise text differently: D159 measured 93.6-94.1% of screen pixels identical between them, with
+layout exact. A screenshot of the window therefore cannot equal the command-line PNG. Running the
+harness itself makes the output the harness's output by construction. `--out` changes only where the
+file is written.
+
+### Verified
+
+- **The launcher,** run by cmd.exe by its full path from another folder, as Explorer runs it. It
+  opened the picker on `/home`, and after the browser closed it printed "Picker closed…" and waited.
+  - This environment sets `NoDefaultCurrentDirectoryInExePath`, so `cmd /c pick-cover.cmd` by bare
+    name was not found. Double-clicking is unaffected.
+- **The route menu** reloaded onto `/consent`, `/position/summary`, `/learn/ltv` and
+  `/calculator/review`, with the menu and the hash in agreement each time.
+- **Two shoots of `/consent`** (`[data-signature^='deposit:house-pot']`, start) were
+  **byte-identical**, and identical to the frame 03 cover captured earlier (`5F6B4D71…`).
+- **Three routes shot from the picker** matched the same command run as printed in PowerShell,
+  **byte for byte**: `/consent`, `/position/summary` (`.figure-input`, start) and `/learn/ltv`
+  (`.explainer-library-card`, start, 26px from the end of its scroller). Every check passed on all
+  three.
+- **Refusals.** A near-end anchor (`/learn/ltv` `.flag-row`, start) was not shot, with the harness's
+  "needs scrollTop 1797 … only scrolls 0 to 1391". A property value typed on step 3 was not shot,
+  naming `property-value, deposit-target, combined-goal, loan-amount, ltv`.
+- **Failure paths, through the real shoot binding.** A non-cover run was moved to `picked/failed/`
+  with its note, reported as failing the format check, and never presented as good. An anchor
+  matching nothing returned the harness's message and wrote nothing. No staging folder was left
+  behind.
+- **The checks,** separately: they pass real covers, reject an opaque PNG, and catch a margin shadow
+  and a shifted, clipped phone in corrupted copies.
+- **Full suite:** 434 tests, 432 passing, 0 failing, 2 skipped, run one file at a time because the
+  machine was low on memory.
+
+**One unexplained observation.** In one launcher test the page, left on `/home`, was later found on
+`/journey`. An instrumented 20-second idle repeat logged no navigation, click or key event. The likely
+cause is a real pointer event reaching the newly opened window; it was not reproduced.
+
+**To reverse.** Delete `pick-cover.cmd` and `scripts/cover-checks.mjs`. In `pick-cover.mjs`, remove
+the `shoot` function, the `__pickerShoot` binding, the route menu and the P and R keys, restore the
+required `--routes`, and put align back on A.
+
+---
+
+## D161. The public deployment serves the prototype only, through an allow-list `.vercelignore`
+
+**Date.** 13 September 2026. New `.vercelignore` at the repo root. **No application source file, no
+shell asset and no version bump** (D147): nothing a participant loads changes. Under CLAUDE.md's
+rule, a merge carrying only this takes no version number.
+
+**Decision.** `.vercelignore` excludes everything at the top level (`/*`), re-includes
+`index.html`, `manifest.webmanifest`, `sw.js`, `src/` and `assets/`, then excludes
+`src/**/*.test.js` again.
+
+**Why.** There was no `.vercelignore` or `vercel.json`, and the site has no build step, so every
+tracked file was uploaded and served, including:
+- `reference/`, with the Figma source `MSc. UEE Thesis.fig` (11 MB of the repo's deployable weight);
+- `docs/` (DECISIONS, GAPS, the specs, the version log with per-deployment URLs);
+- `scripts/` (the harness, the picker, the seed, the tests);
+- `.claude/` and `CLAUDE.md`;
+- `package.json` and `package-lock.json`;
+- `pick-cover.cmd`;
+- the two model test files inside `src/`.
+
+None of it has a reason to be public.
+
+**Why an allow-list rather than a deny-list.** A deny-list makes any new top-level file public by
+default. An allow-list keeps it private until it is added on purpose, the same deliberate step
+`sw.js`'s `SHELL_ASSETS` already requires for any new runtime file.
+
+**The runtime set is complete.**
+- **Service worker:** `SHELL_ASSETS` lists nothing outside the five re-included paths.
+- **Page load:** `index.html` loads only the four stylesheets, `src/app.js` and icons under
+  `assets/icons/`.
+- **Manifest:** it references only `assets/icons/app/`.
+- **App code:** `src/` has no dynamic import and fetches only `./manifest.webmanifest`.
+- **Mentions elsewhere:** the references to `scripts/`, `docs/` and `CLAUDE.md` in `src/` are comments,
+  plus one developer console message naming `set-app-name.mjs`.
+
+**`package.json` is excluded, after checking the project settings.** `vercel project inspect
+first-home-deposit-ux-prototype` shows framework preset "Other", with the build command, output
+directory and install command all at Vercel's defaults ("`npm run vercel-build` or `npm run build`",
+"`public` if it exists, or `.`", "`npm install` …"). None is a named override. `package.json` has no
+`scripts`, so there was never a build to run, and without the file the install of its Playwright
+devDependencies is skipped rather than failing.
+
+**Verified locally.** Git's gitignore engine was run over every tracked file with this file as the
+exclude list. Vercel's parser follows gitignore syntax, so this is a close model, not the deployment
+itself.
+- **Served:** 62 of 141 files (`index.html`, `manifest.webmanifest`, `sw.js`, 54 files under `src/`,
+  5 under `assets/`).
+- **Excluded:** 79, covering all of `reference/` (35), `scripts/` (23), `docs/` (12), `.claude/` (2),
+  `CLAUDE.md`, `package.json`, `package-lock.json`, `pick-cover.cmd`, `.gitignore` and the two `src/`
+  test files.
+- **Runtime:** no `SHELL_ASSETS` entry is excluded.
+
+The deployment is to be checked by hand on the build preview before merging.
+
+**Not confirmable from outside before deploying.** The bare project hostname returned 404, and
+per-deployment URLs redirect to Vercel's login (deployment protection), so what the current
+deployment serves could not be fetched unauthenticated.
+
+**To reverse.** Delete `.vercelignore`. Every tracked file is served again.

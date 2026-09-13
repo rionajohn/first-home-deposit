@@ -82,13 +82,35 @@ const EARLIEST_MONTHS = Math.ceil(monthsToReachAmount({
 }));
 
 /**
+ * THE CAP CASES' OWN BALANCE, NOT THE SHARED SEED'S (DECISIONS.md D158).
+ *
+ * The cap is only something the list can end at when the balance reaches the
+ * goal unaided inside the twenty-year span. The shared seed used to hold a
+ * hand-typed 21,000 that did that; it now holds what the mock accounts total
+ * (8,950), whose unaided crossing is about 31 years out - past the span, so
+ * the span ends the list and not one cap test would be exercising the cap. So
+ * every cap test below opens with this balance, stated here, and the first of
+ * them fails by name if it ever stops putting the cap inside the span.
+ *
+ * 21,000 because it is the balance D85 and D87 were measured at, so their
+ * recorded tables still describe what these tests open.
+ */
+const CAP_BALANCE = { 'saved-toward-deposit': { value: 21000, provenance: 'read' } };
+const CAP_STATE = { ...FULL, ...CAP_BALANCE };
+const CAP_EARLIEST_MONTHS = Math.ceil(monthsToReachAmount({
+  startingBalance: CAP_STATE['saved-toward-deposit'].value,
+  targetAmount: combinedGoal(CAP_STATE).value,
+  monthlyAmount: CEILING,
+}));
+
+/**
  * THE CAP (D85), computed the way the screen computes it - same function, and
  * rounded DOWN for the reason the screen states: the crossing sits between two
  * months and rounding up readmits the first one whose answer is negative.
  */
 const unaidedFor = (state) => monthsToGoalUnaided(state);
 const CAP_MONTHS = (() => {
-  const u = unaidedFor(FULL);
+  const u = unaidedFor(CAP_STATE);
   return u.error || !Number.isFinite(u.value) ? null : Math.floor(u.value);
 })();
 
@@ -785,15 +807,20 @@ test('the cap rounds DOWN, because rounding up readmits the negative', () => {
   // Asserted on the arithmetic before any screen is opened, so a seed whose
   // crossing lands exactly on a month boundary fails here, naming the fixture,
   // rather than as a mysterious extra option.
-  assert.ok(CAP_MONTHS !== null, 'the shared seed has no cap, so nothing below asserts anything');
-  const atCap = monthlyAmountFromDate(FULL, CAP_MONTHS).value;
-  const past = monthlyAmountFromDate(FULL, CAP_MONTHS + 1).value;
+  assert.ok(CAP_MONTHS !== null, 'CAP_BALANCE has no cap, so nothing below asserts anything');
+  // AND THE CAP IS INSIDE THE SPAN. Past it, the list ends at the span and
+  // every cap test below would pass without ever reaching the cap - which is
+  // exactly what moving the shared seed to the accounts' own total did.
+  const spanYears = dateAtMonths(CAP_MONTHS).targetYear - dateAtMonths(CAP_EARLIEST_MONTHS).targetYear;
+  assert.ok(spanYears <= 20, `CAP_BALANCE puts the cap ${spanYears} years past the floor, beyond the 20-year span, so the span ends the list and not the cap`);
+  const atCap = monthlyAmountFromDate(CAP_STATE, CAP_MONTHS).value;
+  const past = monthlyAmountFromDate(CAP_STATE, CAP_MONTHS + 1).value;
   assert.ok(atCap >= 0, `the solve at the cap month is ${atCap}, which is already negative`);
   assert.ok(past < 0, `the solve one month past the cap is ${past}, so the cap is not where the sign changes`);
 });
 
 test('the year list ends at the cap year and the month list ends at the cap month in it', async () => {
-  const { context, page } = await openAt(CAP_MONTHS);
+  const { context, page } = await openAt(CAP_MONTHS, CAP_BALANCE);
   try {
     const seen = await probe(page);
     const cap = dateAtMonths(CAP_MONTHS);
@@ -808,7 +835,7 @@ test('NO offered pair produces a negative solve, and D2 holds for every one', as
   // The invariant this whole pass exists for, checked at each year's HIGHEST
   // offered month - the complete set of the range's top points, the mirror of
   // the floor test's lowest ones.
-  const { context, page } = await openAt(CAP_MONTHS - 12);
+  const { context, page } = await openAt(CAP_MONTHS - 12, CAP_BALANCE);
   try {
     // THE HIGHEST OFFERED MONTH IS READ OFF THE SCREEN, NOT COMPUTED HERE.
     // Computing it from this file's own cap made the test pass while the screen
@@ -822,7 +849,7 @@ test('NO offered pair produces a negative solve, and D2 holds for every one', as
       const forYear = await probe(page);
       const highest = forYear.monthOptions[forYear.monthOptions.length - 1];
       const months = monthsFromNow(highest, year);
-      const solved = monthlyAmountFromDate(FULL, months).value;
+      const solved = monthlyAmountFromDate(CAP_STATE, months).value;
       const range = rangeFromCentral(solved);
       if (solved < 0) bad.push(`${highest}/${year} solves ${solved.toFixed(2)}`);
       // D2: low < central < high. It holds only for a positive central, and
@@ -860,7 +887,10 @@ test('the list never runs longer than the span, whichever bound is doing the wor
   // so this checks both branches and the no-cap one in the same sweep.
   const YEAR_LIST_SPAN = 20;
   const cases = [
-    ['cap wins (the shared seed)', {}],
+    ['cap wins (CAP_BALANCE)', CAP_BALANCE],
+    // The shared seed, whose own balance is the accounts' total: its crossing
+    // is past the span, so this is the span-wins branch reached from the seed.
+    ['the shared seed (span wins)', {}],
     ['span wins (a far-off crossing)', { 'saved-toward-deposit': { value: 1000, provenance: 'read' } }],
     ['no cap at all', { 'saved-toward-deposit': { value: 0, provenance: 'read' } }],
   ];
@@ -902,7 +932,7 @@ test('a selection above the cap is moved down to it, AND the move is disclosed',
   // silent under D85, which was the D46 gap GAPS.md G102 recorded.
   const { default: content } = await import('../src/content.js');
   const c = content['/calculator/saving'];
-  const { context, page } = await openAt(CAP_MONTHS + 40);
+  const { context, page } = await openAt(CAP_MONTHS + 40, CAP_BALANCE);
   try {
     const seen = await probe(page);
     const cap = dateAtMonths(CAP_MONTHS);
@@ -924,7 +954,7 @@ test('a selection above the cap is moved down to it, AND the move is disclosed',
 });
 
 test('the cap disclosure is a polite status, not an error', async () => {
-  const { context, page } = await openAt(CAP_MONTHS + 40);
+  const { context, page } = await openAt(CAP_MONTHS + 40, CAP_BALANCE);
   try {
     const seen = await probe(page);
     assert.equal(seen.movedRole, 'status');
@@ -942,8 +972,8 @@ test('the cap disclosure appears only when something was MOVED, not on every cap
   // later month used to leave a date past the cap, which the render corrected
   // and announced - a banner saying the app had moved their date when they had
   // just moved it themselves. The year pick clamps at both ends now (D86).
-  for (const months of [CAP_MONTHS, CAP_MONTHS - 20, EARLIEST_MONTHS]) {
-    const { context, page } = await openAt(months);
+  for (const months of [CAP_MONTHS, CAP_MONTHS - 20, CAP_EARLIEST_MONTHS]) {
+    const { context, page } = await openAt(months, CAP_BALANCE);
     try {
       assert.equal((await probe(page)).hasMoved, false, `a disclosure was drawn on arrival at ${months} months, where nothing moved`);
     } finally {
@@ -951,7 +981,7 @@ test('the cap disclosure appears only when something was MOVED, not on every cap
     }
   }
   // And picking the cap year with a later month held: clamped, not announced.
-  const { context, page } = await openAt(CAP_MONTHS - 20);
+  const { context, page } = await openAt(CAP_MONTHS - 20, CAP_BALANCE);
   try {
     const cap = dateAtMonths(CAP_MONTHS);
     await pick(page, 'month', 12);
@@ -971,7 +1001,7 @@ test('the two disclosures are mutually exclusive, and only one banner ever rende
   // flag, so no sequence of renders leaves both set. Seeded with both anyway,
   // which is a state the app cannot produce, to pin what happens if one ever
   // arrives: the floor's wins and exactly one banner is drawn.
-  const { context, page } = await openAt(CAP_MONTHS - 20, { dateMovedToEarliest: true, dateMovedToCap: true });
+  const { context, page } = await openAt(CAP_MONTHS - 20, { ...CAP_BALANCE, dateMovedToEarliest: true, dateMovedToCap: true });
   try {
     const { default: content } = await import('../src/content.js');
     const count = await page.evaluate(() => document.querySelectorAll('#date-moved').length);
@@ -985,8 +1015,8 @@ test('the two disclosures are mutually exclusive, and only one banner ever rende
 });
 
 test('both disclosures clear when the participant picks a date', async () => {
-  for (const [label, months] of [['floor', EARLIEST_MONTHS - 1], ['cap', CAP_MONTHS + 40]]) {
-    const { context, page } = await openAt(months);
+  for (const [label, months, extra] of [['floor', EARLIEST_MONTHS - 1, {}], ['cap', CAP_MONTHS + 40, CAP_BALANCE]]) {
+    const { context, page } = await openAt(months, extra);
     try {
       const before = await probe(page);
       assert.ok(before.hasMoved, `${label}: nothing was disclosed to clear`);
@@ -1008,7 +1038,15 @@ test('both disclosures clear when the participant picks a date', async () => {
 // The empty list: the goal is already met. D85.
 // ---------------------------------------------------------------------------
 
+/**
+ * ITS OWN BALANCE TOO (D158): a 14,000 goal against 21,000 saved. It used to
+ * lean on the shared seed's hand-typed 21,000; against the accounts' own 8,950
+ * the goal is no longer met and this fixture would open an ordinary date list.
+ * The first test below still asserts the arithmetic reaches the empty case
+ * before it opens anything.
+ */
 const GOAL_MET = {
+  'saved-toward-deposit': { value: 21000, provenance: 'read' },
   'deposit-pct': { value: 0.05, provenance: 'entered' },
   'deposit-target': { value: 14000, provenance: 'derived' },
   'combined-goal': { value: 14000, provenance: 'derived' },

@@ -13,9 +13,12 @@
  * WHAT IT IS. A session that has been all the way through the deposit
  * calculator and is now saving toward a committed goal: every figure in
  * `build-spec.md` section 6 set, so no screen bounces back to an earlier one
- * through its own guard. It is deliberately BELOW nothing and past nothing in
- * particular - individual scripts override the two or three keys that select
- * the variant they are looking at, and the base stays the same underneath.
+ * through its own guard. Its saved figure is the accounts' own total, which
+ * puts it BELOW `checkpoint-amount` - the position a real session opens in -
+ * and individual scripts override the two or three keys that select the
+ * variant they are looking at, with the base the same underneath. (Before D158
+ * this said "below nothing", while a hand-typed 21,000 sat exactly AT the
+ * checkpoint.)
  *
  * HOW TO USE IT. Spread it and override:
  *
@@ -53,8 +56,38 @@
  * would undo that, so it keeps its own fixture.
  */
 
+import { accountFigures } from '../src/model/accounts.js';
+
 /** A stored figure: a value and where it came from (build-spec.md section 6). */
 export const f = (v, p = 'read') => ({ value: v, provenance: p });
+
+/**
+ * THE THREE FIGURES THE ACCOUNTS DECIDE, READ FROM THE ACCOUNTS (DECISIONS.md
+ * D158, amending D43).
+ *
+ * `saved-toward-deposit`, `emergency-fund` and `unassigned` are what the mock
+ * accounts total under their default filing - the same `accountFigures()`
+ * frames 03 and 06 compute, so the seed cannot disagree with them. They were
+ * hand-typed (21,000, 4,200 and 800) against accounts that total 8,950, 5,600
+ * and 2,400, and frame 06 rewrites any stored figure that differs from the
+ * accounts on render: a seeded session showed one saved figure until it
+ * visited "Where you stand" and another afterwards. build-spec.md makes the
+ * accounts the source (frames 03 and 03b recalculate these), and D48 says the
+ * saved figure IS the sum of the four deposit accounts.
+ *
+ * A script that needs a different balance - the date list's cap, a goal
+ * already met - states its own override. It must not lean on this one.
+ */
+const ACCOUNTS = accountFigures({});
+
+/**
+ * `borrow-high` is shared by the stored range and `max-property`, which
+ * build-spec.md section 4 defines as borrow-high + saved-toward-deposit. Both
+ * borrow figures are hand-typed fixture values (the model's own `borrowRange()`
+ * gives a different range for this seed - GAPS.md G139); `max-property` is
+ * held consistent with the range the seed actually stores.
+ */
+const BORROW_HIGH = 189000;
 
 /**
  * THE SESSION ANCHOR EVERY HARNESS MUST SEED (DECISIONS.md D97).
@@ -80,7 +113,10 @@ export const SEED_ANCHOR = (() => {
 export const FULL = {
   // --- Section 5: the monthly position, read from the connected accounts ----
   'money-in': f(2600), 'essential-spending': f(1450), 'left-over': f(1150, 'derived'),
-  'saved-toward-deposit': f(21000), 'emergency-fund': f(4200), unassigned: f(800),
+  // From the accounts, not typed here. See ACCOUNTS above.
+  'saved-toward-deposit': ACCOUNTS['saved-toward-deposit'],
+  'emergency-fund': ACCOUNTS['emergency-fund'],
+  unassigned: ACCOUNTS.unassigned,
 
   // --- Section 6: the deposit goal, committed through the calculator -------
   'property-value': f(280000, 'entered'), 'deposit-pct': f(0.1, 'entered'),
@@ -90,8 +126,9 @@ export const FULL = {
   // really is nothing, and `combined-goal` really does equal `deposit-target`.
   // The figure is not invented to make the seed interesting - a fixture that
   // disagreed with `stampDuty()` would be worse than one that exercises the
-  // zero case. `checkpoint-amount` below stays 21,000 because 0.75 x 28,000 is
-  // unchanged by a zero tax. The NON-zero case is exercised by
+  // zero case. `checkpoint-amount` below is 21,000 because 0.75 x 28,000 is
+  // unchanged by a zero tax - derived from the goal, not from the saved figure,
+  // so it did not move when the saved figure became the accounts' 8,950 (D158). The NON-zero case is exercised by
   // overlap.test.mjs's own `15-stamp-duty` row, which is that script's
   // override rather than a change here.
   'stamp-duty': f(0, 'entered'), 'combined-goal': f(28000, 'derived'),
@@ -116,8 +153,9 @@ export const FULL = {
   'on-track-for': f({ low: 14, high: 17 }, 'derived'),
 
   'checkpoint-amount': f(21000, 'derived'),
-  'borrow-low': f(168000, 'estimated'), 'borrow-high': f(189000, 'estimated'),
-  'max-property': f(210000, 'estimated'),
+  'borrow-low': f(168000, 'estimated'), 'borrow-high': f(BORROW_HIGH, 'estimated'),
+  // 197,950: borrow-high + the accounts' saved figure (build-spec.md section 4).
+  'max-property': f(BORROW_HIGH + ACCOUNTS['saved-toward-deposit'].value, 'estimated'),
 
   // --- Section 7 and the flow flags ----------------------------------------
   calculatorEntered: true, goal: 'house', checkRunAt: '2026-08-20T10:00:00.000Z',

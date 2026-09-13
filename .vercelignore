@@ -1,0 +1,24 @@
+# What the public deployment serves: the prototype, and nothing else.
+# DECISIONS.md D161.
+#
+# AN ALLOW-LIST. Everything at the top level is excluded, then the paths the
+# app loads at runtime are let back in. A new top-level file or folder is
+# therefore private until it is added here on purpose - the same deliberate
+# step sw.js's SHELL_ASSETS already asks of any new runtime file.
+#
+# The runtime set is index.html, manifest.webmanifest, sw.js, src/ and assets/:
+# SHELL_ASSETS lists nothing outside them, index.html and the manifest load
+# nothing outside them, and src/ has no dynamic import and fetches only
+# ./manifest.webmanifest. Kept private as a result: docs/, scripts/,
+# reference/ (including the Figma source), .claude/, CLAUDE.md, package.json
+# and package-lock.json, pick-cover.cmd.
+
+/*
+!/index.html
+!/manifest.webmanifest
+!/sw.js
+!/src
+!/assets
+
+# The model tests live beside the model; the app never loads them.
+src/**/*.test.js

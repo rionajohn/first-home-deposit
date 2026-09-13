@@ -3690,6 +3690,13 @@ What changed is how many are visible without scrolling. If this entry is reprodu
 list to a far year, that now takes more scrolling on an ordinary visit than the original report
 implies - so a reproduction that fails to reach the year is a shorter list, not a fixed defect.
 
+**Amended 13 September 2026 (DECISIONS.md D158).** "The shared seed" throughout this entry is the seed
+as it was, holding a hand-typed £21,000 saved. That applies to the December 2042 reproduction, the
+"£21,000 already saved" mechanism, the frame 11 row committing `checkpoint-amount` 21,000, the
+sensitivity table's baseline, and the 5% goal-met case. The seed now holds the accounts' own £8,950.
+The measurements stand for a £21,000 balance and are not today's seed: reproduce them with
+`--saved=21000`, or through the cap and goal-met error states, which carry that balance explicitly.
+
 ---
 
 ## G99. `rangeFromCentral` inverts on a negative central, and nothing enforces its own precondition
@@ -3733,6 +3740,12 @@ the standing precedent: a defect that stops reproducing is harder to find, not s
 the function enforcing the precondition its own comment states - returning an error for a non-positive
 central, the way the rest of `model.js` does, rather than silently returning a range that is the wrong
 way round.*
+
+**Amended 13 September 2026 (DECISIONS.md D158).** The frame 12 figures above (£21,483 against £21,415
+at 12 months) grew from the shared seed's then £21,000 saved. The seed now holds the accounts' own
+£8,950, so the same chart on today's seed starts lower. The inversion is unaffected, because it is a
+property of `rangeFromCentral` and not of any balance. A reproduction at those figures needs
+`--saved=21000`.
 
 ---
 
@@ -5748,3 +5761,211 @@ its own entry, not the completion of this one.**
 
 *Status: **closed**. The paint is gone, the geometry fix that made it unnecessary is D150 and D151,
 and the diagnostic that found it stays by choice.*
+
+---
+
+## G136. No deployment can ever match its own row, so frame 33's "current" chip never lights. OPEN - REPORT ONLY
+
+*Found 10 September 2026 while completing the v10 merge, by checking a claim rather than assuming
+it: `version-chips.test.mjs` was expected to stop skipping its current-build case once a row finally
+carried the running build. It did not, and the reason is structural.*
+
+### What is wrong
+
+`currentDeployment(buildVersion)` matches a row's `build` stamp against the running
+`BUILD_VERSION`. **The two can never be equal, on either branch**, because of how the deploy
+procedure is sequenced:
+
+- **On `main`.** v10 shipped `BUILD_VERSION` `v140` at commit `5bece4c`. Its `deployments.js` row -
+  which records `build: 'v140'` correctly - is written in the step 8 commit, and step 8 says that
+  commit **is not merged forward as part of this deployment**. So production runs `v140` against a
+  `deployments.js` whose newest row is v9. Verified: `git show main:src/deployments.js` contains no
+  row with `build: 'v140'`.
+- **On `build`.** Step 8 also bumps, because `src/deployments.js` is in `SHELL_ASSETS`. So the
+  moment the v10 row naming `v140` exists, the branch it exists on is running `v141`.
+
+The row is correct in both places. The running build has simply moved past it by the time it is
+written, in one case, and not yet reached it in the other.
+
+### It is not fixed by the next deployment either
+
+v11 will merge v10's completed row forward, so production will then hold a row naming `v140` - while
+running whatever v11 ships. The mismatch travels with each deployment rather than closing.
+
+### Consequences, both small
+
+- **Frame 33 never draws the `--current` chip.** Every deployment renders as a selectable link,
+  including the one being looked at. `currentDeployment()` returning `null` is documented as a real
+  state, and the screen handles it correctly, so nothing breaks - the facilitator just gets no
+  marker for "you are here".
+- **`version-chips.test.mjs` skips its last case permanently.** It skips itself with a truthful
+  message (`no row carries build v141, so no chip is current`), so the suite stays honest, but that
+  one assertion has never actually executed and cannot under the current sequence.
+
+### Why it is reported and not fixed
+
+The obvious fixes each break something the procedure exists to protect:
+
+- **Write the next build stamp in the row** (`v141` here). The row would then name a build that
+  deployment did not ship, which is the one thing `deployments.js`'s own header says this data cannot
+  do: *"a constructed URL would be plausible and wrong, which is the one failure this data cannot
+  have."* The same applies to a constructed build stamp.
+- **Skip the bump at step 8.** `deployments.js` is a shell asset, and `sw.js` is cache-first with no
+  revalidation - an unchanged version leaves an earlier shell on the `build` alias for a returning
+  participant. D147 exists because of exactly that.
+- **Merge step 8 forward.** This is what G134 records as having corrupted four Commit cells: merging
+  after the commit was read is what moved `main` past the recorded value.
+
+A real fix probably means deriving "current" from something that is not the build stamp - the
+deployment URL the app is being served from would do it, and is available at runtime - but that is a
+design change to `deployments.js` and D140's chip contract, not a correction to a row.
+
+*Status: **open, report only**. Nothing shipped is wrong: every row records what its deployment
+actually ran, and the screen behaves correctly when nothing matches. Recorded so the permanent skip
+in `version-chips.test.mjs` is understood as a known structural gap rather than read as a test that
+merely has not been exercised yet.*
+
+---
+
+## G137. Frame 12's year labels read the session anchor as UTC. OPEN - WORKED AROUND IN THE HARNESS ONLY
+
+*Found 13 September 2026 while diagnosing whether screenshot captures could pin a reference date
+(DECISIONS.md D156). This is the same defect class as G111 and G120, in a place their fix did not
+reach.*
+
+### What is wrong
+
+`yearLabelsFor()` in `src/screens/calculator-result.js:97-98` builds its base date with
+`new Date(anchorDate)`, where `anchorDate` is the `YYYY-MM-DD` `sessionAnchor`. A date-only ISO
+string is parsed as **midnight UTC**, so in any timezone west of UTC that instant falls on the
+previous local day. Near a month boundary it is the previous month, and on 1 January the previous
+year. The loop then reads `getFullYear()`/`getMonth()` in local time, so each January label lands
+one month late.
+
+`format.js` already has the fix for this: `localDate(stamp)` (`format.js:128`) splits the stamp and
+builds a local date. The month-offset helpers use it, and `yearLabelsFor()` does not.
+
+### Evidence
+
+Checked in a scratch browser run during the D156 diagnosis. Anchor `2027-01-01`, frame 12's year
+labels:
+
+- `Europe/London`: 2028 at month 12, 2029 at 24, 2030 at 36.
+- `America/New_York`: 2027 at month 1, 2028 at 13, 2029 at 25. Every label is one month late, and
+  a 2027 label appears that London does not draw.
+
+### Who it reaches
+
+A participant whose device is set to a timezone west of UTC, on a session anchored within a day of
+a month boundary. Sessions are UK-based, so the reachable case is narrow, but it is invisible when it
+happens: the labels still read as plausible years.
+
+### What was done instead of a fix
+
+Nothing in `src/` is changed. The capture harness pins its timezone to `Europe/London` alongside its
+reference date (D156), so screenshots come out the same on any machine. **That works around the read
+for captures only.** It does not change what a participant's device renders.
+
+### To close
+
+Replace `new Date(anchorDate)` in `yearLabelsFor()` with `localDate(anchorDate)`, which will need
+exporting from `format.js` or an equivalent local parse. That is a shell asset change: `CACHE_VERSION`
+bump, D147. Then add a timezone case to a frame 12 test, since nothing currently runs the app outside
+the machine's own zone.
+
+*Status: **open**. Logged so the workaround in `scripts/shots.mjs` is not mistaken for the fix.*
+
+---
+
+## G138. The shared seed's monthly position is hand-typed and disagrees with the mock accounts. OPEN - REPORT ONLY
+
+*Found 13 September 2026 while diagnosing the seed's saved figure (DECISIONS.md D158). D158 moved the
+three account totals onto the accounts and deliberately left this alone.*
+
+### What is wrong
+
+`scripts/session-seed.mjs` types the monthly position by hand. `src/model/accounts.js`
+`MOCK_POSITION` is the source the app itself reads for the same figures, and the two disagree:
+
+| Figure | Seed (`FULL`) | `MOCK_POSITION` |
+| --- | --- | --- |
+| `money-in` | 2,600 | `moneyIn` 2,500 (the home screen's "+£2,500.00" salary) |
+| `essential-spending` | 1,450 | `essentialSpending` 1,860 |
+| `left-over` | 1,150 (`derived`) | 640 (2,500 - 1,860) |
+
+So a seeded session shows £1,150 left over on frame 05 and frame 10, and £1,150 as frame 10b's
+ceiling. That doesn't match the +£2,500 salary on the home screen or the position a real session
+opens with. It is the same kind of drift the saved figure had: a harness fixture typed once and never
+tied to the data it stands for.
+
+### Why it was not fixed with D158
+
+It reaches much further than the saved figure did. Frame 10b's floor is set at `left-over`, and
+`date-ceiling.test.mjs`'s floor tests, `shots.mjs`'s `saving-ceiling`/`review-*` error states and
+D87's recorded floor years are all built on 1,150. It is its own change with its own blast radius,
+and should be measured before it is made, as D158 was.
+
+*Status: **open, report only**.*
+
+---
+
+## G139. Other derived figures in the shared seed are typed by hand and the model disagrees with them. OPEN - REPORT ONLY
+
+*Found 13 September 2026 with G138, while choosing how D158 should set `max-property`.*
+
+### What is wrong
+
+Four more stored figures in `scripts/session-seed.mjs` are typed by hand, and the model gives
+different values for the seed's own inputs (measured after D158):
+
+| Figure | Seed | Model, same session |
+| --- | --- | --- |
+| `borrow-low` / `borrow-high` | 168,000 / 189,000 | `borrowRange()` 226,800 / 277,200 |
+| `months-to-target` | 14 | `monthsToTarget()` 34.2 |
+| `on-track-for` | { low 14, high 17 } | `onTrackFor()` { low 31, high 38 } |
+
+- **The borrow range is rendered from the stored keys** by frame 20 (`mip-result-likely.js:63-64`), so
+  a seeded frame 20 shows a range the model would not produce.
+- **`max-property`:** D158 set it to 197,950, the stored `borrow-high` plus the accounts' 8,950, which
+  is build-spec.md section 4's formula applied to the range the seed actually stores. The model's
+  `maxProperty()` gives 286,150 from its own range.
+- **`months-to-target` and `on-track-for`:** the seed's comment says every consumer recomputes these
+  from the model and never reads the stored key. If that holds, the drift is invisible on screen, but
+  the fixture still teaches wrong values to anything that reads the keys.
+
+### To close
+
+Set the seed's borrow range and projections from the model, the way D158 set the account totals, and
+measure what moves before doing it. Frame 20's range and every capture of it would change.
+
+*Status: **open, report only**.*
+
+---
+
+## G140. Playwright is imported by the harness and tests but declared nowhere. CLOSED - DECLARED AS A DEVDEPENDENCY
+
+*Found 13 September 2026 while diagnosing a `npm run dev` failure, which turned out to belong to
+another repo: this repo has never had a `scripts` block.*
+
+### What was wrong
+
+`package.json` (unchanged since `ac18b2c`, 19 August 2026) declared no dependencies at all, and the
+tracked `package-lock.json` (`7526dc6`) listed only the root package. Fifteen tracked files import
+`playwright`: `shots.mjs`, `pick-cover.mjs`, `inset-shots.mjs` and twelve browser-driven test suites.
+They ran only because `node_modules/` held a local install of `playwright` 1.62.1. A fresh clone plus
+`npm install` would have installed nothing, and every one of them would have failed at its import.
+
+### What was done
+
+`playwright` is declared in `devDependencies`, pinned exactly to `1.62.1`: the version every capture,
+byte-identical check and the picker's layout match (D155-D160) was verified on. A newer Playwright
+ships a different Chromium, so a range would allow a silent change of rendering engine.
+`@playwright/test` is not added; nothing imports it, and the suites use `node:test`.
+
+This is within CLAUDE.md's "No runtime npm dependencies. Dev dependencies for screenshots and tests
+only." The prototype loads nothing from `node_modules/`.
+
+The browsers are a separate setup step, because `npm install` does not download them; see CLAUDE.md's
+Commands list.
+
+*Status: **closed** by the `devDependencies` entry; `package-lock.json` regenerated in the same commit.*

@@ -93,7 +93,7 @@ their own devices; two participants seeing different palettes is a confound, not
 | `--color-accent` | `#007aff` | systemBlue - **defined, never used**; reserved for a future Brand theme |
 | `--color-accent-neutral` | `#4d4d55` | The Greyscale theme's "on" colour: checked box, selected chip/pill, slider fill, progress fill, **focus ring** |
 | `--color-warning` | `#d63228` | Warning-banner border and text |
-| `--color-canvas` | `#e5e5ea` | Page behind the device frame (≥768px) |
+| `--color-canvas` | `#ffffff` | Page behind the device frame (≥768px); flat white, and the bezel carries no shadow (D153) |
 
 **Accessibility pass:** `label-tertiary`, `warning`, `border-strong`, `action-secondary-border` were
 darkened from their Figma values to clear WCAG 2.2 AA (4.5:1 text, 3:1 non-text UI), measured with a
@@ -139,8 +139,8 @@ un-tokenised - see [Drift](#drift).
 | `--radius-full` | 999px | Chips, pills, progress track, radio circle |
 | `--radius-device` | 55px | Device bezel (`shell.css` only) |
 
-**Elevation: there is none.** The only `box-shadow` in the entire codebase is on `.device-bezel`
-(`shell.css:279`) - the drop shadow under the mocked phone at ≥768px. Depth inside the app is
+**Elevation: there is none.** `.device-bezel` carried the one drop shadow, under the mocked phone at
+≥768px, until D153 removed it for a flat white screenshot surround. Depth inside the app is
 carried by surface colour and 1px borders, never by shadow. **A new component should not introduce
 one.**
 

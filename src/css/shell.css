@@ -421,9 +421,8 @@ body::-webkit-scrollbar,
        phone would, rather than it spilling onto the page. */
     overflow: hidden;
     background: #1c1c1e; /* neutral surround, deliberately theme-independent */
-    box-shadow:
-      0 24px 60px rgba(0, 0, 0, 0.28),
-      0 2px 10px rgba(0, 0, 0, 0.16);
+    /* No box-shadow (DECISIONS.md D153): the surround is flat white, and the
+       #1c1c1e ring alone separates the phone from it. */
   }
 
   .screen {

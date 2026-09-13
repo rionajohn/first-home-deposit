@@ -80,10 +80,12 @@
  *              buyer relief (up to 500,000) or with it lost (above 500,000).
  *              See DECISIONS.md D70.
  *                                                default the seed's own value
- *   --saved    Deposit balance to seed, in pounds. The shared seed sits
- *              exactly AT the checkpoint, where both skip-ahead positions show
- *              the same figure; `--saved=12000` puts the session below it so
- *              `--state=now,ahead` shoots the two apart.
+ *   --saved    Deposit balance to seed, in pounds. The shared seed holds the
+ *              accounts' own total (8,950 - D158), which is below the checkpoint,
+ *              so `--state=now,ahead` already shoots the two positions apart.
+ *              Pass a balance at or above `checkpoint-amount` (21,000) to see
+ *              the two show the same figure. Screens that recompute from the
+ *              accounts (frames 03 and 06) ignore it.
  *                                                default the seed's own value
  *   --goal     `set` or `none`. `none` clears the committed deposit goal, a
  *              state the late-journey seed cannot otherwise reach. Needed to
@@ -139,7 +141,11 @@
  *                                      a 5% deposit puts the goal below what
  *                                      is already saved, so the cap sits
  *                                      behind the floor and the control is
- *                                      replaced by a statement (D85).
+ *                                      replaced by a statement (D85). This and
+ *                                      the two cap states open with their own
+ *                                      21,000 balance, and fail the run if the
+ *                                      model says they would not show their
+ *                                      state (D158).
  *                saving-moved-to-cap   frame 10b with a date PAST the cap, which
  *                                      the screen moves down to it and
  *                                      discloses (D86). The mirror of
@@ -218,6 +224,13 @@
  *              load. `--saved`, `--goal` and `--draft` all seed, so they are
  *              refused with `opening` rather than silently ignored.
  *                                                    default seeded
+ *   --today    `pinned` or `real`. `pinned` runs the app at noon on
+ *              `CAPTURE_TODAY` in Europe/London - browser clock, seeded
+ *              session anchor and the 10b date helpers together - so a
+ *              date-bearing screen captures the same on any day (D156).
+ *              `real` uses the machine's clock and timezone, as before, and
+ *              adds `today-real` to the file name.
+ *                                                    default pinned
  *   --stage    `setting-up`, `saving` or `ready-to-check` - frame 33's Journey
  *              stage (DECISIONS.md D45). Applied by PRESSING the real control
  *              on `#/settings`, the same way `--state=ahead` presses the real
@@ -240,15 +253,27 @@
  *              it. That is D12 working correctly, not a bug to route around.
  *              Same reason `--state=ahead` and `--stage` press their controls.
  *                                                       default none
- *   --scroll   `top`, `end`, or a CSS selector (anything starting `.` or `#`),
- *              which is centred in the viewport - for an element in the middle
- *              of a long screen that neither end reaches.
+ *   --scroll   `top`, `end`, or a CSS selector (anything starting `.`, `#` or
+ *              `[`), which is an ANCHOR - for an element in the middle of a
+ *              long screen that neither end reaches. DECISIONS.md D155. The
+ *              selector must match exactly one element, inside the active
+ *              scroller (`.bottom-sheet__content` or `.screen-content`), or the
+ *              run fails; so does an anchor the scroller cannot bring to the
+ *              requested alignment, or one that ends up not wholly visible
+ *              between the pinned header and the dock's fade. A selector with
+ *              a comma in it cannot be given, because the option splits on
+ *              commas. See `anchorScroll`.
  *              Otherwise: where the screen's scroller is left before the
  *              shot. An axis like the others, so `--scroll=top,end` shoots
  *              both. Added for the screens whose bottom edge is the thing
  *              under review: what clears the tab bar at the end of a long
  *              screen, and whether a dock's `--more-below` fade is drawn.
  *                                                       default top
+ *   --scroll-align  `center` or `start`: where a `--scroll` selector's anchor
+ *              is placed. `center` centres it in the scroller; `start` puts its
+ *              top edge where the scroller's first content sits at the top of
+ *              the screen, just below the pinned header.
+ *                                                    default center
  *   --out      Output directory.                  default .screenshots/shots
  *   --figures  Also dump every currency string each screen actually rendered,
  *              to stdout and to `figures.txt` beside the PNGs. Read from the
@@ -260,13 +285,18 @@
  *   --full     Capture the whole scroller rather than the viewport.
  *   --no-sheet Skip the contact sheet.
  *   --scale    Device pixel ratio.                       default 2
- *   --cover    A cover image: the phone alone, centred, with its whole drop
- *              shadow on flat `--color-canvas` ground. Widens the viewport to
+ *   --cover    A cover image: the phone alone, centred, on a fully
+ *              transparent ground with no drop shadow, whatever the live page
+ *              paints behind the frame (DECISIONS.md D154). Widens the viewport to
  *              the framed breakpoint if `--width` is narrower (no phone is
  *              drawn below it), pins the frame to scale 1, and clips to
  *              `.device-bezel`'s rendered box plus `--cover-margin` on every
  *              side. See `prepareCover`. Refused with `--full`, `--fit=content`
- *              and `--stitch=scroll`.
+ *              and `--stitch=scroll`. The window opens at the size the clip
+ *              needs (`coverViewport`), and the run fails if the app has left
+ *              the route by the time the capture is taken (D155). Infinite
+ *              animations are paused at their first frame on every capture,
+ *              cover or not (D157).
  *   --cover-margin  Ground around the bezel in a `--cover` shot, in CSS px
  *              at frame scale 1.                         default 120
  *
@@ -290,6 +320,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { chromium, webkit } from 'playwright';
 import { FULL } from './session-seed.mjs';
+import { anchorRules, isAnchorSelector } from './anchor-rules.mjs';
 import { STAGES } from '../src/stage.js';
 import { MOCK_ACCOUNTS, GROUP_ORDER } from '../src/model/accounts.js';
 import { BUILD_VERSION } from '../src/cache-version.js';
@@ -367,9 +398,14 @@ const DEFAULTS = {
   build: '',
   // TEMPORARY, with src/diagnostics.js: `open` presses the Diagnostics chip.
   diag: '',
-  // Only read with `--cover`. 120 clears the first shadow layer on
-  // `.device-bezel` (shell.css, `0 24px 60px`), which reaches about 84px below
-  // the bezel at frame scale 1.
+  // `pinned` or `real`: the date the captured app believes it is (D156).
+  today: 'pinned',
+  // Only read when `--scroll` names a selector. `center` is the behaviour
+  // `--scroll` has always described; `start` is D155's addition.
+  'scroll-align': 'center',
+  // Only read with `--cover`. 120 was chosen to clear the drop shadow
+  // `.device-bezel` carried until DECISIONS.md D153 removed it; it is now
+  // transparent ground around the bezel at frame scale 1 (D154).
   'cover-margin': '120',
 };
 
@@ -403,9 +439,48 @@ function parseArgs(argv) {
 
 const list = (value) => value.split(',').map((s) => s.trim()).filter(Boolean);
 
+/**
+ * CAPTURE_TODAY: THE DATE EVERY CAPTURE IS MEASURED FROM. DECISIONS.md D156.
+ *
+ * Projected dates are counted from the session anchor, and the anchor from
+ * the clock (D97), so without this a capture of any date-bearing screen - the
+ * tracker's "On track for", frame 12's years, frame 10b's lists, frame 33's
+ * caption - changed with the calendar and no re-run reproduced it. Every
+ * capture now runs against this date instead, applied in three places that
+ * must agree: the browser clock (`clock.setFixedTime`, before the first load),
+ * the seeded `sessionAnchor` (`load()` discards an anchor whose month is not
+ * the clock's month, silently, into a different session), and the Node-side
+ * date helpers below that seed frame 10b's targets.
+ *
+ * WHY THIS DATE. In the past, so no capture claims a day that has not
+ * happened. Mid-month and at noon, so no timezone offset can move it into
+ * another month. On or after every dated constant a screen shows beside it -
+ * `RATES.asAt` (30 July 2026) and the August 2026 figures in model/rates.js -
+ * and after every deployment in src/deployments.js (the latest 10 September
+ * 2026), so frame 33 never shows a session dated before a build it lists.
+ *
+ * THE TIMEZONE IS PINNED WITH IT. `calculator-result.js` reads the anchor
+ * through `new Date('YYYY-MM-DD')`, which is UTC, so frame 12's year labels
+ * shift in a timezone west of UTC (GAPS.md G137). Fixing the zone here keeps
+ * captures identical on any machine; it works around that read and does not
+ * fix it.
+ *
+ * Here, in shots.mjs, and NOT in session-seed.mjs: the tests import the seed,
+ * and they assert against the real date (stale-session.test.mjs among them).
+ * `--today=real` opts a run out and uses the machine's clock and zone, as
+ * before D156.
+ */
+const CAPTURE_TODAY = '2026-09-12';
+const CAPTURE_TIMEZONE = 'Europe/London';
+
+/** "Now" as the captured app sees it: noon on CAPTURE_TODAY, or the real clock under `--today=real`. */
+function captureNow() {
+  return args.today === 'real' ? new Date() : new Date(`${CAPTURE_TODAY}T12:00:00`);
+}
+
 /** The month/year a date `n` months from today lands on - for the 10b date states. */
 function monthsFromToday(n) {
-  const now = new Date();
+  const now = captureNow();
   const d = new Date(now.getFullYear(), now.getMonth() + n, 1);
   return { targetMonth: d.getMonth() + 1, targetYear: d.getFullYear() };
 }
@@ -433,18 +508,53 @@ function goalAt(pct) {
  * D85's cap in whole months: the month the balance reaches the goal unaided,
  * rounded DOWN the way the screen rounds it. Null where there is none.
  */
-function capMonths() {
-  const unaided = monthsToGoalUnaided(FULL);
+function capMonths(state = FULL) {
+  const unaided = monthsToGoalUnaided(state);
   return unaided.error || !Number.isFinite(unaided.value) ? null : Math.floor(unaided.value);
 }
 
-function boundMonths() {
+function boundMonths(state = FULL) {
   const months = monthsToReachAmount({
-    startingBalance: FULL['saved-toward-deposit'].value,
-    targetAmount: combinedGoal(FULL).value,
-    monthlyAmount: FULL['left-over'].value,
+    startingBalance: state['saved-toward-deposit'].value,
+    targetAmount: combinedGoal(state).value,
+    monthlyAmount: state['left-over'].value,
   });
   return Number.isFinite(months) ? Math.max(0, Math.ceil(months)) : 0;
+}
+
+/**
+ * THE BALANCE THE CAP AND GOAL-MET ERROR STATES OPEN WITH (DECISIONS.md D158).
+ *
+ * Their own, stated here, not the shared seed's. The seed holds the accounts'
+ * 8,950, whose unaided crossing is past frame 10b's twenty-year year list - so
+ * the span ends the list, no date is ever moved to a cap, and a 14,000 goal is
+ * not met. 21,000 puts the cap inside the span and above that goal, and is the
+ * balance D85 and D87 were measured at.
+ */
+const CAP_BALANCE = { 'saved-toward-deposit': { value: 21000, provenance: 'read' } };
+
+/** Frame 10b's year list runs at most this many years past the floor year (`YEAR_LIST_SPAN`, calculator-saving.js). */
+const YEAR_LIST_SPAN = 20;
+
+/**
+ * A NAMED STATE THAT WOULD NOT SHOW ITSELF FAILS THE RUN. A capture called
+ * `saving-near-cap` that silently shows an ordinary list is worse than no
+ * capture: it is believed.
+ */
+function requireState(name, holds, why) {
+  if (!holds) throw new Error(`--error=${name} would not show the state it is named for: ${why}.`);
+}
+
+/** The cap at CAP_BALANCE, required to be inside the year list's span. */
+function requireCapInSpan(name) {
+  const state = { ...FULL, ...CAP_BALANCE };
+  const cap = capMonths(state);
+  requireState(name, cap !== null, 'the balance never reaches the goal unaided, so there is no cap');
+  const floorYear = monthsFromToday(boundMonths(state)).targetYear;
+  const capYear = monthsFromToday(cap).targetYear;
+  requireState(name, capYear <= floorYear + YEAR_LIST_SPAN,
+    `the cap year ${capYear} is past the span, which ends at ${floorYear + YEAR_LIST_SPAN}, so the span ends the list and not the cap`);
+  return { cap };
 }
 
 const args = parseArgs(process.argv.slice(2));
@@ -540,13 +650,13 @@ const ROUTES = SURVEY_MODE
 /**
  * `--saved` moves the session's deposit balance before anything is rendered.
  *
- * IT EXISTS BECAUSE `--state=now,ahead` IS OTHERWISE NEARLY INERT. The shared
- * seed sits exactly AT `checkpoint-amount`, so "Now" and "Further along" put
- * the same figure on screen and the only difference between the two shots is
- * which segment is filled. Passing a balance below the checkpoint - the
- * position the control was built to move a session out of - makes the two
- * states show what they actually do. The default is the seed's own value, so
- * this changes nothing unless it is asked for.
+ * IT WAS ADDED BECAUSE `--state=now,ahead` WAS NEARLY INERT: the shared seed
+ * then sat exactly AT `checkpoint-amount` on a hand-typed 21,000, so "Now" and
+ * "Further along" put the same figure on screen. Since D158 the seed holds the
+ * accounts' own 8,950, below the checkpoint, so the two states differ without
+ * it. It stays for any other balance a shot needs - including one at or past
+ * the checkpoint. The default is the seed's own value, so this changes nothing
+ * unless it is asked for.
  */
 const SAVED = args.saved === '' ? null : Number(args.saved);
 
@@ -720,20 +830,27 @@ const ERROR_STATES = {
     'monthly-low': { value: FULL['left-over'].value + 100, provenance: 'entered' },
     'monthly-high': { value: FULL['left-over'].value + 400, provenance: 'entered' },
   }),
-  'saving-goal-met': () => ({
-    // A 5% deposit on the seed's own property: a 14,000 goal against 21,000
-    // already saved. Derived through the model rather than written here, so it
-    // follows the seed.
-    ...goalAt(0.05),
-  }),
-  'saving-moved-to-cap': () => ({
-    // Forty months past the cap, computed from the model so it is past it
-    // whatever the seed holds.
-    ...monthsFromToday((capMonths() ?? 0) + 40),
-  }),
-  'saving-near-cap': () => ({
-    ...monthsFromToday(capMonths() ?? 0),
-  }),
+  'saving-goal-met': () => {
+    // A 5% deposit on the seed's own property - a 14,000 goal - against the
+    // state's OWN 21,000 balance (D158). It leaned on the shared seed's
+    // hand-typed 21,000 until that became the accounts' 8,950, below 14,000.
+    const extra = { ...CAP_BALANCE, ...goalAt(0.05) };
+    const state = { ...FULL, ...extra };
+    requireState('saving-goal-met', state['saved-toward-deposit'].value >= combinedGoal(state).value,
+      `${state['saved-toward-deposit'].value} saved does not meet the ${combinedGoal(state).value} goal`);
+    return extra;
+  },
+  'saving-moved-to-cap': () => {
+    // Forty months past the cap, computed from the model, at a balance whose
+    // cap is inside the year list's span (D158) - otherwise the span ends the
+    // list, nothing is moved to the cap, and the shot shows an ordinary list.
+    const { cap } = requireCapInSpan('saving-moved-to-cap');
+    return { ...CAP_BALANCE, ...monthsFromToday(cap + 40) };
+  },
+  'saving-near-cap': () => {
+    const { cap } = requireCapInSpan('saving-near-cap');
+    return { ...CAP_BALANCE, ...monthsFromToday(cap) };
+  },
   'saving-span-wins': () => ({
     // Barely anything saved, so the balance takes ninety years to reach the
     // goal unaided and the twenty-year span is the tighter of the two bounds.
@@ -756,7 +873,7 @@ const ERROR_STATES = {
   }),
   'saving-past-date': () => ({
     targetMonth: 1,
-    targetYear: new Date().getFullYear() - 1,
+    targetYear: captureNow().getFullYear() - 1,
   }),
   'review-property': () => ({ 'property-value': { value: 0, provenance: 'entered' } }),
   'review-pct': () => ({ 'deposit-pct': { value: 0.99, provenance: 'entered' } }),
@@ -773,6 +890,16 @@ const ERROR_STATES = {
 };
 if (!(args.error in ERROR_STATES)) {
   console.error(`Unknown --error "${args.error}". One of: ${Object.keys(ERROR_STATES).join(', ')}.`);
+  process.exit(1);
+}
+// FRAME 10b'S STATES ONLY EXIST ON THE DATE PATH, which is `--solve=amount`
+// (solve for the amount, given a date). The default `--solve=date` draws the
+// monthly slider, so each of these used to produce a PNG of frame 10 with its
+// named state nowhere on it, and exit 0 (found with D158). Refused instead.
+const DATE_PATH_ERRORS = ['saving-goal-met', 'saving-moved-to-cap', 'saving-near-cap', 'saving-span-wins',
+  'saving-narrow-list', 'saving-date-below-bound', 'saving-past-date'];
+if (DATE_PATH_ERRORS.includes(args.error) && args.solve !== 'amount') {
+  console.error(`--error=${args.error} is a frame 10b state and only renders on the date path. Add --solve=amount; with --solve=${args.solve} the screen draws the monthly slider and the state is not on it.`);
   process.exit(1);
 }
 const ENTRIES = list(args.entry);
@@ -798,11 +925,17 @@ for (const state of STATES) {
     process.exit(1);
   }
 }
+const isAnchor = isAnchorSelector;
 for (const scroll of SCROLLS) {
-  if (scroll !== 'top' && scroll !== 'end' && !scroll.startsWith('.') && !scroll.startsWith('#')) {
-    console.error(`Unknown --scroll "${scroll}". One of: top, end, or a CSS selector starting . or #.`);
+  if (scroll !== 'top' && scroll !== 'end' && !isAnchor(scroll)) {
+    console.error(`Unknown --scroll "${scroll}". One of: top, end, or a CSS selector starting ., # or [.`);
     process.exit(1);
   }
+}
+const SCROLL_ALIGN = args['scroll-align'];
+if (SCROLL_ALIGN !== 'start' && SCROLL_ALIGN !== 'center') {
+  console.error(`Unknown --scroll-align "${SCROLL_ALIGN}". One of: start, center.`);
+  process.exit(1);
 }
 if (!Number.isFinite(WIDTH) || !Number.isFinite(HEIGHT) || !Number.isFinite(SCALE)) {
   console.error('--width, --height and --scale must be numbers.');
@@ -1116,19 +1249,25 @@ async function fitFrameToContent(page) {
 }
 
 /**
- * `--cover`: THE PHONE ALONE, WITH ITS WHOLE SHADOW. Returns the clip box.
+ * `--cover`: THE PHONE ALONE, ON A TRANSPARENT GROUND. Returns the clip box.
+ * DECISIONS.md D154.
  *
- * WHY A PLAIN SHOT CUTS THE SHADOW OFF. A box-shadow never extends the
- * scrollable area, and `html, body` are `overflow: hidden` (shell.css), so the
- * WINDOW is what bounds it - and shell-scale.js leaves at most `--space-4xl`
- * (40px) of gutter under the bezel against a shadow reaching ~84px. Growing the
- * window does not help on its own: shell-scale.js answers a taller window with
- * a larger scale, so the gutter stays at 40px until the 1.5 cap binds, and at
- * 1.5 the shadow itself reaches ~126px.
+ * THE GROUND IS ALPHA 0, AND IT IS NOT THE LIVE PAGE'S. A cover is placed on
+ * whatever background the document it goes into has, so it must not carry the
+ * prototype's own. `html` and `body` both paint (`--color-bg`, and
+ * `--color-canvas` at framed widths), so their backgrounds are cleared here and
+ * the caller passes `omitBackground: true` to drop the browser's default white
+ * as well - neither alone is enough. The bezel's `box-shadow` is turned off in
+ * the same stylesheet: D153 removed it from shell.css, but a shadow on a
+ * transparent ground bakes semi-transparent black into the margins, and the
+ * cover should not depend on it staying removed. The result owes nothing to
+ * what `--color-canvas` is set to. The phone's rounded outer corners come out
+ * with soft-edged alpha, which is intended: it lets the cover anti-alias onto
+ * any background. The bezel and the screen stay fully opaque.
  *
  * SO THE SCALE AND GUTTER ARE PINNED, as `fitFrameToContent` pins the scale:
  * `--frame-scale` to 1, which makes `--cover-margin` a length in the same
- * logical px the shadow is declared in, and `--frame-gutter` to the margin, so
+ * logical px the bezel is declared in, and `--frame-gutter` to the margin, so
  * the ground above the bezel exists in the page rather than being clipped into
  * the body padding. Layout inside the frame is identical at every scale (D92),
  * so this changes the magnification of the screen and nothing about it.
@@ -1138,10 +1277,17 @@ async function fitFrameToContent(page) {
  * never its declared 421x880. That box includes any transform, so the clip
  * stays on the bezel even if the pin is ever removed.
  *
- * Runtime only: two custom properties on the live page's `:root`, in a context
- * that is closed after the shot. No source file is touched.
+ * Runtime only: two custom properties on `:root` and one injected stylesheet,
+ * on the live page, in a context that is closed after the shot. These are
+ * capture-time overrides by the harness. No source file is touched.
  */
 async function prepareCover(page) {
+  await page.addStyleTag({
+    content: `
+      html, body { background: transparent !important; }
+      .device-bezel { box-shadow: none !important; }
+    `,
+  });
   const pin = () => page.evaluate((margin) => {
     const root = document.documentElement;
     root.style.setProperty('--frame-scale', '1');
@@ -1154,28 +1300,40 @@ async function prepareCover(page) {
     return { left: r.left, top: r.top, width: r.width, height: r.height, right: r.right, bottom: r.bottom };
   });
 
+  // Two frames, not a fixed wait: the window already has its final size
+  // (`coverViewport`), so there is no resize for shell-scale.js to answer and
+  // nothing to wait out but the layout the pin itself causes.
   await pin();
-  await page.waitForTimeout(200);
+  await nextFrames(page);
   let box = await measure();
   if (!box) throw new Error('--cover found no .device-bezel on the page');
 
   // The clip has to lie inside the viewport - there is no page scroll to reach
-  // past it - so the window is grown to hold the bezel plus the margin below
-  // and to its right. shell-scale.js debounces `resize` by SETTLE_MS (100ms)
-  // and then rewrites both properties, so they are re-pinned after it lands.
+  // past it. `coverViewport` opens the window at the size this computes, so
+  // the branch below should never run; it stays as the fallback for a window
+  // that is somehow not that size, and grows it to hold the bezel plus the
+  // margin on every side. shell-scale.js debounces `resize` by SETTLE_MS (100ms) and
+  // then rewrites both properties, so they are re-pinned after it lands.
   //
-  // AND ONE PX WIDER WHEN THE BEZEL IS CENTRED ON A HALF PIXEL. At 768 the
-  // 421px bezel sits at left 173.5: `getBoundingClientRect()` reports 173.5,
-  // but Chromium paints it at a whole CSS px, so the clip came out 241 device
-  // px left of the bezel and 239 right at scale 2. Measured, not guessed - at
-  // 769 the same shot is 240 on all four sides. Widening by one px moves the
-  // centre by half a px, which puts the bezel on a whole px where the rect and
-  // the paint agree.
+  // SIZED FROM THE BEZEL, NOT FROM WHERE IT SITS BEFORE THE RESIZE. The bezel
+  // is centred, so growing the window moves its left edge too; a width taken
+  // from the pre-resize `right + margin` left less than the margin on the left
+  // for any margin above ~174px, and the clip started off the page. Width is
+  // `bezel + 2 x margin` and height is the same, since the gutter puts exactly
+  // the margin above it.
+  //
+  // AND ONE PX WIDER WHEN THE BEZEL WOULD BE CENTRED ON A HALF PIXEL.
+  // `getBoundingClientRect()` reports the half (173.5 at 768), but Chromium
+  // paints the 421px bezel at a whole CSS px, so the clip came out 241 device
+  // px left of the bezel and 239 right at scale 2. Measured, not guessed. The
+  // parity is decided from the width the window is about to be, not from the
+  // position measured before it.
   const viewport = page.viewportSize();
-  const halfPx = Number.isInteger(box.left) ? 0 : 1;
-  const needW = Math.max(viewport.width, Math.ceil(box.right + COVER_MARGIN)) + halfPx;
-  const needH = Math.max(viewport.height, Math.ceil(box.bottom + COVER_MARGIN));
+  let needW = Math.max(viewport.width, Math.ceil(box.width + COVER_MARGIN * 2));
+  if (!Number.isInteger((needW - box.width) / 2)) needW += 1;
+  const needH = Math.max(viewport.height, Math.ceil(box.height + COVER_MARGIN * 2));
   if (needW !== viewport.width || needH !== viewport.height) {
+    console.warn(`    cover: window was ${viewport.width}x${viewport.height}, resizing to ${needW}x${needH} (coverViewport should have opened it at that size)`);
     await page.setViewportSize({ width: needW, height: needH });
     await page.waitForTimeout(250);
     await pin();
@@ -1183,12 +1341,103 @@ async function prepareCover(page) {
     box = await measure();
   }
 
-  return {
+  const clip = {
     x: box.left - COVER_MARGIN,
     y: box.top - COVER_MARGIN,
     width: box.width + COVER_MARGIN * 2,
     height: box.height + COVER_MARGIN * 2,
   };
+  const size = page.viewportSize();
+  if (clip.x < 0 || clip.y < 0 || clip.x + clip.width > size.width || clip.y + clip.height > size.height) {
+    throw new Error(`--cover clip ${JSON.stringify(clip)} does not fit the ${size.width}x${size.height} viewport`);
+  }
+
+  return clip;
+}
+
+/**
+ * INFINITE ANIMATIONS ARE PAUSED AT THEIR FIRST FRAME, ON EVERY CAPTURE. D155,
+ * widened from `--cover` to every shot by D157. A looping animation -
+ * `/mip/running`'s spinner - is at a different point every time the shutter
+ * falls, so no capture of that screen could be byte-compared with another.
+ * Paused through the Web Animations API on the live page, at `currentTime` 0;
+ * finite animations are left to finish, which `settle` has already waited for.
+ */
+async function pauseInfiniteAnimations(page) {
+  await page.evaluate(() => {
+    for (const a of document.getAnimations()) {
+      if (a.effect && a.effect.getComputedTiming().iterations === Infinity) {
+        a.pause();
+        a.currentTime = 0;
+      }
+    }
+  });
+  await nextFrames(page);
+}
+
+/** Two animation frames: one for a queued rAF callback, one for its paint. */
+function nextFrames(page) {
+  return page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(true)))));
+}
+
+/**
+ * Waits for what the last step set moving to stop moving. Two frames first,
+ * because action-bar.js answers a scroll in a `requestAnimationFrame` and only
+ * then toggles the dock's `--more-below` class, whose fade is a transition that
+ * does not exist until that class changes. Then every FINITE animation on the
+ * page - that transition, a push or a sheet rise - is awaited to its end, so
+ * the wait follows the durations in the CSS rather than a number written here.
+ * An infinite animation never finishes and is not awaited.
+ */
+async function settle(page) {
+  await nextFrames(page);
+  await page.evaluate(() => Promise.allSettled(
+    document.getAnimations()
+      .filter((a) => a.playState === 'running' && a.effect && a.effect.getComputedTiming().iterations !== Infinity)
+      .map((a) => a.finished),
+  ).then(() => true));
+}
+
+/**
+ * `--scroll=<selector>`: SCROLLS THE ACTIVE SCROLLER TO ONE ANCHOR, OR FAILS.
+ * Returns `{ top, height, scrollTop, max }` in layout px. DECISIONS.md D155.
+ *
+ * The rules - how the offset is measured, what fails and why - live in
+ * `scripts/anchor-rules.mjs` (D159), which `scripts/pick-cover.mjs` runs too,
+ * so a position the picker accepts is one this accepts. This throws on the
+ * phrase they return.
+ */
+async function anchorScroll(page, selector, align, route) {
+  const result = await page.evaluate(anchorRules, { op: 'place', selector, align });
+  if (result.error) throw new Error(`--scroll "${selector}" on ${route} ${result.error}.`);
+  return result;
+}
+
+/**
+ * The anchor, checked again immediately before the shutter: the scroller must
+ * still be where `anchorScroll` left it (a `--cover` resize, a re-measure or a
+ * re-render could move it), and the anchor must be WHOLLY VISIBLE - below
+ * whatever is pinned above the scroller, and above whatever is pinned below
+ * it, including the 56px `--more-below` fade the dock draws over the content
+ * while there is more to scroll. `anchorRules`' `inspect` (anchor-rules.mjs,
+ * D159). Fails otherwise.
+ */
+async function checkAnchor(page, selector, anchor, route) {
+  const result = await page.evaluate(anchorRules, { op: 'inspect', selector, want: anchor.scrollTop });
+  if (result.error) throw new Error(`--scroll "${selector}" on ${route} ${result.error}.`);
+}
+
+/**
+ * The screen must still be the one asked for when the shutter falls. A screen
+ * can leave on its own - `/mip/running` replaces itself with a result after
+ * its processing delay - and a cover of the next screen, named after this one,
+ * is exactly the wrong capture this harness exists not to produce.
+ */
+async function assertStillOn(page, route) {
+  const hash = await page.evaluate(() => window.location.hash);
+  if (hash !== `#${route}`) {
+    throw new Error(`--cover of ${route}: the app left for ${hash} before the capture finished.`);
+  }
 }
 
 /**
@@ -1369,9 +1618,14 @@ function shotName({ route, entry, state, theme, text, scroll }) {
   if (args.date !== '') parts.splice(1, 0, `date-${args.date.replace('+', 'plus')}`);
   if (args.list !== '') parts.splice(1, 0, `list-${args.list}`);
   if (text !== 'default') parts.push(text);
-  if (scroll !== 'top') parts.push(`scroll-${scroll}`);
+  // A selector can hold characters no filename may (`"`, `:`, `*`), so the
+  // name keeps only a safe spelling of it. Two selectors that differ only in
+  // those characters would share a name; pick anchors that do not.
+  if (scroll !== 'top') parts.push(`scroll-${scroll.replace(/[^A-Za-z0-9._-]+/g, '_')}`);
+  if (isAnchor(scroll) && SCROLL_ALIGN !== 'center') parts.push(`align-${SCROLL_ALIGN}`);
   if (args.full) parts.push('full');
   if (COVER) parts.push('cover');
+  if (!PINNED) parts.push('today-real');
   return `${parts.join('__')}.png`;
 }
 
@@ -1384,6 +1638,11 @@ fs.mkdirSync(OUT, { recursive: true });
 // whole point of `opening` is that nothing is written - so a run that asks for
 // both is refused rather than quietly resolved in one direction.
 const OPENING = args.session === 'opening';
+if (args.today !== 'pinned' && args.today !== 'real') {
+  console.error(`Unknown --today "${args.today}". One of: pinned, real.`);
+  process.exit(1);
+}
+const PINNED = args.today === 'pinned';
 if (!['seeded', 'opening'].includes(args.session)) {
   console.error(`--session must be 'seeded' or 'opening', got '${args.session}'`);
   process.exit(1);
@@ -1503,6 +1762,36 @@ function framedBreakpoint() {
 }
 const VIEWPORT_WIDTH = COVER ? Math.max(WIDTH, framedBreakpoint()) : WIDTH;
 
+/**
+ * `--cover` OPENS THE WINDOW AT THE SIZE THE CAPTURE NEEDS (D155), so
+ * `prepareCover` has nothing to resize. The bezel is `--frame-width` and
+ * `--frame-height` plus `--frame-bezel` on each side, read from shell.css the
+ * way `framedBreakpoint` reads its token, and at the pinned scale of 1 the
+ * window it needs is that plus the margin on every side - known before the
+ * page loads. Resizing after load cost ~650ms of settling, which is longer
+ * than `/mip/running` stays on screen before replacing itself with a result.
+ * The parity rule is `prepareCover`'s: an odd bezel width needs an odd window
+ * width, or the bezel is centred on a half pixel. The FILE NAME keeps
+ * `VIEWPORT_WIDTH`, so cover names do not change.
+ */
+function coverViewport() {
+  const css = fs.readFileSync(path.join(ROOT, 'src/css/shell.css'), 'utf8');
+  const token = (name) => {
+    const m = css.match(new RegExp(`--${name}:\\s*(\\d+)px`));
+    if (!m) {
+      console.error(`--cover could not read --${name} from src/css/shell.css.`);
+      process.exit(1);
+    }
+    return Number(m[1]);
+  };
+  const bezelW = token('frame-width') + token('frame-bezel') * 2;
+  const bezelH = token('frame-height') + token('frame-bezel') * 2;
+  let width = Math.max(VIEWPORT_WIDTH, Math.ceil(bezelW + COVER_MARGIN * 2));
+  if ((width - bezelW) % 2 !== 0) width += 1;
+  return { width, height: Math.max(HEIGHT, Math.ceil(bezelH + COVER_MARGIN * 2)) };
+}
+const CONTEXT_VIEWPORT = COVER ? coverViewport() : { width: VIEWPORT_WIDTH, height: HEIGHT };
+
 /** Per-screen stitch facts, printed as a table at the end of a stitched run. */
 const stitchReport = [];
 
@@ -1542,10 +1831,18 @@ try {
         for (const text of TEXTS) {
           for (const state of statesHere) {
             const context = await browser.newContext({
-              viewport: { width: VIEWPORT_WIDTH, height: HEIGHT },
+              viewport: CONTEXT_VIEWPORT,
               deviceScaleFactor: SCALE,
               serviceWorkers: 'block',
+              ...(PINNED ? { timezoneId: CAPTURE_TIMEZONE } : {}),
             });
+            // Before any page exists: `load()` reads the clock when state.js
+            // first evaluates. `setFixedTime` fixes `Date` only - timers and
+            // animation frames still run, which every wait in this file needs.
+            // Noon in the pinned zone, so the instant names CAPTURE_TODAY there:
+            // +01:00 is London's offset (BST) on that date. Move CAPTURE_TODAY
+            // into winter and it is an hour out, which noon absorbs.
+            if (PINNED) await context.clock.setFixedTime(new Date(`${CAPTURE_TODAY}T12:00:00+01:00`));
             if (OPENING) {
               // NOTHING IS SEEDED, AND NOTHING MAY BE WRITTEN BEFORE THE FIRST
               // LOAD. `isNewSession()` is just `!restoredFromStorage`, which
@@ -1627,7 +1924,7 @@ try {
               Object.assign(seed, ERROR_STATES[args.error]());
               await context.addInitScript((v) => {
                 try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {}
-              }, { ...seed, buildVersion: BUILD_VERSION });
+              }, { ...seed, ...(PINNED ? { sessionAnchor: CAPTURE_TODAY } : {}), buildVersion: BUILD_VERSION });
             }
             const page = await context.newPage();
             try {
@@ -1703,30 +2000,28 @@ try {
               // action-bar.js to re-measure and settle the `--more-below`
               // fade, which is part of what such a shot is taken to show.
               for (const scroll of SCROLLS) {
-                await page.evaluate((where) => {
-                  const s = document.querySelector('.bottom-sheet__content, .screen-content');
-                  if (!s) return;
-                  // A SELECTOR SCROLLS TO AN ELEMENT. `top` and `end` reach the
-                  // two ends of a screen, which is all most shots need, but an
-                  // element in the middle of a long screen is unreachable by
-                  // either - and the tracker's milestone rows are exactly that.
-                  // Anything beginning `.` or `#` is treated as a selector and
-                  // centred in the viewport.
-                  if (where.startsWith('.') || where.startsWith('#')) {
-                    const el = document.querySelector(where);
-                    if (el) {
-                      s.scrollTop = el.offsetTop - s.clientHeight / 2 + el.offsetHeight / 2;
-                    }
-                    return;
-                  }
-                  s.scrollTop = where === 'end' ? s.scrollHeight : 0;
-                }, scroll);
+                // A SELECTOR SCROLLS TO AN ANCHOR (D155). `top` and `end` reach
+                // the two ends of a screen, which is all most shots need, but an
+                // element in the middle of a long screen is unreachable by
+                // either - and the tracker's milestone rows are exactly that.
+                let anchor = null;
+                if (isAnchor(scroll)) {
+                  anchor = await anchorScroll(page, scroll, SCROLL_ALIGN, route);
+                } else {
+                  await page.evaluate((where) => {
+                    const s = document.querySelector('.bottom-sheet__content, .screen-content');
+                    if (!s) return;
+                    s.scrollTop = where === 'end' ? s.scrollHeight : 0;
+                  }, scroll);
+                }
                 await page.waitForTimeout(300);
+                await settle(page);
 
                 // Fitted LAST, after every state-setting step above and after
                 // the scroll, so what it measures is the screen as it will be
                 // shot rather than as it first painted.
                 await fitFrameToContent(page);
+                await pauseInfiniteAnimations(page);
 
                 const name = spec
                   ? `${String(spec.index).padStart(2, '0')}-${spec.name}.png`
@@ -1737,10 +2032,17 @@ try {
                   stitchReport.push({ name, route, ...result });
                 } else if (COVER) {
                   const clip = await prepareCover(page);
-                  await page.screenshot({ path: file, clip });
+                  if (anchor) await checkAnchor(page, scroll, anchor, route);
+                  await assertStillOn(page, route);
+                  await page.screenshot({ path: file, clip, omitBackground: true });
+                  await assertStillOn(page, route);
                   console.log(`    cover clip: ${clip.width}x${clip.height} CSS px at x=${clip.x}, y=${clip.y}`);
                 } else {
+                  if (anchor) await checkAnchor(page, scroll, anchor, route);
                   await page.screenshot({ path: file, fullPage: args.full });
+                }
+                if (anchor) {
+                  console.log(`    anchor ${scroll}: top ${anchor.top}px in the scroller, --scroll-align=${SCROLL_ALIGN}, scrollTop ${anchor.scrollTop} of ${anchor.max}`);
                 }
                 shots.push({ name, file, route, entry, state, theme, text, scroll });
                 console.log(`  ${name}`);

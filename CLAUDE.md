@@ -115,6 +115,7 @@ do not introduce a state management library.
 
 ## Commands
 - Serve: `python -m http.server 8080` on Windows (ES modules need a server, not file://)
+- Setup on a fresh clone, for the harness, picker and browser tests: `npm install`, then `npx playwright install chromium webkit` - `npm install` does not download browsers; Chromium and its headless shell (revision 1234) and WebKit (revision 2336, for `shots.mjs --browser=webkit`). GAPS.md G140.
 - Test the model: `node --test src/model/*.test.js` (the bare directory form fails on Node 24)
 - Test the sheet gesture: `node --test scripts/sheet-drag.test.mjs` (drives Chromium via Playwright)
 - Smoke test every route: `node --test scripts/smoke.test.mjs` (drives Chromium; reads the route list
@@ -171,6 +172,9 @@ do not introduce a state management library.
   debounced recompute on resize. ~17s. **Run this after anything touching `shell.css`, `#app-frame` or
   `.device-bezel`.**)
 - Screenshots: `node scripts/shots.mjs` (see the file header for the options; `--routes`, `--entry`, `--state`, `--theme`, `--width`, `--focus`, `--saved`). **Screenshots come from `scripts/shots.mjs`, never from a harness generated inline.** Extend the script if it cannot do what a pass needs; do not rebuild one in a heredoc. Output goes to the gitignored `.screenshots/`, with a contact sheet beside the PNGs.
+- Pick a cover by double-click: `pick-cover.cmd` in the repo root (runs `scripts/pick-cover.mjs` on `/home` and keeps its window open for the output; arguments pass through). D160.
+- Pick and shoot a cover: `node scripts/pick-cover.mjs [--routes=<route>]` opens a seeded, date-pinned Chromium with an anchor overlay and a route menu; Alt+Shift+C copies the `shots.mjs --cover` command, Alt+Shift+P runs it and verifies the PNG into `.screenshots/picked/`. See the file header for all keys. D159, D160.
+- Seed a desktop browser by hand: `node scripts/print-seed.mjs` prints one `sessionStorage.setItem(...)` line to paste into DevTools, the session `shots.mjs` captures (only holds in `CAPTURE_TODAY`'s month).
 - Seed state for every browser-driven script lives in `scripts/session-seed.mjs`. One copy, imported by `shots.mjs`, `overlap.test.mjs`, `action-bar.test.mjs` and `inset-shots.mjs`. A key that selects one script's variant belongs in that script's own overrides, not in the shared seed.
 
 ## Stack rules
