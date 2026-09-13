@@ -5811,3 +5811,53 @@ design change to `deployments.js` and D140's chip contract, not a correction to 
 actually ran, and the screen behaves correctly when nothing matches. Recorded so the permanent skip
 in `version-chips.test.mjs` is understood as a known structural gap rather than read as a test that
 merely has not been exercised yet.*
+
+---
+
+## G137. Frame 12's year labels read the session anchor as UTC. OPEN - WORKED AROUND IN THE HARNESS ONLY
+
+*Found 13 September 2026 while diagnosing whether screenshot captures could pin a reference date
+(DECISIONS.md D156). This is the same defect class as G111 and G120, in a place their fix did not
+reach.*
+
+### What is wrong
+
+`yearLabelsFor()` in `src/screens/calculator-result.js:97-98` builds its base date with
+`new Date(anchorDate)`, where `anchorDate` is the `YYYY-MM-DD` `sessionAnchor`. A date-only ISO
+string is parsed as **midnight UTC**, so in any timezone west of UTC that instant falls on the
+previous local day. Near a month boundary it is the previous month, and on 1 January the previous
+year. The loop then reads `getFullYear()`/`getMonth()` in local time, so each January label lands
+one month late.
+
+`format.js` already has the fix for this: `localDate(stamp)` (`format.js:128`) splits the stamp and
+builds a local date. The month-offset helpers use it, and `yearLabelsFor()` does not.
+
+### Evidence
+
+Checked in a scratch browser run during the D156 diagnosis. Anchor `2027-01-01`, frame 12's year
+labels:
+
+- `Europe/London`: 2028 at month 12, 2029 at 24, 2030 at 36.
+- `America/New_York`: 2027 at month 1, 2028 at 13, 2029 at 25. Every label is one month late, and
+  a 2027 label appears that London does not draw.
+
+### Who it reaches
+
+A participant whose device is set to a timezone west of UTC, on a session anchored within a day of
+a month boundary. Sessions are UK-based, so the reachable case is narrow, but it is invisible when it
+happens: the labels still read as plausible years.
+
+### What was done instead of a fix
+
+Nothing in `src/` is changed. The capture harness pins its timezone to `Europe/London` alongside its
+reference date (D156), so screenshots come out the same on any machine. **That works around the read
+for captures only.** It does not change what a participant's device renders.
+
+### To close
+
+Replace `new Date(anchorDate)` in `yearLabelsFor()` with `localDate(anchorDate)`, which will need
+exporting from `format.js` or an equivalent local parse. That is a shell asset change: `CACHE_VERSION`
+bump, D147. Then add a timezone case to a frame 12 test, since nothing currently runs the app outside
+the machine's own zone.
+
+*Status: **open**. Logged so the workaround in `scripts/shots.mjs` is not mistaken for the fix.*

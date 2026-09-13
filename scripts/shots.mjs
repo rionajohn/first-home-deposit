@@ -218,6 +218,13 @@
  *              load. `--saved`, `--goal` and `--draft` all seed, so they are
  *              refused with `opening` rather than silently ignored.
  *                                                    default seeded
+ *   --today    `pinned` or `real`. `pinned` runs the app at noon on
+ *              `CAPTURE_TODAY` in Europe/London - browser clock, seeded
+ *              session anchor and the 10b date helpers together - so a
+ *              date-bearing screen captures the same on any day (D156).
+ *              `real` uses the machine's clock and timezone, as before, and
+ *              adds `today-real` to the file name.
+ *                                                    default pinned
  *   --stage    `setting-up`, `saving` or `ready-to-check` - frame 33's Journey
  *              stage (DECISIONS.md D45). Applied by PRESSING the real control
  *              on `#/settings`, the same way `--state=ahead` presses the real
@@ -383,6 +390,8 @@ const DEFAULTS = {
   build: '',
   // TEMPORARY, with src/diagnostics.js: `open` presses the Diagnostics chip.
   diag: '',
+  // `pinned` or `real`: the date the captured app believes it is (D156).
+  today: 'pinned',
   // Only read when `--scroll` names a selector. `center` is the behaviour
   // `--scroll` has always described; `start` is D155's addition.
   'scroll-align': 'center',
@@ -422,9 +431,48 @@ function parseArgs(argv) {
 
 const list = (value) => value.split(',').map((s) => s.trim()).filter(Boolean);
 
+/**
+ * CAPTURE_TODAY: THE DATE EVERY CAPTURE IS MEASURED FROM. DECISIONS.md D156.
+ *
+ * Projected dates are counted from the session anchor, and the anchor from
+ * the clock (D97), so without this a capture of any date-bearing screen - the
+ * tracker's "On track for", frame 12's years, frame 10b's lists, frame 33's
+ * caption - changed with the calendar and no re-run reproduced it. Every
+ * capture now runs against this date instead, applied in three places that
+ * must agree: the browser clock (`clock.setFixedTime`, before the first load),
+ * the seeded `sessionAnchor` (`load()` discards an anchor whose month is not
+ * the clock's month, silently, into a different session), and the Node-side
+ * date helpers below that seed frame 10b's targets.
+ *
+ * WHY THIS DATE. In the past, so no capture claims a day that has not
+ * happened. Mid-month and at noon, so no timezone offset can move it into
+ * another month. On or after every dated constant a screen shows beside it -
+ * `RATES.asAt` (30 July 2026) and the August 2026 figures in model/rates.js -
+ * and after every deployment in src/deployments.js (the latest 10 September
+ * 2026), so frame 33 never shows a session dated before a build it lists.
+ *
+ * THE TIMEZONE IS PINNED WITH IT. `calculator-result.js` reads the anchor
+ * through `new Date('YYYY-MM-DD')`, which is UTC, so frame 12's year labels
+ * shift in a timezone west of UTC (GAPS.md G137). Fixing the zone here keeps
+ * captures identical on any machine; it works around that read and does not
+ * fix it.
+ *
+ * Here, in shots.mjs, and NOT in session-seed.mjs: the tests import the seed,
+ * and they assert against the real date (stale-session.test.mjs among them).
+ * `--today=real` opts a run out and uses the machine's clock and zone, as
+ * before D156.
+ */
+const CAPTURE_TODAY = '2026-09-12';
+const CAPTURE_TIMEZONE = 'Europe/London';
+
+/** "Now" as the captured app sees it: noon on CAPTURE_TODAY, or the real clock under `--today=real`. */
+function captureNow() {
+  return args.today === 'real' ? new Date() : new Date(`${CAPTURE_TODAY}T12:00:00`);
+}
+
 /** The month/year a date `n` months from today lands on - for the 10b date states. */
 function monthsFromToday(n) {
-  const now = new Date();
+  const now = captureNow();
   const d = new Date(now.getFullYear(), now.getMonth() + n, 1);
   return { targetMonth: d.getMonth() + 1, targetYear: d.getFullYear() };
 }
@@ -775,7 +823,7 @@ const ERROR_STATES = {
   }),
   'saving-past-date': () => ({
     targetMonth: 1,
-    targetYear: new Date().getFullYear() - 1,
+    targetYear: captureNow().getFullYear() - 1,
   }),
   'review-property': () => ({ 'property-value': { value: 0, provenance: 'entered' } }),
   'review-pct': () => ({ 'deposit-pct': { value: 0.99, provenance: 'entered' } }),
@@ -1588,6 +1636,7 @@ function shotName({ route, entry, state, theme, text, scroll }) {
   if (isAnchor(scroll) && SCROLL_ALIGN !== 'center') parts.push(`align-${SCROLL_ALIGN}`);
   if (args.full) parts.push('full');
   if (COVER) parts.push('cover');
+  if (!PINNED) parts.push('today-real');
   return `${parts.join('__')}.png`;
 }
 
@@ -1600,6 +1649,11 @@ fs.mkdirSync(OUT, { recursive: true });
 // whole point of `opening` is that nothing is written - so a run that asks for
 // both is refused rather than quietly resolved in one direction.
 const OPENING = args.session === 'opening';
+if (args.today !== 'pinned' && args.today !== 'real') {
+  console.error(`Unknown --today "${args.today}". One of: pinned, real.`);
+  process.exit(1);
+}
+const PINNED = args.today === 'pinned';
 if (!['seeded', 'opening'].includes(args.session)) {
   console.error(`--session must be 'seeded' or 'opening', got '${args.session}'`);
   process.exit(1);
@@ -1791,7 +1845,15 @@ try {
               viewport: CONTEXT_VIEWPORT,
               deviceScaleFactor: SCALE,
               serviceWorkers: 'block',
+              ...(PINNED ? { timezoneId: CAPTURE_TIMEZONE } : {}),
             });
+            // Before any page exists: `load()` reads the clock when state.js
+            // first evaluates. `setFixedTime` fixes `Date` only - timers and
+            // animation frames still run, which every wait in this file needs.
+            // Noon in the pinned zone, so the instant names CAPTURE_TODAY there:
+            // +01:00 is London's offset (BST) on that date. Move CAPTURE_TODAY
+            // into winter and it is an hour out, which noon absorbs.
+            if (PINNED) await context.clock.setFixedTime(new Date(`${CAPTURE_TODAY}T12:00:00+01:00`));
             if (OPENING) {
               // NOTHING IS SEEDED, AND NOTHING MAY BE WRITTEN BEFORE THE FIRST
               // LOAD. `isNewSession()` is just `!restoredFromStorage`, which
@@ -1873,7 +1935,7 @@ try {
               Object.assign(seed, ERROR_STATES[args.error]());
               await context.addInitScript((v) => {
                 try { sessionStorage.setItem('yfh-state', JSON.stringify(v)); } catch {}
-              }, { ...seed, buildVersion: BUILD_VERSION });
+              }, { ...seed, ...(PINNED ? { sessionAnchor: CAPTURE_TODAY } : {}), buildVersion: BUILD_VERSION });
             }
             const page = await context.newPage();
             try {

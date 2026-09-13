@@ -13330,3 +13330,76 @@ byte-identical within one month. This is diagnosed separately and awaits a decis
 validation. Remove `anchorScroll`, `checkAnchor`, `settle`, `assertStillOn`, `coverViewport` and
 `--scroll-align`. Remove the infinite-animation pause from `prepareCover`, and put its 200ms pin
 wait back.
+
+---
+
+## D156. Every screenshot capture runs at a pinned date, `CAPTURE_TODAY`, with `--today=real` to opt out
+
+**Date.** 13 September 2026. `scripts/shots.mjs` only. **No application source file changes, and
+nothing reaches the tests.** `shots.mjs` is not in `SHELL_ASSETS`, so there is no version bump
+(D147). The UTC read this works around is logged as `GAPS.md` G137 and is not fixed here.
+
+**Decision.** `shots.mjs` runs the app at noon on `CAPTURE_TODAY = '2026-09-12'` in `Europe/London`,
+set in one named constant. Three places have to agree, and all three read that constant:
+
+1. **The browser clock.** `context.clock.setFixedTime` runs before any page exists, because
+   `load()` reads the clock when `state.js` first evaluates. `setFixedTime` fixes `Date` only.
+   Timers and animation frames keep running, and every wait in the harness depends on them.
+2. **The seeded `sessionAnchor`.** It is set to `CAPTURE_TODAY` on the seed the harness writes.
+   This is needed because `load()` discards a stored session whose anchor month is not the clock's
+   month. The discard is silent and opens a different session (£8,950 against £52,500) with no
+   redirect for the harness to catch. An `--session=opening` run needs nothing extra, since the app
+   stamps its own anchor from the pinned clock.
+3. **The Node-side date helpers.** `monthsFromToday` (frame 10b's `--date` states) and the
+   `saving-past-date` error state now count from `captureNow()`, not `new Date()`.
+
+The context's timezone is pinned to `Europe/London`. `calculator-result.js:98` reads the anchor as
+UTC (G137), so frame 12's year labels shift in any zone west of UTC. Pinning the zone keeps captures
+identical on any machine. It works around that read for captures only, and a participant's device is
+unaffected.
+
+`--today=real` opts a run out: the machine's clock and zone are used, as before this entry, and
+`today-real` is added to the file name so the two kinds of image cannot be confused.
+
+**Why.** Projected dates are counted from the session anchor (D97), so a capture of any screen that
+shows one changed with the calendar, and no re-run reproduced it. Captures are an instrument for the
+write-up and the portfolio, and an image that cannot be reproduced cannot be checked. Every capture
+is now measured against one stated reference, and frame 33 prints it on screen ("Dates worked out
+from 12 September 2026"). That follows CLAUDE.md's rule that a value measured against a reference
+must state it.
+
+**Why 12 September 2026.**
+- **In the past.** A capture should not claim a day that has not happened. 15 September would have
+  been two days ahead, and nothing about that date needed it.
+- **Mid-month and at noon.** No timezone offset can move it into another month.
+- **After every dated constant a screen shows beside it:** `RATES.asAt` (30 July 2026) and the
+  August 2026 figures in `model/rates.js`.
+- **After every deployment in `src/deployments.js`** (the latest is v10, 10 September 2026), so
+  frame 33 never shows a session dated before a build it lists.
+
+A later deployment will postdate it, which no fixed date can avoid.
+
+**Why in shots.mjs and not session-seed.mjs.** The tests import the seed and assert against the
+real date (`stale-session.test.mjs` among them). `SEED_ANCHOR` stays computed at run time, per its
+own comment, and the pin overrides it only on the seed `shots.mjs` writes.
+
+**Verified.**
+- **Repeatability.** The full capture set (`--routes=all`, 30 screens, plus the `/tracker` cover and
+  `/tracker --scroll=end`) was run twice with the pin. 31 of 32 PNGs are byte-identical. The one
+  that differs is `20-mip-running.png`, and the difference is confined to an 81x81 px box at the
+  spinner: the survey is not a `--cover` capture, and D155 pauses infinite animations only under
+  `--cover`. The `/mip/running` cover itself is byte-identical (D155).
+- **Changes against the captures taken before this entry (real date, 13 September 2026).** The
+  same 32 PNGs were compared: none changed apart from that same spinner frame. Nothing date-bearing
+  on those shots moves between 12 and 13 September, because every projected date works to the month.
+  Frame 33's full-date caption does move. It is below the fold in the survey shot, and a
+  `/settings --scroll=end` capture differs from `--today=real` only in that caption line (12 vs
+  13 September).
+- **Across a month.** A scratch copy with `CAPTURE_TODAY` set to 14 August 2026 kept the seeded
+  session: the tracker shows the seed's own £310 and £38, "On track for" moved from August 2027 to
+  November 2027 to July 2027 to October 2027, and frame 33 reads "14 August 2026". That is the case
+  the anchor override exists for, and today's runs cannot exercise it.
+
+**To reverse.** Delete `CAPTURE_TODAY`, `CAPTURE_TIMEZONE`, `captureNow`, `PINNED` and `--today`.
+Restore `new Date()` in `monthsFromToday` and `saving-past-date`. Remove `timezoneId`, the
+`clock.setFixedTime` call and the `sessionAnchor` override from the context and the seed.
