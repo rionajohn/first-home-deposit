@@ -13762,3 +13762,65 @@ cause is a real pointer event reaching the newly opened window; it was not repro
 **To reverse.** Delete `pick-cover.cmd` and `scripts/cover-checks.mjs`. In `pick-cover.mjs`, remove
 the `shoot` function, the `__pickerShoot` binding, the route menu and the P and R keys, restore the
 required `--routes`, and put align back on A.
+
+---
+
+## D161. The public deployment serves the prototype only, through an allow-list `.vercelignore`
+
+**Date.** 13 September 2026. New `.vercelignore` at the repo root. **No application source file, no
+shell asset and no version bump** (D147): nothing a participant loads changes. Under CLAUDE.md's
+rule, a merge carrying only this takes no version number.
+
+**Decision.** `.vercelignore` excludes everything at the top level (`/*`), re-includes
+`index.html`, `manifest.webmanifest`, `sw.js`, `src/` and `assets/`, then excludes
+`src/**/*.test.js` again.
+
+**Why.** There was no `.vercelignore` or `vercel.json`, and the site has no build step, so every
+tracked file was uploaded and served, including:
+- `reference/`, with the Figma source `MSc. UEE Thesis.fig` (11 MB of the repo's deployable weight);
+- `docs/` (DECISIONS, GAPS, the specs, the version log with per-deployment URLs);
+- `scripts/` (the harness, the picker, the seed, the tests);
+- `.claude/` and `CLAUDE.md`;
+- `package.json` and `package-lock.json`;
+- `pick-cover.cmd`;
+- the two model test files inside `src/`.
+
+None of it has a reason to be public.
+
+**Why an allow-list rather than a deny-list.** A deny-list makes any new top-level file public by
+default. An allow-list keeps it private until it is added on purpose, the same deliberate step
+`sw.js`'s `SHELL_ASSETS` already requires for any new runtime file.
+
+**The runtime set is complete.**
+- **Service worker:** `SHELL_ASSETS` lists nothing outside the five re-included paths.
+- **Page load:** `index.html` loads only the four stylesheets, `src/app.js` and icons under
+  `assets/icons/`.
+- **Manifest:** it references only `assets/icons/app/`.
+- **App code:** `src/` has no dynamic import and fetches only `./manifest.webmanifest`.
+- **Mentions elsewhere:** the references to `scripts/`, `docs/` and `CLAUDE.md` in `src/` are comments,
+  plus one developer console message naming `set-app-name.mjs`.
+
+**`package.json` is excluded, after checking the project settings.** `vercel project inspect
+first-home-deposit-ux-prototype` shows framework preset "Other", with the build command, output
+directory and install command all at Vercel's defaults ("`npm run vercel-build` or `npm run build`",
+"`public` if it exists, or `.`", "`npm install` …"). None is a named override. `package.json` has no
+`scripts`, so there was never a build to run, and without the file the install of its Playwright
+devDependencies is skipped rather than failing.
+
+**Verified locally.** Git's gitignore engine was run over every tracked file with this file as the
+exclude list. Vercel's parser follows gitignore syntax, so this is a close model, not the deployment
+itself.
+- **Served:** 62 of 141 files (`index.html`, `manifest.webmanifest`, `sw.js`, 54 files under `src/`,
+  5 under `assets/`).
+- **Excluded:** 79, covering all of `reference/` (35), `scripts/` (23), `docs/` (12), `.claude/` (2),
+  `CLAUDE.md`, `package.json`, `package-lock.json`, `pick-cover.cmd`, `.gitignore` and the two `src/`
+  test files.
+- **Runtime:** no `SHELL_ASSETS` entry is excluded.
+
+The deployment is to be checked by hand on the build preview before merging.
+
+**Not confirmable from outside before deploying.** The bare project hostname returned 404, and
+per-deployment URLs redirect to Vercel's login (deployment protection), so what the current
+deployment serves could not be fetched unauthenticated.
+
+**To reverse.** Delete `.vercelignore`. Every tracked file is served again.
