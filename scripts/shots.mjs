@@ -80,10 +80,12 @@
  *              buyer relief (up to 500,000) or with it lost (above 500,000).
  *              See DECISIONS.md D70.
  *                                                default the seed's own value
- *   --saved    Deposit balance to seed, in pounds. The shared seed sits
- *              exactly AT the checkpoint, where both skip-ahead positions show
- *              the same figure; `--saved=12000` puts the session below it so
- *              `--state=now,ahead` shoots the two apart.
+ *   --saved    Deposit balance to seed, in pounds. The shared seed holds the
+ *              accounts' own total (8,950 - D158), which is below the checkpoint,
+ *              so `--state=now,ahead` already shoots the two positions apart.
+ *              Pass a balance at or above `checkpoint-amount` (21,000) to see
+ *              the two show the same figure. Screens that recompute from the
+ *              accounts (frames 03 and 06) ignore it.
  *                                                default the seed's own value
  *   --goal     `set` or `none`. `none` clears the committed deposit goal, a
  *              state the late-journey seed cannot otherwise reach. Needed to
@@ -139,7 +141,11 @@
  *                                      a 5% deposit puts the goal below what
  *                                      is already saved, so the cap sits
  *                                      behind the floor and the control is
- *                                      replaced by a statement (D85).
+ *                                      replaced by a statement (D85). This and
+ *                                      the two cap states open with their own
+ *                                      21,000 balance, and fail the run if the
+ *                                      model says they would not show their
+ *                                      state (D158).
  *                saving-moved-to-cap   frame 10b with a date PAST the cap, which
  *                                      the screen moves down to it and
  *                                      discloses (D86). The mirror of
@@ -501,18 +507,53 @@ function goalAt(pct) {
  * D85's cap in whole months: the month the balance reaches the goal unaided,
  * rounded DOWN the way the screen rounds it. Null where there is none.
  */
-function capMonths() {
-  const unaided = monthsToGoalUnaided(FULL);
+function capMonths(state = FULL) {
+  const unaided = monthsToGoalUnaided(state);
   return unaided.error || !Number.isFinite(unaided.value) ? null : Math.floor(unaided.value);
 }
 
-function boundMonths() {
+function boundMonths(state = FULL) {
   const months = monthsToReachAmount({
-    startingBalance: FULL['saved-toward-deposit'].value,
-    targetAmount: combinedGoal(FULL).value,
-    monthlyAmount: FULL['left-over'].value,
+    startingBalance: state['saved-toward-deposit'].value,
+    targetAmount: combinedGoal(state).value,
+    monthlyAmount: state['left-over'].value,
   });
   return Number.isFinite(months) ? Math.max(0, Math.ceil(months)) : 0;
+}
+
+/**
+ * THE BALANCE THE CAP AND GOAL-MET ERROR STATES OPEN WITH (DECISIONS.md D158).
+ *
+ * Their own, stated here, not the shared seed's. The seed holds the accounts'
+ * 8,950, whose unaided crossing is past frame 10b's twenty-year year list - so
+ * the span ends the list, no date is ever moved to a cap, and a 14,000 goal is
+ * not met. 21,000 puts the cap inside the span and above that goal, and is the
+ * balance D85 and D87 were measured at.
+ */
+const CAP_BALANCE = { 'saved-toward-deposit': { value: 21000, provenance: 'read' } };
+
+/** Frame 10b's year list runs at most this many years past the floor year (`YEAR_LIST_SPAN`, calculator-saving.js). */
+const YEAR_LIST_SPAN = 20;
+
+/**
+ * A NAMED STATE THAT WOULD NOT SHOW ITSELF FAILS THE RUN. A capture called
+ * `saving-near-cap` that silently shows an ordinary list is worse than no
+ * capture: it is believed.
+ */
+function requireState(name, holds, why) {
+  if (!holds) throw new Error(`--error=${name} would not show the state it is named for: ${why}.`);
+}
+
+/** The cap at CAP_BALANCE, required to be inside the year list's span. */
+function requireCapInSpan(name) {
+  const state = { ...FULL, ...CAP_BALANCE };
+  const cap = capMonths(state);
+  requireState(name, cap !== null, 'the balance never reaches the goal unaided, so there is no cap');
+  const floorYear = monthsFromToday(boundMonths(state)).targetYear;
+  const capYear = monthsFromToday(cap).targetYear;
+  requireState(name, capYear <= floorYear + YEAR_LIST_SPAN,
+    `the cap year ${capYear} is past the span, which ends at ${floorYear + YEAR_LIST_SPAN}, so the span ends the list and not the cap`);
+  return { cap };
 }
 
 const args = parseArgs(process.argv.slice(2));
@@ -608,13 +649,13 @@ const ROUTES = SURVEY_MODE
 /**
  * `--saved` moves the session's deposit balance before anything is rendered.
  *
- * IT EXISTS BECAUSE `--state=now,ahead` IS OTHERWISE NEARLY INERT. The shared
- * seed sits exactly AT `checkpoint-amount`, so "Now" and "Further along" put
- * the same figure on screen and the only difference between the two shots is
- * which segment is filled. Passing a balance below the checkpoint - the
- * position the control was built to move a session out of - makes the two
- * states show what they actually do. The default is the seed's own value, so
- * this changes nothing unless it is asked for.
+ * IT WAS ADDED BECAUSE `--state=now,ahead` WAS NEARLY INERT: the shared seed
+ * then sat exactly AT `checkpoint-amount` on a hand-typed 21,000, so "Now" and
+ * "Further along" put the same figure on screen. Since D158 the seed holds the
+ * accounts' own 8,950, below the checkpoint, so the two states differ without
+ * it. It stays for any other balance a shot needs - including one at or past
+ * the checkpoint. The default is the seed's own value, so this changes nothing
+ * unless it is asked for.
  */
 const SAVED = args.saved === '' ? null : Number(args.saved);
 
@@ -788,20 +829,27 @@ const ERROR_STATES = {
     'monthly-low': { value: FULL['left-over'].value + 100, provenance: 'entered' },
     'monthly-high': { value: FULL['left-over'].value + 400, provenance: 'entered' },
   }),
-  'saving-goal-met': () => ({
-    // A 5% deposit on the seed's own property: a 14,000 goal against 21,000
-    // already saved. Derived through the model rather than written here, so it
-    // follows the seed.
-    ...goalAt(0.05),
-  }),
-  'saving-moved-to-cap': () => ({
-    // Forty months past the cap, computed from the model so it is past it
-    // whatever the seed holds.
-    ...monthsFromToday((capMonths() ?? 0) + 40),
-  }),
-  'saving-near-cap': () => ({
-    ...monthsFromToday(capMonths() ?? 0),
-  }),
+  'saving-goal-met': () => {
+    // A 5% deposit on the seed's own property - a 14,000 goal - against the
+    // state's OWN 21,000 balance (D158). It leaned on the shared seed's
+    // hand-typed 21,000 until that became the accounts' 8,950, below 14,000.
+    const extra = { ...CAP_BALANCE, ...goalAt(0.05) };
+    const state = { ...FULL, ...extra };
+    requireState('saving-goal-met', state['saved-toward-deposit'].value >= combinedGoal(state).value,
+      `${state['saved-toward-deposit'].value} saved does not meet the ${combinedGoal(state).value} goal`);
+    return extra;
+  },
+  'saving-moved-to-cap': () => {
+    // Forty months past the cap, computed from the model, at a balance whose
+    // cap is inside the year list's span (D158) - otherwise the span ends the
+    // list, nothing is moved to the cap, and the shot shows an ordinary list.
+    const { cap } = requireCapInSpan('saving-moved-to-cap');
+    return { ...CAP_BALANCE, ...monthsFromToday(cap + 40) };
+  },
+  'saving-near-cap': () => {
+    const { cap } = requireCapInSpan('saving-near-cap');
+    return { ...CAP_BALANCE, ...monthsFromToday(cap) };
+  },
   'saving-span-wins': () => ({
     // Barely anything saved, so the balance takes ninety years to reach the
     // goal unaided and the twenty-year span is the tighter of the two bounds.
@@ -841,6 +889,16 @@ const ERROR_STATES = {
 };
 if (!(args.error in ERROR_STATES)) {
   console.error(`Unknown --error "${args.error}". One of: ${Object.keys(ERROR_STATES).join(', ')}.`);
+  process.exit(1);
+}
+// FRAME 10b'S STATES ONLY EXIST ON THE DATE PATH, which is `--solve=amount`
+// (solve for the amount, given a date). The default `--solve=date` draws the
+// monthly slider, so each of these used to produce a PNG of frame 10 with its
+// named state nowhere on it, and exit 0 (found with D158). Refused instead.
+const DATE_PATH_ERRORS = ['saving-goal-met', 'saving-moved-to-cap', 'saving-near-cap', 'saving-span-wins',
+  'saving-narrow-list', 'saving-date-below-bound', 'saving-past-date'];
+if (DATE_PATH_ERRORS.includes(args.error) && args.solve !== 'amount') {
+  console.error(`--error=${args.error} is a frame 10b state and only renders on the date path. Add --solve=amount; with --solve=${args.solve} the screen draws the monthly slider and the state is not on it.`);
   process.exit(1);
 }
 const ENTRIES = list(args.entry);

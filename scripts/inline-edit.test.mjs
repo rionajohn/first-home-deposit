@@ -205,7 +205,8 @@ test("the field is frame 05's: text + numeric keypad, and the affix sits outside
 test('the fields hold the seed, formatted as the readouts were', async () => {
   assert.equal(await page.locator('[data-role="edit-property-value"]').inputValue(), '280,000');
   assert.equal(await page.locator('[data-role="edit-deposit-pct"]').inputValue(), '10');
-  assert.equal(await page.locator('[data-role="edit-saved-so-far"]').inputValue(), '21,000');
+  // The accounts' own total since D158, not the hand-typed 21,000 the seed held.
+  assert.equal(await page.locator('[data-role="edit-saved-so-far"]').inputValue(), '8,950');
   assert.equal(await page.locator('[data-role="edit-monthly-low"]').inputValue(), '400');
   assert.equal(await page.locator('[data-role="edit-monthly-high"]').inputValue(), '600');
 });

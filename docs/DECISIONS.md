@@ -2769,6 +2769,12 @@ through saving" belong in it. A key that selects the variant one script is looki
 that script's own override list, because a key added to the shared seed changes every script that
 imports it - which is the point of the file and also its one hazard.
 
+**Amended 13 September 2026 by D158.** "The shared seed sits exactly AT `checkpoint-amount`" is no
+longer true. The seed's `saved-toward-deposit`, `emergency-fund` and `unassigned` are now read from
+the mock accounts (8,950, 5,600 and 2,400) instead of being typed by hand (21,000, 4,200 and 800), so
+the seed is below the checkpoint and "Now" and "Further along" differ without `--saved`. The rest of
+this entry stands.
+
 ## D44. The goals area does not advertise a door that redirects
 
 **Date.** 27 August 2026.
@@ -8388,6 +8394,16 @@ month list. Worth recording: the file that exists because of D77 grew a D77 defe
 
 Full suite: 391 tests, 390 passing, 1 skipped (G91), 0 failing.
 
+**Amended 13 September 2026 by D158.** Every figure above that says "the shared seed" or "the seed" was
+measured when the seed held a hand-typed 21,000 saved. That includes the solve of +0.62 at month 93
+and -0.18 at month 94, the goal-met case (a 14,000 goal against 21,000), and "10 of 45" at "the shared
+fixture's 21,000". The seed now holds the accounts' own 8,950, where the unaided crossing is past
+the year list's span and a 5% goal is not met. The measurements are still correct for a 21,000
+balance, and `date-ceiling.test.mjs`'s cap and goal-met tests now open with that balance explicitly
+(`CAP_BALANCE`, `GOAL_MET`). They do not describe today's shared seed. To reproduce them in a
+screenshot, add `--saved=21000` or use `--error=saving-near-cap`, `saving-moved-to-cap` or
+`saving-goal-met`, which now carry that balance themselves.
+
 ---
 
 ## D86. The move down to the cap is disclosed, and its copy leads with the reason rather than the change
@@ -8517,6 +8533,14 @@ one new test sweeps all three branches - cap wins, span wins, no cap - and asser
 longer than the span and never past the cap. Removing the co-bound fails it.
 
 Full suite: 396 tests, 395 passing, 1 skipped (G91), 0 failing.
+
+**Amended 13 September 2026 by D158.** The first row of the table, "Shared seed - saved 21,000", and
+"the shared seed is a cap-wins case at 8 years" describe the seed as it was. The seed now holds the
+accounts' own 8,950, which is the second row's balance, so **today's shared seed is a span-wins
+case**. The "unrepresentative case" this entry named is gone from the seed. The sweep test's
+cap-wins case now opens with an explicit 21,000 (`CAP_BALANCE`). The seed itself is a fourth case,
+labelled span wins, so every branch is still covered by name. Because the seed keeps the fixture's
+left-over of 1,150 rather than the real session's 640, its floor year is not the second row's.
 
 ---
 
@@ -13432,3 +13456,107 @@ cover is byte-identical to its D155 capture, because it was already paused.
 
 **To reverse.** Move the `pauseInfiniteAnimations` body back to the end of `prepareCover`, and
 remove its call from the shot loop.
+
+---
+
+## D158. The shared seed's account totals come from the accounts, and D43's seed stops sitting at the checkpoint
+
+**Date.** 13 September 2026. `scripts/session-seed.mjs`, `scripts/shots.mjs`,
+`scripts/date-ceiling.test.mjs`, `scripts/frame-scale.test.mjs` and `scripts/inline-edit.test.mjs`,
+plus dated amendments to D43, D85, D87, `GAPS.md` G98 and G99, and new G138 and G139. **No application
+source file changes.** None of these files is in `SHELL_ASSETS`, so there is no version bump (D147).
+**Amends D43.**
+
+### The defect
+
+The shared seed set `saved-toward-deposit` 21,000, `emergency-fund` 4,200 and `unassigned` 800 by
+hand. The mock accounts the app reads total **8,950, 5,600 and 2,400**. Frame 06
+(`position-summary.js:86-96`) recalculates those three from the accounts on every render and writes
+back whatever differs. So a seeded session showed £21,000 saved on the calculator, the tracker, the
+Mortgage in Principle screens and the assumption sheets **until it visited "Where you stand"**, and
+£8,950 everywhere afterwards. Frame 03 always showed £8,950 regardless.
+
+Measured with a scratch probe on every route except `/mip/running` (29 routes), comparing a fresh
+seeded session opened straight at the route with one that had visited `/position/summary` first, on
+rendered £ figures, field values and the stored figures: **28 of 29 differed on the old seed.**
+
+### Which figure is authoritative
+
+**The accounts.**
+- `build-spec.md:18` and `:20` say frames 03 and 03b recalculate `saved-toward-deposit` from the
+  account selection.
+- D48 says the saved figure "is the sum of the four accounts", and that raising it "would mean
+  inventing balances the account list contradicts".
+- The 21,000 was typed for the original `overlap.test.mjs` layout fixture (`7f0f4cc`) and carried into
+  the shared seed by D43.
+- D43 recorded that it sat exactly at the checkpoint as a property of the seed, not a choice, and D87
+  called it "the unrepresentative case".
+
+The alternative, raising the mock balances to 21,000, was rejected. It would change what participants
+see on frames 03, 06, 32 and `/goals`, move the real opening session, and invent balances.
+
+### Decision
+
+1. **The seed reads the three figures from the accounts.** `FULL`'s `saved-toward-deposit`,
+   `emergency-fund` and `unassigned` are now `accountFigures({})` from `src/model/accounts.js`, the same
+   function frames 03 and 06 use, so the seed cannot disagree with them again. `max-property` becomes
+   **197,950**: build-spec.md section 4's `borrow-high` + `saved-toward-deposit`, applied to the
+   borrow range the seed stores. `checkpoint-amount` stays 21,000, because it comes from the goal, not
+   the saved figure. The seed is now **below the checkpoint**, the position a real session opens in.
+2. **Tests and captures that need a different balance state their own.**
+   - `date-ceiling.test.mjs`'s cap tests open with `CAP_BALANCE` (21,000). At 8,950 the unaided
+     crossing is about 31 years out, past the year list's 20-year span, so the span ends the list and
+     no cap test would reach the cap. The first cap test now also **fails by name if that balance ever
+     puts the cap outside the span**.
+   - `GOAL_MET` carries its own 21,000 against its 14,000 goal.
+   - The span sweep keeps a cap-wins case under that balance and adds the shared seed as a labelled
+     span-wins case.
+   - `frame-scale.test.mjs`'s moved-to-cap state was a hand-written 120 months, "far past the cap" only
+     at 21,000. It now carries the same balance and a date 40 months past the cap the model gives.
+3. **`shots.mjs`'s `saving-goal-met`, `saving-near-cap` and `saving-moved-to-cap` carry the 21,000
+   themselves, and fail the run if the model says they would not show their state**: a goal not met,
+   no cap, or a cap past the span.
+   - Checking them turned up a second silent failure. Every frame 10b error state renders only on
+     the date path (`--solve=amount`), but `--solve` defaults to `date`. Without that flag, all seven
+     wrote a PNG of frame 10's monthly slider with their state nowhere on it, and exited 0. They are
+     now **refused without `--solve=amount`**.
+4. **The literals follow.** `inline-edit.test.mjs` expects "8,950", and the `--saved` help text and
+   its comment no longer claim the seed sits at the checkpoint.
+
+**Out of scope, logged.** G138: the seed's `money-in`, `essential-spending` and `left-over` (2,600,
+1,450, 1,150) disagree with `MOCK_POSITION` (2,500, 1,860, 640). G139: the seed's borrow range,
+`months-to-target` and `on-track-for` are also typed by hand and disagree with the model.
+
+### Verified
+
+- **Full suite:** 434 tests, 432 passing, 0 failing, 2 skipped. Same count and the same two skips as
+  before: G91, and the frame 33 current-build chip.
+- **The defect is gone.** The same 29-route probe on the new seed found **29 of 29 identical** whether
+  or not the session visited `/position/summary`: every rendered figure, every field, and the stored
+  saved figure, emergency fund, unassigned and `max-property`.
+- **Captures that changed.** Compared against the same captures before this change, 10 of the set
+  changed:
+  - survey `08-goal-check`, `12-calculator-review`, `13-calculator-result`, `14-learn-ltv`,
+    `16-tracker`, `26-assumptions-borrowing`, `27-assumptions-sources`
+  - the `/tracker` cover and `/tracker --scroll=end`
+  - `--error=review-all`
+
+  Of the frame 10b date-path states, captured before and after with `--solve=amount`,
+  `saving-date-below-bound` and `saving-past-date` changed, because both are placed relative to the
+  floor, which moves with the balance.
+- **Unchanged:** frames 03 and 06 and the `first-home-cover` capture (they read the accounts
+  directly); every other survey screen, including survey `20` to `22` (the Mortgage in Principle
+  running and result screens), which are shot at the "ahead" position; the `/mip/running` cover; and `saving-goal-met`, `saving-near-cap`, `saving-moved-to-cap`,
+  `saving-span-wins`, `saving-narrow-list` and `saving-ceiling`.
+- The three named states are byte-identical to their 21,000 captures and were checked by eye:
+  - goal-met: the date control replaced by its statement, Continue disabled;
+  - moved-to-cap: "We've moved your date to June 2034";
+  - date-below-bound: "January 2028 is the earliest".
+
+### To reverse
+
+Restore the three hand-typed figures and `max-property` 210,000 in `session-seed.mjs`. Remove
+`CAP_BALANCE` and the span assertion from `date-ceiling.test.mjs` and the balance from its `GOAL_MET`.
+Restore frame-scale's `at(120)`, the inline-edit literal "21,000" and the `--saved` text. Remove the
+error states' balances, `requireState`/`requireCapInSpan` and the `--solve=amount` guard. The
+28-of-29 disagreement returns with the first step.

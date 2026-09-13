@@ -49,6 +49,7 @@ import { chromium } from 'playwright';
 
 import { FULL } from './session-seed.mjs';
 import { BUILD_VERSION } from '../src/cache-version.js';
+import { monthsToGoalUnaided } from '../src/model/model.js';
 
 const MIME = {
   '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
@@ -243,10 +244,18 @@ const DISCLOSURE_STATES = (() => {
     const d = new Date(now.getFullYear(), now.getMonth() + n, 1);
     return { targetMonth: d.getMonth() + 1, targetYear: d.getFullYear() };
   };
+  // THE CAP STATE CARRIES ITS OWN BALANCE, AND ITS DATE COMES FROM THE MODEL
+  // (DECISIONS.md D158). It was a hand-written 120 months, "far past the cap"
+  // only while the shared seed held 21,000; against the accounts' own 8,950 the
+  // cap is past the list's span and 120 months is inside it, so nothing moved
+  // and no disclosure was drawn. A balance whose crossing is inside the span,
+  // and a date forty months past that crossing, keep this state what it is named.
+  const capBalance = { 'saved-toward-deposit': { value: 21000, provenance: 'read' } };
+  const capMonths = Math.floor(monthsToGoalUnaided({ ...FULL, ...capBalance }).value);
   return [
     ['ordinary', {}, false],
-    // Far past the cap, and far below the floor: the two moves that disclose.
-    ['moved-to-cap', at(120), true],
+    // Past the cap, and far below the floor: the two moves that disclose.
+    ['moved-to-cap', { ...capBalance, ...at(capMonths + 40) }, true],
     ['moved-to-floor', at(1), true],
   ];
 })();

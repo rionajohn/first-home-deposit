@@ -3690,6 +3690,13 @@ What changed is how many are visible without scrolling. If this entry is reprodu
 list to a far year, that now takes more scrolling on an ordinary visit than the original report
 implies - so a reproduction that fails to reach the year is a shorter list, not a fixed defect.
 
+**Amended 13 September 2026 (DECISIONS.md D158).** "The shared seed" throughout this entry is the seed
+as it was, holding a hand-typed £21,000 saved. That applies to the December 2042 reproduction, the
+"£21,000 already saved" mechanism, the frame 11 row committing `checkpoint-amount` 21,000, the
+sensitivity table's baseline, and the 5% goal-met case. The seed now holds the accounts' own £8,950.
+The measurements stand for a £21,000 balance and are not today's seed: reproduce them with
+`--saved=21000`, or through the cap and goal-met error states, which carry that balance explicitly.
+
 ---
 
 ## G99. `rangeFromCentral` inverts on a negative central, and nothing enforces its own precondition
@@ -3733,6 +3740,12 @@ the standing precedent: a defect that stops reproducing is harder to find, not s
 the function enforcing the precondition its own comment states - returning an error for a non-positive
 central, the way the rest of `model.js` does, rather than silently returning a range that is the wrong
 way round.*
+
+**Amended 13 September 2026 (DECISIONS.md D158).** The frame 12 figures above (£21,483 against £21,415
+at 12 months) grew from the shared seed's then £21,000 saved. The seed now holds the accounts' own
+£8,950, so the same chart on today's seed starts lower. The inversion is unaffected, because it is a
+property of `rangeFromCentral` and not of any balance. A reproduction at those figures needs
+`--saved=21000`.
 
 ---
 
@@ -5861,3 +5874,68 @@ bump, D147. Then add a timezone case to a frame 12 test, since nothing currently
 the machine's own zone.
 
 *Status: **open**. Logged so the workaround in `scripts/shots.mjs` is not mistaken for the fix.*
+
+---
+
+## G138. The shared seed's monthly position is hand-typed and disagrees with the mock accounts. OPEN - REPORT ONLY
+
+*Found 13 September 2026 while diagnosing the seed's saved figure (DECISIONS.md D158). D158 moved the
+three account totals onto the accounts and deliberately left this alone.*
+
+### What is wrong
+
+`scripts/session-seed.mjs` types the monthly position by hand. `src/model/accounts.js`
+`MOCK_POSITION` is the source the app itself reads for the same figures, and the two disagree:
+
+| Figure | Seed (`FULL`) | `MOCK_POSITION` |
+| --- | --- | --- |
+| `money-in` | 2,600 | `moneyIn` 2,500 (the home screen's "+£2,500.00" salary) |
+| `essential-spending` | 1,450 | `essentialSpending` 1,860 |
+| `left-over` | 1,150 (`derived`) | 640 (2,500 - 1,860) |
+
+So a seeded session shows £1,150 left over on frame 05 and frame 10, and £1,150 as frame 10b's
+ceiling. That doesn't match the +£2,500 salary on the home screen or the position a real session
+opens with. It is the same kind of drift the saved figure had: a harness fixture typed once and never
+tied to the data it stands for.
+
+### Why it was not fixed with D158
+
+It reaches much further than the saved figure did. Frame 10b's floor is set at `left-over`, and
+`date-ceiling.test.mjs`'s floor tests, `shots.mjs`'s `saving-ceiling`/`review-*` error states and
+D87's recorded floor years are all built on 1,150. It is its own change with its own blast radius,
+and should be measured before it is made, as D158 was.
+
+*Status: **open, report only**.*
+
+---
+
+## G139. Other derived figures in the shared seed are typed by hand and the model disagrees with them. OPEN - REPORT ONLY
+
+*Found 13 September 2026 with G138, while choosing how D158 should set `max-property`.*
+
+### What is wrong
+
+Four more stored figures in `scripts/session-seed.mjs` are typed by hand, and the model gives
+different values for the seed's own inputs (measured after D158):
+
+| Figure | Seed | Model, same session |
+| --- | --- | --- |
+| `borrow-low` / `borrow-high` | 168,000 / 189,000 | `borrowRange()` 226,800 / 277,200 |
+| `months-to-target` | 14 | `monthsToTarget()` 34.2 |
+| `on-track-for` | { low 14, high 17 } | `onTrackFor()` { low 31, high 38 } |
+
+- **The borrow range is rendered from the stored keys** by frame 20 (`mip-result-likely.js:63-64`), so
+  a seeded frame 20 shows a range the model would not produce.
+- **`max-property`:** D158 set it to 197,950, the stored `borrow-high` plus the accounts' 8,950, which
+  is build-spec.md section 4's formula applied to the range the seed actually stores. The model's
+  `maxProperty()` gives 286,150 from its own range.
+- **`months-to-target` and `on-track-for`:** the seed's comment says every consumer recomputes these
+  from the model and never reads the stored key. If that holds, the drift is invisible on screen, but
+  the fixture still teaches wrong values to anything that reads the keys.
+
+### To close
+
+Set the seed's borrow range and projections from the model, the way D158 set the account totals, and
+measure what moves before doing it. Frame 20's range and every capture of it would change.
+
+*Status: **open, report only**.*
