@@ -38,7 +38,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium } from 'playwright';
+import { chromium } from './playwright-keep.mjs';
 // The seed is shared with the other browser-driven scripts. See
 // `scripts/session-seed.mjs` for what it holds, and for the rule about adding
 // to it: a key that selects the variant THIS script looks at belongs in this

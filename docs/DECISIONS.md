@@ -13824,3 +13824,47 @@ per-deployment URLs redirect to Vercel's login (deployment protection), so what 
 deployment serves could not be fetched unauthenticated.
 
 **To reverse.** Delete `.vercelignore`. Every tracked file is served again.
+
+---
+
+## D162. Every page load starts from a clean session
+
+**Date.** 3 October 2026. `src/state.js`, `src/router.js`, new `scripts/playwright-keep.mjs`, the
+test scripts' import line, and `scripts/stale-session.test.mjs`. **Shell assets changed, so `v143`
+becomes `v144` in `sw.js` and `src/cache-version.js` together** (D147).
+
+**Decision.** The stored session is discarded on every genuine page load - a refresh, a reopened tab,
+a new visit - and the app opens at `#/home`.
+- `state.js` removes `yfh-state` from `sessionStorage` before `load()` reads it. `load()` then returns
+  `defaultState()`, `isNewSession()` is true and `openSession()` applies the opening stage exactly as a
+  first visit does (D48).
+- `startRouter()` replaces a non-home hash with `#/home` before the history root is seeded, using
+  `replaceState`, so no `hashchange` fires. `#/home?...` is left alone, which keeps `?diag=1`.
+- The long-press "Clear all progress" route (`#/reset`, `resetState()`) is unchanged.
+
+**Why.** The prototype is now shared publicly, so each visitor must get a fresh session. Persisting the
+store across a refresh existed for moderated sessions, where a facilitator reloads mid-task; it is the
+wrong default for an unmoderated public link, where it resumes someone else's state or the same
+visitor's half-finished state with no way to tell. The hash is reset as well, because a fresh session on
+a mid-flow screen (a result page with no calculator behind it) is more confusing than either alone.
+
+**Only a real load.** Module evaluation happens once per load, so in-app navigation keeps its state. A
+bfcache restore does not re-execute modules and so keeps its state too. That is accepted, and no
+`pageshow` handler was added.
+
+**The one opt-out is a test flag, not a URL parameter.** `window.__YFH_KEEP_SESSION__ = true`, set by a
+harness through `addInitScript` before navigation, skips both the wipe and the redirect. Anything in the
+URL is usable by a public visitor, so a parameter would have been a public switch. Nothing in the app,
+its UI or its URL sets the flag. `scripts/playwright-keep.mjs` sets it on every context for every script
+that seeds or reloads; `stale-session.test.mjs` imports plain `playwright` and covers both cases.
+
+**What this retires.** The mid-session refresh-restore behaviour documented in D59 and the `restoredFromStorage`
+branch of `load()` are unreachable for a public visitor. They stay, for the flagged harness. D59's and
+D97's discards still run on that path and are still tested.
+
+**Open point, not decided here.** A facilitator reloading mid-task in a moderated session now loses
+state. If moderated sessions resume on the public build, they need either the flag or a separate build.
+
+**To reverse.** Remove the `keepsSession()` block above `let state = load()` in `state.js` and the
+redirect at the top of `startRouter()`, then bump the version pair.
+

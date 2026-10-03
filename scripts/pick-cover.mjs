@@ -66,7 +66,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright';
+import { chromium } from './playwright-keep.mjs';
 import { FULL } from './session-seed.mjs';
 import { anchorRules, isAnchorSelector } from './anchor-rules.mjs';
 import { checkCover } from './cover-checks.mjs';

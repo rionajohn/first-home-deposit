@@ -176,7 +176,7 @@ do not introduce a state management library.
 - Pick a cover by double-click: `pick-cover.cmd` in the repo root (runs `scripts/pick-cover.mjs` on `/home` and keeps its window open for the output; arguments pass through). D160.
 - Pick and shoot a cover: `node scripts/pick-cover.mjs [--routes=<route>]` opens a seeded, date-pinned Chromium with an anchor overlay and a route menu; Alt+Shift+C copies the `shots.mjs --cover` command, Alt+Shift+P runs it and verifies the PNG into `.screenshots/picked/`. See the file header for all keys. D159, D160.
 - Seed a desktop browser by hand: `node scripts/print-seed.mjs` prints one `sessionStorage.setItem(...)` line to paste into DevTools, the session `shots.mjs` captures (only holds in `CAPTURE_TODAY`'s month).
-- Seed state for every browser-driven script lives in `scripts/session-seed.mjs`. One copy, imported by `shots.mjs`, `overlap.test.mjs`, `action-bar.test.mjs` and `inset-shots.mjs`. A key that selects one script's variant belongs in that script's own overrides, not in the shared seed.
+- Seed state for every browser-driven script lives in `scripts/session-seed.mjs`. One copy, imported by `shots.mjs`, `overlap.test.mjs`, `action-bar.test.mjs` and `inset-shots.mjs`. A key that selects one script's variant belongs in that script's own overrides, not in the shared seed. Since D162 the app wipes its session on every load, so those scripts import `./playwright-keep.mjs` (it sets `window.__YFH_KEEP_SESSION__` on every context) rather than `playwright`; only `stale-session.test.mjs` imports plain `playwright`.
 
 ## Stack rules
 - Vanilla HTML, CSS and ES modules. No framework, no bundler, no build step.
