@@ -4,5 +4,10 @@
       "WebFetch(domain:developer.apple.com)",
       "WebFetch(domain:web.dev)"
     ]
+  },
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
   }
 }

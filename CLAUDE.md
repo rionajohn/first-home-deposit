@@ -82,6 +82,7 @@ do not introduce a state management library.
 - End every session with a commit. Leave nothing staged, uncommitted or
   half-applied for the next session to inherit. If it cannot be committed,
   stop and say why rather than leaving it in the tree.
+- Commit messages must never include Claude/Claude Code attribution, co-author trailers, or session links.
 - Do not change behaviour outside the scope stated in the prompt.
 - Preserve existing dark mode support in anything you touch.
 - Update docs/DECISIONS.md with a dated entry for any design decision you make.
