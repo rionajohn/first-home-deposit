@@ -1,9 +1,9 @@
 /**
  * Central state store: the build-spec.md section 6 variables, the
  * navigation/journey flags build-spec.md section 1 and 2 reference, and the
- * frame 33 scenario controls (build-spec.md section 7). Persisted to
- * sessionStorage so a page refresh doesn't lose a participant's progress
- * mid-session; router.js clears it on #/reset for the next participant.
+ * frame 33 scenario controls (build-spec.md section 7). Held in
+ * sessionStorage for one page load only: every load starts clean (DECISIONS.md
+ * D162), and router.js also clears it on #/reset.
  *
  * Every section 6 entry is shaped { value, provenance } — see
  * src/model/model.js for how these are read and combined. Nothing in this
@@ -489,6 +489,39 @@ function persist(state) {
   } catch {
     // sessionStorage unavailable (private browsing, storage full, etc.) —
     // the session continues with in-memory state only.
+  }
+}
+
+/**
+ * EVERY PAGE LOAD STARTS CLEAN (DECISIONS.md D162).
+ *
+ * The prototype is shared publicly, so a refresh or a reopened tab must never
+ * resume a previous visitor's - or the same visitor's - progress. The stored
+ * blob is removed here, before `load()` reads it, so `load()` returns
+ * `defaultState()` and `router.js`'s `openSession()` applies the opening stage
+ * exactly as a first visit does. `resetState()` stays the long-press route's
+ * own clear and is untouched.
+ *
+ * ONLY A GENUINE PAGE LOAD REACHES THIS LINE. Module evaluation happens once
+ * per load, so in-app navigation and a bfcache restore (which does not
+ * re-execute modules) keep their state - deliberately, with no `pageshow`
+ * handler.
+ *
+ * THE ONE OPT-OUT IS A TEST FLAG, NOT A URL PARAMETER: anything in the URL is
+ * usable by a public visitor. A test harness sets
+ * `window.__YFH_KEEP_SESSION__ = true` with `addInitScript` before navigation;
+ * nothing in the app, the UI or the URL sets it. `router.js` reads the same
+ * flag through `keepsSession()` to skip its home redirect.
+ */
+export function keepsSession() {
+  return typeof window !== 'undefined' && window.__YFH_KEEP_SESSION__ === true;
+}
+
+if (!keepsSession()) {
+  try {
+    sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // sessionStorage unavailable (or no window, under node --test): nothing to clear.
   }
 }
 

@@ -11,7 +11,7 @@
  * built yet" placeholder rather than a broken screen.
  */
 
-import { getState, setState, resetState, resetCollapsibles, isNewSession } from './state.js';
+import { getState, setState, resetState, resetCollapsibles, isNewSession, keepsSession } from './state.js';
 import { stagePatch, OPENING_STAGE } from './stage.js';
 import content from './content.js';
 import { bottomNavHTML, NAVIGABLE_TABS } from './components/ui.js';
@@ -643,6 +643,18 @@ function renderCurrentRoute() {
     return;
   }
 
+  // AN UNKNOWN HASH GOES HOME (DECISIONS.md D163). `startRouter` handles one at
+  // boot; this is the same rule for one reached during a session, by a typed
+  // hash or an edited link. `location.replace` overwrites the entry, so Back
+  // does not return to it, and the `hashchange` it fires renders `/home`.
+  // Matching is exact: `/goals/` and `/GOALS` are not routes. Tested against
+  // ROUTES, not `registry`, so a spec'd route with no screen yet still reads
+  // "Not built yet" instead of vanishing (none exists today).
+  if (!ROUTES.includes(path)) {
+    window.location.replace('#/home');
+    return;
+  }
+
   const render = registry.get(path);
   if (!render) {
     renderNotBuilt(container, path);
@@ -707,6 +719,16 @@ function openSession() {
 }
 
 export function startRouter() {
+  // EVERY PAGE LOAD OPENS AT HOME (DECISIONS.md D162). `state.js` has already
+  // discarded the stored session, so a hash left in the address bar by a
+  // refresh would drop a participant onto a mid-flow screen with a session
+  // they never built. `replaceState` rather than `location.replace`: it fires
+  // no `hashchange`, and the history root is seeded from whatever the hash is
+  // below. `/home?...` is left alone, so `?diag=1` survives a reload.
+  if (!keepsSession() && parseHash().path !== '/home') {
+    window.history.replaceState(null, '', '#/home');
+  }
+
   // The opening scenario first: every screen below reads the store, and the
   // history root stamped next describes the route that store resolves to.
   openSession();

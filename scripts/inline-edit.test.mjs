@@ -40,7 +40,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium } from 'playwright';
+import { chromium } from './playwright-keep.mjs';
 import { BUILD_VERSION } from '../src/cache-version.js';
 import { DEPOSIT_PCT_OPTIONS } from '../src/model/rates.js';
 import { FULL } from './session-seed.mjs';

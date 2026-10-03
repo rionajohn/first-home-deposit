@@ -318,7 +318,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium, webkit } from 'playwright';
+import { chromium, webkit } from './playwright-keep.mjs';
 import { FULL } from './session-seed.mjs';
 import { anchorRules, isAnchorSelector } from './anchor-rules.mjs';
 import { STAGES } from '../src/stage.js';

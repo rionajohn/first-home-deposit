@@ -43,7 +43,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium } from 'playwright';
+import { chromium } from './playwright-keep.mjs';
 
 import { FULL, SEED_ANCHOR } from './session-seed.mjs';
 import { DEPLOYMENTS, currentDeployment } from '../src/deployments.js';

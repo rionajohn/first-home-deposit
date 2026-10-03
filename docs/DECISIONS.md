@@ -13824,3 +13824,95 @@ per-deployment URLs redirect to Vercel's login (deployment protection), so what 
 deployment serves could not be fetched unauthenticated.
 
 **To reverse.** Delete `.vercelignore`. Every tracked file is served again.
+
+---
+
+## D162. Every page load starts from a clean session
+
+**Date.** 3 October 2026. `src/state.js`, `src/router.js`, new `scripts/playwright-keep.mjs`, the
+test scripts' import line, and `scripts/stale-session.test.mjs`. **Shell assets changed, so `v143`
+becomes `v144` in `sw.js` and `src/cache-version.js` together** (D147).
+
+**Decision.** The stored session is discarded on every genuine page load - a refresh, a reopened tab,
+a new visit - and the app opens at `#/home`.
+- `state.js` removes `yfh-state` from `sessionStorage` before `load()` reads it. `load()` then returns
+  `defaultState()`, `isNewSession()` is true and `openSession()` applies the opening stage exactly as a
+  first visit does (D48).
+- `startRouter()` replaces a non-home hash with `#/home` before the history root is seeded, using
+  `replaceState`, so no `hashchange` fires. `#/home?...` is left alone, which keeps `?diag=1`.
+- The long-press "Clear all progress" route (`#/reset`, `resetState()`) is unchanged.
+
+**Why.** The prototype is now shared publicly, so each visitor must get a fresh session. Persisting the
+store across a refresh existed for moderated sessions, where a facilitator reloads mid-task; it is the
+wrong default for an unmoderated public link, where it resumes someone else's state or the same
+visitor's half-finished state with no way to tell. The hash is reset as well, because a fresh session on
+a mid-flow screen (a result page with no calculator behind it) is more confusing than either alone.
+
+**Only a real load.** Module evaluation happens once per load, so in-app navigation keeps its state. A
+bfcache restore does not re-execute modules and so keeps its state too. That is accepted, and no
+`pageshow` handler was added.
+
+**The one opt-out is a test flag, not a URL parameter.** `window.__YFH_KEEP_SESSION__ = true`, set by a
+harness through `addInitScript` before navigation, skips both the wipe and the redirect. Anything in the
+URL is usable by a public visitor, so a parameter would have been a public switch. Nothing in the app,
+its UI or its URL sets the flag. `scripts/playwright-keep.mjs` sets it on every context for every script
+that seeds or reloads; `stale-session.test.mjs` imports plain `playwright` and covers both cases.
+
+**What this retires.** The mid-session refresh-restore behaviour documented in D59 and the `restoredFromStorage`
+branch of `load()` are unreachable for a public visitor. They stay, for the flagged harness. D59's and
+D97's discards still run on that path and are still tested.
+
+**Open point, not decided here.** A facilitator reloading mid-task in a moderated session now loses
+state. If moderated sessions resume on the public build, they need either the flag or a separate build.
+
+**To reverse.** Remove the `keepsSession()` block above `let state = load()` in `state.js` and the
+redirect at the top of `startRouter()`, then bump the version pair.
+
+
+
+## D163. Any URL that is not a route lands on home
+
+**Date.** 3 October 2026. `src/router.js`, new `404.html`, `.vercelignore`, new
+`scripts/unknown-route.test.mjs`. **Shell assets changed (`router.js`), so `v144` becomes `v145` in
+`sw.js` and `src/cache-version.js` together** (D147). `404.html` is not a shell asset.
+
+**Decision.** Two layers, each covering the part the other cannot reach.
+- **Hash.** `renderCurrentRoute` replaces any hash whose path is not in `ROUTES` with `#/home`
+  (`location.replace`, so Back does not return to it). D162 already did this at boot; this is the same
+  rule for a hash reached during a session. `#/reset` is handled before the check. Matching is exact:
+  `#/goals/`, `#/GOALS` and `#/` are not routes and go home, and are not normalised to the real route.
+- **Path.** A root `404.html` does `location.replace('/#/home')`, with a meta refresh as a fallback.
+  Vercel serves it, with a 404 status, for any path that matches no file. A bare `/` is a real file and
+  is untouched.
+
+**Why `404.html` and not `vercel.json`.** Vercel checks the filesystem before serving it, so real assets
+(`sw.js`, `src/`, `assets/`) are never affected and no exclusion list exists to maintain. A redirect
+runs before the filesystem check and would need a negative-lookahead list that a new top-level file could
+silently fall into. A rewrite to `index.html` would break the app's relative URLs (`src/app.js` would
+resolve under `/foo/bar/`).
+
+**Tested against `ROUTES`, not the registry.** Every `ROUTES` entry currently has a registered screen
+(checked 3 October 2026, 30 of 30), so the "Not built yet" screen is unreachable by any in-app link. It
+is kept for a spec'd route added before its screen, rather than redirecting it silently.
+
+**`.vercelignore` needed `!/404.html`.** It is an allow-list (D161); the file would otherwise not have
+been deployed.
+
+**The app name is hard-coded in `404.html`.** It loads no modules, so it cannot read `src/config.js`.
+`scripts/set-app-name.mjs` does not update it. Rename it by hand with the display name.
+
+**Not in `SHELL_ASSETS`, on purpose.** Precached, it would be served from the cache instead of being
+fetched. Unknown paths are never in the cache, so a returning participant on an older shell still gets
+the current `404.html` from the network.
+
+**Known limitation: offline.** An unknown path with no connection never reaches `404.html`: the service
+worker's fetch rejects and the browser shows its own offline page. `sw.js` has no navigation fallback.
+Adding one would touch a shell asset and is out of scope.
+
+**Not confirmed locally.** The Vercel fallback itself. `scripts/unknown-route.test.mjs` loads
+`/404.html` directly. It is confirmed on a deployment only.
+
+**Related, not fixed.** A query string on `/` misses the service worker's cache: GAPS.md G141.
+
+**To reverse.** Remove the `ROUTES` check in `renderCurrentRoute`, delete `404.html` and its
+`.vercelignore` line, and bump the version pair.

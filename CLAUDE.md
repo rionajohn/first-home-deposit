@@ -82,6 +82,7 @@ do not introduce a state management library.
 - End every session with a commit. Leave nothing staged, uncommitted or
   half-applied for the next session to inherit. If it cannot be committed,
   stop and say why rather than leaving it in the tree.
+- Commit messages must never include Claude/Claude Code attribution, co-author trailers, or session links.
 - Do not change behaviour outside the scope stated in the prompt.
 - Preserve existing dark mode support in anything you touch.
 - Update docs/DECISIONS.md with a dated entry for any design decision you make.
@@ -150,6 +151,7 @@ do not introduce a state management library.
   focusable, and that selecting a chip leaves `sessionStorage` byte-identical. Reads its expected
   versions from `src/deployments.js` at run time, so it follows the list rather than breaking on it.
   The current-chip case skips itself when no row carries the running `BUILD_VERSION`. ~13s.)
+- Test unknown routes: `node --test scripts/unknown-route.test.mjs` (drives Chromium; an unknown hash during a session lands on `#/home`, Back does not return to it, `/reset` and valid routes are untouched, and `404.html` redirects. D163. ~17s.)
 - Test the skip-ahead control: `node --test scripts/skip-ahead.test.mjs` (pure Node, no browser; asserts three round trips leave state identical and that the threshold stays a ratio of CHECKPOINT_FRACTION rather than an amount)
 - Test the draft invariant: `node --test scripts/g62.test.mjs` (pure Node, no browser; asserts that abandoning a draft changes no committed key, and that `gapToCheckpoint()` reads the stored checkpoint rather than re-deriving it)
 - Test stale-session discard: `node --test scripts/stale-session.test.mjs` (drives Chromium; asserts a
@@ -175,7 +177,7 @@ do not introduce a state management library.
 - Pick a cover by double-click: `pick-cover.cmd` in the repo root (runs `scripts/pick-cover.mjs` on `/home` and keeps its window open for the output; arguments pass through). D160.
 - Pick and shoot a cover: `node scripts/pick-cover.mjs [--routes=<route>]` opens a seeded, date-pinned Chromium with an anchor overlay and a route menu; Alt+Shift+C copies the `shots.mjs --cover` command, Alt+Shift+P runs it and verifies the PNG into `.screenshots/picked/`. See the file header for all keys. D159, D160.
 - Seed a desktop browser by hand: `node scripts/print-seed.mjs` prints one `sessionStorage.setItem(...)` line to paste into DevTools, the session `shots.mjs` captures (only holds in `CAPTURE_TODAY`'s month).
-- Seed state for every browser-driven script lives in `scripts/session-seed.mjs`. One copy, imported by `shots.mjs`, `overlap.test.mjs`, `action-bar.test.mjs` and `inset-shots.mjs`. A key that selects one script's variant belongs in that script's own overrides, not in the shared seed.
+- Seed state for every browser-driven script lives in `scripts/session-seed.mjs`. One copy, imported by `shots.mjs`, `overlap.test.mjs`, `action-bar.test.mjs` and `inset-shots.mjs`. A key that selects one script's variant belongs in that script's own overrides, not in the shared seed. Since D162 the app wipes its session on every load, so those scripts import `./playwright-keep.mjs` (it sets `window.__YFH_KEEP_SESSION__` on every context) rather than `playwright`; only `stale-session.test.mjs` imports plain `playwright`.
 
 ## Stack rules
 - Vanilla HTML, CSS and ES modules. No framework, no bundler, no build step.

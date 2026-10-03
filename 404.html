@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      Vercel serves this, with a 404 status, for any path that matches no file.
+      It sends the visitor to the home screen (DECISIONS.md D163). It is NOT in
+      sw.js's SHELL_ASSETS: it must always come from the network. Paths are
+      absolute because this page can be served from any depth. The app name is
+      hard-coded here, since this page loads no modules; it is not read from
+      src/config.js (see docs/README.md on renaming).
+    -->
+    <title>Your first home</title>
+    <meta http-equiv="refresh" content="0;url=/#/home" />
+    <script>window.location.replace('/#/home');</script>
+    <style>
+      body { margin: 0; font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #1c1c1e; background: #fff; }
+      p { margin: 0; padding: 24px; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <p>Taking you to Your first home...</p>
+  </body>
+</html>

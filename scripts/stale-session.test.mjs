@@ -24,6 +24,14 @@
  * A shim would have to reproduce that ordering to mean anything, and it is
  * the ordering that was subtle. Driving a real reload tests the thing itself.
  *
+ * D162: EVERY PAGE LOAD STARTS CLEAN. This file imports plain `playwright`,
+ * not `./playwright-keep.mjs`, because it owns both halves of that rule:
+ *   - WITH `window.__YFH_KEEP_SESSION__` (the default here, via `contextWith`),
+ *     restoration and the D59 / D97 discards behave exactly as they did before
+ *     D162, which is what every test above the last block asserts;
+ *   - WITHOUT it (the last block), a reload or a new load wipes the session and
+ *     lands on #/home.
+ *
  * Run with:  node --test scripts/stale-session.test.mjs
  */
 import { test, before, after } from 'node:test';
@@ -67,8 +75,10 @@ after(async () => {
  * written before any app code runs - which is what a tab carried across a
  * deploy actually looks like.
  */
-async function contextWith(stored) {
+async function contextWith(stored, { keep = true } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  // D162's test-only opt-out. `keep: false` is the public visitor's page.
+  if (keep) await ctx.addInitScript(() => { window.__YFH_KEEP_SESSION__ = true; });
   if (stored !== undefined) {
     await ctx.addInitScript(([k, v]) => {
       try { sessionStorage.setItem(k, JSON.stringify(v)); } catch {}
@@ -480,6 +490,104 @@ test('frame 33 shows the anchor date beside the build version', async () => {
     // The rendered form is "D Month YYYY" through formatFullDate, so the year
     // is the part that can be asserted without restating the formatter here.
     assert.ok(anchor.includes(String(new Date().getFullYear())), `anchor caption should name the year: ${anchor}`);
+  } finally {
+    await ctx.close();
+  }
+});
+
+// D162 ------------------------------------------------------------------------
+// Every page load starts clean. The init script below seeds ONCE, behind a
+// marker the app never touches: `addInitScript` runs again on every navigation,
+// so an unguarded seed would put the old session back after the app had wiped
+// it and the reload case would pass for the wrong reason.
+
+async function seededOnce(stored, { keep }) {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  if (keep) await ctx.addInitScript(() => { window.__YFH_KEEP_SESSION__ = true; });
+  await ctx.addInitScript(([k, v]) => {
+    try {
+      if (sessionStorage.getItem('__seeded')) return;
+      sessionStorage.setItem(k, JSON.stringify(v));
+      sessionStorage.setItem('__seeded', '1');
+    } catch {}
+  }, [STORAGE_KEY, stored]);
+  return ctx;
+}
+
+const hashOf = (page) => page.evaluate(() => window.location.hash);
+
+test('without the flag, a load discards a same-build session and lands on #/home', async () => {
+  const ctx = await seededOnce(priorSession(BUILD_VERSION), { keep: false });
+  try {
+    const page = await ctx.newPage();
+    await page.goto(`${base}/index.html#/calculator/review`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+
+    assert.equal(await hashOf(page), '#/home', 'a deep link opens at home');
+    const stored = await readStored(page);
+    assert.equal(stored['money-in'].value, MOCK_POSITION.moneyIn);
+    assert.notEqual(stored['money-in'].value, 2240);
+    assert.equal(stored.ltvVideoSeen, false);
+    assert.equal(stored.journeyStarted, false);
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('without the flag, a reload mid-flow wipes progress and lands on #/home', async () => {
+  const ctx = await seededOnce(undefined, { keep: false });
+  try {
+    const page = await ctx.newPage();
+    await page.goto(`${base}/index.html#/home`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(300);
+
+    // A hash navigation (no reload) to a mid-flow screen, THEN the progress is
+    // written: the app re-persists its in-memory store on every hashchange, so
+    // a write made before the navigation is overwritten and proves nothing.
+    await page.evaluate(() => { window.location.hash = '#/assumptions/saving'; });
+    await page.waitForTimeout(300);
+    await page.evaluate((k) => {
+      const s = JSON.parse(sessionStorage.getItem(k));
+      s['money-in'] = { value: 2240, provenance: 'entered' };
+      s.journeyStarted = true;
+      sessionStorage.setItem(k, JSON.stringify(s));
+    }, STORAGE_KEY);
+    assert.equal(await hashOf(page), '#/assumptions/saving');
+    assert.equal((await readStored(page))['money-in'].value, 2240, 'progress was in place before the reload');
+
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+
+    assert.equal(await hashOf(page), '#/home');
+    const stored = await readStored(page);
+    assert.equal(stored['money-in'].value, MOCK_POSITION.moneyIn);
+    assert.equal(stored.journeyStarted, false);
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('without the flag, `#/home?diag=1` is not redirected away from its query', async () => {
+  const ctx = await seededOnce(undefined, { keep: false });
+  try {
+    const page = await ctx.newPage();
+    await page.goto(`${base}/index.html#/home?diag=1`, { waitUntil: 'networkidle' });
+    assert.equal(await hashOf(page), '#/home?diag=1');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('with the flag, a deep route and a same-build session survive a reload', async () => {
+  const ctx = await seededOnce(priorSession(BUILD_VERSION), { keep: true });
+  try {
+    const page = await ctx.newPage();
+    await page.goto(`${base}/index.html#/position`, { waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(300);
+
+    assert.equal(await hashOf(page), '#/position', 'the flag skips the home redirect');
+    assert.equal((await readStored(page))['money-in'].value, 2240, 'the flag skips the wipe');
   } finally {
     await ctx.close();
   }
