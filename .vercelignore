@@ -6,7 +6,8 @@
 # therefore private until it is added here on purpose - the same deliberate
 # step sw.js's SHELL_ASSETS already asks of any new runtime file.
 #
-# The runtime set is index.html, manifest.webmanifest, sw.js, src/ and assets/:
+# The runtime set is index.html, manifest.webmanifest, sw.js, src/ and assets/, plus
+# 404.html, which Vercel serves for an unmatched path (D163) and the app never loads:
 # SHELL_ASSETS lists nothing outside them, index.html and the manifest load
 # nothing outside them, and src/ has no dynamic import and fetches only
 # ./manifest.webmanifest. Kept private as a result: docs/, scripts/,
@@ -15,6 +16,7 @@
 
 /*
 !/index.html
+!/404.html
 !/manifest.webmanifest
 !/sw.js
 !/src

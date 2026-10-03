@@ -13868,3 +13868,51 @@ state. If moderated sessions resume on the public build, they need either the fl
 **To reverse.** Remove the `keepsSession()` block above `let state = load()` in `state.js` and the
 redirect at the top of `startRouter()`, then bump the version pair.
 
+
+
+## D163. Any URL that is not a route lands on home
+
+**Date.** 3 October 2026. `src/router.js`, new `404.html`, `.vercelignore`, new
+`scripts/unknown-route.test.mjs`. **Shell assets changed (`router.js`), so `v144` becomes `v145` in
+`sw.js` and `src/cache-version.js` together** (D147). `404.html` is not a shell asset.
+
+**Decision.** Two layers, each covering the part the other cannot reach.
+- **Hash.** `renderCurrentRoute` replaces any hash whose path is not in `ROUTES` with `#/home`
+  (`location.replace`, so Back does not return to it). D162 already did this at boot; this is the same
+  rule for a hash reached during a session. `#/reset` is handled before the check. Matching is exact:
+  `#/goals/`, `#/GOALS` and `#/` are not routes and go home, and are not normalised to the real route.
+- **Path.** A root `404.html` does `location.replace('/#/home')`, with a meta refresh as a fallback.
+  Vercel serves it, with a 404 status, for any path that matches no file. A bare `/` is a real file and
+  is untouched.
+
+**Why `404.html` and not `vercel.json`.** Vercel checks the filesystem before serving it, so real assets
+(`sw.js`, `src/`, `assets/`) are never affected and no exclusion list exists to maintain. A redirect
+runs before the filesystem check and would need a negative-lookahead list that a new top-level file could
+silently fall into. A rewrite to `index.html` would break the app's relative URLs (`src/app.js` would
+resolve under `/foo/bar/`).
+
+**Tested against `ROUTES`, not the registry.** Every `ROUTES` entry currently has a registered screen
+(checked 3 October 2026, 30 of 30), so the "Not built yet" screen is unreachable by any in-app link. It
+is kept for a spec'd route added before its screen, rather than redirecting it silently.
+
+**`.vercelignore` needed `!/404.html`.** It is an allow-list (D161); the file would otherwise not have
+been deployed.
+
+**The app name is hard-coded in `404.html`.** It loads no modules, so it cannot read `src/config.js`.
+`scripts/set-app-name.mjs` does not update it. Rename it by hand with the display name.
+
+**Not in `SHELL_ASSETS`, on purpose.** Precached, it would be served from the cache instead of being
+fetched. Unknown paths are never in the cache, so a returning participant on an older shell still gets
+the current `404.html` from the network.
+
+**Known limitation: offline.** An unknown path with no connection never reaches `404.html`: the service
+worker's fetch rejects and the browser shows its own offline page. `sw.js` has no navigation fallback.
+Adding one would touch a shell asset and is out of scope.
+
+**Not confirmed locally.** The Vercel fallback itself. `scripts/unknown-route.test.mjs` loads
+`/404.html` directly. It is confirmed on a deployment only.
+
+**Related, not fixed.** A query string on `/` misses the service worker's cache: GAPS.md G141.
+
+**To reverse.** Remove the `ROUTES` check in `renderCurrentRoute`, delete `404.html` and its
+`.vercelignore` line, and bump the version pair.

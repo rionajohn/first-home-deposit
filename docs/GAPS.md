@@ -5969,3 +5969,20 @@ The browsers are a separate setup step, because `npm install` does not download 
 Commands list.
 
 *Status: **closed** by the `devDependencies` entry; `package-lock.json` regenerated in the same commit.*
+
+
+## G141. A query string on the root URL misses the service worker's cache. OPEN - REPORT ONLY
+
+*Found 3 October 2026 while diagnosing D163.*
+
+`sw.js` matches requests with `caches.match(event.request)`, which keys on the full URL. `SHELL_ASSETS`
+holds `./` and `./index.html`, so `/?fbclid=...` or `/?utm_source=...` (a shared LinkedIn link may carry
+either) is a cache miss. Online it falls through to the network, gets `index.html` with a 200 and caches
+it as a separate entry, so nothing is visibly wrong. **Offline, the first visit on such a URL fails**,
+and a returning participant gets a duplicate cache entry per distinct query string.
+
+Not fixed. The likely remedy is `caches.match(event.request, { ignoreSearch: true })` for navigations,
+which touches a shell asset and needs the version pair bumped. It is the same gap as D163's offline
+limitation for unknown paths: the worker has no navigation fallback.
+
+*Status: **open**, report only.*

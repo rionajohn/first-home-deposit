@@ -643,6 +643,18 @@ function renderCurrentRoute() {
     return;
   }
 
+  // AN UNKNOWN HASH GOES HOME (DECISIONS.md D163). `startRouter` handles one at
+  // boot; this is the same rule for one reached during a session, by a typed
+  // hash or an edited link. `location.replace` overwrites the entry, so Back
+  // does not return to it, and the `hashchange` it fires renders `/home`.
+  // Matching is exact: `/goals/` and `/GOALS` are not routes. Tested against
+  // ROUTES, not `registry`, so a spec'd route with no screen yet still reads
+  // "Not built yet" instead of vanishing (none exists today).
+  if (!ROUTES.includes(path)) {
+    window.location.replace('#/home');
+    return;
+  }
+
   const render = registry.get(path);
   if (!render) {
     renderNotBuilt(container, path);

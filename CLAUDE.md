@@ -151,6 +151,7 @@ do not introduce a state management library.
   focusable, and that selecting a chip leaves `sessionStorage` byte-identical. Reads its expected
   versions from `src/deployments.js` at run time, so it follows the list rather than breaking on it.
   The current-chip case skips itself when no row carries the running `BUILD_VERSION`. ~13s.)
+- Test unknown routes: `node --test scripts/unknown-route.test.mjs` (drives Chromium; an unknown hash during a session lands on `#/home`, Back does not return to it, `/reset` and valid routes are untouched, and `404.html` redirects. D163. ~17s.)
 - Test the skip-ahead control: `node --test scripts/skip-ahead.test.mjs` (pure Node, no browser; asserts three round trips leave state identical and that the threshold stays a ratio of CHECKPOINT_FRACTION rather than an amount)
 - Test the draft invariant: `node --test scripts/g62.test.mjs` (pure Node, no browser; asserts that abandoning a draft changes no committed key, and that `gapToCheckpoint()` reads the stored checkpoint rather than re-deriving it)
 - Test stale-session discard: `node --test scripts/stale-session.test.mjs` (drives Chromium; asserts a
