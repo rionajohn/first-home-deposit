@@ -50,7 +50,7 @@ have seen.
 | v9 | 2026-09-03 | `b4353d9` | Clicking an account row on frame 03 no longer scrolls the device screen inside the bezel. The checkbox input's containing block was resolving to #app.screen, stranding the focus target outside the scroller and giving Blink a 141px scroll it could not recover, which opened an empty band under the tab bar and clipped the app bar. Affected Chrome and Edge only, so this removes a device-dependent difference in what participants saw. Carries D144 and D145. | first-home-deposit-ux-prototype-8oi3bzsi5-riona-john.vercel.app |
 | v10 | 2026-09-10 | `5bece4c` | Fixes the installed iOS app running off the bottom of the screen (status bar meta tag, D151); adds a device diagnostic on frame 33; hardens the tab bar safe-area rule against engines without :has(). | first-home-deposit-ux-prototype-gbdi53m5b-riona-john.vercel.app |
 | v11 | 2026-09-13 | `879bad1` | Flatten the desktop page background and drop the phone's shadow, so the frame reads on its own (D153). Add the v10 row to the in-app build list, which stopped at v9. | first-home-deposit-ux-prototype-i4f9zsgbq-riona-john.vercel.app |
-| v12 | 2026-10-03 | `pending` | Public sharing. Every page load now resets progress so each visitor gets a fresh session (D162), and unknown paths and routes redirect to home (D163). Also adds the commit attribution setting. This deployment differs from the version evaluated in the usability study: progress no longer persists across reloads. | pending |
+| v12 | 2026-10-03 | `84adb06` | Public sharing. Every page load now resets progress so each visitor gets a fresh session (D162), and unknown paths and routes redirect to home (D163). Also adds the commit attribution setting. This deployment differs from the version evaluated in the usability study: progress no longer persists across reloads. | first-home-deposit-ux-prototype-eb40nw9hr-riona-john.vercel.app |
 
 A production deployment that changes only documentation or governance files carries no
 version number, so Vercel's deployment history holds more deployments than this table holds
@@ -72,8 +72,10 @@ deployment URL with the merge.
 
 ### Where these dates and commits come from
 
-`main` has a linear history and every merge so far was a fast-forward, so none of them exists as a
-merge commit and the graph alone cannot date a deployment. The seven moves were read from
+`main` was linear and every merge up to v10 was a fast-forward, so none of them exists as a
+merge commit and the graph alone cannot date a deployment. That stopped being true at v11: `main` took
+a direct commit (`9e3d1d9`, 12 September 2026), so v11 and v12 are merge commits (`879bad1`, `84adb06`). See
+GAPS.md G142. The seven moves up to v10 were read from
 `git reflog show main`, which covers the branch from its initial commit on 19 August 2026 and is
 therefore complete rather than truncated. Six of the seven carried a change to prototype code and
 all six now have a deployment reason. The seventh, `7825bd9` on 31 August 2026, changed only this

@@ -5986,3 +5986,21 @@ which touches a shell asset and needs the version pair bumped. It is the same ga
 limitation for unknown paths: the worker has no navigation fallback.
 
 *Status: **open**, report only.*
+
+
+## G142. A commit was made directly on `main`, so `main` is no longer linear. OPEN - REPORT ONLY
+
+*Found 3 October 2026, when the v12 fast-forward was refused.*
+
+`9e3d1d9` ("Add a --cover capture mode to the screenshot script", 12 September 2026) was committed on
+`main` directly, which `docs/README.md` says never happens. `build` already held the same change as
+`b2285a2`: the two have the same patch-id, so the commit is a duplicate and no content was lost. The
+v11 merge then had to be a merge commit (`879bad1`), and with `main` carrying a commit `build` did not
+have, v12 could not be a fast-forward either and is `84adb06`.
+
+`docs/README.md` stated that `main` had a linear history and that every merge was a fast-forward. That
+was true to v10 and is corrected there. Before v12, `build` was fast-forwarded to `main`
+(`git merge --ff-only main`), so `main` is an ancestor of `build` again and the next deployment can be a
+fast-forward. `9e3d1d9` stays in history; nothing was rewritten.
+
+*Status: **open**, report only. Not repeated: the rule stands, nothing is committed to `main` directly.*
